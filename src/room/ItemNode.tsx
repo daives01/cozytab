@@ -70,20 +70,30 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange }: 
             onClick={(e) => {
                 e.stopPropagation();
                 if (mode === "view" && item.url) {
-                    window.open(item.url, "_blank");
+                    // window.open(item.url, "_blank");
                 }
             }}
         >
             <div
-                className="rounded-lg shadow-lg flex items-center justify-center font-bold text-white"
+                className="relative group"
                 style={{
-                    width: 100,
-                    height: 100,
-                    backgroundColor: item.url ? "#60a5fa" : "#9ca3af",
-                    border: isSelected && mode === "edit" ? "3px solid #3b82f6" : "none",
+                    width: 150, // Default width, maybe make this dynamic later
+                    // height: 100, // Let height be auto to maintain aspect ratio
                 }}
             >
-                {item.catalogItemId}
+                <img
+                    src={item.url}
+                    alt="Room Item"
+                    className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
+                    style={{
+                        filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
+                    }}
+                />
+
+                {/* Selection Border/Overlay */}
+                {isSelected && mode === "edit" && (
+                    <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
+                )}
             </div>
         </div>
     );

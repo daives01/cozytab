@@ -2,12 +2,11 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useEffect, useState, type DragEvent, useRef } from "react";
 import type { RoomItem } from "../types";
-import { OnboardingModal } from "./OnboardingModal";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
-import { Pencil, Eye, LogIn } from "lucide-react";
+import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
 
 type Mode = "view" | "edit";
 
@@ -26,8 +25,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [showOnboarding, setShowOnboarding] = useState(!isGuest);
-    const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -54,11 +52,15 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         if (!isGuest) {
             if (room === null) {
                 createRoom();
-            } else if (room && localItems.length === 0) {
-                setLocalItems(room.items as RoomItem[]);
+            } else if (room) {
+                // Always sync with server state in view mode
+                // Or if we haven't loaded anything yet (initial load)
+                if (mode === "view" || localItems.length === 0) {
+                    setLocalItems(room.items as RoomItem[]);
+                }
             }
         }
-    }, [room, createRoom, localItems.length, isGuest]);
+    }, [room, createRoom, isGuest, mode]); // Removed localItems.length, added mode
 
     const backgroundTheme = room?.backgroundTheme || "light";
 
@@ -71,6 +73,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         if (mode !== "edit") return;
 
         const catalogItemId = e.dataTransfer.getData("catalogItemId");
+        const itemUrl = e.dataTransfer.getData("itemUrl");
+
         if (!catalogItemId) return;
 
         if (!containerRef.current) return;
@@ -94,7 +98,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             scaleY: 1,
             rotation: 0,
             zIndex: 10,
-            url: "",
+            url: itemUrl || "",
         };
 
         setLocalItems((prev) => [...prev, newItem]);
@@ -179,69 +183,74 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
             {/* UI Elements (Unscaled, Screen-Relative) */}
 
-            {/* Top Bar - z-50 */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none" style={{ zIndex: 50 }}>
-                <div className="bg-background/90 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg border-2 border-border transform -rotate-1 pointer-events-auto">
-                    <h1 className="text-3xl font-bold text-foreground tracking-wide">Nook</h1>
-                </div>
-
-                <div className="flex gap-3 pointer-events-auto">
-                    {isGuest ? (
-                        <SignInButton mode="modal">
-                            <Button size="lg" className="font-bold text-lg shadow-lg">
-                                <LogIn className="mr-2 h-5 w-5" />
-                                Login
-                            </Button>
-                        </SignInButton>
-                    ) : (
-                        <>
-                            <Button
-                                size="lg"
-                                variant={mode === "view" ? "default" : "secondary"}
-                                className="font-bold text-lg shadow-lg transition-all"
-                                onClick={() => {
-                                    if (mode === "edit") {
-                                        saveRoom({ roomId: room!._id, items: localItems });
-                                        setMode("view");
-                                    } else {
-                                        setMode("edit");
-                                        setIsDrawerOpen(true);
-                                    }
-                                }}
-                            >
-                                {mode === "view" ? (
-                                    <>
-                                        <Pencil className="mr-2 h-5 w-5" />
-                                        Edit
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="mr-2 h-5 w-5" />
-                                        View
-                                    </>
-                                )}
-                            </Button>
-                        </>
-                    )}
-                </div>
+            {/* Top Right Controls - z-50 */}
+            <div className="absolute top-4 right-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
+                {isGuest ? (
+                    <SignInButton mode="modal">
+                        <Button size="lg" className="font-bold text-lg shadow-lg">
+                            <LogIn className="mr-2 h-5 w-5" />
+                            Login
+                        </Button>
+                    </SignInButton>
+                ) : (
+                    <>
+                        <Button
+                            size="icon"
+                            variant={mode === "view" ? "secondary" : "default"}
+                            className="h-12 w-12 rounded-full shadow-lg transition-all"
+                            onClick={() => {
+                                if (mode === "edit") {
+                                    // Lock it (Save & View)
+                                    saveRoom({ roomId: room!._id, items: localItems });
+                                    setMode("view");
+                                    setIsDrawerOpen(false);
+                                } else {
+                                    // Unlock it (Edit)
+                                    setMode("edit");
+                                    setIsDrawerOpen(true);
+                                }
+                            }}
+                        >
+                            {mode === "view" ? (
+                                <Lock className="h-6 w-6" />
+                            ) : (
+                                <LockOpen className="h-6 w-6" />
+                            )}
+                        </Button>
+                    </>
+                )}
             </div>
 
-            {/* Asset Drawer - z-50 */}
+            {/* Drawer Toggle Button - Only in Edit Mode */}
+            {mode === "edit" && (
+                <div
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300"
+                    style={{ right: isDrawerOpen ? "140px" : "0" }}
+                >
+                    <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-12 w-8 rounded-l-xl rounded-r-none shadow-lg border-y border-l border-border"
+                        onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                    >
+                        {isDrawerOpen ? (
+                            <ChevronRight className="h-6 w-6" />
+                        ) : (
+                            <ChevronLeft className="h-6 w-6" />
+                        )}
+                    </Button>
+                </div>
+            )}
+
+            {/* Asset Drawer - z-40 */}
             {mode === "edit" && (
                 <AssetDrawer
                     isOpen={isDrawerOpen}
-                    onOpenChange={setIsDrawerOpen}
-                    onDragStart={(e, id) => {
+                    onDragStart={(e: React.DragEvent, id: string, url: string) => {
                         e.dataTransfer.setData("catalogItemId", id);
+                        e.dataTransfer.setData("itemUrl", url);
                     }}
                 />
-            )}
-
-            {/* Onboarding - z-100 */}
-            {showOnboarding && !isGuest && (
-                <div className="absolute inset-0" style={{ zIndex: 100 }}>
-                    <OnboardingModal onClose={() => setShowOnboarding(false)} />
-                </div>
             )}
         </div>
     );
