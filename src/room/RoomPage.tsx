@@ -1,11 +1,11 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useEffect, useState } from "react";
-import { RoomCanvas } from "./RoomCanvas";
 import type { RoomItem } from "../types";
 import { SelectedItemPanel } from "./SelectedItemPanel";
 import { ItemPalette } from "./ItemPalette";
 import { OnboardingModal } from "./OnboardingModal";
+import { ItemNode } from "./ItemNode";
 
 type Mode = "view" | "edit";
 
@@ -29,50 +29,119 @@ export function RoomPage() {
         }
     }, [room, createRoom, localItems.length]);
 
-    if (!room) return <div className="h-screen w-screen flex items-center justify-center">Loading room...</div>;
+    if (!room) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+                Loading your nook...
+            </div>
+        );
+    }
 
     return (
-        <div className="h-screen w-screen flex flex-col overflow-hidden">
-            <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm fixed top-0 left-0 right-0 z-50 shadow-sm">
-                <h1 className="text-xl font-bold text-gray-800">Nook</h1>
-                <div className="flex gap-2">
+        <div className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand']">
+            {/* Background - z-0 */}
+            <div
+                className="absolute inset-0"
+                style={{
+                    backgroundColor: room.backgroundTheme === "dark" ? "#1a1a1a" : "#f8fafc",
+                    zIndex: 0,
+                }}
+                onClick={() => setSelectedId(null)}
+            />
+
+            {/* Grid - z-1 */}
+            {mode === "edit" && (
+                <svg
+                    className="absolute inset-0 pointer-events-none"
+                    style={{ zIndex: 1 }}
+                >
+                    <defs>
+                        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                            <path
+                                d="M 50 0 L 0 0 0 50"
+                                fill="none"
+                                stroke="#cbd5e1"
+                                strokeWidth="1"
+                                strokeDasharray="4,4"
+                            />
+                        </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" />
+                </svg>
+            )}
+
+            {/* Items - z-10 */}
+            {localItems.map((item) => (
+                <ItemNode
+                    key={item.id}
+                    item={item}
+                    isSelected={item.id === selectedId}
+                    mode={mode}
+                    onSelect={() => setSelectedId(item.id)}
+                    onChange={(newItem) => {
+                        setLocalItems((prev) =>
+                            prev.map((i) => (i.id === newItem.id ? newItem : i))
+                        );
+                    }}
+                />
+            ))}
+
+            {/* Top Bar - z-50 */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start" style={{ zIndex: 50 }}>
+                <div className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg border-2 border-gray-800 transform -rotate-1">
+                    <h1 className="text-3xl font-bold text-gray-800 tracking-wide">Nook</h1>
+                </div>
+
+                <div className="flex gap-3">
                     <button
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${mode === "view"
-                                ? "bg-blue-600 text-white hover:bg-blue-700"
-                                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                        className={`px-6 py-3 rounded-xl font-bold text-lg border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] transition-all ${mode === "view"
+                                ? "bg-blue-400 text-white hover:bg-blue-500"
+                                : "bg-white text-gray-800 hover:bg-gray-50"
                             }`}
                         onClick={() => setMode((m) => (m === "view" ? "edit" : "view"))}
                     >
-                        {mode === "view" ? "Enter Edit Mode" : "Exit Edit Mode"}
+                        {mode === "view" ? "✎ Edit" : "👁 View"}
                     </button>
+
                     {mode === "edit" && (
                         <button
-                            className="px-4 py-2 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                            className="px-6 py-3 rounded-xl font-bold text-lg border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(22,163,74,1)] bg-green-400 text-white hover:bg-green-500 transition-all"
                             onClick={async () => {
-                                await saveRoom({
-                                    roomId: room._id,
-                                    items: localItems,
-                                });
+                                await saveRoom({ roomId: room._id, items: localItems });
                                 setMode("view");
                             }}
                         >
-                            Save Changes
+                            ✓ Save
                         </button>
                     )}
                 </div>
-            </header>
+            </div>
 
-            <div className="flex-1 relative">
-                <RoomCanvas
-                    backgroundTheme={room.backgroundTheme}
-                    items={localItems}
-                    mode={mode}
-                    selectedId={selectedId}
-                    onItemsChange={setLocalItems}
-                    onSelectItem={setSelectedId}
-                />
+            {/* Palette - z-50 */}
+            {mode === "edit" && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4" style={{ zIndex: 50 }}>
+                    <ItemPalette
+                        onAddItem={(newItem) => {
+                            const item: RoomItem = {
+                                id: crypto.randomUUID(),
+                                catalogItemId: newItem.catalogItemId!,
+                                x: window.innerWidth / 2,
+                                y: window.innerHeight / 2,
+                                scaleX: 1,
+                                scaleY: 1,
+                                rotation: 0,
+                                zIndex: 10,
+                                url: "",
+                            };
+                            setLocalItems((prev) => [...prev, item]);
+                        }}
+                    />
+                </div>
+            )}
 
-                {mode === "edit" && selectedItem && (
+            {/* Side Panel - z-50 */}
+            {mode === "edit" && selectedItem && (
+                <div className="absolute right-6 top-24" style={{ zIndex: 50 }}>
                     <SelectedItemPanel
                         item={selectedItem}
                         onClose={() => setSelectedId(null)}
@@ -82,31 +151,15 @@ export function RoomPage() {
                             );
                         }}
                     />
-                )}
+                </div>
+            )}
 
-                {mode === "edit" && (
-                    <ItemPalette
-                        onAddItem={(newItem) => {
-                            const item: RoomItem = {
-                                id: crypto.randomUUID(),
-                                catalogItemId: newItem.catalogItemId!,
-                                x: newItem.x!,
-                                y: newItem.y!,
-                                scaleX: newItem.scaleX!,
-                                scaleY: newItem.scaleY!,
-                                rotation: newItem.rotation!,
-                                zIndex: newItem.zIndex!,
-                                url: "",
-                            };
-                            setLocalItems((prev) => [...prev, item]);
-                        }}
-                    />
-                )}
-
-                {showOnboarding && (
+            {/* Onboarding - z-100 */}
+            {showOnboarding && (
+                <div className="absolute inset-0" style={{ zIndex: 100 }}>
                     <OnboardingModal onClose={() => setShowOnboarding(false)} />
-                )}
-            </div>
+                </div>
+            )}
         </div>
     );
 }

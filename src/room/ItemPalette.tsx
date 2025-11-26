@@ -10,14 +10,14 @@ export function ItemPalette({ onAddItem }: ItemPaletteProps) {
     const catalogItems = useQuery(api.catalog.list);
     const seedCatalog = useMutation(api.catalog.seed);
 
-    if (!catalogItems) return <div className="p-4 text-sm text-gray-500">Loading catalog...</div>;
+    if (!catalogItems) return <div className="p-4 text-sm text-gray-500 font-['Patrick_Hand']">Loading catalog...</div>;
 
     return (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white rounded-xl shadow-xl p-2 border border-gray-200 flex gap-2 overflow-x-auto max-w-[90vw]">
+        <div className="bg-white rounded-2xl shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] border-2 border-gray-800 p-3 flex gap-3 overflow-x-auto max-w-full">
             {catalogItems.map((item: any) => (
                 <button
                     key={item._id}
-                    className="flex flex-col items-center gap-1 p-2 hover:bg-gray-50 rounded-lg transition-colors min-w-[80px]"
+                    className="flex flex-col items-center gap-2 p-2 hover:bg-blue-50 rounded-xl transition-all active:scale-95 min-w-[90px] group"
                     onClick={() => {
                         onAddItem({
                             catalogItemId: item.name,
@@ -31,10 +31,12 @@ export function ItemPalette({ onAddItem }: ItemPaletteProps) {
                         });
                     }}
                 >
-                    <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
-                        <img src={item.assetUrl} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="w-16 h-16 bg-gray-100 rounded-lg border-2 border-gray-800 flex items-center justify-center overflow-hidden group-hover:border-blue-500 transition-colors bg-cover bg-center"
+                        style={{ backgroundImage: `url(${item.assetUrl})` }}
+                    >
+                        {!item.assetUrl && <span className="text-xs text-gray-400">No Img</span>}
                     </div>
-                    <span className="text-xs font-medium text-gray-700">{item.name}</span>
+                    <span className="text-sm font-bold text-gray-700 group-hover:text-blue-600 font-['Patrick_Hand']">{item.name}</span>
                 </button>
             ))}
 
@@ -42,7 +44,7 @@ export function ItemPalette({ onAddItem }: ItemPaletteProps) {
                 <div className="p-2 flex items-center">
                     <button
                         onClick={() => seedCatalog()}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm font-medium"
+                        className="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl border-2 border-blue-300 hover:bg-blue-200 font-bold font-['Patrick_Hand']"
                     >
                         Seed Catalog
                     </button>

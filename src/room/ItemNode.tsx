@@ -1,5 +1,4 @@
-import { useRef, useEffect } from "react";
-import { Rect, Transformer, Group, Text } from "react-konva";
+import { useState, useRef, useEffect } from "react";
 import type { RoomItem } from "../types";
 
 interface ItemNodeProps {
@@ -10,104 +9,77 @@ interface ItemNodeProps {
     onChange: (item: RoomItem) => void;
 }
 
-export function ItemNode({
-    item,
-    isSelected,
-    mode,
-    onSelect,
-    onChange,
-}: ItemNodeProps) {
-    const shapeRef = useRef<any>(null);
-    const trRef = useRef<any>(null);
+export function ItemNode({ item, isSelected, mode, onSelect, onChange }: ItemNodeProps) {
+    const [isDragging, setIsDragging] = useState(false);
+    const dragOffset = useRef({ x: 0, y: 0 });
 
-    useEffect(() => {
-        if (isSelected && mode === "edit") {
-            // we need to attach transformer manually
-            trRef.current.nodes([shapeRef.current]);
-            trRef.current.getLayer().batchDraw();
-        }
-    }, [isSelected, mode]);
+    const handleMouseDown = (e: React.MouseEvent) => {
+        if (mode !== "edit") return;
+        e.stopPropagation();
 
-    const handleClick = () => {
-        if (mode === "edit") {
-            onSelect();
-        } else if (item.url) {
-            window.open(item.url, "_blank");
-        }
+        onSelect();
+        setIsDragging(true);
+
+        // Calculate offset from mouse to item's current position
+        dragOffset.current = {
+            x: e.clientX - item.x,
+            y: e.clientY - item.y,
+        };
     };
 
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            onChange({
+                ...item,
+                x: e.clientX - dragOffset.current.x,
+                y: e.clientY - dragOffset.current.y,
+            });
+        };
+
+        const handleMouseUp = () => {
+            setIsDragging(false);
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+        };
+    }, [isDragging, item, onChange]);
+
     return (
-        <>
-            <Group
-                id={item.id}
-                x={item.x}
-                y={item.y}
-                rotation={item.rotation}
-                scaleX={item.scaleX}
-                scaleY={item.scaleY}
-                draggable={mode === "edit"}
-                onClick={handleClick}
-                onTap={handleClick}
-                onDragEnd={(e) => {
-                    onChange({
-                        ...item,
-                        x: e.target.x(),
-                        y: e.target.y(),
-                    });
+        <div
+            className="absolute"
+            style={{
+                left: item.x,
+                top: item.y,
+                transform: "translate(-50%, -50%)",
+                zIndex: 10,
+                cursor: mode === "edit" ? "move" : "pointer",
+            }}
+            onMouseDown={handleMouseDown}
+            onClick={(e) => {
+                e.stopPropagation();
+                if (mode === "view" && item.url) {
+                    window.open(item.url, "_blank");
+                }
+            }}
+        >
+            <div
+                className="rounded-lg shadow-lg flex items-center justify-center font-bold text-white"
+                style={{
+                    width: 100,
+                    height: 100,
+                    backgroundColor: item.url ? "#60a5fa" : "#9ca3af",
+                    border: isSelected && mode === "edit" ? "3px solid #3b82f6" : "none",
                 }}
-                onTransformEnd={() => {
-                    // transformer is changing scale and rotation
-                    const node = shapeRef.current;
-                    const scaleX = node.scaleX();
-                    const scaleY = node.scaleY();
-
-                    // we will reset it back
-                    node.scaleX(1);
-                    node.scaleY(1);
-
-                    onChange({
-                        ...item,
-                        x: node.x(),
-                        y: node.y(),
-                        // set minimal value
-                        scaleX: Math.max(0.1, scaleX),
-                        scaleY: Math.max(0.1, scaleY),
-                        rotation: node.rotation(),
-                    });
-                }}
-                ref={shapeRef}
             >
-                {/* Placeholder for item content */}
-                <Rect
-                    width={100}
-                    height={100}
-                    fill={item.url ? "#60a5fa" : "#9ca3af"}
-                    cornerRadius={8}
-                    shadowBlur={5}
-                    shadowColor="black"
-                    shadowOpacity={0.2}
-                />
-                <Text
-                    text={item.catalogItemId}
-                    width={100}
-                    align="center"
-                    y={40}
-                    fill="white"
-                    fontStyle="bold"
-                />
-            </Group>
-            {isSelected && mode === "edit" && (
-                <Transformer
-                    ref={trRef}
-                    boundBoxFunc={(oldBox, newBox) => {
-                        // limit resize
-                        if (newBox.width < 5 || newBox.height < 5) {
-                            return oldBox;
-                        }
-                        return newBox;
-                    }}
-                />
-            )}
-        </>
+                {item.catalogItemId}
+            </div>
+        </div>
     );
 }
