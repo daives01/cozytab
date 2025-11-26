@@ -1,35 +1,106 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type DragEvent, useRef } from "react";
 import type { RoomItem } from "../types";
-import { SelectedItemPanel } from "./SelectedItemPanel";
-import { ItemPalette } from "./ItemPalette";
 import { OnboardingModal } from "./OnboardingModal";
 import { ItemNode } from "./ItemNode";
+import { AssetDrawer } from "./AssetDrawer";
+import { Button } from "@/components/ui/button";
+import { SignInButton } from "@clerk/clerk-react";
+import { Pencil, Eye, LogIn } from "lucide-react";
 
 type Mode = "view" | "edit";
 
-export function RoomPage() {
-    const room = useQuery(api.rooms.getMyRoom, {});
+interface RoomPageProps {
+    isGuest?: boolean;
+}
+
+const ROOM_WIDTH = 1920;
+const ROOM_HEIGHT = 1080;
+
+export function RoomPage({ isGuest = false }: RoomPageProps) {
+    const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
 
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [showOnboarding, setShowOnboarding] = useState(true);
-
-    const selectedItem = localItems.find((i) => i.id === selectedId);
+    const [showOnboarding, setShowOnboarding] = useState(!isGuest);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+    const [scale, setScale] = useState(1);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (room === null) {
-            createRoom();
-        } else if (room && localItems.length === 0) {
-            setLocalItems(room.items as RoomItem[]);
-        }
-    }, [room, createRoom, localItems.length]);
+        const handleResize = () => {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
 
-    if (!room) {
+            const scaleX = windowWidth / ROOM_WIDTH;
+            const scaleY = windowHeight / ROOM_HEIGHT;
+
+            // Use Math.max to cover the screen (no black bars)
+            const newScale = Math.max(scaleX, scaleY);
+            setScale(newScale);
+        };
+
+        window.addEventListener("resize", handleResize);
+        handleResize(); // Initial calculation
+
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (!isGuest) {
+            if (room === null) {
+                createRoom();
+            } else if (room && localItems.length === 0) {
+                setLocalItems(room.items as RoomItem[]);
+            }
+        }
+    }, [room, createRoom, localItems.length, isGuest]);
+
+    const backgroundTheme = room?.backgroundTheme || "light";
+
+    const handleDragOver = (e: DragEvent) => {
+        e.preventDefault();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+        e.preventDefault();
+        if (mode !== "edit") return;
+
+        const catalogItemId = e.dataTransfer.getData("catalogItemId");
+        if (!catalogItemId) return;
+
+        if (!containerRef.current) return;
+
+        const rect = containerRef.current.getBoundingClientRect();
+
+        // Mouse position relative to the container (top-left of container)
+        const relativeX = e.clientX - rect.left;
+        const relativeY = e.clientY - rect.top;
+
+        // Convert to unscaled coordinates
+        const x = relativeX / scale;
+        const y = relativeY / scale;
+
+        const newItem: RoomItem = {
+            id: crypto.randomUUID(),
+            catalogItemId: catalogItemId,
+            x: x,
+            y: y,
+            scaleX: 1,
+            scaleY: 1,
+            rotation: 0,
+            zIndex: 10,
+            url: "",
+        };
+
+        setLocalItems((prev) => [...prev, newItem]);
+    };
+
+    if (!isGuest && !room) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
                 Loading your nook...
@@ -38,124 +109,136 @@ export function RoomPage() {
     }
 
     return (
-        <div className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand']">
-            {/* Background - z-0 */}
+        <div
+            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center"
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+        >
+            {/* Scaled Room Container */}
             <div
-                className="absolute inset-0"
+                ref={containerRef}
                 style={{
-                    backgroundColor: room.backgroundTheme === "dark" ? "#1a1a1a" : "#f8fafc",
-                    zIndex: 0,
+                    width: ROOM_WIDTH,
+                    height: ROOM_HEIGHT,
+                    transform: `scale(${scale})`,
+                    transformOrigin: "center",
+                    position: "relative",
+                    flexShrink: 0,
                 }}
-                onClick={() => setSelectedId(null)}
-            />
-
-            {/* Grid - z-1 */}
-            {mode === "edit" && (
-                <svg
-                    className="absolute inset-0 pointer-events-none"
-                    style={{ zIndex: 1 }}
-                >
-                    <defs>
-                        <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                            <path
-                                d="M 50 0 L 0 0 0 50"
-                                fill="none"
-                                stroke="#cbd5e1"
-                                strokeWidth="1"
-                                strokeDasharray="4,4"
-                            />
-                        </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-            )}
-
-            {/* Items - z-10 */}
-            {localItems.map((item) => (
-                <ItemNode
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedId}
-                    mode={mode}
-                    onSelect={() => setSelectedId(item.id)}
-                    onChange={(newItem) => {
-                        setLocalItems((prev) =>
-                            prev.map((i) => (i.id === newItem.id ? newItem : i))
-                        );
+            >
+                {/* Background - z-0 */}
+                <div
+                    className="absolute inset-0"
+                    style={{
+                        backgroundColor: backgroundTheme === "dark" ? "#1a1a1a" : "#f8fafc",
+                        zIndex: 0,
                     }}
+                    onClick={() => setSelectedId(null)}
                 />
-            ))}
+
+                {/* Grid - z-1 */}
+                {mode === "edit" && (
+                    <svg
+                        className="absolute inset-0 pointer-events-none"
+                        style={{ zIndex: 1 }}
+                    >
+                        <defs>
+                            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                                <path
+                                    d="M 50 0 L 0 0 0 50"
+                                    fill="none"
+                                    stroke="#cbd5e1"
+                                    strokeWidth="1"
+                                    strokeDasharray="4,4"
+                                />
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid)" />
+                    </svg>
+                )}
+
+                {/* Items - z-10 */}
+                {localItems.map((item) => (
+                    <ItemNode
+                        key={item.id}
+                        item={item}
+                        isSelected={item.id === selectedId}
+                        mode={mode}
+                        scale={scale}
+                        onSelect={() => {
+                            setSelectedId(item.id)
+                        }}
+                        onChange={(newItem) => {
+                            setLocalItems((prev) =>
+                                prev.map((i) => (i.id === newItem.id ? newItem : i))
+                            );
+                        }}
+                    />
+                ))}
+            </div>
+
+            {/* UI Elements (Unscaled, Screen-Relative) */}
 
             {/* Top Bar - z-50 */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-start" style={{ zIndex: 50 }}>
-                <div className="bg-white/90 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg border-2 border-gray-800 transform -rotate-1">
-                    <h1 className="text-3xl font-bold text-gray-800 tracking-wide">Nook</h1>
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none" style={{ zIndex: 50 }}>
+                <div className="bg-background/90 backdrop-blur-sm px-6 py-3 rounded-2xl shadow-lg border-2 border-border transform -rotate-1 pointer-events-auto">
+                    <h1 className="text-3xl font-bold text-foreground tracking-wide">Nook</h1>
                 </div>
 
-                <div className="flex gap-3">
-                    <button
-                        className={`px-6 py-3 rounded-xl font-bold text-lg border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] transition-all ${mode === "view"
-                                ? "bg-blue-400 text-white hover:bg-blue-500"
-                                : "bg-white text-gray-800 hover:bg-gray-50"
-                            }`}
-                        onClick={() => setMode((m) => (m === "view" ? "edit" : "view"))}
-                    >
-                        {mode === "view" ? "✎ Edit" : "👁 View"}
-                    </button>
-
-                    {mode === "edit" && (
-                        <button
-                            className="px-6 py-3 rounded-xl font-bold text-lg border-2 border-gray-800 shadow-[4px_4px_0px_0px_rgba(22,163,74,1)] bg-green-400 text-white hover:bg-green-500 transition-all"
-                            onClick={async () => {
-                                await saveRoom({ roomId: room._id, items: localItems });
-                                setMode("view");
-                            }}
-                        >
-                            ✓ Save
-                        </button>
+                <div className="flex gap-3 pointer-events-auto">
+                    {isGuest ? (
+                        <SignInButton mode="modal">
+                            <Button size="lg" className="font-bold text-lg shadow-lg">
+                                <LogIn className="mr-2 h-5 w-5" />
+                                Login
+                            </Button>
+                        </SignInButton>
+                    ) : (
+                        <>
+                            <Button
+                                size="lg"
+                                variant={mode === "view" ? "default" : "secondary"}
+                                className="font-bold text-lg shadow-lg transition-all"
+                                onClick={() => {
+                                    if (mode === "edit") {
+                                        saveRoom({ roomId: room!._id, items: localItems });
+                                        setMode("view");
+                                    } else {
+                                        setMode("edit");
+                                        setIsDrawerOpen(true);
+                                    }
+                                }}
+                            >
+                                {mode === "view" ? (
+                                    <>
+                                        <Pencil className="mr-2 h-5 w-5" />
+                                        Edit
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye className="mr-2 h-5 w-5" />
+                                        View
+                                    </>
+                                )}
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>
 
-            {/* Palette - z-50 */}
+            {/* Asset Drawer - z-50 */}
             {mode === "edit" && (
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4" style={{ zIndex: 50 }}>
-                    <ItemPalette
-                        onAddItem={(newItem) => {
-                            const item: RoomItem = {
-                                id: crypto.randomUUID(),
-                                catalogItemId: newItem.catalogItemId!,
-                                x: window.innerWidth / 2,
-                                y: window.innerHeight / 2,
-                                scaleX: 1,
-                                scaleY: 1,
-                                rotation: 0,
-                                zIndex: 10,
-                                url: "",
-                            };
-                            setLocalItems((prev) => [...prev, item]);
-                        }}
-                    />
-                </div>
-            )}
-
-            {/* Side Panel - z-50 */}
-            {mode === "edit" && selectedItem && (
-                <div className="absolute right-6 top-24" style={{ zIndex: 50 }}>
-                    <SelectedItemPanel
-                        item={selectedItem}
-                        onClose={() => setSelectedId(null)}
-                        onChange={(updates) => {
-                            setLocalItems((prev) =>
-                                prev.map((i) => (i.id === selectedItem.id ? { ...i, ...updates } : i))
-                            );
-                        }}
-                    />
-                </div>
+                <AssetDrawer
+                    isOpen={isDrawerOpen}
+                    onOpenChange={setIsDrawerOpen}
+                    onDragStart={(e, id) => {
+                        e.dataTransfer.setData("catalogItemId", id);
+                    }}
+                />
             )}
 
             {/* Onboarding - z-100 */}
-            {showOnboarding && (
+            {showOnboarding && !isGuest && (
                 <div className="absolute inset-0" style={{ zIndex: 100 }}>
                     <OnboardingModal onClose={() => setShowOnboarding(false)} />
                 </div>

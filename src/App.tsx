@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, SignInButton } from "@clerk/clerk-react";
+import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect } from "react";
@@ -10,9 +10,7 @@ function App() {
         <AuthenticatedApp />
       </SignedIn>
       <SignedOut>
-        <div className="h-screen flex items-center justify-center">
-          <SignInButton />
-        </div>
+        <RoomPage isGuest />
       </SignedOut>
     </>
   );

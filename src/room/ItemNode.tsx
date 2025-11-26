@@ -5,13 +5,15 @@ interface ItemNodeProps {
     item: RoomItem;
     isSelected: boolean;
     mode: "view" | "edit";
+    scale: number;
     onSelect: () => void;
     onChange: (item: RoomItem) => void;
 }
 
-export function ItemNode({ item, isSelected, mode, onSelect, onChange }: ItemNodeProps) {
+export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
-    const dragOffset = useRef({ x: 0, y: 0 });
+    const dragStart = useRef({ x: 0, y: 0 });
+    const itemStart = useRef({ x: 0, y: 0 });
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
@@ -20,21 +22,24 @@ export function ItemNode({ item, isSelected, mode, onSelect, onChange }: ItemNod
         onSelect();
         setIsDragging(true);
 
-        // Calculate offset from mouse to item's current position
-        dragOffset.current = {
-            x: e.clientX - item.x,
-            y: e.clientY - item.y,
-        };
+        // Store initial mouse position and item position
+        dragStart.current = { x: e.clientX, y: e.clientY };
+        itemStart.current = { x: item.x, y: item.y };
     };
 
     useEffect(() => {
         if (!isDragging) return;
 
         const handleMouseMove = (e: MouseEvent) => {
+            // Calculate delta in screen coordinates
+            const dx = e.clientX - dragStart.current.x;
+            const dy = e.clientY - dragStart.current.y;
+
+            // Apply scale to delta to get room coordinates
             onChange({
                 ...item,
-                x: e.clientX - dragOffset.current.x,
-                y: e.clientY - dragOffset.current.y,
+                x: itemStart.current.x + dx / scale,
+                y: itemStart.current.y + dy / scale,
             });
         };
 
@@ -49,7 +54,7 @@ export function ItemNode({ item, isSelected, mode, onSelect, onChange }: ItemNod
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
         };
-    }, [isDragging, item, onChange]);
+    }, [isDragging, item, onChange, scale]);
 
     return (
         <div
