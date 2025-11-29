@@ -8,9 +8,11 @@ interface ItemNodeProps {
     scale: number;
     onSelect: () => void;
     onChange: (item: RoomItem) => void;
+    onDragStart?: () => void;
+    onDragEnd?: () => void;
 }
 
-export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange }: ItemNodeProps) {
+export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
@@ -21,6 +23,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange }: 
 
         onSelect();
         setIsDragging(true);
+        onDragStart?.();
 
         // Store initial mouse position and item position
         dragStart.current = { x: e.clientX, y: e.clientY };
@@ -45,6 +48,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange }: 
 
         const handleMouseUp = () => {
             setIsDragging(false);
+            onDragEnd?.();
         };
 
         window.addEventListener("mousemove", handleMouseMove);

@@ -4,9 +4,11 @@ import { useEffect, useState, type DragEvent, useRef } from "react";
 import type { RoomItem } from "../types";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
+import { TrashCan } from "./TrashCan";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
+import { debounce } from "@/lib/debounce";
 
 type Mode = "view" | "edit";
 
@@ -27,6 +29,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [scale, setScale] = useState(1);
+    const [isDraggingItem, setIsDraggingItem] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -48,6 +51,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    // Debounced save function
+    const debouncedSave = useRef(
+        debounce((roomId: string, items: RoomItem[]) => {
+            saveRoom({ roomId: roomId as any, items });
+        }, 1000) // 1 second debounce
+    ).current;
+
     useEffect(() => {
         if (!isGuest) {
             if (room === null) {
@@ -62,7 +72,12 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         }
     }, [room, createRoom, isGuest, mode]); // Removed localItems.length, added mode
 
-    const backgroundTheme = room?.backgroundTheme || "light";
+    // Auto-save when items change in edit mode
+    useEffect(() => {
+        if (mode === "edit" && room && localItems.length > 0) {
+            debouncedSave(room._id, localItems);
+        }
+    }, [localItems, mode, room, debouncedSave]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -134,7 +149,10 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundColor: backgroundTheme === "dark" ? "#1a1a1a" : "#f8fafc",
+                        backgroundImage: "url('/src/assets/house.png')",
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                        backgroundRepeat: "no-repeat",
                         zIndex: 0,
                     }}
                     onClick={() => setSelectedId(null)}
@@ -177,6 +195,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 prev.map((i) => (i.id === newItem.id ? newItem : i))
                             );
                         }}
+                        onDragStart={() => setIsDraggingItem(true)}
+                        onDragEnd={() => setIsDraggingItem(false)}
                     />
                 ))}
             </div>
@@ -200,8 +220,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             className="h-12 w-12 rounded-full shadow-lg transition-all"
                             onClick={() => {
                                 if (mode === "edit") {
-                                    // Lock it (Save & View)
-                                    saveRoom({ roomId: room!._id, items: localItems });
+                                    // Lock it (View mode) - No need to save, auto-save handles it
                                     setMode("view");
                                     setIsDrawerOpen(false);
                                 } else {
@@ -252,6 +271,18 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     }}
                 />
             )}
+
+            {/* Trash Can - z-50 */}
+            <TrashCan
+                isActive={mode === "edit" && isDraggingItem}
+                onDragOver={() => { }} // Not using this currently
+                onDrop={() => {
+                    if (selectedId) {
+                        setLocalItems((prev) => prev.filter((item) => item.id !== selectedId));
+                        setSelectedId(null);
+                    }
+                }}
+            />
         </div>
     );
 }
