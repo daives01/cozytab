@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { RoomItem } from "../types";
 import type { Doc } from "../../convex/_generated/dataModel";
+import type React from "react";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -80,7 +81,6 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 cursor: mode === "edit" ? "move" : "pointer",
             }}
             onMouseDown={handleMouseDown}
-            onSelectStart={(e) => e.preventDefault()}
             onClick={(e) => {
                 e.stopPropagation();
                 if (mode === "view") {

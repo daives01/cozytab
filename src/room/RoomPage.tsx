@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { debounce } from "@/lib/debounce";
+import type React from "react";
 
 type Mode = "view" | "edit";
 
@@ -63,7 +64,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, []);
 
     // Debounced save function
-    const debouncedSaveRef = useRef<ReturnType<typeof debounce<(...args: Parameters<typeof saveRoom>) => void>> | null>(null);
+    const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
     
     useEffect(() => {
         debouncedSaveRef.current = debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
@@ -152,12 +153,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            onSelectStart={(e) => {
-                // Prevent text selection during drag operations
-                if (draggedItemId) {
-                    e.preventDefault();
-                }
-            }}
         >
             {/* Scaled Room Container */}
             <div

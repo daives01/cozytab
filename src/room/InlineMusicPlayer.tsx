@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import type React from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, EyeOff, GripVertical } from "lucide-react";
+import { Play, Pause, EyeOff, GripVertical, RotateCw } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
 
@@ -23,6 +24,7 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
     const showVideo = item.videoVisible !== false; // Default to true if not set
+    const tvRotationAngle = item.tvRotationAngle ?? 20; // Default to 45 degrees
 
     // Listen for YouTube messages from this iframe
     useEffect(() => {
@@ -189,6 +191,17 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         // Note: We don't pause when hiding - let the video keep playing
     };
 
+    const handleRotate = () => {
+        // Toggle between 45 and -45 degrees
+        const newAngle = tvRotationAngle === 45 ? -45 : 45;
+        if (onChange) {
+            onChange({
+                ...item,
+                tvRotationAngle: newAngle,
+            });
+        }
+    };
+
     const handleDragStart = (e: React.MouseEvent) => {
         e.stopPropagation();
         e.preventDefault();
@@ -250,27 +263,48 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
                     <GripVertical className="h-3.5 w-3.5" />
                 </div>
 
-                {/* Frame wrapping the video */}
+                {/* Isometric TV Container */}
                 <div
-                    className="relative bg-gradient-to-br from-background to-muted/30 backdrop-blur-md border-4 border-foreground shadow-[8px_8px_0px_0px_rgba(31,41,55,1)] rounded-xl p-2 font-['Patrick_Hand']"
+                    className="relative"
                     style={{
-                        width: `${videoWidth}px`,
-                        height: `${videoHeight}px`,
+                        perspective: "1000px",
+                        perspectiveOrigin: "center center",
                     }}
                 >
-                    {/* Video - iframe always rendered */}
+                    {/* TV Frame with Isometric Transform */}
                     <div
-                        className="w-full h-full rounded-lg overflow-hidden border-3 border-foreground/30 bg-black"
+                        className="relative font-['Patrick_Hand'] transition-transform duration-300"
+                        style={{
+                            width: `${videoWidth}px`,
+                            height: `${videoHeight}px`,
+                            transform: `rotateX(-28deg) rotateY(${tvRotationAngle}deg) scaleY(0.866)`,
+                            transformStyle: "preserve-3d",
+                            transformOrigin: "center center",
+                        }}
                     >
-                        <iframe
-                            ref={iframeRef}
-                            src={embedUrl}
-                            className="w-full h-full"
-                            style={{ border: "none" }}
-                        />
+                        {/* TV Bezel (outer frame) */}
+                        <div
+                            className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 border-4 border-gray-700 rounded-lg shadow-[8px_8px_0px_0px_rgba(31,41,55,1)]"
+                            style={{
+                                padding: "12px",
+                            }}
+                        >
+                            {/* TV Screen (inner frame) */}
+                            <div
+                                className="relative w-full h-full bg-black rounded-sm overflow-hidden border-2 border-gray-600"
+                            >
+                                {/* Video - iframe always rendered */}
+                                <iframe
+                                    ref={iframeRef}
+                                    src={embedUrl}
+                                    className="w-full h-full"
+                                    style={{ border: "none" }}
+                                />
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Resize Handle - Bottom Right */}
+                    {/* Resize Handle - Bottom Right (outside transform) */}
                     <div
                         className={`absolute bottom-0 right-0 w-5 h-5 cursor-nwse-resize bg-primary border-3 border-foreground rounded-br-lg hover:bg-primary/80 transition-all ${
                             isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -278,6 +312,7 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
                         onMouseDown={handleResizeStart}
                         style={{
                             clipPath: "polygon(100% 100%, 0 100%, 100% 0)",
+                            transform: "translate(50%, 50%)", // Position at corner
                         }}
                     />
                 </div>
@@ -313,6 +348,15 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
                         title="Hide video"
                     >
                         <EyeOff className="h-5 w-5" />
+                    </Button>
+                    <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-10 w-10 rounded-full border-2 shadow-lg bg-background hover:scale-105 transition-transform"
+                        onClick={handleRotate}
+                        title="Rotate TV"
+                    >
+                        <RotateCw className="h-5 w-5" />
                     </Button>
                 </div>
             </div>

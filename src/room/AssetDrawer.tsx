@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import type { Doc } from "../../convex/_generated/dataModel";
+import type React from "react";
 
 interface AssetDrawerProps {
     isOpen: boolean;
@@ -41,7 +42,6 @@ export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
                                     e.dataTransfer.effectAllowed = "move";
                                     onDragStart(e, item._id);
                                 }}
-                                onSelectStart={(e) => e.preventDefault()}
                             >
                                 <div className="aspect-square relative flex items-center justify-center bg-gray-100 overflow-hidden rounded-sm">
                                     <img

@@ -24,6 +24,7 @@ export interface RoomItem {
     videoWidth?: number;
     videoHeight?: number;
     videoVisible?: boolean;
+    tvRotationAngle?: number; // Isometric rotation angle: 45 or -45 degrees
 }
 
 export interface Shortcut {
