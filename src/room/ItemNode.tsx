@@ -28,6 +28,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
         e.stopPropagation();
+        e.preventDefault(); // Prevent text selection
 
         onSelect();
         setIsDragging(true);
@@ -70,7 +71,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
 
     return (
         <div
-            className="absolute"
+            className="absolute select-none"
             style={{
                 left: item.x,
                 top: item.y,
@@ -79,6 +80,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 cursor: mode === "edit" ? "move" : "pointer",
             }}
             onMouseDown={handleMouseDown}
+            onSelectStart={(e) => e.preventDefault()}
             onClick={(e) => {
                 e.stopPropagation();
                 if (mode === "view") {

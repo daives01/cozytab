@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface TrashCanProps {
     draggedItemId: string | null;
@@ -66,26 +65,45 @@ export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
         };
     }, [draggedItemId, onDelete]);
 
+    const isActive = !!draggedItemId;
+    
     return (
         <div
             ref={trashRef}
-            className="absolute bottom-4 left-4 z-50 pointer-events-auto"
+            className={`
+                absolute bottom-6 left-6 z-50 pointer-events-auto transition-all duration-300
+                ${isActive ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}
+            `}
         >
-            <Button
-                size="icon"
-                variant={isHovered && draggedItemId ? "destructive" : "secondary"}
+            <div 
                 className={`
-                    h-12 w-12 rounded-full shadow-lg transition-all duration-200
-                    ${isHovered && draggedItemId ? "scale-110 bg-red-500 hover:bg-red-600" : ""}
+                   relative flex items-center justify-center
+                   transition-transform duration-200 ease-out
+                   ${isHovered ? "scale-125 rotate-6" : "scale-100"}
                 `}
             >
-                <Trash2
-                    className={`
-                        transition-all duration-200
-                        ${isHovered && draggedItemId ? "w-6 h-6" : "w-5 h-5"}
-                    `}
-                />
-            </Button>
+                {/* Visual Circle Background */}
+                <div className={`
+                    w-16 h-16 rounded-full border-4 shadow-xl flex items-center justify-center bg-white
+                    ${isHovered ? "border-red-500 bg-red-50" : "border-stone-600"}
+                `}>
+                   <Trash2 
+                       className={`
+                           w-8 h-8 transition-colors
+                           ${isHovered ? "text-red-600" : "text-stone-600"}
+                       `} 
+                   />
+                </div>
+
+                {/* Text Label styling */}
+                <div className={`
+                    absolute -top-8 bg-black/80 text-white text-xs px-2 py-1 rounded font-['Patrick_Hand'] whitespace-nowrap
+                    transition-opacity duration-200
+                    ${isHovered ? "opacity-100" : "opacity-0"}
+                `}>
+                    Release to delete
+                </div>
+            </div>
         </div>
     );
 }

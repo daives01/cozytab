@@ -147,9 +147,17 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     return (
         <div
-            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center"
+            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center ${
+                draggedItemId ? "select-none" : ""
+            }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
+            onSelectStart={(e) => {
+                // Prevent text selection during drag operations
+                if (draggedItemId) {
+                    e.preventDefault();
+                }
+            }}
         >
             {/* Scaled Room Container */}
             <div
@@ -256,8 +264,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
             {/* UI Elements (Unscaled, Screen-Relative) */}
 
-            {/* Top Right Controls - z-50 */}
-            <div className="absolute top-4 right-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
+            {/* Top Left Controls - z-50 */}
+            <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
                 {isGuest ? (
                     <SignInButton mode="modal">
                         <Button size="lg" className="font-bold text-lg shadow-lg">
@@ -267,28 +275,36 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     </SignInButton>
                 ) : (
                     <>
-                        <Button
-                            size="icon"
-                            variant={mode === "view" ? "secondary" : "default"}
-                            className="h-12 w-12 rounded-full shadow-lg transition-all"
-                            onClick={() => {
-                                if (mode === "edit") {
-                                    // Lock it (View mode) - No need to save, auto-save handles it
-                                    setMode("view");
-                                    setIsDrawerOpen(false);
-                                } else {
-                                    // Unlock it (Edit)
-                                    setMode("edit");
-                                    setIsDrawerOpen(true);
-                                }
-                            }}
-                        >
-                            {mode === "view" ? (
-                                <Lock className="h-6 w-6" />
-                            ) : (
-                                <LockOpen className="h-6 w-6" />
-                            )}
-                        </Button>
+                        <div className="flex flex-col items-center gap-1">
+                            <button
+                                onClick={() => {
+                                    if (mode === "edit") {
+                                        setMode("view");
+                                        setIsDrawerOpen(false);
+                                    } else {
+                                        setMode("edit");
+                                        setIsDrawerOpen(true);
+                                    }
+                                }}
+                                className={`
+                                    relative h-14 w-14 rounded-full border-4 shadow-[0_4px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px] transition-all
+                                    flex items-center justify-center
+                                    ${mode === "view" 
+                                        ? "bg-emerald-400 border-emerald-600 text-emerald-900" 
+                                        : "bg-amber-400 border-amber-600 text-amber-900"
+                                    }
+                                `}
+                            >
+                                {mode === "view" ? (
+                                    <Lock className="h-7 w-7" />
+                                ) : (
+                                    <LockOpen className="h-7 w-7" />
+                                )}
+                            </button>
+                            <span className="font-['Patrick_Hand'] text-white text-lg font-bold drop-shadow-md select-none">
+                                {mode === "view" ? "View" : "Edit"}
+                            </span>
+                        </div>
                     </>
                 )}
             </div>
@@ -296,21 +312,19 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             {/* Drawer Toggle Button - Only in Edit Mode */}
             {mode === "edit" && (
                 <div
-                    className="absolute right-0 top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300"
-                    style={{ right: isDrawerOpen ? "140px" : "0" }}
+                    className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300"
+                    style={{ right: isDrawerOpen ? "180px" : "20px" }}
                 >
-                    <Button
-                        size="icon"
-                        variant="secondary"
-                        className="h-12 w-8 rounded-l-xl rounded-r-none shadow-lg border-y border-l border-border"
+                    <button
                         onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                        className="bg-[#c7b299] hover:bg-[#b5a18b] text-[#5c4d3c] h-16 w-8 rounded-l-lg border-y-4 border-l-4 border-[#a6927d] shadow-lg flex items-center justify-center transition-colors outline-none active:scale-95"
                     >
                         {isDrawerOpen ? (
                             <ChevronRight className="h-6 w-6" />
                         ) : (
                             <ChevronLeft className="h-6 w-6" />
                         )}
-                    </Button>
+                    </button>
                 </div>
             )}
 
