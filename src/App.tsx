@@ -2,6 +2,7 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect } from "react";
+import { RoomPage } from "./room/RoomPage";
 
 function App() {
   return (
@@ -15,8 +16,6 @@ function App() {
     </>
   );
 }
-
-import { RoomPage } from "./room/RoomPage";
 
 function AuthenticatedApp() {
   const user = useQuery(api.users.getMe);

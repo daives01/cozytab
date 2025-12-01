@@ -38,6 +38,22 @@ export const seed = mutation({
                 defaultWidth: 150,
                 defaultHeight: 80,
             },
+            {
+                name: "Computer",
+                category: "furniture",
+                basePrice: 0,
+                assetUrl: "https://placehold.co/120x100/2563eb/fff?text=💻",
+                defaultWidth: 120,
+                defaultHeight: 100,
+            },
+            {
+                name: "Vinyl Player",
+                category: "furniture",
+                basePrice: 0,
+                assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=🎵",
+                defaultWidth: 100,
+                defaultHeight: 100,
+            },
         ];
 
         for (const item of items) {

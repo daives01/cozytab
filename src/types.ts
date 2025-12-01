@@ -9,4 +9,18 @@ export interface RoomItem {
     zIndex: number;
     url?: string;
     variant?: string;
+    musicUrl?: string;
+    musicType?: "youtube" | "spotify";
+    videoX?: number;
+    videoY?: number;
+    videoWidth?: number;
+    videoHeight?: number;
+    videoVisible?: boolean;
+}
+
+export interface Shortcut {
+    id: string;
+    name: string;
+    url: string;
+    icon?: string;
 }

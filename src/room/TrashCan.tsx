@@ -1,77 +1,90 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface TrashCanProps {
-    onDragOver: (isOver: boolean) => void;
-    onDrop: () => void;
-    isActive: boolean;
+    draggedItemId: string | null;
+    onDelete: (itemId: string) => void;
 }
 
-export function TrashCan({ onDragOver, onDrop, isActive }: TrashCanProps) {
-    const [isDragOver, setIsDragOver] = useState(false);
+export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
+    const [isHovered, setIsHovered] = useState(false);
+    const trashRef = useRef<HTMLDivElement>(null);
+    const draggedItemIdRef = useRef<string | null>(null);
 
-    const handleDragEnter = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragOver(true);
-        onDragOver(true);
-    };
+    // Keep ref in sync with prop
+    useEffect(() => {
+        draggedItemIdRef.current = draggedItemId;
+    }, [draggedItemId]);
 
-    const handleDragLeave = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragOver(false);
-        onDragOver(false);
-    };
+    useEffect(() => {
+        if (!draggedItemId) {
+            setIsHovered(false);
+            return;
+        }
 
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-    };
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!trashRef.current) return;
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setIsDragOver(false);
-        onDragOver(false);
-        onDrop();
-    };
+            const rect = trashRef.current.getBoundingClientRect();
+            const isOver = (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            );
 
-    if (!isActive) return null;
+            setIsHovered(isOver);
+        };
+
+        const handleMouseUp = (e: MouseEvent) => {
+            // Use ref to get the current value, even if prop was cleared
+            const currentItemId = draggedItemIdRef.current;
+            if (!currentItemId || !trashRef.current) return;
+
+            const rect = trashRef.current.getBoundingClientRect();
+            const isOver = (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            );
+
+            if (isOver) {
+                onDelete(currentItemId);
+            }
+            setIsHovered(false);
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp, true); // Use capture phase to run before ItemNode
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp, true);
+        };
+    }, [draggedItemId, onDelete]);
 
     return (
         <div
-            className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-50 pointer-events-auto transition-all duration-200"
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
+            ref={trashRef}
+            className="absolute bottom-4 left-4 z-50 pointer-events-auto"
         >
-            <div
+            <Button
+                size="icon"
+                variant={isHovered && draggedItemId ? "destructive" : "secondary"}
                 className={`
-                    flex items-center justify-center
-                    w-24 h-24 rounded-2xl
-                    border-4 border-dashed
-                    transition-all duration-200
-                    shadow-2xl
-                    ${isDragOver
-                        ? "bg-red-500 border-red-300 scale-110"
-                        : "bg-red-400/90 border-red-200"
-                    }
+                    h-12 w-12 rounded-full shadow-lg transition-all duration-200
+                    ${isHovered && draggedItemId ? "scale-110 bg-red-500 hover:bg-red-600" : ""}
                 `}
             >
                 <Trash2
                     className={`
                         transition-all duration-200
-                        ${isDragOver ? "w-14 h-14 text-white" : "w-12 h-12 text-white/90"}
+                        ${isHovered && draggedItemId ? "w-6 h-6" : "w-5 h-5"}
                     `}
                 />
-            </div>
-            {isDragOver && (
-                <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 text-white font-bold text-lg whitespace-nowrap bg-red-500 px-4 py-2 rounded-lg shadow-lg">
-                    Drop to Delete
-                </div>
-            )}
+            </Button>
         </div>
     );
 }

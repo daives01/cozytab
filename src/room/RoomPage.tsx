@@ -1,10 +1,15 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useEffect, useState, type DragEvent, useRef } from "react";
-import type { RoomItem } from "../types";
+import type { RoomItem, Shortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
 import { TrashCan } from "./TrashCan";
+import { ComputerScreen } from "./ComputerScreen";
+import { MusicPlayerModal } from "./MusicPlayerModal";
+import { InlineMusicPlayer } from "./InlineMusicPlayer";
+import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
@@ -23,13 +28,17 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
+    const saveShortcuts = useMutation(api.rooms.saveShortcuts);
 
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [scale, setScale] = useState(1);
-    const [isDraggingItem, setIsDraggingItem] = useState(false);
+    const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+    const [isComputerOpen, setIsComputerOpen] = useState(false);
+    const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
+    const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -53,8 +62,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     // Debounced save function
     const debouncedSave = useRef(
-        debounce((roomId: string, items: RoomItem[]) => {
-            saveRoom({ roomId: roomId as any, items });
+        debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
+            saveRoom({ roomId, items });
         }, 1000) // 1 second debounce
     ).current;
 
@@ -68,13 +77,19 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 if (mode === "view" || localItems.length === 0) {
                     setLocalItems(room.items as RoomItem[]);
                 }
+                // Sync shortcuts
+                if (room.shortcuts) {
+                    setLocalShortcuts(room.shortcuts as Shortcut[]);
+                } else {
+                    setLocalShortcuts([]);
+                }
             }
         }
     }, [room, createRoom, isGuest, mode]); // Removed localItems.length, added mode
 
     // Auto-save when items change in edit mode
     useEffect(() => {
-        if (mode === "edit" && room && localItems.length > 0) {
+        if (mode === "edit" && room) {
             debouncedSave(room._id, localItems);
         }
     }, [localItems, mode, room, debouncedSave]);
@@ -88,8 +103,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         if (mode !== "edit") return;
 
         const catalogItemId = e.dataTransfer.getData("catalogItemId");
-        const itemUrl = e.dataTransfer.getData("itemUrl");
-
         if (!catalogItemId) return;
 
         if (!containerRef.current) return;
@@ -113,7 +126,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             scaleY: 1,
             rotation: 0,
             zIndex: 10,
-            url: itemUrl || "",
+            url: "",
         };
 
         setLocalItems((prev) => [...prev, newItem]);
@@ -158,27 +171,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onClick={() => setSelectedId(null)}
                 />
 
-                {/* Grid - z-1 */}
-                {mode === "edit" && (
-                    <svg
-                        className="absolute inset-0 pointer-events-none"
-                        style={{ zIndex: 1 }}
-                    >
-                        <defs>
-                            <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                                <path
-                                    d="M 50 0 L 0 0 0 50"
-                                    fill="none"
-                                    stroke="#cbd5e1"
-                                    strokeWidth="1"
-                                    strokeDasharray="4,4"
-                                />
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#grid)" />
-                    </svg>
-                )}
-
                 {/* Items - z-10 */}
                 {localItems.map((item) => (
                     <ItemNode
@@ -195,10 +187,52 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 prev.map((i) => (i.id === newItem.id ? newItem : i))
                             );
                         }}
-                        onDragStart={() => setIsDraggingItem(true)}
-                        onDragEnd={() => setIsDraggingItem(false)}
+                        onDragStart={() => setDraggedItemId(item.id)}
+                        onDragEnd={() => setDraggedItemId(null)}
+                        onComputerClick={() => {
+                            if (!isGuest && mode === "view") {
+                                setIsComputerOpen(true);
+                            }
+                        }}
+                        onMusicPlayerClick={() => {
+                            if (!isGuest) {
+                                setMusicPlayerItemId(item.id);
+                            }
+                        }}
                     />
                 ))}
+
+                {/* Inline Music Players - z-11 */}
+                {localItems
+                    .filter((item) => item.musicUrl && item.musicType)
+                    .map((item) => (
+                        <InlineMusicPlayer
+                            key={`music-${item.id}`}
+                            item={item}
+                            scale={scale}
+                            onChange={(updatedItem) => {
+                                setLocalItems((prev) =>
+                                    prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
+                                );
+                            }}
+                        />
+                    ))}
+
+                {/* Music Player Buttons (when video is hidden) - z-11 */}
+                {localItems
+                    .filter((item) => item.musicUrl && item.musicType && item.videoVisible === false)
+                    .map((item) => (
+                        <MusicPlayerButtons
+                            key={`music-buttons-${item.id}`}
+                            item={item}
+                            scale={scale}
+                            onChange={(updatedItem) => {
+                                setLocalItems((prev) =>
+                                    prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
+                                );
+                            }}
+                        />
+                    ))}
             </div>
 
             {/* UI Elements (Unscaled, Screen-Relative) */}
@@ -265,24 +299,58 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             {mode === "edit" && (
                 <AssetDrawer
                     isOpen={isDrawerOpen}
-                    onDragStart={(e: React.DragEvent, id: string, url: string) => {
+                    onDragStart={(e: React.DragEvent, id: string) => {
                         e.dataTransfer.setData("catalogItemId", id);
-                        e.dataTransfer.setData("itemUrl", url);
                     }}
                 />
             )}
 
             {/* Trash Can - z-50 */}
-            <TrashCan
-                isActive={mode === "edit" && isDraggingItem}
-                onDragOver={() => { }} // Not using this currently
-                onDrop={() => {
-                    if (selectedId) {
-                        setLocalItems((prev) => prev.filter((item) => item.id !== selectedId));
-                        setSelectedId(null);
-                    }
-                }}
-            />
+            {mode === "edit" && (
+                <TrashCan
+                    draggedItemId={draggedItemId}
+                    onDelete={(itemId) => {
+                        setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+                        setSelectedId((current) => current === itemId ? null : current);
+                        // Don't clear draggedItemId here - let ItemNode's onDragEnd handle it
+                    }}
+                />
+            )}
+
+            {/* Computer Screen - z-100 */}
+            {!isGuest && isComputerOpen && room && (
+                <ComputerScreen
+                    shortcuts={localShortcuts}
+                    onClose={() => setIsComputerOpen(false)}
+                    onUpdateShortcuts={(shortcuts) => {
+                        setLocalShortcuts(shortcuts);
+                        if (room) {
+                            saveShortcuts({ roomId: room._id, shortcuts });
+                        }
+                    }}
+                    onOpenShop={() => {
+                        // TODO: Implement shop screen
+                        alert("Shop coming soon!");
+                    }}
+                />
+            )}
+
+            {/* Music Player Modal - z-100 */}
+            {!isGuest && musicPlayerItemId && room && (() => {
+                const item = localItems.find((i) => i.id === musicPlayerItemId);
+                return item ? (
+                    <MusicPlayerModal
+                        item={item}
+                        onClose={() => setMusicPlayerItemId(null)}
+                        onSave={(updatedItem) => {
+                            setLocalItems((prev) =>
+                                prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
+                            );
+                            setMusicPlayerItemId(null);
+                        }}
+                    />
+                ) : null;
+            })()}
         </div>
     );
 }

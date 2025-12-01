@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
 import type { RoomItem } from "../types";
+import type { Doc } from "../../convex/_generated/dataModel";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -10,12 +13,17 @@ interface ItemNodeProps {
     onChange: (item: RoomItem) => void;
     onDragStart?: () => void;
     onDragEnd?: () => void;
+    onComputerClick?: () => void;
+    onMusicPlayerClick?: () => void;
 }
 
-export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd }: ItemNodeProps) {
+export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
+    const catalogItems = useQuery(api.catalog.list);
+    const catalogItem = catalogItems?.find((ci: Doc<"catalogItems">) => ci._id === item.catalogItemId || ci.name === item.catalogItemId);
+    const imageUrl = catalogItem?.assetUrl || "";
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
@@ -73,8 +81,29 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
             onMouseDown={handleMouseDown}
             onClick={(e) => {
                 e.stopPropagation();
-                if (mode === "view" && item.url) {
-                    // window.open(item.url, "_blank");
+                if (mode === "view") {
+                    // Check if this is a computer item
+                    const isComputer = catalogItem?.name?.toLowerCase() === "computer";
+                    if (isComputer && onComputerClick) {
+                        onComputerClick();
+                        return;
+                    }
+                    // Check if this is a vinyl player item
+                    const isVinylPlayer = catalogItem?.name?.toLowerCase() === "vinyl player";
+                    if (isVinylPlayer && onMusicPlayerClick) {
+                        onMusicPlayerClick();
+                        return;
+                    }
+                    // Default: open URL if available
+                    if (item.url) {
+                        window.open(item.url, "_blank");
+                    }
+                } else if (mode === "edit") {
+                    // In edit mode, clicking vinyl player opens configuration
+                    const isVinylPlayer = catalogItem?.name?.toLowerCase() === "vinyl player";
+                    if (isVinylPlayer && onMusicPlayerClick) {
+                        onMusicPlayerClick();
+                    }
                 }
             }}
         >
@@ -85,14 +114,20 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                     // height: 100, // Let height be auto to maintain aspect ratio
                 }}
             >
-                <img
-                    src={item.url}
-                    alt="Room Item"
-                    className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
-                    style={{
-                        filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
-                    }}
-                />
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt="Room Item"
+                        className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
+                        style={{
+                            filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
+                        }}
+                    />
+                ) : (
+                    <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-sm">
+                        No Image
+                    </div>
+                )}
 
                 {/* Selection Border/Overlay */}
                 {isSelected && mode === "edit" && (

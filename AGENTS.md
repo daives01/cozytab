@@ -18,10 +18,9 @@
 - **React 19.2.0** - UI framework
 - **TypeScript** - Type safety
 - **Vite 7.2.4** - Build tool and dev server
-- **React Konva 19.2.0** - Canvas rendering library (wraps Konva.js)
-- **React Router DOM 7.9.6** - Client-side routing
 - **@clerk/clerk-react 5.57.0** - Authentication
 - **Tailwind CSS** (via utility classes) - Styling
+- **CSS Transforms** - Canvas scaling and positioning
 
 ### Backend
 
@@ -47,13 +46,14 @@ nook/
 │   ├── convexClient.ts       # Convex client configuration
 │   ├── index.css             # Global styles
 │   ├── room/                 # Room feature components
-│   │   ├── RoomPage.tsx      # Main room page with mode switching
-│   │   ├── RoomCanvas.tsx    # Konva canvas with items and grid
+│   │   ├── RoomPage.tsx      # Main room page with mode switching and canvas
 │   │   ├── ItemNode.tsx      # Individual item renderer
-│   │   ├── ItemPalette.tsx   # Bottom palette for adding items
-│   │   ├── SelectedItemPanel.tsx  # Side panel for editing selected item
-│   │   ├── OnboardingModal.tsx    # Welcome modal
-│   │   └── AvatarCursor.tsx  # Custom cursor visualization
+│   │   ├── AssetDrawer.tsx   # Side drawer for adding items (edit mode)
+│   │   ├── TrashCan.tsx      # Delete items by dragging (edit mode)
+│   │   ├── ComputerScreen.tsx # Computer interface modal
+│   │   ├── MusicPlayerModal.tsx # Music player configuration modal
+│   │   ├── InlineMusicPlayer.tsx # Embedded YouTube video player
+│   │   └── MusicPlayerButtons.tsx # Music player controls (when video hidden)
 │   └── assets/               # Static assets
 ├── convex/
 │   ├── schema.ts             # Database schema definition
@@ -147,78 +147,82 @@ nook/
 
 **Layout:**
 
-- Background canvas layer (z-0)
-- HUD overlay layer (z-50) with:
-  - Top bar: Logo, mode toggle, save button
-  - Bottom palette: Item catalog (edit mode only)
-  - Side panel: Selected item editor (edit mode only)
-  - Onboarding modal
+- Fixed-size room container (1920×1080) scaled to fit viewport using CSS transforms
+- Background layer (z-0) with background image
+- Items layer (z-10) with positioned items
+- Inline music players (z-11)
+- UI overlay layer (z-50+) with:
+  - Top right: Mode toggle (lock/unlock)
+  - Right side: Asset drawer (edit mode only)
+  - Bottom right: Trash can (edit mode only)
+  - Modals: Computer screen, music player configuration
 
 **Key Behaviors:**
 
 - Auto-creates room if user doesn't have one
 - Syncs server room data to `localItems` on load
-- Saves `localItems` to backend when user clicks "Save"
-- Items spawn at random offset from screen center
-
-### RoomCanvas.tsx
-
-**Purpose:** Konva Stage/Layer wrapper for rendering room
-
-**Features:**
-
-- Responsive canvas (window dimensions)
-- Background theme support
-- Edit mode: Shows dashed grid (50px spacing)
-- Click on empty area deselects items
-- Renders all items via `ItemNode` components
-- Custom avatar cursor overlay
+- Auto-saves `localItems` to backend in edit mode (debounced)
+- Calculates scale factor based on window size to maintain aspect ratio
+- Items positioned using absolute positioning in room coordinate space
+- Mouse events converted between screen and room coordinates using scale factor
 
 ### ItemNode.tsx
 
-**Purpose:** Individual item renderer with transform controls
+**Purpose:** Individual item renderer with drag support
 
 **Features:**
 
-- Displays as colored rectangle with text label (placeholder for images)
-- **Edit mode:** Draggable, selectable, transformable (resize/rotate)
+- Displays catalog item images from `assetUrl`
+- **Edit mode:** Draggable, selectable (shows blue border when selected)
 - **View mode:** Clickable to open URL in new tab (if URL exists)
-- Uses Konva Transformer for visual resizing/rotation
-- Color: Blue if has URL, gray otherwise
-- Min scale: 0.1x to prevent invisible items
+- Special handling for "computer" and "vinyl player" items
+- Uses absolute positioning with CSS transforms
+- Mouse drag events converted from screen to room coordinates using scale
 
-### ItemPalette.tsx
+### AssetDrawer.tsx
 
-**Purpose:** Catalog item browser for adding items
+**Purpose:** Side drawer for browsing and adding catalog items
 
 **Features:**
 
 - Fetches catalog items from backend
-- Displays items as thumbnail buttons
-- Click to add item to room (spawns at center with random offset)
+- Displays items as draggable thumbnails
+- Drag items onto room canvas to add them
 - Shows "Seed Catalog" button if empty
-- Hand-drawn card design with overflow scroll
+- Slides in from right side in edit mode
 
-### SelectedItemPanel.tsx
+### TrashCan.tsx
 
-**Purpose:** Edit panel for selected item
+**Purpose:** Delete items by dragging them to trash
 
 **Features:**
 
-- Shows item name and ID
-- URL input field with live preview link
-- Read-only position/transform display
-- Hand-drawn panel design (rotated, custom shadow)
+- Visible in edit mode only
+- Positioned at bottom right
+- Highlights when item is dragged over it
+- Deletes item on drop
 
-### OnboardingModal.tsx
+### ComputerScreen.tsx
 
-**Purpose:** First-time user tutorial
+**Purpose:** Modal interface for managing shortcuts
 
-**Content:**
+**Features:**
 
-1. Enter edit mode
-2. Add items from palette
-3. Select items to customize and add links
+- Opens when clicking computer item in view mode
+- Displays and manages user shortcuts
+- Allows adding/editing/deleting shortcuts
+- Saves shortcuts to room data
+
+### MusicPlayerModal.tsx
+
+**Purpose:** Configuration modal for vinyl player items
+
+**Features:**
+
+- Opens when clicking vinyl player in edit or view mode
+- Allows setting YouTube URL for music
+- Configures video visibility and position
+- Saves music configuration to item data
 
 ## Backend Functions
 
@@ -321,13 +325,14 @@ npm run lint
 
 ### Modifying Item Appearance
 
-**Current:** Items render as colored rectangles with text (ItemNode.tsx)
+**Current:** Items render images from catalog `assetUrl` (ItemNode.tsx)
 
-**To add images:**
+**To customize rendering:**
 
-1. Use Konva `Image` component instead of `Rect`
-2. Load image with `useImage` hook from react-konva
+1. Modify `ItemNode.tsx` to change how items are displayed
+2. Images are loaded via standard `<img>` tags
 3. Fetch `assetUrl` from catalog item by matching `catalogItemId`
+4. Apply CSS transforms for rotation/scaling if needed
 
 ### Adding New Item Properties
 
@@ -350,26 +355,25 @@ npm run lint
 
 ### Customizing Background
 
-**Current:** Simple color toggle (default/dark)
+**Current:** Background image from `/src/assets/house.png`
 
 **Locations:**
 
-- Theme stored in: `room.backgroundTheme`
-- Rendered in: `RoomCanvas.tsx` Rect fill color
+- Background rendered in: `RoomPage.tsx` as CSS background-image
+- Theme stored in: `room.backgroundTheme` (currently unused)
 - Can extend to support:
-  - Image backgrounds (use Konva Image)
-  - Patterns/gradients
+  - Multiple background images
+  - Patterns/gradients via CSS
   - Theme picker UI in RoomPage
 
 ## Known Limitations & Future Features
 
 ### Current Limitations
 
-- Items render as placeholder rectangles (no actual images displayed)
 - Single room per user
-- No item deletion UI (must edit in dev tools)
 - No undo/redo
 - No multi-select
+- No item rotation/scaling UI (only drag positioning)
 - No currency/shop implementation
 - No multiplayer/sharing
 
@@ -424,18 +428,20 @@ npm run lint
 
 ## Performance Notes
 
-- Konva canvas handles rendering efficiently
-- Re-renders minimized via React.memo potential
-- Room items loaded once, mutated locally until save
+- CSS transforms provide efficient scaling without re-rendering
+- Re-renders minimized via React state management
+- Room items loaded once, mutated locally until auto-save
 - Convex provides optimistic updates by default
+- Debounced auto-save (1 second) reduces backend calls
 
 ## Troubleshooting
 
 ### Items not appearing
 
-- Check if catalog is seeded (click "Seed Catalog" in empty palette)
+- Check if catalog is seeded (click "Seed Catalog" in empty drawer)
 - Verify items array is not empty in room
-- Check browser console for Konva errors
+- Check browser console for JavaScript errors
+- Verify images load correctly (check network tab)
 
 ### Auth not working
 
@@ -445,16 +451,16 @@ npm run lint
 
 ### Canvas issues
 
-- Konva requires specific React version compatibility
 - Check window dimensions are valid
-- Verify Stage has width/height props
+- Verify scale calculation is working (check browser dev tools)
+- Ensure container has correct width/height (1920×1080)
+- Check CSS transform is being applied correctly
 
 ## Additional Resources
 
 - [Convex Documentation](https://docs.convex.dev/)
 - [Clerk Authentication](https://clerk.com/docs)
-- [Konva Documentation](https://konvajs.org/)
-- [React Konva](https://konvajs.org/docs/react/)
+- [CSS Transforms](https://developer.mozilla.org/en-US/docs/Web/CSS/transform)
 
 ---
 

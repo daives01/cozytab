@@ -26,7 +26,24 @@ export default defineSchema({
                 zIndex: v.number(),
                 url: v.optional(v.string()),
                 variant: v.optional(v.string()),
+                musicUrl: v.optional(v.string()),
+                musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+                videoX: v.optional(v.number()),
+                videoY: v.optional(v.number()),
+                videoWidth: v.optional(v.number()),
+                videoHeight: v.optional(v.number()),
+                videoVisible: v.optional(v.boolean()),
             })
+        ),
+        shortcuts: v.optional(
+            v.array(
+                v.object({
+                    id: v.string(),
+                    name: v.string(),
+                    url: v.string(),
+                    icon: v.optional(v.string()),
+                })
+            )
         ),
     }).index("by_user", ["userId"]),
 

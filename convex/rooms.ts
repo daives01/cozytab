@@ -48,6 +48,7 @@ export const createRoom = mutation({
             name: "My Room",
             backgroundTheme: "default",
             items: [],
+            shortcuts: [],
         });
         return id;
     },
@@ -68,6 +69,13 @@ export const saveMyRoom = mutation({
                 zIndex: v.number(),
                 url: v.optional(v.string()),
                 variant: v.optional(v.string()),
+                musicUrl: v.optional(v.string()),
+                musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+                videoX: v.optional(v.number()),
+                videoY: v.optional(v.number()),
+                videoWidth: v.optional(v.number()),
+                videoHeight: v.optional(v.number()),
+                videoVisible: v.optional(v.boolean()),
             })
         ),
     },
@@ -90,5 +98,39 @@ export const saveMyRoom = mutation({
         }
 
         await ctx.db.patch(args.roomId, { items: args.items });
+    },
+});
+
+export const saveShortcuts = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        shortcuts: v.array(
+            v.object({
+                id: v.string(),
+                name: v.string(),
+                url: v.string(),
+                icon: v.optional(v.string()),
+            })
+        ),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const room = await ctx.db.get(args.roomId);
+        if (!room) throw new Error("Room not found");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user || room.userId !== user._id) {
+            throw new Error("Forbidden");
+        }
+
+        await ctx.db.patch(args.roomId, { shortcuts: args.shortcuts });
     },
 });
