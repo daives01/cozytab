@@ -1,3 +1,11 @@
+/**
+ * Valid catalog item categories that determine item behavior.
+ * - "furniture" | "decor": Default behavior (clickable if URL exists)
+ * - "computer": Opens ComputerScreen modal with shortcuts
+ * - "player": Opens MusicPlayerModal for YouTube configuration
+ */
+export type CatalogItemCategory = "furniture" | "decor" | "computer" | "player";
+
 export interface RoomItem {
     id: string;
     catalogItemId: string;

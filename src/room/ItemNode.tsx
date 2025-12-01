@@ -66,7 +66,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
         };
-    }, [isDragging, item, onChange, scale]);
+    }, [isDragging, item, onChange, scale, onDragEnd]);
 
     return (
         <div
@@ -82,29 +82,24 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
             onClick={(e) => {
                 e.stopPropagation();
                 if (mode === "view") {
-                    // Check if this is a computer item
-                    const isComputer = catalogItem?.name?.toLowerCase() === "computer";
-                    if (isComputer && onComputerClick) {
+                    const category = catalogItem?.category?.toLowerCase();
+                    
+                    // Check if this is a computer item by category
+                    if (category === "computer" && onComputerClick) {
                         onComputerClick();
                         return;
                     }
-                    // Check if this is a vinyl player item
-                    const isVinylPlayer = catalogItem?.name?.toLowerCase() === "vinyl player";
-                    if (isVinylPlayer && onMusicPlayerClick) {
+                    // Check if this is a player item by category
+                    if (category === "player" && onMusicPlayerClick) {
                         onMusicPlayerClick();
                         return;
                     }
-                    // Default: open URL if available
+                    // Default: open URL if available (for furniture, decor, and other categories)
                     if (item.url) {
                         window.open(item.url, "_blank");
                     }
-                } else if (mode === "edit") {
-                    // In edit mode, clicking vinyl player opens configuration
-                    const isVinylPlayer = catalogItem?.name?.toLowerCase() === "vinyl player";
-                    if (isVinylPlayer && onMusicPlayerClick) {
-                        onMusicPlayerClick();
-                    }
                 }
+                // In edit mode, clicks are disabled for interactive items (only dragging is allowed)
             }}
         >
             <div

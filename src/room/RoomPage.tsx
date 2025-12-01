@@ -39,6 +39,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
+    // Track playing state for each music player item (keyed by item ID)
+    const [musicPlayerStates, setMusicPlayerStates] = useState<Record<string, boolean>>({});
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -61,11 +63,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, []);
 
     // Debounced save function
-    const debouncedSave = useRef(
-        debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
+    const debouncedSaveRef = useRef<ReturnType<typeof debounce<(...args: Parameters<typeof saveRoom>) => void>> | null>(null);
+    
+    useEffect(() => {
+        debouncedSaveRef.current = debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
             saveRoom({ roomId, items });
-        }, 1000) // 1 second debounce
-    ).current;
+        }, 1000); // 1 second debounce
+    }, [saveRoom]);
 
     useEffect(() => {
         if (!isGuest) {
@@ -75,6 +79,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 // Always sync with server state in view mode
                 // Or if we haven't loaded anything yet (initial load)
                 if (mode === "view" || localItems.length === 0) {
+                    // eslint-disable-next-line react-hooks/set-state-in-effect
                     setLocalItems(room.items as RoomItem[]);
                 }
                 // Sync shortcuts
@@ -85,14 +90,14 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 }
             }
         }
-    }, [room, createRoom, isGuest, mode]); // Removed localItems.length, added mode
+    }, [room, createRoom, isGuest, mode, localItems.length]); // Added localItems.length back for proper dependency
 
     // Auto-save when items change in edit mode
     useEffect(() => {
-        if (mode === "edit" && room) {
-            debouncedSave(room._id, localItems);
+        if (mode === "edit" && room && debouncedSaveRef.current) {
+            debouncedSaveRef.current(room._id, localItems);
         }
-    }, [localItems, mode, room, debouncedSave]);
+    }, [localItems, mode, room]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -195,7 +200,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             }
                         }}
                         onMusicPlayerClick={() => {
-                            if (!isGuest) {
+                            if (!isGuest && mode === "view") {
                                 setMusicPlayerItemId(item.id);
                             }
                         }}
@@ -210,6 +215,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             key={`music-${item.id}`}
                             item={item}
                             scale={scale}
+                            isPlaying={musicPlayerStates[item.id] ?? false}
+                            onPlayingChange={(playing) => {
+                                setMusicPlayerStates((prev) => ({
+                                    ...prev,
+                                    [item.id]: playing,
+                                }));
+                            }}
                             onChange={(updatedItem) => {
                                 setLocalItems((prev) =>
                                     prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
@@ -226,6 +238,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             key={`music-buttons-${item.id}`}
                             item={item}
                             scale={scale}
+                            isPlaying={musicPlayerStates[item.id] ?? false}
+                            onPlayingChange={(playing) => {
+                                setMusicPlayerStates((prev) => ({
+                                    ...prev,
+                                    [item.id]: playing,
+                                }));
+                            }}
                             onChange={(updatedItem) => {
                                 setLocalItems((prev) =>
                                     prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
@@ -343,9 +362,25 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         item={item}
                         onClose={() => setMusicPlayerItemId(null)}
                         onSave={(updatedItem) => {
-                            setLocalItems((prev) =>
-                                prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
-                            );
+                            const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
+                            setLocalItems(updatedItems);
+                            // Explicitly save to database (works in both view and edit mode)
+                            saveRoom({ roomId: room._id, items: updatedItems });
+                            
+                            // Auto-play when music URL is set
+                            if (updatedItem.musicUrl && updatedItem.musicType) {
+                                setMusicPlayerStates((prev) => ({
+                                    ...prev,
+                                    [updatedItem.id]: true,
+                                }));
+                            } else {
+                                // Stop playing if music is cleared
+                                setMusicPlayerStates((prev) => ({
+                                    ...prev,
+                                    [updatedItem.id]: false,
+                                }));
+                            }
+                            
                             setMusicPlayerItemId(null);
                         }}
                     />

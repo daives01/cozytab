@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Eye } from "lucide-react";
 import type { RoomItem } from "../types";
@@ -7,18 +7,52 @@ import { extractYouTubeId } from "../lib/youtube";
 interface MusicPlayerButtonsProps {
     item: RoomItem;
     scale: number;
+    isPlaying: boolean;
+    onPlayingChange: (playing: boolean) => void;
     onChange?: (item: RoomItem) => void;
 }
 
-export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtonsProps) {
-    const [isPlaying, setIsPlaying] = useState(false);
+export function MusicPlayerButtons({ item, isPlaying, onPlayingChange, onChange }: MusicPlayerButtonsProps) {
+    const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
 
-    if (!item.musicUrl || item.musicType !== "youtube") {
-        return null;
-    }
+    // Listen for YouTube API state changes from the iframe in InlineMusicPlayer
+    // Note: We share state with InlineMusicPlayer via props, so we listen to update the shared state
+    useEffect(() => {
+        if (!videoId) return;
+        const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== "https://www.youtube.com") return;
+            
+            try {
+                const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+                
+                // Check if this message is from the iframe for this video
+                const iframes = document.querySelectorAll('iframe[src*="youtube.com/embed"]');
+                const targetIframe = Array.from(iframes).find((iframe) => {
+                    const src = (iframe as HTMLIFrameElement).src;
+                    return src.includes(videoId);
+                });
+                
+                // Only process if it's from our video's iframe
+                if (targetIframe && event.source !== (targetIframe as HTMLIFrameElement).contentWindow) {
+                    return;
+                }
+                
+                // Handle state changes from YouTube player
+                if (data.event === "onStateChange") {
+                    // 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
+                    const playing = data.info === 1;
+                    onPlayingChange(playing);
+                }
+            } catch {
+                // Ignore parse errors
+            }
+        };
 
-    const videoId = extractYouTubeId(item.musicUrl);
-    if (!videoId) {
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, [onPlayingChange, videoId]);
+
+    if (!item.musicUrl || item.musicType !== "youtube" || !videoId) {
         return null;
     }
 
@@ -26,27 +60,6 @@ export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtons
     if (item.videoVisible !== false) {
         return null;
     }
-
-    // Listen for YouTube API state changes from the iframe in InlineMusicPlayer
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            if (event.origin !== "https://www.youtube.com") return;
-            
-            try {
-                const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-                
-                if (data.event === "onStateChange") {
-                    // 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
-                    setIsPlaying(data.info === 1);
-                }
-            } catch (e) {
-                // Ignore parse errors
-            }
-        };
-
-        window.addEventListener("message", handleMessage);
-        return () => window.removeEventListener("message", handleMessage);
-    }, []);
 
     // Control YouTube iframe playback via postMessage
     // Note: We need to control the iframe in InlineMusicPlayer, not this one
@@ -78,8 +91,12 @@ export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtons
         // If currently playing, pause it; if paused, play it
         if (isPlaying) {
             sendCommand("pauseVideo");
+            // Optimistically update state (will be confirmed by YouTube event)
+            onPlayingChange(false);
         } else {
             sendCommand("playVideo");
+            // Optimistically update state (will be confirmed by YouTube event)
+            onPlayingChange(true);
         }
     };
 
@@ -93,7 +110,8 @@ export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtons
     };
 
     // Position buttons below the vinyl player
-    const offsetY = 70 / scale;
+    // Note: Dimensions in room space (unscaled) - container transform handles scaling
+    const offsetY = 70;
 
     return (
         <>
@@ -111,7 +129,7 @@ export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtons
                     <Button
                         size="icon"
                         variant="default"
-                        className="h-10 w-10 shadow-lg hover:scale-105 transition-transform"
+                        className="h-10 w-10 rounded-full shadow-lg hover:scale-105 transition-transform"
                         onClick={handlePlayPause}
                         title={isPlaying ? "Pause" : "Play"}
                     >
@@ -124,7 +142,7 @@ export function MusicPlayerButtons({ item, scale, onChange }: MusicPlayerButtons
                     <Button
                         size="icon"
                         variant="outline"
-                        className="h-10 w-10 border-2 shadow-lg bg-background hover:scale-105 transition-transform"
+                        className="h-10 w-10 rounded-full border-2 shadow-lg bg-background hover:scale-105 transition-transform"
                         onClick={handleShowVideo}
                         title="Show video"
                     >

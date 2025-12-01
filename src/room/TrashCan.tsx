@@ -19,6 +19,7 @@ export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
 
     useEffect(() => {
         if (!draggedItemId) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsHovered(false);
             return;
         }

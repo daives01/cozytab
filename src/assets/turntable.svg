@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <!-- Filter to give a slight paper/texture feel (optional, keeping it subtle) -->
+    <filter id="wobble">
+      <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="1" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
+    </filter>
+  </defs>
+
+  <!-- Group for the whole player, centered -->
+  <g transform="translate(50, 50)" filter="url(#wobble)">
+    
+    <!-- 1. THE LID (Open Back) -->
+    <!-- Drawn first so it sits behind the base -->
+    <path d="M100 200 L250 120 L400 200 L250 280 Z" fill="#F0F4F8" stroke="#2C3E50" stroke-width="4" stroke-linejoin="round" opacity="0.5"/>
+    <!-- Lid thickness/sides -->
+    <path d="M100 200 L100 100 L250 20 L400 100 L400 200" fill="none" stroke="#2C3E50" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Lid Top Surface (Glass look) -->
+    <path d="M100 100 L250 20 L400 100 L250 180" fill="#ffffff" fill-opacity="0.4" stroke="#2C3E50" stroke-width="3" stroke-linejoin="round"/>
+    
+    <!-- 2. THE WOODEN BASE -->
+    <!-- Right Side (Shadow) -->
+    <path d="M250 350 L400 270 L400 310 L250 390 Z" fill="#A07855" stroke="#2C3E50" stroke-width="4" stroke-linejoin="round"/>
+    <!-- Left Side (Shadow) -->
+    <path d="M100 270 L250 350 L250 390 L100 310 Z" fill="#8D6A48" stroke="#2C3E50" stroke-width="4" stroke-linejoin="round"/>
+    <!-- Top Surface (Main Wood) -->
+    <path d="M100 270 L250 190 L400 270 L250 350 Z" fill="#D4A373" stroke="#2C3E50" stroke-width="4" stroke-linejoin="round"/>
+
+    <!-- 3. PLATTER & RECORD -->
+    <!-- Grey Platter Base -->
+    <ellipse cx="230" cy="270" rx="90" ry="50" fill="#B0B0B0" stroke="#2C3E50" stroke-width="3"/>
+    <!-- Vinyl Record (Black) -->
+    <ellipse cx="230" cy="268" rx="85" ry="46" fill="#1A1A1A" stroke="#2C3E50" stroke-width="2"/>
+    <!-- Label (Warm accent) -->
+    <ellipse cx="230" cy="268" rx="25" ry="14" fill="#E76F51" stroke="#2C3E50" stroke-width="2"/>
+    <!-- Spindle -->
+    <circle cx="230" cy="268" r="3" fill="#EEE" />
+    
+    <!-- 4. TONEARM & CONTROLS -->
+    <!-- Arm Pivot Base -->
+    <ellipse cx="340" cy="250" rx="15" ry="8" fill="#555" stroke="#2C3E50" stroke-width="3"/>
+    <rect x="333" y="240" width="14" height="15" fill="#777" stroke="#2C3E50" stroke-width="3" rx="2"/>
+    
+    <!-- The Arm Stick -->
+    <!-- A path curving from pivot towards record -->
+    <path d="M340 245 C 340 245, 330 220, 300 240 L 290 250" fill="none" stroke="#DDDDDD" stroke-width="5" stroke-linecap="round"/>
+    <!-- Cartridge/Head -->
+    <path d="M290 250 L 280 258 L 285 265 L 298 256 Z" fill="#222" stroke="#2C3E50" stroke-width="2" stroke-linejoin="round"/>
+
+    <!-- 5. KNOBS (Front right) -->
+    <!-- Knob 1 -->
+    <ellipse cx="330" cy="300" rx="8" ry="5" fill="#E9C46A" stroke="#2C3E50" stroke-width="2"/>
+    <path d="M330 300 L330 295" stroke="#2C3E50" stroke-width="2"/>
+    <!-- Knob 2 -->
+    <ellipse cx="350" cy="310" rx="8" ry="5" fill="#E9C46A" stroke="#2C3E50" stroke-width="2"/>
+    <path d="M350 310 L350 305" stroke="#2C3E50" stroke-width="2"/>
+    
+    <!-- Volume Slider Area -->
+    <path d="M360 280 L 380 290" stroke="#2C3E50" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <rect x="365" y="280" width="6" height="8" fill="#333" stroke="#2C3E50" stroke-width="2" transform="rotate(30 368 284)"/>
+
+  </g>
+</svg>
