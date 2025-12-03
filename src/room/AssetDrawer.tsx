@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/card";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type React from "react";
+import { Package } from "lucide-react";
 
 interface AssetDrawerProps {
     isOpen: boolean;
@@ -12,8 +12,8 @@ interface AssetDrawerProps {
 }
 
 export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
-    const catalogItems = useQuery(api.catalog.list);
-    const seedCatalog = useMutation(api.catalog.seed);
+    // Query user's inventory instead of full catalog
+    const inventoryItems = useQuery(api.inventory.getMyInventory);
 
     return (
         <div 
@@ -32,8 +32,8 @@ export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
             
             <ScrollArea className="flex-1 min-h-0 bg-[#f0e6d2]/50">
                 <div className="p-3 grid grid-cols-1 gap-4">
-                    {catalogItems && catalogItems.length > 0 ? (
-                        catalogItems.map((item: Doc<"catalogItems">) => (
+                    {inventoryItems && inventoryItems.length > 0 ? (
+                        inventoryItems.map((item: Doc<"catalogItems">) => (
                             <Card
                                 key={item._id}
                                 className="p-1 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform border-4 border-white shadow-md bg-white rotate-1 hover:rotate-0 select-none"
@@ -59,13 +59,14 @@ export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
                             </Card>
                         ))
                     ) : (
-                        <div className="p-4 flex flex-col items-center gap-3">
-                            <p className="font-['Patrick_Hand'] text-sm text-center text-[#5c4d3c]">
-                                Box is empty...
+                        <div className="p-4 flex flex-col items-center gap-3 text-center">
+                            <Package className="h-10 w-10 text-[#a89680] opacity-60" />
+                            <p className="font-['Patrick_Hand'] text-sm text-[#5c4d3c]">
+                                Your storage is empty!
                             </p>
-                            <Button onClick={() => seedCatalog()} size="sm" variant="secondary">
-                                Unpack Goods
-                            </Button>
+                            <p className="font-['Patrick_Hand'] text-xs text-[#8b7355]">
+                                Visit the shop on your computer to buy items.
+                            </p>
                         </div>
                     )}
                 </div>

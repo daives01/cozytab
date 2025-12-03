@@ -10,9 +10,10 @@ import { ComputerScreen } from "./ComputerScreen";
 import { MusicPlayerModal } from "./MusicPlayerModal";
 import { InlineMusicPlayer } from "./InlineMusicPlayer";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
+import { Shop } from "./Shop";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
-import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight } from "lucide-react";
+import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Coins, Gift } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 
@@ -27,9 +28,11 @@ const ROOM_HEIGHT = 1080;
 
 export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
+    const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const saveShortcuts = useMutation(api.rooms.saveShortcuts);
+    const claimDailyReward = useMutation(api.users.claimDailyReward);
 
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
@@ -38,10 +41,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [scale, setScale] = useState(1);
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
     const [isComputerOpen, setIsComputerOpen] = useState(false);
+    const [isShopOpen, setIsShopOpen] = useState(false);
     const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
     // Track playing state for each music player item (keyed by item ID)
     const [musicPlayerStates, setMusicPlayerStates] = useState<Record<string, boolean>>({});
+    const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+    const [showRewardNotification, setShowRewardNotification] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -99,6 +105,25 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             debouncedSaveRef.current(room._id, localItems);
         }
     }, [localItems, mode, room]);
+
+    // Try to claim daily reward on load
+    useEffect(() => {
+        if (!isGuest && user && !dailyRewardClaimed) {
+            claimDailyReward()
+                .then((result) => {
+                    setDailyRewardClaimed(true);
+                    if (result.success) {
+                        setShowRewardNotification(true);
+                        // Auto-hide notification after 4 seconds
+                        setTimeout(() => setShowRewardNotification(false), 4000);
+                    }
+                })
+                .catch(() => {
+                    // Silently fail - user might not be eligible for reward
+                    setDailyRewardClaimed(true);
+                });
+        }
+    }, [user, isGuest, dailyRewardClaimed, claimDailyReward]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -300,9 +325,33 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 {mode === "view" ? "View" : "Edit"}
                             </span>
                         </div>
+
+                        {/* Currency Display */}
+                        {user && (
+                            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full px-4 py-2 border-2 border-amber-600 shadow-lg">
+                                <Coins className="h-5 w-5 text-yellow-200" />
+                                <span className="font-bold text-lg">{user.currency}</span>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
+
+            {/* Daily Reward Notification */}
+            {showRewardNotification && (
+                <div 
+                    className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300"
+                    onClick={() => setShowRewardNotification(false)}
+                >
+                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl px-6 py-3 shadow-xl border-2 border-emerald-400 flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
+                        <Gift className="h-6 w-6" />
+                        <div>
+                            <div className="font-bold text-lg">Daily Reward!</div>
+                            <div className="text-emerald-100 text-sm">+1 token added to your balance</div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Drawer Toggle Button - Only in Edit Mode */}
             {mode === "edit" && (
@@ -357,9 +406,17 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         }
                     }}
                     onOpenShop={() => {
-                        // TODO: Implement shop screen
-                        alert("Shop coming soon!");
+                        setIsComputerOpen(false);
+                        setIsShopOpen(true);
                     }}
+                />
+            )}
+
+            {/* Shop - z-100 */}
+            {!isGuest && isShopOpen && user && (
+                <Shop
+                    onClose={() => setIsShopOpen(false)}
+                    userCurrency={user.currency}
                 />
             )}
 

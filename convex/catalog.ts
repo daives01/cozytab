@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
 
 export const list = query({
     args: {},
@@ -7,25 +8,98 @@ export const list = query({
     },
 });
 
+export const getByName = query({
+    args: { name: v.string() },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("catalogItems")
+            .withIndex("by_name", (q) => q.eq("name", args.name))
+            .unique();
+    },
+});
+
+export const addItem = mutation({
+    args: {
+        name: v.string(),
+        category: v.string(),
+        basePrice: v.number(),
+        assetUrl: v.string(),
+        defaultWidth: v.number(),
+        defaultHeight: v.number(),
+    },
+    handler: async (ctx, args) => {
+        // Check if item with this name already exists
+        const existing = await ctx.db
+            .query("catalogItems")
+            .withIndex("by_name", (q) => q.eq("name", args.name))
+            .unique();
+
+        if (existing) {
+            return { success: false, message: "Item with this name already exists" };
+        }
+
+        const id = await ctx.db.insert("catalogItems", args);
+        return { success: true, id };
+    },
+});
+
+export const updateItem = mutation({
+    args: {
+        id: v.id("catalogItems"),
+        name: v.optional(v.string()),
+        category: v.optional(v.string()),
+        basePrice: v.optional(v.number()),
+        assetUrl: v.optional(v.string()),
+        defaultWidth: v.optional(v.number()),
+        defaultHeight: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const { id, ...updates } = args;
+        
+        const existing = await ctx.db.get(id);
+        if (!existing) {
+            return { success: false, message: "Item not found" };
+        }
+
+        // Filter out undefined values and build update object
+        const filteredUpdates: {
+            name?: string;
+            category?: string;
+            basePrice?: number;
+            assetUrl?: string;
+            defaultWidth?: number;
+            defaultHeight?: number;
+        } = {};
+        
+        if (updates.name !== undefined) filteredUpdates.name = updates.name;
+        if (updates.category !== undefined) filteredUpdates.category = updates.category;
+        if (updates.basePrice !== undefined) filteredUpdates.basePrice = updates.basePrice;
+        if (updates.assetUrl !== undefined) filteredUpdates.assetUrl = updates.assetUrl;
+        if (updates.defaultWidth !== undefined) filteredUpdates.defaultWidth = updates.defaultWidth;
+        if (updates.defaultHeight !== undefined) filteredUpdates.defaultHeight = updates.defaultHeight;
+
+        await ctx.db.patch(id, filteredUpdates);
+        return { success: true };
+    },
+});
+
+// Upsert pattern: insert new items or update existing ones by name
 export const seed = mutation({
     args: {},
     handler: async (ctx) => {
-        const existing = await ctx.db.query("catalogItems").collect();
-        if (existing.length > 0) return "Already seeded";
-
         const items = [
             {
                 name: "TV",
                 category: "furniture",
-                basePrice: 0,
+                basePrice: 5,
                 assetUrl: "https://placehold.co/100x100/333/fff?text=TV",
                 defaultWidth: 100,
                 defaultHeight: 100,
             },
             {
                 name: "Plant",
-                category: "furniture",
-                basePrice: 0,
+                category: "decor",
+                basePrice: 3,
                 assetUrl: "https://placehold.co/60x100/2ecc71/fff?text=Plant",
                 defaultWidth: 60,
                 defaultHeight: 100,
@@ -33,7 +107,7 @@ export const seed = mutation({
             {
                 name: "Desk",
                 category: "furniture",
-                basePrice: 0,
+                basePrice: 8,
                 assetUrl: "https://placehold.co/150x80/e67e22/fff?text=Desk",
                 defaultWidth: 150,
                 defaultHeight: 80,
@@ -41,7 +115,7 @@ export const seed = mutation({
             {
                 name: "Computer",
                 category: "computer",
-                basePrice: 0,
+                basePrice: 10,
                 assetUrl: "https://placehold.co/120x100/2563eb/fff?text=Computer",
                 defaultWidth: 120,
                 defaultHeight: 100,
@@ -49,17 +123,79 @@ export const seed = mutation({
             {
                 name: "Vinyl Player",
                 category: "player",
-                basePrice: 0,
-                assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl Player",
+                basePrice: 12,
+                assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl+Player",
                 defaultWidth: 100,
+                defaultHeight: 100,
+            },
+            {
+                name: "Lamp",
+                category: "decor",
+                basePrice: 4,
+                assetUrl: "https://placehold.co/50x80/f1c40f/fff?text=Lamp",
+                defaultWidth: 50,
+                defaultHeight: 80,
+            },
+            {
+                name: "Bookshelf",
+                category: "furniture",
+                basePrice: 10,
+                assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",
+                defaultWidth: 120,
+                defaultHeight: 150,
+            },
+            {
+                name: "Rug",
+                category: "decor",
+                basePrice: 6,
+                assetUrl: "https://placehold.co/150x100/e74c3c/fff?text=Rug",
+                defaultWidth: 150,
+                defaultHeight: 100,
+            },
+            {
+                name: "Picture Frame",
+                category: "decor",
+                basePrice: 3,
+                assetUrl: "https://placehold.co/60x80/9b59b6/fff?text=Frame",
+                defaultWidth: 60,
+                defaultHeight: 80,
+            },
+            {
+                name: "Chair",
+                category: "furniture",
+                basePrice: 7,
+                assetUrl: "https://placehold.co/80x100/3498db/fff?text=Chair",
+                defaultWidth: 80,
                 defaultHeight: 100,
             },
         ];
 
+        let inserted = 0;
+        let updated = 0;
+
         for (const item of items) {
-            await ctx.db.insert("catalogItems", item);
+            const existing = await ctx.db
+                .query("catalogItems")
+                .withIndex("by_name", (q) => q.eq("name", item.name))
+                .unique();
+
+            if (existing) {
+                // Update existing item
+                await ctx.db.patch(existing._id, {
+                    category: item.category,
+                    basePrice: item.basePrice,
+                    assetUrl: item.assetUrl,
+                    defaultWidth: item.defaultWidth,
+                    defaultHeight: item.defaultHeight,
+                });
+                updated++;
+            } else {
+                // Insert new item
+                await ctx.db.insert("catalogItems", item);
+                inserted++;
+            }
         }
 
-        return "Seeded " + items.length + " items";
+        return `Catalog updated: ${inserted} new items, ${updated} updated`;
     },
 });

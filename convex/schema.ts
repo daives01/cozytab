@@ -8,6 +8,7 @@ export default defineSchema({
         displayName: v.optional(v.string()),
         avatarConfig: v.optional(v.any()),
         currency: v.number(),
+        lastDailyReward: v.optional(v.number()), // timestamp of last reward
     }).index("by_externalId", ["externalId"]),
 
     rooms: defineTable({
@@ -54,5 +55,13 @@ export default defineSchema({
         assetUrl: v.string(),
         defaultWidth: v.number(),
         defaultHeight: v.number(),
-    }),
+    }).index("by_name", ["name"]),
+
+    inventory: defineTable({
+        userId: v.id("users"),
+        catalogItemId: v.id("catalogItems"),
+        purchasedAt: v.number(), // timestamp
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_and_item", ["userId", "catalogItemId"]),
 });

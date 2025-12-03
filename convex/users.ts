@@ -36,11 +36,45 @@ export const ensureUser = mutation({
                 username: args.username,
                 displayName: identity.name ?? args.username,
                 avatarConfig: {},
-                currency: 0,
+                currency: 5, // Starting currency for new users
             });
             user = await ctx.db.get(id);
         }
 
         return user;
+    },
+});
+
+export const claimDailyReward = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const now = Date.now();
+        const lastReward = user.lastDailyReward ?? 0;
+        const oneDayMs = 24 * 60 * 60 * 1000;
+
+        // Check if 24 hours have passed since last reward
+        if (now - lastReward < oneDayMs) {
+            return { success: false, message: "Daily reward already claimed" };
+        }
+
+        // Award 1 token and update timestamp
+        await ctx.db.patch(user._id, {
+            currency: user.currency + 1,
+            lastDailyReward: now,
+        });
+
+        return { success: true, newBalance: user.currency + 1 };
     },
 });
