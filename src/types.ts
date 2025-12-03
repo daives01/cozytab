@@ -19,12 +19,10 @@ export interface RoomItem {
     variant?: string;
     musicUrl?: string;
     musicType?: "youtube" | "spotify";
-    videoX?: number;
-    videoY?: number;
-    videoWidth?: number;
-    videoHeight?: number;
-    videoVisible?: boolean;
-    tvRotationAngle?: number; // Isometric rotation angle: 45 or -45 degrees
+    // Music sync fields
+    musicPlaying?: boolean;
+    musicStartedAt?: number;      // timestamp when playback started
+    musicPositionAtStart?: number; // seconds into video when started
 }
 
 export interface Shortcut {

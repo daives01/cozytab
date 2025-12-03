@@ -17,9 +17,10 @@ interface ItemNodeProps {
     onComputerClick?: () => void;
     onMusicPlayerClick?: () => void;
     isOnboardingComputerTarget?: boolean;
+    isVisitor?: boolean;
 }
 
-export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick, isOnboardingComputerTarget }: ItemNodeProps) {
+export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick, isOnboardingComputerTarget, isVisitor = false }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
@@ -85,6 +86,13 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
             onClick={(e) => {
                 e.stopPropagation();
                 if (mode === "view") {
+                    if (isVisitor) {
+                        if (item.url) {
+                            window.open(item.url, "_blank");
+                        }
+                        return;
+                    }
+                    
                     const category = catalogItem?.category?.toLowerCase();
                     
                     if (category === "computer" && onComputerClick) {
@@ -122,7 +130,6 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                     </div>
                 )}
 
-                {/* Selection Border/Overlay */}
                 {isSelected && mode === "edit" && (
                     <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
                 )}

@@ -1,121 +1,161 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Eye } from "lucide-react";
+import { Play, Pause, Volume2 } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
 
 interface MusicPlayerButtonsProps {
     item: RoomItem;
-    scale: number;
-    isPlaying: boolean;
-    onPlayingChange: (playing: boolean) => void;
-    onChange?: (item: RoomItem) => void;
+    roomId: Id<"rooms">;
 }
 
-export function MusicPlayerButtons({ item, isPlaying, onPlayingChange, onChange }: MusicPlayerButtonsProps) {
+export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
+    const iframeRef = useRef<HTMLIFrameElement>(null);
+    const lastSyncedRef = useRef<{ playing: boolean; startedAt: number; positionAtStart: number } | null>(null);
+    const updateMusicState = useMutation(api.rooms.updateMusicState);
+    const [hasInteracted, setHasInteracted] = useState(false);
+
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
+    const isPlaying = item.musicPlaying ?? false;
+    const musicStartedAt = item.musicStartedAt ?? 0;
+    const musicPositionAtStart = item.musicPositionAtStart ?? 0;
+    const needsSync = isPlaying && !hasInteracted;
 
-    // Listen for YouTube API state changes from the iframe in InlineMusicPlayer
-    // Note: We share state with InlineMusicPlayer via props, so we listen to update the shared state
-    useEffect(() => {
-        if (!videoId) return;
-        const handleMessage = (event: MessageEvent) => {
-            if (event.origin !== "https://www.youtube.com") return;
-            
-            try {
-                const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-                
-                // Check if this message is from the iframe for this video
-                const iframes = document.querySelectorAll('iframe[src*="youtube.com/embed"]');
-                const targetIframe = Array.from(iframes).find((iframe) => {
-                    const src = (iframe as HTMLIFrameElement).src;
-                    return src.includes(videoId);
-                });
-                
-                // Only process if it's from our video's iframe
-                if (targetIframe && event.source !== (targetIframe as HTMLIFrameElement).contentWindow) {
-                    return;
-                }
-                
-                // Handle state changes from YouTube player
-                if (data.event === "onStateChange") {
-                    // 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
-                    const playing = data.info === 1;
-                    onPlayingChange(playing);
-                }
-            } catch {
-                // Ignore parse errors
-            }
-        };
+    const embedUrl = videoId
+        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&loop=1&playlist=${videoId}&origin=${window.location.origin}`
+        : null;
 
-        window.addEventListener("message", handleMessage);
-        return () => window.removeEventListener("message", handleMessage);
-    }, [onPlayingChange, videoId]);
-
-    if (!item.musicUrl || item.musicType !== "youtube" || !videoId) {
-        return null;
-    }
-
-    // Only show buttons when video is hidden
-    if (item.videoVisible !== false) {
-        return null;
-    }
-
-    // Control YouTube iframe playback via postMessage
-    // Note: We need to control the iframe in InlineMusicPlayer, not this one
-    // So we'll need to share the iframe ref or use a different approach
-    // For now, we'll need to find the iframe from InlineMusicPlayer
-    const sendCommand = (command: string) => {
-        // Find the iframe in the InlineMusicPlayer component
-        // Since we can't directly access it, we'll need to use a shared approach
-        // For now, try to find it in the DOM
-        const iframes = document.querySelectorAll('iframe[src*="youtube.com/embed"]');
-        const targetIframe = Array.from(iframes).find((iframe) => {
-            const src = (iframe as HTMLIFrameElement).src;
-            return src.includes(videoId);
-        }) as HTMLIFrameElement | undefined;
-
-        if (targetIframe?.contentWindow) {
-            targetIframe.contentWindow.postMessage(
+    const sendCommand = useCallback((command: string, args?: unknown) => {
+        if (iframeRef.current?.contentWindow) {
+            iframeRef.current.contentWindow.postMessage(
                 JSON.stringify({
                     event: "command",
                     func: command,
-                    args: "",
+                    args: args ?? "",
                 }),
                 "https://www.youtube.com"
             );
         }
+    }, []);
+
+    const syncPlayback = useCallback(() => {
+        if (!videoId || !isPlaying) return;
+        
+        const elapsed = (Date.now() - musicStartedAt) / 1000;
+        const targetPosition = musicPositionAtStart + elapsed;
+        
+        sendCommand("seekTo", [targetPosition, true]);
+        sendCommand("playVideo");
+    }, [videoId, isPlaying, musicStartedAt, musicPositionAtStart, sendCommand]);
+
+    const handleEnableAudio = () => {
+        setHasInteracted(true);
+        syncPlayback();
     };
 
-    const handlePlayPause = () => {
-        // If currently playing, pause it; if paused, play it
+    useEffect(() => {
+        if (!videoId) return;
+
+        const lastSynced = lastSyncedRef.current;
+        const currentState = { playing: isPlaying, startedAt: musicStartedAt, positionAtStart: musicPositionAtStart };
+
+        if (
+            lastSynced &&
+            lastSynced.playing === currentState.playing &&
+            lastSynced.startedAt === currentState.startedAt &&
+            lastSynced.positionAtStart === currentState.positionAtStart
+        ) {
+            return;
+        }
+
+        lastSyncedRef.current = currentState;
+
+        if (!hasInteracted) {
+            return;
+        }
+
         if (isPlaying) {
-            sendCommand("pauseVideo");
-            // Optimistically update state (will be confirmed by YouTube event)
-            onPlayingChange(false);
+            const elapsed = (Date.now() - musicStartedAt) / 1000;
+            const targetPosition = musicPositionAtStart + elapsed;
+
+            setTimeout(() => {
+                sendCommand("seekTo", [targetPosition, true]);
+                sendCommand("playVideo");
+            }, 300);
         } else {
-            sendCommand("playVideo");
-            // Optimistically update state (will be confirmed by YouTube event)
-            onPlayingChange(true);
+            sendCommand("pauseVideo");
+            if (musicPositionAtStart > 0) {
+                sendCommand("seekTo", [musicPositionAtStart, true]);
+            }
         }
-    };
+    }, [videoId, isPlaying, musicStartedAt, musicPositionAtStart, sendCommand, hasInteracted]);
 
-    const handleShowVideo = () => {
-        if (onChange) {
-            onChange({
-                ...item,
-                videoVisible: true,
+    const handlePlayPause = async () => {
+        if (!videoId) return;
+
+        setHasInteracted(true);
+
+        const now = Date.now();
+
+        if (isPlaying) {
+            const elapsed = (now - musicStartedAt) / 1000;
+            const currentPosition = musicPositionAtStart + elapsed;
+
+            lastSyncedRef.current = { playing: false, startedAt: now, positionAtStart: currentPosition };
+            
+            await updateMusicState({
+                roomId,
+                itemId: item.id,
+                musicPlaying: false,
+                musicStartedAt: now,
+                musicPositionAtStart: currentPosition,
             });
+
+            sendCommand("pauseVideo");
+        } else {
+            const currentPosition = musicPositionAtStart;
+
+            lastSyncedRef.current = { playing: true, startedAt: now, positionAtStart: currentPosition };
+            
+            await updateMusicState({
+                roomId,
+                itemId: item.id,
+                musicPlaying: true,
+                musicStartedAt: now,
+                musicPositionAtStart: currentPosition,
+            });
+
+            sendCommand("seekTo", [currentPosition, true]);
+            sendCommand("playVideo");
         }
     };
 
-    // Position buttons below the vinyl player
-    // Note: Dimensions in room space (unscaled) - container transform handles scaling
+    if (!item.musicUrl || item.musicType !== "youtube" || !videoId || !embedUrl) {
+        return null;
+    }
+
     const offsetY = 70;
 
     return (
         <>
-            {/* Buttons */}
+            <iframe
+                ref={iframeRef}
+                src={embedUrl}
+                className="absolute pointer-events-none"
+                style={{
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    position: "absolute",
+                    left: -9999,
+                    top: -9999,
+                }}
+                allow="autoplay"
+            />
+
             <div
                 className="absolute pointer-events-auto"
                 style={{
@@ -125,32 +165,35 @@ export function MusicPlayerButtons({ item, isPlaying, onPlayingChange, onChange 
                     zIndex: item.zIndex + 1,
                 }}
             >
-                <div className="flex items-center justify-center gap-3">
-                    <Button
-                        size="icon"
-                        variant="default"
-                        className="h-10 w-10 rounded-full shadow-lg hover:scale-105 transition-transform"
-                        onClick={handlePlayPause}
-                        title={isPlaying ? "Pause" : "Play"}
-                    >
-                        {isPlaying ? (
-                            <Pause className="h-5 w-5" />
-                        ) : (
-                            <Play className="h-5 w-5" />
-                        )}
-                    </Button>
-                    <Button
-                        size="icon"
-                        variant="outline"
-                        className="h-10 w-10 rounded-full border-2 shadow-lg bg-background hover:scale-105 transition-transform"
-                        onClick={handleShowVideo}
-                        title="Show video"
-                    >
-                        <Eye className="h-5 w-5" />
-                    </Button>
+                <div className="flex items-center justify-center gap-2">
+                    {needsSync && isPlaying ? (
+                        <Button
+                            size="sm"
+                            variant="default"
+                            className="rounded-full shadow-lg hover:scale-105 transition-transform bg-emerald-500 hover:bg-emerald-600 animate-pulse"
+                            onClick={handleEnableAudio}
+                            title="Click to resume audio"
+                        >
+                            <Volume2 className="h-4 w-4 mr-1" />
+                            Resume
+                        </Button>
+                    ) : (
+                        <Button
+                            size="icon"
+                            variant="default"
+                            className="h-10 w-10 rounded-full shadow-lg hover:scale-105 transition-transform"
+                            onClick={handlePlayPause}
+                            title={isPlaying ? "Pause" : "Play"}
+                        >
+                            {isPlaying ? (
+                                <Pause className="h-5 w-5" />
+                            ) : (
+                                <Play className="h-5 w-5" />
+                            )}
+                        </Button>
+                    )}
                 </div>
             </div>
         </>
     );
 }
-

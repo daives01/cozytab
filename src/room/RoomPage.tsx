@@ -8,14 +8,16 @@ import { AssetDrawer } from "./AssetDrawer";
 import { TrashCan } from "./TrashCan";
 import { ComputerScreen } from "./ComputerScreen";
 import { MusicPlayerModal } from "./MusicPlayerModal";
-import { InlineMusicPlayer } from "./InlineMusicPlayer";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { Shop } from "./Shop";
+import { ShareModal } from "./ShareModal";
+import { PresenceCursor } from "./PresenceCursor";
+import { usePresence } from "../hooks/usePresence";
 import { Onboarding, type OnboardingStep } from "./Onboarding";
 import { getNextStep } from "./onboardingUtils";
 import { Button } from "@/components/ui/button";
-import { SignInButton } from "@clerk/clerk-react";
-import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift } from "lucide-react";
+import { SignInButton, useUser } from "@clerk/clerk-react";
+import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 
@@ -31,6 +33,7 @@ const ROOM_HEIGHT = 1080;
 export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
+    const { user: clerkUser } = useUser();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const saveShortcuts = useMutation(api.rooms.saveShortcuts);
@@ -44,15 +47,25 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [isShopOpen, setIsShopOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
-    const [musicPlayerStates, setMusicPlayerStates] = useState<Record<string, boolean>>({});
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
     const [showRewardNotification, setShowRewardNotification] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
     const [onboardingActive, setOnboardingActive] = useState(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
+
+    const ownerId = clerkUser?.id ?? `guest-${crypto.randomUUID()}`;
+    const ownerName = user?.displayName ?? user?.username ?? "Me";
+    const { visitors, updateCursor } = usePresence(
+        !isGuest && room ? room._id : null,
+        ownerId,
+        ownerName,
+        true
+    );
+    const visitorCount = visitors.filter((v) => !v.isOwner).length;
 
     useEffect(() => {
         const handleResize = () => {
@@ -207,6 +220,20 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (isGuest || !containerRef.current) return;
+        
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / scale;
+        const y = (e.clientY - rect.top) / scale;
+        
+        updateCursor(x, y);
+    };
+
+    const musicItems = (room?.items as RoomItem[] | undefined)?.filter(
+        (item) => item.musicUrl && item.musicType
+    ) ?? [];
+
     return (
         <div
             className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center ${
@@ -214,8 +241,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
+            onMouseMove={handleMouseMove}
         >
-            {/* Scaled Room Container */}
             <div
                 ref={containerRef}
                 style={{
@@ -227,7 +254,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     flexShrink: 0,
                 }}
             >
-                {/* Background - z-0 */}
                 <div
                     className="absolute inset-0"
                     style={{
@@ -240,7 +266,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onClick={() => setSelectedId(null)}
                 />
 
-                {/* Items - z-10 */}
                 {localItems.map((item) => (
                     <ItemNode
                         key={item.id}
@@ -275,56 +300,26 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     />
                 ))}
 
-                {/* Inline Music Players - z-11 */}
-                {localItems
-                    .filter((item) => item.musicUrl && item.musicType)
-                    .map((item) => (
-                        <InlineMusicPlayer
-                            key={`music-${item.id}`}
-                            item={item}
-                            scale={scale}
-                            isPlaying={musicPlayerStates[item.id] ?? false}
-                            onPlayingChange={(playing) => {
-                                setMusicPlayerStates((prev) => ({
-                                    ...prev,
-                                    [item.id]: playing,
-                                }));
-                            }}
-                            onChange={(updatedItem) => {
-                                setLocalItems((prev) =>
-                                    prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
-                                );
-                            }}
-                        />
-                    ))}
+                {room && musicItems.map((item) => (
+                    <MusicPlayerButtons
+                        key={`music-buttons-${item.id}`}
+                        item={item}
+                        roomId={room._id}
+                    />
+                ))}
 
-                {/* Music Player Buttons (when video is hidden) - z-11 */}
-                {localItems
-                    .filter((item) => item.musicUrl && item.musicType && item.videoVisible === false)
-                    .map((item) => (
-                        <MusicPlayerButtons
-                            key={`music-buttons-${item.id}`}
-                            item={item}
-                            scale={scale}
-                            isPlaying={musicPlayerStates[item.id] ?? false}
-                            onPlayingChange={(playing) => {
-                                setMusicPlayerStates((prev) => ({
-                                    ...prev,
-                                    [item.id]: playing,
-                                }));
-                            }}
-                            onChange={(updatedItem) => {
-                                setLocalItems((prev) =>
-                                    prev.map((i) => (i.id === updatedItem.id ? updatedItem : i))
-                                );
-                            }}
+                {!isGuest && visitors
+                    .filter((v) => v.visitorId !== ownerId)
+                    .map((visitor) => (
+                        <PresenceCursor
+                            key={visitor.visitorId}
+                            name={visitor.displayName}
+                            isOwner={visitor.isOwner}
+                            actions={visitor.actions}
                         />
                     ))}
             </div>
 
-            {/* UI Elements (Unscaled, Screen-Relative) */}
-
-            {/* Top Left Controls - z-50 */}
             <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
                 {isGuest ? (
                     <SignInButton mode="modal">
@@ -372,11 +367,28 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 {mode === "view" ? "View" : "Edit"}
                             </span>
                         </div>
+
+                        {/* Share Button */}
+                        <div className="flex flex-col items-center gap-1">
+                            <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="relative h-14 w-14 rounded-full border-4 shadow-[0_4px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px] transition-all flex items-center justify-center bg-indigo-400 border-indigo-600 text-indigo-900"
+                            >
+                                <Share2 className="h-7 w-7" />
+                                {visitorCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                                        {visitorCount}
+                                    </span>
+                                )}
+                            </button>
+                            <span className="font-['Patrick_Hand'] text-white text-lg font-bold drop-shadow-md select-none">
+                                Share
+                            </span>
+                        </div>
                     </>
                 )}
             </div>
 
-            {/* Daily Reward Notification */}
             {showRewardNotification && (
                 <div 
                     className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300"
@@ -392,7 +404,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 </div>
             )}
 
-            {/* Drawer Toggle Button - Only in Edit Mode */}
             {mode === "edit" && (
                 <div
                     className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300"
@@ -418,7 +429,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 </div>
             )}
 
-            {/* Asset Drawer - z-40 */}
             {mode === "edit" && (
                 <AssetDrawer
                     isOpen={isDrawerOpen}
@@ -429,7 +439,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             )}
 
-            {/* Trash Can - z-50 */}
             {mode === "edit" && (
                 <TrashCan
                     draggedItemId={draggedItemId}
@@ -440,7 +449,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             )}
 
-            {/* Computer Screen - z-100 */}
             {!isGuest && isComputerOpen && room && (
                 <ComputerScreen
                     shortcuts={localShortcuts}
@@ -462,7 +470,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             )}
 
-            {/* Shop - z-100 */}
             {!isGuest && isShopOpen && user && (
                 <Shop
                     onClose={() => setIsShopOpen(false)}
@@ -476,7 +483,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             )}
 
-            {/* Music Player Modal - z-100 */}
             {!isGuest && musicPlayerItemId && room && (() => {
                 const item = localItems.find((i) => i.id === musicPlayerItemId);
                 return item ? (
@@ -487,26 +493,19 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             setLocalItems(updatedItems);
                             saveRoom({ roomId: room._id, items: updatedItems });
-                            
-                            if (updatedItem.musicUrl && updatedItem.musicType) {
-                                setMusicPlayerStates((prev) => ({
-                                    ...prev,
-                                    [updatedItem.id]: true,
-                                }));
-                            } else {
-                                setMusicPlayerStates((prev) => ({
-                                    ...prev,
-                                    [updatedItem.id]: false,
-                                }));
-                            }
-                            
                             setMusicPlayerItemId(null);
                         }}
                     />
                 ) : null;
             })()}
 
-            {/* Onboarding Overlay - z-200 */}
+            {!isGuest && isShareModalOpen && (
+                <ShareModal
+                    onClose={() => setIsShareModalOpen(false)}
+                    visitorCount={visitorCount}
+                />
+            )}
+
             {!isGuest && onboardingActive && onboardingStep && (
                 <Onboarding
                     currentStep={onboardingStep}

@@ -2,9 +2,22 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
+import { VisitorRoomPage } from "./room/VisitorRoomPage";
 
 function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomeRoute />} />
+        <Route path="/visit/:token" element={<VisitorRoomPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+function HomeRoute() {
   return (
     <>
       <SignedIn>

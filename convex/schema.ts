@@ -30,11 +30,9 @@ export default defineSchema({
                 variant: v.optional(v.string()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
-                videoX: v.optional(v.number()),
-                videoY: v.optional(v.number()),
-                videoWidth: v.optional(v.number()),
-                videoHeight: v.optional(v.number()),
-                videoVisible: v.optional(v.boolean()),
+                musicPlaying: v.optional(v.boolean()),
+                musicStartedAt: v.optional(v.number()),
+                musicPositionAtStart: v.optional(v.number()),
             })
         ),
         shortcuts: v.optional(
@@ -65,4 +63,33 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_user_and_item", ["userId", "catalogItemId"]),
+
+    roomInvites: defineTable({
+        roomId: v.id("rooms"),
+        token: v.string(),
+        createdAt: v.number(),
+        expiresAt: v.optional(v.number()),
+        isActive: v.boolean(),
+        createdBy: v.id("users"),
+    })
+        .index("by_token", ["token"])
+        .index("by_room", ["roomId"]),
+
+    presence: defineTable({
+        roomId: v.id("rooms"),
+        visitorId: v.string(),
+        displayName: v.string(),
+        lastSeen: v.number(),
+        isOwner: v.boolean(),
+        avatarConfig: v.optional(v.any()),
+        actions: v.array(
+            v.object({
+                x: v.number(),
+                y: v.number(),
+                timeSinceBatchStart: v.number(),
+            })
+        ),
+    })
+        .index("by_room", ["roomId"])
+        .index("by_room_and_visitor", ["roomId", "visitorId"]),
 });

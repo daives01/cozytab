@@ -71,11 +71,9 @@ export const saveMyRoom = mutation({
                 variant: v.optional(v.string()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
-                videoX: v.optional(v.number()),
-                videoY: v.optional(v.number()),
-                videoWidth: v.optional(v.number()),
-                videoHeight: v.optional(v.number()),
-                videoVisible: v.optional(v.boolean()),
+                musicPlaying: v.optional(v.boolean()),
+                musicStartedAt: v.optional(v.number()),
+                musicPositionAtStart: v.optional(v.number()),
             })
         ),
     },
@@ -132,5 +130,59 @@ export const saveShortcuts = mutation({
         }
 
         await ctx.db.patch(args.roomId, { shortcuts: args.shortcuts });
+    },
+});
+
+// Lightweight mutation for music state updates - allows anyone with room access to update
+export const updateMusicState = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        itemId: v.string(),
+        musicPlaying: v.boolean(),
+        musicStartedAt: v.number(),
+        musicPositionAtStart: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const room = await ctx.db.get(args.roomId);
+        if (!room) throw new Error("Room not found");
+
+        const updatedItems = room.items.map((item) => {
+            if (item.id === args.itemId) {
+                return {
+                    ...item,
+                    musicPlaying: args.musicPlaying,
+                    musicStartedAt: args.musicStartedAt,
+                    musicPositionAtStart: args.musicPositionAtStart,
+                };
+            }
+            return item;
+        });
+
+        await ctx.db.patch(args.roomId, { items: updatedItems });
+    },
+});
+
+export const getRoomByInvite = query({
+    args: { token: v.string() },
+    handler: async (ctx, args) => {
+        const invite = await ctx.db
+            .query("roomInvites")
+            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .unique();
+
+        if (!invite) return null;
+        if (!invite.isActive) return null;
+        if (invite.expiresAt && invite.expiresAt < Date.now()) return null;
+
+        const room = await ctx.db.get(invite.roomId);
+        if (!room) return null;
+
+        const owner = await ctx.db.get(room.userId);
+
+        return {
+            room,
+            ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
+            ownerId: owner?._id,
+        };
     },
 });
