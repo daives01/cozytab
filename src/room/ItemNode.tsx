@@ -30,13 +30,12 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
         e.stopPropagation();
-        e.preventDefault(); // Prevent text selection
+        e.preventDefault();
 
         onSelect();
         setIsDragging(true);
         onDragStart?.();
 
-        // Store initial mouse position and item position
         dragStart.current = { x: e.clientX, y: e.clientY };
         itemStart.current = { x: item.x, y: item.y };
     };
@@ -45,11 +44,9 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
         if (!isDragging) return;
 
         const handleMouseMove = (e: MouseEvent) => {
-            // Calculate delta in screen coordinates
             const dx = e.clientX - dragStart.current.x;
             const dy = e.clientY - dragStart.current.y;
 
-            // Apply scale to delta to get room coordinates
             onChange({
                 ...item,
                 x: itemStart.current.x + dx / scale,
@@ -90,29 +87,24 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 if (mode === "view") {
                     const category = catalogItem?.category?.toLowerCase();
                     
-                    // Check if this is a computer item by category
                     if (category === "computer" && onComputerClick) {
                         onComputerClick();
                         return;
                     }
-                    // Check if this is a player item by category
                     if (category === "player" && onMusicPlayerClick) {
                         onMusicPlayerClick();
                         return;
                     }
-                    // Default: open URL if available (for furniture, decor, and other categories)
                     if (item.url) {
                         window.open(item.url, "_blank");
                     }
                 }
-                // In edit mode, clicks are disabled for interactive items (only dragging is allowed)
             }}
         >
             <div
                 className="relative group"
                 style={{
-                    width: 150, // Default width, maybe make this dynamic later
-                    // height: 100, // Let height be auto to maintain aspect ratio
+                    width: 150,
                 }}
             >
                 {imageUrl ? (

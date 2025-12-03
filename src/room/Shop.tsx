@@ -11,7 +11,6 @@ interface ShopProps {
     onOnboardingPurchase?: () => void;
 }
 
-// Group items by category for display
 function groupByCategory(items: Doc<"catalogItems">[]) {
     const groups: Record<string, Doc<"catalogItems">[]> = {};
     for (const item of items) {
@@ -23,7 +22,6 @@ function groupByCategory(items: Doc<"catalogItems">[]) {
     return groups;
 }
 
-// Get a friendly display name for categories
 function getCategoryDisplayName(category: string): string {
     const names: Record<string, string> = {
         furniture: "Furniture",
@@ -34,7 +32,6 @@ function getCategoryDisplayName(category: string): string {
     return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
 }
 
-// Get category color for visual distinction
 function getCategoryColor(category: string): string {
     const colors: Record<string, string> = {
         furniture: "from-amber-500 to-orange-600",
@@ -58,7 +55,6 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
         try {
             const result = await purchaseItem({ catalogItemId: itemId });
             setLastResult({ itemId, message: result.message || "Purchase successful!", success: result.success });
-            // Trigger onboarding callback on successful purchase
             if (result.success && onOnboardingPurchase) {
                 onOnboardingPurchase();
             }
@@ -136,7 +132,6 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
                                             const canAfford = userCurrency >= item.basePrice;
                                             const isPurchasing = purchasing === item._id;
                                             const resultForItem = lastResult?.itemId === item._id ? lastResult : null;
-                                            // Highlight first affordable unowned item during onboarding
                                             const isOnboardingTarget = isOnboardingBuyStep && !isOwned && canAfford && itemIndex === 0;
 
                                             return (

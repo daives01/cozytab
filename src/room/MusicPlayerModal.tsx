@@ -61,7 +61,6 @@ export function MusicPlayerModal({
 
     if (videoId) {
 
-      // Added moderate branding removal (no autoplay in preview)
       setPreviewUrl(
 
         `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1&enablejsapi=1&modestbranding=1`

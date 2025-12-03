@@ -36,12 +36,11 @@ export const ensureUser = mutation({
                 username: args.username,
                 displayName: identity.name ?? args.username,
                 avatarConfig: {},
-                currency: 5, // Starting currency for new users
-                onboardingCompleted: false, // New users need onboarding
+                currency: 5,
+                onboardingCompleted: false,
             });
             user = await ctx.db.get(id);
 
-            // Seed the starter item (Computer) to the new user's inventory
             if (user) {
                 const starterItem = await ctx.db
                     .query("catalogItems")
@@ -104,12 +103,10 @@ export const claimDailyReward = mutation({
         const lastReward = user.lastDailyReward ?? 0;
         const oneDayMs = 24 * 60 * 60 * 1000;
 
-        // Check if 24 hours have passed since last reward
         if (now - lastReward < oneDayMs) {
             return { success: false, message: "Daily reward already claimed" };
         }
 
-        // Award 1 token and update timestamp
         await ctx.db.patch(user._id, {
             currency: user.currency + 1,
             lastDailyReward: now,

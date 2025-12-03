@@ -23,16 +23,14 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
     const resizeStartRef = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
-    const showVideo = item.videoVisible !== false; // Default to true if not set
-    const tvRotationAngle = item.tvRotationAngle ?? 20; // Default to 45 degrees
+    const showVideo = item.videoVisible !== false;
+    const tvRotationAngle = item.tvRotationAngle ?? 20;
 
-    // Listen for YouTube messages from this iframe
     useEffect(() => {
         if (!videoId) return;
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== "https://www.youtube.com") return;
             
-            // Only process messages from our iframe
             if (iframeRef.current && event.source !== iframeRef.current.contentWindow) {
                 return;
             }
@@ -40,14 +38,12 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
             try {
                 const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
                 
-                // Handle state changes from YouTube player
                 if (data.event === "onStateChange") {
-                    // 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
                     const playing = data.info === 1;
                     onPlayingChange(playing);
                 }
             } catch {
-                // Ignore parse errors
+                // no-op
             }
         };
 
@@ -55,8 +51,6 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         return () => window.removeEventListener("message", handleMessage);
     }, [onPlayingChange, videoId]);
 
-    // Use stored position/size, or default to below vinyl player
-    // Note: All dimensions are in room space (unscaled) - the container's transform handles scaling
     const defaultWidth = 320;
     const defaultHeight = (defaultWidth * 9) / 16; // 16:9 aspect ratio
     const videoX = item.videoX ?? item.x;
@@ -64,22 +58,15 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
     const videoWidth = item.videoWidth ?? defaultWidth;
     const videoHeight = item.videoHeight ?? defaultHeight;
 
-    // Build embed URL with minimal branding and no controls
-    // Note: modestbranding was deprecated in Aug 2023, but we can still minimize UI elements
-    // loop=1 with playlist parameter is required for looping to work
-    // autoplay=1 makes the video start playing automatically when loaded
     const embedUrl = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=1&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&loop=1&playlist=${videoId}&origin=${window.location.origin}`;
 
-    // Handle dragging
     useEffect(() => {
         if (!isDragging || !videoId) return;
 
         const handleMouseMove = (e: MouseEvent) => {
-            // Calculate delta in screen coordinates
             const dx = (e.clientX - dragStartRef.current.mouseX) / scale;
             const dy = (e.clientY - dragStartRef.current.mouseY) / scale;
 
-            // Apply delta to the stored position
             const newX = dragStartRef.current.itemX + dx;
             const newY = dragStartRef.current.itemY + dy;
 
@@ -105,7 +92,6 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         };
     }, [isDragging, item, onChange, scale, videoId]);
 
-    // Handle resizing
     useEffect(() => {
         if (!isResizing || !videoId) return;
 
@@ -113,7 +99,6 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
             const dx = (e.clientX - resizeStartRef.current.mouseX) / scale;
             const dy = (e.clientY - resizeStartRef.current.mouseY) / scale;
 
-            // Min dimensions in room space (unscaled)
             const newWidth = Math.max(200, resizeStartRef.current.width + dx);
             const newHeight = Math.max((200 * 9) / 16, resizeStartRef.current.height + dy);
 
@@ -139,7 +124,6 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         };
     }, [isResizing, item, onChange, scale, videoId]);
 
-    // Control YouTube iframe playback via postMessage
     const sendCommand = (command: string) => {
         if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(
@@ -153,29 +137,24 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         }
     };
 
-    // Auto-play when component loads with music URL and playing state is true
     useEffect(() => {
         if (!videoId || !isPlaying || !iframeRef.current?.contentWindow) return;
-            // Small delay to ensure iframe is ready
             const timer = setTimeout(() => {
                 sendCommand("playVideo");
             }, 500);
             return () => clearTimeout(timer);
-    }, [videoId, isPlaying]); // Re-run when video changes or playing state changes
+    }, [videoId, isPlaying]);
 
     if (!item.musicUrl || item.musicType !== "youtube" || !videoId) {
         return null;
     }
 
     const handlePlayPause = () => {
-        // If currently playing, pause it; if paused, play it
         if (isPlaying) {
             sendCommand("pauseVideo");
-            // Optimistically update state (will be confirmed by YouTube event)
             onPlayingChange(false);
         } else {
             sendCommand("playVideo");
-            // Optimistically update state (will be confirmed by YouTube event)
             onPlayingChange(true);
         }
     };
@@ -188,11 +167,9 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
                 videoVisible: newVisible,
             });
         }
-        // Note: We don't pause when hiding - let the video keep playing
     };
 
     const handleRotate = () => {
-        // Toggle between 45 and -45 degrees
         const newAngle = tvRotationAngle === 45 ? -45 : 45;
         if (onChange) {
             onChange({
@@ -226,9 +203,7 @@ export function InlineMusicPlayer({ item, scale, isPlaying, onPlayingChange, onC
         };
     };
 
-    // Calculate padding to extend hover area for controls and drag handle
-    // Note: Dimensions in room space (unscaled) - container transform handles scaling
-    const hoverPadding = 60; // Space for controls/drag handle + gap
+    const hoverPadding = 60;
 
     return (
         <>

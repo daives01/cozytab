@@ -46,13 +46,10 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [isShopOpen, setIsShopOpen] = useState(false);
     const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
-    // Track playing state for each music player item (keyed by item ID)
     const [musicPlayerStates, setMusicPlayerStates] = useState<Record<string, boolean>>({});
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
     const [showRewardNotification, setShowRewardNotification] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    
-    // Onboarding state
     const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
     const [onboardingActive, setOnboardingActive] = useState(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
@@ -65,24 +62,22 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             const scaleX = windowWidth / ROOM_WIDTH;
             const scaleY = windowHeight / ROOM_HEIGHT;
 
-            // Use Math.max to cover the screen (no black bars)
             const newScale = Math.max(scaleX, scaleY);
             setScale(newScale);
         };
 
         window.addEventListener("resize", handleResize);
-        handleResize(); // Initial calculation
+        handleResize();
 
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Debounced save function
     const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
     
     useEffect(() => {
         debouncedSaveRef.current = debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
             saveRoom({ roomId, items });
-        }, 1000); // 1 second debounce
+        }, 1000);
     }, [saveRoom]);
 
     useEffect(() => {
@@ -90,13 +85,10 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             if (room === null) {
                 createRoom();
             } else if (room) {
-                // Always sync with server state in view mode
-                // Or if we haven't loaded anything yet (initial load)
                 if (mode === "view" || localItems.length === 0) {
                     // eslint-disable-next-line react-hooks/set-state-in-effect
                     setLocalItems(room.items as RoomItem[]);
                 }
-                // Sync shortcuts
                 if (room.shortcuts) {
                     setLocalShortcuts(room.shortcuts as Shortcut[]);
                 } else {
@@ -104,16 +96,14 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 }
             }
         }
-    }, [room, createRoom, isGuest, mode, localItems.length]); // Added localItems.length back for proper dependency
+    }, [room, createRoom, isGuest, mode, localItems.length]);
 
-    // Auto-save when items change in edit mode
     useEffect(() => {
         if (mode === "edit" && room && debouncedSaveRef.current) {
             debouncedSaveRef.current(room._id, localItems);
         }
     }, [localItems, mode, room]);
 
-    // Try to claim daily reward on load
     useEffect(() => {
         if (!isGuest && user && !dailyRewardClaimed) {
             claimDailyReward()
@@ -121,18 +111,15 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     setDailyRewardClaimed(true);
                     if (result.success) {
                         setShowRewardNotification(true);
-                        // Auto-hide notification after 4 seconds
                         setTimeout(() => setShowRewardNotification(false), 4000);
                     }
                 })
                 .catch(() => {
-                    // Silently fail - user might not be eligible for reward
                     setDailyRewardClaimed(true);
                 });
         }
     }, [user, isGuest, dailyRewardClaimed, claimDailyReward]);
 
-    // Initialize onboarding for new users - only once
     const onboardingInitialized = useRef(false);
     useEffect(() => {
         if (!isGuest && user && user.onboardingCompleted === false && !onboardingActive && !onboardingInitialized.current) {
@@ -141,7 +128,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 setOnboardingActive(true);
                 setOnboardingStep("welcome");
             });
-            // Auto-advance from welcome after a short delay
             setTimeout(() => {
                 startTransition(() => {
                     setOnboardingStep("enter-edit-mode");
@@ -150,23 +136,19 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         }
     }, [user, isGuest, onboardingActive]);
 
-    // Handler for completing onboarding
     const handleOnboardingComplete = useCallback(async () => {
-        // Prevent double-completion
         if (!onboardingActive) return;
         
         setOnboardingActive(false);
         setOnboardingStep(null);
-        onboardingInitialized.current = true; // Ensure it doesn't restart
+        onboardingInitialized.current = true;
         await completeOnboarding();
     }, [completeOnboarding, onboardingActive]);
 
-    // Advance to next onboarding step
     const advanceOnboarding = useCallback(() => {
         if (onboardingStep && onboardingActive) {
             const nextStep = getNextStep(onboardingStep);
             if (nextStep === "complete") {
-                // Show completion briefly then finish
                 setOnboardingStep("complete");
                 setTimeout(() => {
                     handleOnboardingComplete();
@@ -192,11 +174,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
         const rect = containerRef.current.getBoundingClientRect();
 
-        // Mouse position relative to the container (top-left of container)
         const relativeX = e.clientX - rect.left;
         const relativeY = e.clientY - rect.top;
 
-        // Convert to unscaled coordinates
         const x = relativeX / scale;
         const y = relativeY / scale;
 
@@ -214,7 +194,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
         setLocalItems((prev) => [...prev, newItem]);
 
-        // Advance onboarding when placing the computer
         if (onboardingStep === "place-computer") {
             advanceOnboarding();
         }
@@ -282,7 +261,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         onComputerClick={() => {
                             if (!isGuest && mode === "view") {
                                 setIsComputerOpen(true);
-                                // Advance onboarding when clicking computer
                                 if (onboardingStep === "click-computer") {
                                     advanceOnboarding();
                                 }
@@ -364,14 +342,12 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                     if (mode === "edit") {
                                         setMode("view");
                                         setIsDrawerOpen(false);
-                                        // Advance onboarding when switching to view mode
                                         if (onboardingStep === "switch-to-view") {
                                             advanceOnboarding();
                                         }
                                     } else {
                                         setMode("edit");
                                         setIsDrawerOpen(true);
-                                        // Advance onboarding when entering edit mode
                                         if (onboardingStep === "enter-edit-mode") {
                                             advanceOnboarding();
                                         }
@@ -427,7 +403,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         onClick={() => {
                             const wasOpen = isDrawerOpen;
                             setIsDrawerOpen(!isDrawerOpen);
-                            // Advance onboarding when opening storage
                             if (!wasOpen && onboardingStep === "open-storage") {
                                 advanceOnboarding();
                             }
@@ -461,7 +436,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onDelete={(itemId) => {
                         setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
                         setSelectedId((current) => current === itemId ? null : current);
-                        // Don't clear draggedItemId here - let ItemNode's onDragEnd handle it
                     }}
                 />
             )}
@@ -480,7 +454,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onOpenShop={() => {
                         setIsComputerOpen(false);
                         setIsShopOpen(true);
-                        // Advance onboarding when opening shop
                         if (onboardingStep === "open-shop") {
                             advanceOnboarding();
                         }
@@ -513,17 +486,14 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         onSave={(updatedItem) => {
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             setLocalItems(updatedItems);
-                            // Explicitly save to database (works in both view and edit mode)
                             saveRoom({ roomId: room._id, items: updatedItems });
                             
-                            // Auto-play when music URL is set
                             if (updatedItem.musicUrl && updatedItem.musicType) {
                                 setMusicPlayerStates((prev) => ({
                                     ...prev,
                                     [updatedItem.id]: true,
                                 }));
                             } else {
-                                // Stop playing if music is cleared
                                 setMusicPlayerStates((prev) => ({
                                     ...prev,
                                     [updatedItem.id]: false,

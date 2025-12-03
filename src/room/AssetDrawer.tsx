@@ -9,11 +9,10 @@ import { Package } from "lucide-react";
 interface AssetDrawerProps {
     isOpen: boolean;
     onDragStart: (e: React.DragEvent, id: string) => void;
-    highlightComputer?: boolean; // For onboarding
+    highlightComputer?: boolean;
 }
 
 export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDrawerProps) {
-    // Query user's inventory instead of full catalog
     const inventoryItems = useQuery(api.inventory.getMyInventory);
 
     return (

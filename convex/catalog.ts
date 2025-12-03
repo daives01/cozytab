@@ -28,7 +28,6 @@ export const addItem = mutation({
         defaultHeight: v.number(),
     },
     handler: async (ctx, args) => {
-        // Check if item with this name already exists
         const existing = await ctx.db
             .query("catalogItems")
             .withIndex("by_name", (q) => q.eq("name", args.name))
@@ -61,7 +60,6 @@ export const updateItem = mutation({
             return { success: false, message: "Item not found" };
         }
 
-        // Filter out undefined values and build update object
         const filteredUpdates: {
             name?: string;
             category?: string;
@@ -83,7 +81,6 @@ export const updateItem = mutation({
     },
 });
 
-// Upsert pattern: insert new items or update existing ones by name
 export const seed = mutation({
     args: {},
     handler: async (ctx) => {
@@ -180,7 +177,6 @@ export const seed = mutation({
                 .unique();
 
             if (existing) {
-                // Update existing item
                 await ctx.db.patch(existing._id, {
                     category: item.category,
                     basePrice: item.basePrice,
@@ -190,7 +186,6 @@ export const seed = mutation({
                 });
                 updated++;
             } else {
-                // Insert new item
                 await ctx.db.insert("catalogItems", item);
                 inserted++;
             }

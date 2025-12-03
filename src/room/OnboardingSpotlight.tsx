@@ -41,7 +41,7 @@ export function OnboardingSpotlight({
 
             if (element) {
                 const rect = element.getBoundingClientRect();
-                const padding = 8; // Extra padding around the spotlight
+                const padding = 8;
                 setSpotlight({
                     top: rect.top - padding,
                     left: rect.left - padding,
@@ -49,18 +49,15 @@ export function OnboardingSpotlight({
                     height: rect.height + padding * 2,
                 });
             } else {
-                // No target - center the message
                 setSpotlight(null);
             }
         };
 
         updateSpotlight();
 
-        // Update on resize/scroll
         window.addEventListener("resize", updateSpotlight);
         window.addEventListener("scroll", updateSpotlight, true);
 
-        // Also observe DOM changes in case the target appears later
         const observer = new MutationObserver(updateSpotlight);
         observer.observe(document.body, { childList: true, subtree: true });
 
@@ -71,10 +68,8 @@ export function OnboardingSpotlight({
         };
     }, [targetSelector, targetRef]);
 
-    // Calculate bubble position with bounds checking
     const getBubbleStyle = (): React.CSSProperties => {
         if (!spotlight) {
-            // Center the bubble when no spotlight
             return {
                 position: "fixed",
                 top: "50%",
@@ -83,12 +78,11 @@ export function OnboardingSpotlight({
             };
         }
 
-        const gap = 20; // Gap between spotlight and bubble
+        const gap = 20;
         const bubbleWidth = 300;
-        const bubbleHeight = 150; // Approximate height for bounds checking
-        const margin = 20; // Minimum margin from screen edges
+        const bubbleHeight = 150;
+        const margin = 20;
 
-        // Calculate the ideal position based on bubblePosition preference
         let top: number | undefined;
         let left: number | undefined;
         let right: string | undefined;
@@ -114,24 +108,19 @@ export function OnboardingSpotlight({
                 break;
         }
 
-        // Bounds checking - ensure bubble stays on screen
         if (top !== undefined) {
-            // Check top bound
             if (top < margin) {
                 top = margin;
             }
-            // Check bottom bound
             if (top + bubbleHeight > window.innerHeight - margin) {
                 top = window.innerHeight - margin - bubbleHeight;
             }
         }
 
         if (left !== undefined) {
-            // Check left bound
             if (left < margin) {
                 left = margin;
             }
-            // Check right bound
             if (left + bubbleWidth > window.innerWidth - margin) {
                 left = window.innerWidth - margin - bubbleWidth;
             }
@@ -150,13 +139,12 @@ export function OnboardingSpotlight({
 
     return (
         <div className="fixed inset-0 z-[200] pointer-events-none font-['Patrick_Hand']">
-            {/* Dark overlay with cutout - pointer-events:none to allow clicks through */}
+            {/* Dark overlay with cutout */}
             <svg
                 className="absolute inset-0 w-full h-full pointer-events-none"
             >
                 <defs>
                     <mask id="spotlight-mask">
-                        {/* White = visible (dark overlay shows), Black = hidden (cutout) */}
                         <rect x="0" y="0" width="100%" height="100%" fill="white" />
                         {spotlight && (
                             <rect

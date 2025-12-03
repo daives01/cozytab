@@ -16,13 +16,11 @@ export const getMyInventory = query({
 
         if (!user) return [];
 
-        // Get all inventory items for this user
         const inventoryItems = await ctx.db
             .query("inventory")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
 
-        // Fetch the catalog items for each inventory entry
         const catalogItems = await Promise.all(
             inventoryItems.map(async (inv) => {
                 const catalogItem = await ctx.db.get(inv.catalogItemId);
@@ -30,7 +28,6 @@ export const getMyInventory = query({
             })
         );
 
-        // Filter out any null items (in case catalog item was deleted)
         return catalogItems.filter((item): item is NonNullable<typeof item> => item !== null);
     },
 });
@@ -50,13 +47,11 @@ export const getMyInventoryIds = query({
 
         if (!user) return [];
 
-        // Get all inventory items for this user
         const inventoryItems = await ctx.db
             .query("inventory")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
 
-        // Return catalog item IDs as an array (Sets don't serialize well)
         return inventoryItems.map((inv) => inv.catalogItemId);
     },
 });
@@ -102,7 +97,6 @@ export const purchaseItem = mutation({
 
         if (!user) throw new Error("User not found");
 
-        // Check if user already owns this item
         const existingItem = await ctx.db
             .query("inventory")
             .withIndex("by_user_and_item", (q) =>
@@ -114,23 +108,19 @@ export const purchaseItem = mutation({
             return { success: false, message: "You already own this item" };
         }
 
-        // Get the catalog item to check price
         const catalogItem = await ctx.db.get(args.catalogItemId);
         if (!catalogItem) {
             return { success: false, message: "Item not found" };
         }
 
-        // Check if user has enough currency
         if (user.currency < catalogItem.basePrice) {
             return { success: false, message: "Insufficient funds" };
         }
 
-        // Deduct currency
         await ctx.db.patch(user._id, {
             currency: user.currency - catalogItem.basePrice,
         });
 
-        // Add to inventory
         await ctx.db.insert("inventory", {
             userId: user._id,
             catalogItemId: args.catalogItemId,

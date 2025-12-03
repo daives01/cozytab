@@ -98,9 +98,7 @@ export function Onboarding({ currentStep, onComplete }: OnboardingProps) {
         onComplete();
     };
 
-    // Don't render anything if step is "complete" and handled elsewhere
     if (currentStep === "complete") {
-        // Show completion message briefly
         return (
             <OnboardingSpotlight
                 message={stepConfigs.complete.message}
