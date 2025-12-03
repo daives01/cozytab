@@ -18,5 +18,11 @@
 - we need to utilize convex realtime features to create "presence", with a tracked cursor (send batched cursor positions every time-step, replay them on the frontend, I think there may be an existing solution for this online)
 - Create a placeholder asset for the user (and visitors) cursor that tracks onto the real cursor. This is the user's "character". I expect it to be somewhat customizable and animated in the future.
 
+[] When in a shared room, allow basic figma-like text chat
+- using the '/' key to start typing
+- batch keystrokes just like cursor updates
+- tie the text to the cursor, match color
+
+
 [] Figure out how to encourage the user to set this as their default browser page.
 - this may need to be a chrome extension? I'm not sure

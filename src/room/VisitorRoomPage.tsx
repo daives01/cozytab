@@ -6,7 +6,9 @@ import type { RoomItem } from "../types";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { PresenceCursor } from "./PresenceCursor";
+import { LocalCursor } from "./LocalCursor";
 import { usePresence } from "../hooks/usePresence";
+import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
 
@@ -23,7 +25,7 @@ export function VisitorRoomPage() {
     const [visitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
     const [visitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
 
-    const { visitors, updateCursor } = usePresence(
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresence(
         roomData?.room?._id ?? null,
         visitorId,
         visitorName,
@@ -48,14 +50,13 @@ export function VisitorRoomPage() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
         
         const rect = containerRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / scale;
-        const y = (e.clientY - rect.top) / scale;
-        
-        updateCursor(x, y);
+        const roomX = (e.clientX - rect.left) / scale;
+        const roomY = (e.clientY - rect.top) / scale;
+        updateCursor(roomX, roomY, e.clientX, e.clientY);
     };
 
     if (!token) {
@@ -99,8 +100,9 @@ export function VisitorRoomPage() {
 
     return (
         <div
-            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center"
-            onMouseMove={handleMouseMove}
+            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cursor-hidden"
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
         >
             <div
                 ref={containerRef}
@@ -182,6 +184,21 @@ export function VisitorRoomPage() {
                     </Button>
                 </Link>
             </div>
+
+            <ChatInput onMessageChange={updateChatMessage} />
+
+            <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+                <div className="bg-gray-900/70 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                    <span className="font-mono bg-gray-700 px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
+                    <span style={{ fontFamily: "'Patrick Hand', cursive" }}>to chat</span>
+                </div>
+            </div>
+
+            <LocalCursor
+                x={screenCursor.x}
+                y={screenCursor.y}
+                chatMessage={localChatMessage}
+            />
         </div>
     );
 }

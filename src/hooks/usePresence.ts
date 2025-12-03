@@ -1,15 +1,17 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SAMPLING_INTERVAL = 50;
 const BATCH_INTERVAL = 500;
+const HEARTBEAT_INTERVAL = 1000;
 
 type CursorAction = {
     x: number;
     y: number;
     timeSinceBatchStart: number;
+    text?: string;
 };
 
 export function usePresence(
@@ -28,7 +30,10 @@ export function usePresence(
     const actionBatchRef = useRef<CursorAction[]>([]);
     const batchStartTimeRef = useRef<number>(0);
     const lastSampleTimeRef = useRef<number>(0);
-    const batchIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const localCursorRef = useRef({ x: 960, y: 540 });
+    const [screenCursor, setScreenCursor] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
+    const currentTextRef = useRef<string | null>(null);
 
     const sendBatch = useCallback(() => {
         if (!roomId) return;
@@ -44,26 +49,55 @@ export function usePresence(
             displayName,
             isOwner,
             actions: currentBatch,
-        }).catch(console.error);
+        });
 
         actionBatchRef.current = [];
     }, [roomId, visitorId, displayName, isOwner, updatePresenceMutation]);
 
     const updateCursor = useCallback(
-        (x: number, y: number) => {
+        (roomX: number, roomY: number, screenX: number, screenY: number) => {
+            setScreenCursor({ x: screenX, y: screenY });
+            
             if (!roomId) return;
 
+            localCursorRef.current = { x: roomX, y: roomY };
+
             const now = Date.now();
-
             if (now - lastSampleTimeRef.current < SAMPLING_INTERVAL) return;
-
             lastSampleTimeRef.current = now;
 
-            actionBatchRef.current.push({
-                x,
-                y,
+            const action: CursorAction = {
+                x: roomX,
+                y: roomY,
                 timeSinceBatchStart: now - batchStartTimeRef.current,
-            });
+            };
+            
+            if (currentTextRef.current) {
+                action.text = currentTextRef.current;
+            }
+
+            actionBatchRef.current.push(action);
+        },
+        [roomId]
+    );
+
+    const updateChatMessage = useCallback(
+        (message: string | null) => {
+            currentTextRef.current = message;
+            setLocalChatMessage(message);
+            
+            if (roomId) {
+                const now = Date.now();
+                const action: CursorAction = {
+                    x: localCursorRef.current.x,
+                    y: localCursorRef.current.y,
+                    timeSinceBatchStart: now - batchStartTimeRef.current,
+                };
+                if (message) {
+                    action.text = message;
+                }
+                actionBatchRef.current.push(action);
+            }
         },
         [roomId]
     );
@@ -75,19 +109,31 @@ export function usePresence(
         actionBatchRef.current = [{ x: 960, y: 540, timeSinceBatchStart: 0 }];
         sendBatch();
 
-        batchIntervalRef.current = setInterval(sendBatch, BATCH_INTERVAL);
+        const batchInterval = setInterval(sendBatch, BATCH_INTERVAL);
+
+        const heartbeatInterval = setInterval(() => {
+            const now = Date.now();
+            const action: CursorAction = {
+                x: localCursorRef.current.x,
+                y: localCursorRef.current.y,
+                timeSinceBatchStart: now - batchStartTimeRef.current,
+            };
+            if (currentTextRef.current) {
+                action.text = currentTextRef.current;
+            }
+            actionBatchRef.current.push(action);
+        }, HEARTBEAT_INTERVAL);
 
         return () => {
-            if (batchIntervalRef.current) {
-                clearInterval(batchIntervalRef.current);
-            }
+            clearInterval(batchInterval);
+            clearInterval(heartbeatInterval);
         };
     }, [roomId, sendBatch]);
 
     useEffect(() => {
         return () => {
             if (roomId) {
-                leaveRoomMutation({ roomId, visitorId }).catch(console.error);
+                leaveRoomMutation({ roomId, visitorId });
             }
         };
     }, [roomId, visitorId, leaveRoomMutation]);
@@ -95,6 +141,9 @@ export function usePresence(
     return {
         visitors: visitors ?? [],
         updateCursor,
+        updateChatMessage,
+        screenCursor,
+        localChatMessage,
         batchInterval: BATCH_INTERVAL,
     };
 }

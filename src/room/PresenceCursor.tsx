@@ -1,9 +1,11 @@
 import { useRef, useEffect, useState } from "react";
+import { CursorDisplay } from "./CursorDisplay";
 
 interface CursorAction {
     x: number;
     y: number;
     timeSinceBatchStart: number;
+    text?: string;
 }
 
 interface PresenceCursorProps {
@@ -12,14 +14,22 @@ interface PresenceCursorProps {
     actions: CursorAction[];
 }
 
+const CHAT_DISPLAY_DURATION_MS = 3000;
+const CHAT_FADE_DURATION_MS = 500;
+
 export function PresenceCursor({ name, isOwner, actions }: PresenceCursorProps) {
-    const containerRef = useRef<HTMLDivElement>(null);
     const batchQueueRef = useRef<CursorAction[][]>([]);
     const currentBatchRef = useRef<CursorAction[] | null>(null);
     const batchStartTimeRef = useRef<number>(0);
     const animationRef = useRef<number | null>(null);
     const lastActionsRef = useRef<CursorAction[]>([]);
+    
     const [displayPos, setDisplayPos] = useState({ x: 960, y: 540 });
+    const [displayedText, setDisplayedText] = useState<string | null>(null);
+    const [chatOpacity, setChatOpacity] = useState(1);
+    
+    const lastTextRef = useRef<string | null>(null);
+    const textClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         if (actions === lastActionsRef.current) return;
@@ -41,11 +51,6 @@ export function PresenceCursor({ name, isOwner, actions }: PresenceCursorProps) 
 
     useEffect(() => {
         const animate = () => {
-            if (!containerRef.current) {
-                animationRef.current = requestAnimationFrame(animate);
-                return;
-            }
-
             if (currentBatchRef.current === null) {
                 if (batchQueueRef.current.length === 0) {
                     animationRef.current = requestAnimationFrame(animate);
@@ -65,6 +70,28 @@ export function PresenceCursor({ name, isOwner, actions }: PresenceCursorProps) 
 
                 currentBatch.shift();
                 setDisplayPos({ x: action.x, y: action.y });
+                
+                if (action.text !== undefined && action.text !== lastTextRef.current) {
+                    lastTextRef.current = action.text;
+                    setDisplayedText(action.text);
+                    setChatOpacity(1);
+                    
+                    if (textClearTimeoutRef.current) {
+                        clearTimeout(textClearTimeoutRef.current);
+                        textClearTimeoutRef.current = null;
+                    }
+                } else if (action.text === undefined && lastTextRef.current !== null) {
+                    if (!textClearTimeoutRef.current) {
+                        textClearTimeoutRef.current = setTimeout(() => {
+                            setChatOpacity(0);
+                            setTimeout(() => {
+                                setDisplayedText(null);
+                                lastTextRef.current = null;
+                            }, CHAT_FADE_DURATION_MS);
+                            textClearTimeoutRef.current = null;
+                        }, CHAT_DISPLAY_DURATION_MS);
+                    }
+                }
             }
 
             if (currentBatch.length === 0) {
@@ -80,53 +107,21 @@ export function PresenceCursor({ name, isOwner, actions }: PresenceCursorProps) 
             if (animationRef.current) {
                 cancelAnimationFrame(animationRef.current);
             }
+            if (textClearTimeoutRef.current) {
+                clearTimeout(textClearTimeoutRef.current);
+            }
         };
     }, []);
 
-    const cursorColor = isOwner ? "#6366f1" : "#10b981";
-    const bgColor = isOwner ? "bg-indigo-500" : "bg-emerald-500";
-
     return (
-        <div
-            ref={containerRef}
-            className="absolute pointer-events-none"
-            style={{
-                left: displayPos.x,
-                top: displayPos.y,
-                zIndex: 100,
-                transform: "translate(-2px, -2px)",
-                transition: "left 50ms linear, top 50ms linear",
-            }}
-        >
-            <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{
-                    filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.3))",
-                }}
-            >
-                <path
-                    d="M5 3 L5 17 L9 13 L12 19 L15 18 L12 12 L18 12 L5 3Z"
-                    fill={cursorColor}
-                    stroke="#1f2937"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                />
-            </svg>
-
-            <div
-                className={`${bgColor} text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md ml-4 -mt-1`}
-                style={{
-                    fontFamily: "'Patrick Hand', cursive",
-                }}
-            >
-                {name}
-                {isOwner && " ★"}
-            </div>
-        </div>
+        <CursorDisplay
+            name={name}
+            isOwner={isOwner}
+            x={displayPos.x}
+            y={displayPos.y}
+            chatMessage={displayedText}
+            chatOpacity={chatOpacity}
+            showNameBadge={true}
+        />
     );
 }

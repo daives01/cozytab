@@ -2,12 +2,13 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
-const PRESENCE_TIMEOUT_MS = 10000;
+const PRESENCE_TIMEOUT_MS = 3000;
 
 const cursorActionValidator = v.object({
     x: v.number(),
     y: v.number(),
     timeSinceBatchStart: v.number(),
+    text: v.optional(v.string()),
 });
 
 export const updatePresence = mutation({

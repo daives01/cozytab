@@ -12,7 +12,9 @@ import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { Shop } from "./Shop";
 import { ShareModal } from "./ShareModal";
 import { PresenceCursor } from "./PresenceCursor";
+import { LocalCursor } from "./LocalCursor";
 import { usePresence } from "../hooks/usePresence";
+import { ChatInput } from "./ChatInput";
 import { Onboarding, type OnboardingStep } from "./Onboarding";
 import { getNextStep } from "./onboardingUtils";
 import { Button } from "@/components/ui/button";
@@ -57,15 +59,16 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [onboardingActive, setOnboardingActive] = useState(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
 
-    const ownerId = clerkUser?.id ?? `guest-${crypto.randomUUID()}`;
+    const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
-    const { visitors, updateCursor } = usePresence(
-        !isGuest && room ? room._id : null,
-        ownerId,
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresence(
+        !isGuest && room && visitorId ? room._id : null,
+        visitorId ?? "",
         ownerName,
         true
     );
     const visitorCount = visitors.filter((v) => !v.isOwner).length;
+    const hasVisitors = visitorCount > 0;
 
     useEffect(() => {
         const handleResize = () => {
@@ -220,14 +223,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (isGuest || !containerRef.current) return;
+    const handleMouseEvent = (e: React.MouseEvent) => {
+        if (!containerRef.current) return;
         
         const rect = containerRef.current.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / scale;
-        const y = (e.clientY - rect.top) / scale;
-        
-        updateCursor(x, y);
+        const roomX = (e.clientX - rect.left) / scale;
+        const roomY = (e.clientY - rect.top) / scale;
+        updateCursor(roomX, roomY, e.clientX, e.clientY);
     };
 
     const musicItems = (room?.items as RoomItem[] | undefined)?.filter(
@@ -236,12 +238,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     return (
         <div
-            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center ${
+            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cursor-hidden ${
                 draggedItemId ? "select-none" : ""
             }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
-            onMouseMove={handleMouseMove}
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
         >
             <div
                 ref={containerRef}
@@ -308,8 +311,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     />
                 ))}
 
-                {!isGuest && visitors
-                    .filter((v) => v.visitorId !== ownerId)
+                {!isGuest && visitorId && visitors
+                    .filter((v) => v.visitorId !== visitorId)
                     .map((visitor) => (
                         <PresenceCursor
                             key={visitor.visitorId}
@@ -512,6 +515,28 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onComplete={handleOnboardingComplete}
                 />
             )}
+
+            {!isGuest && hasVisitors && (
+                <ChatInput
+                    onMessageChange={updateChatMessage}
+                    disabled={isComputerOpen || isShopOpen || musicPlayerItemId !== null || isShareModalOpen}
+                />
+            )}
+
+            {!isGuest && hasVisitors && !isComputerOpen && !isShopOpen && !musicPlayerItemId && !isShareModalOpen && (
+                <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+                    <div className="bg-gray-900/70 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm">
+                        <span className="font-mono bg-gray-700 px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
+                        <span style={{ fontFamily: "'Patrick Hand', cursive" }}>to chat</span>
+                    </div>
+                </div>
+            )}
+
+            <LocalCursor
+                x={screenCursor.x}
+                y={screenCursor.y}
+                chatMessage={!isGuest && hasVisitors ? localChatMessage : null}
+            />
         </div>
     );
 }

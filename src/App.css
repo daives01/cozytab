@@ -196,3 +196,9 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+/* Hide cursor globally when this class is applied */
+.cursor-hidden,
+.cursor-hidden * {
+  cursor: none !important;
+}

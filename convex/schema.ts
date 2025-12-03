@@ -87,6 +87,7 @@ export default defineSchema({
                 x: v.number(),
                 y: v.number(),
                 timeSinceBatchStart: v.number(),
+                text: v.optional(v.string()),
             })
         ),
     })
