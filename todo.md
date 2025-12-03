@@ -9,6 +9,9 @@
 [] create an onboarding flow for a new user, a tutorial to get them to buy the basic items and place them
 - should only show once
 - teaches the user how the shop works, how to place items, etc
+- a new user needs to be seeded with the basic computer, and they need to: open storage, place the computer, click it, open shop, buy an item (desk?), place it
+- optionally can skip the onboarding
+- ensure the feature matches the vibe and style of the app, and is built in a clean and scalable way
 
 [] Support one user visiting another user's room
 - The user should have the ability to share an ephemeral link to a friend, to visit their room. They can close the link at any time.

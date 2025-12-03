@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useEffect, useState, type DragEvent, useRef } from "react";
+import { useEffect, useState, type DragEvent, useRef, useCallback, startTransition } from "react";
 import type { RoomItem, Shortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
@@ -11,9 +11,11 @@ import { MusicPlayerModal } from "./MusicPlayerModal";
 import { InlineMusicPlayer } from "./InlineMusicPlayer";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { Shop } from "./Shop";
+import { Onboarding, type OnboardingStep } from "./Onboarding";
+import { getNextStep } from "./onboardingUtils";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/clerk-react";
-import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Coins, Gift } from "lucide-react";
+import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 
@@ -49,6 +51,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
     const [showRewardNotification, setShowRewardNotification] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Onboarding state
+    const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
+    const [onboardingActive, setOnboardingActive] = useState(false);
+    const completeOnboarding = useMutation(api.users.completeOnboarding);
 
     useEffect(() => {
         const handleResize = () => {
@@ -125,6 +132,51 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         }
     }, [user, isGuest, dailyRewardClaimed, claimDailyReward]);
 
+    // Initialize onboarding for new users - only once
+    const onboardingInitialized = useRef(false);
+    useEffect(() => {
+        if (!isGuest && user && user.onboardingCompleted === false && !onboardingActive && !onboardingInitialized.current) {
+            onboardingInitialized.current = true;
+            startTransition(() => {
+                setOnboardingActive(true);
+                setOnboardingStep("welcome");
+            });
+            // Auto-advance from welcome after a short delay
+            setTimeout(() => {
+                startTransition(() => {
+                    setOnboardingStep("enter-edit-mode");
+                });
+            }, 3000);
+        }
+    }, [user, isGuest, onboardingActive]);
+
+    // Handler for completing onboarding
+    const handleOnboardingComplete = useCallback(async () => {
+        // Prevent double-completion
+        if (!onboardingActive) return;
+        
+        setOnboardingActive(false);
+        setOnboardingStep(null);
+        onboardingInitialized.current = true; // Ensure it doesn't restart
+        await completeOnboarding();
+    }, [completeOnboarding, onboardingActive]);
+
+    // Advance to next onboarding step
+    const advanceOnboarding = useCallback(() => {
+        if (onboardingStep && onboardingActive) {
+            const nextStep = getNextStep(onboardingStep);
+            if (nextStep === "complete") {
+                // Show completion briefly then finish
+                setOnboardingStep("complete");
+                setTimeout(() => {
+                    handleOnboardingComplete();
+                }, 2500);
+            } else {
+                setOnboardingStep(nextStep);
+            }
+        }
+    }, [onboardingStep, onboardingActive, handleOnboardingComplete]);
+
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
     };
@@ -161,6 +213,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         };
 
         setLocalItems((prev) => [...prev, newItem]);
+
+        // Advance onboarding when placing the computer
+        if (onboardingStep === "place-computer") {
+            advanceOnboarding();
+        }
     };
 
     if (!isGuest && !room) {
@@ -225,6 +282,10 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         onComputerClick={() => {
                             if (!isGuest && mode === "view") {
                                 setIsComputerOpen(true);
+                                // Advance onboarding when clicking computer
+                                if (onboardingStep === "click-computer") {
+                                    advanceOnboarding();
+                                }
                             }
                         }}
                         onMusicPlayerClick={() => {
@@ -232,6 +293,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 setMusicPlayerItemId(item.id);
                             }
                         }}
+                        isOnboardingComputerTarget={onboardingStep === "click-computer"}
                     />
                 ))}
 
@@ -297,13 +359,22 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     <>
                         <div className="flex flex-col items-center gap-1">
                             <button
+                                data-onboarding="mode-toggle"
                                 onClick={() => {
                                     if (mode === "edit") {
                                         setMode("view");
                                         setIsDrawerOpen(false);
+                                        // Advance onboarding when switching to view mode
+                                        if (onboardingStep === "switch-to-view") {
+                                            advanceOnboarding();
+                                        }
                                     } else {
                                         setMode("edit");
                                         setIsDrawerOpen(true);
+                                        // Advance onboarding when entering edit mode
+                                        if (onboardingStep === "enter-edit-mode") {
+                                            advanceOnboarding();
+                                        }
                                     }
                                 }}
                                 className={`
@@ -325,14 +396,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 {mode === "view" ? "View" : "Edit"}
                             </span>
                         </div>
-
-                        {/* Currency Display */}
-                        {user && (
-                            <div className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full px-4 py-2 border-2 border-amber-600 shadow-lg">
-                                <Coins className="h-5 w-5 text-yellow-200" />
-                                <span className="font-bold text-lg">{user.currency}</span>
-                            </div>
-                        )}
                     </>
                 )}
             </div>
@@ -360,7 +423,15 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     style={{ right: isDrawerOpen ? "180px" : "20px" }}
                 >
                     <button
-                        onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                        data-onboarding="drawer-toggle"
+                        onClick={() => {
+                            const wasOpen = isDrawerOpen;
+                            setIsDrawerOpen(!isDrawerOpen);
+                            // Advance onboarding when opening storage
+                            if (!wasOpen && onboardingStep === "open-storage") {
+                                advanceOnboarding();
+                            }
+                        }}
                         className="bg-[#c7b299] hover:bg-[#b5a18b] text-[#5c4d3c] h-16 w-8 rounded-l-lg border-y-4 border-l-4 border-[#a6927d] shadow-lg flex items-center justify-center transition-colors outline-none active:scale-95"
                     >
                         {isDrawerOpen ? (
@@ -379,6 +450,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onDragStart={(e: React.DragEvent, id: string) => {
                         e.dataTransfer.setData("catalogItemId", id);
                     }}
+                    highlightComputer={onboardingStep === "place-computer"}
                 />
             )}
 
@@ -408,7 +480,12 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onOpenShop={() => {
                         setIsComputerOpen(false);
                         setIsShopOpen(true);
+                        // Advance onboarding when opening shop
+                        if (onboardingStep === "open-shop") {
+                            advanceOnboarding();
+                        }
                     }}
+                    isOnboardingShopStep={onboardingStep === "open-shop"}
                 />
             )}
 
@@ -417,6 +494,12 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 <Shop
                     onClose={() => setIsShopOpen(false)}
                     userCurrency={user.currency}
+                    isOnboardingBuyStep={onboardingStep === "buy-item"}
+                    onOnboardingPurchase={() => {
+                        if (onboardingStep === "buy-item") {
+                            advanceOnboarding();
+                        }
+                    }}
                 />
             )}
 
@@ -452,6 +535,14 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     />
                 ) : null;
             })()}
+
+            {/* Onboarding Overlay - z-200 */}
+            {!isGuest && onboardingActive && onboardingStep && (
+                <Onboarding
+                    currentStep={onboardingStep}
+                    onComplete={handleOnboardingComplete}
+                />
+            )}
         </div>
     );
 }

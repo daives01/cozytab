@@ -7,6 +7,8 @@ import { useState } from "react";
 interface ShopProps {
     onClose: () => void;
     userCurrency: number;
+    isOnboardingBuyStep?: boolean;
+    onOnboardingPurchase?: () => void;
 }
 
 // Group items by category for display
@@ -43,7 +45,7 @@ function getCategoryColor(category: string): string {
     return colors[category] || "from-gray-500 to-gray-600";
 }
 
-export function Shop({ onClose, userCurrency }: ShopProps) {
+export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingPurchase }: ShopProps) {
     const catalogItems = useQuery(api.catalog.list);
     const ownedItemIds = useQuery(api.inventory.getMyInventoryIds);
     const purchaseItem = useMutation(api.inventory.purchaseItem);
@@ -56,6 +58,10 @@ export function Shop({ onClose, userCurrency }: ShopProps) {
         try {
             const result = await purchaseItem({ catalogItemId: itemId });
             setLastResult({ itemId, message: result.message || "Purchase successful!", success: result.success });
+            // Trigger onboarding callback on successful purchase
+            if (result.success && onOnboardingPurchase) {
+                onOnboardingPurchase();
+            }
         } catch {
             setLastResult({ itemId, message: "Purchase failed", success: false });
         } finally {
@@ -125,18 +131,23 @@ export function Shop({ onClose, userCurrency }: ShopProps) {
 
                                     {/* Items Grid */}
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                        {groupedItems[category].map((item) => {
+                                        {groupedItems[category].map((item, itemIndex) => {
                                             const isOwned = ownedSet.has(item._id);
                                             const canAfford = userCurrency >= item.basePrice;
                                             const isPurchasing = purchasing === item._id;
                                             const resultForItem = lastResult?.itemId === item._id ? lastResult : null;
+                                            // Highlight first affordable unowned item during onboarding
+                                            const isOnboardingTarget = isOnboardingBuyStep && !isOwned && canAfford && itemIndex === 0;
 
                                             return (
                                                 <div
                                                     key={item._id}
+                                                    data-onboarding={isOnboardingTarget ? "shop-item" : undefined}
                                                     className={`relative bg-white rounded-xl border-4 p-3 transition-all ${
                                                         isOwned
                                                             ? "border-emerald-400 bg-emerald-50"
+                                                            : isOnboardingTarget
+                                                            ? "border-amber-400 ring-2 ring-amber-300 shadow-lg"
                                                             : "border-[#d4c3aa] hover:border-amber-400 hover:shadow-lg hover:-translate-y-1"
                                                     }`}
                                                 >

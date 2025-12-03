@@ -9,6 +9,7 @@ export default defineSchema({
         avatarConfig: v.optional(v.any()),
         currency: v.number(),
         lastDailyReward: v.optional(v.number()), // timestamp of last reward
+        onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
     }).index("by_externalId", ["externalId"]),
 
     rooms: defineTable({

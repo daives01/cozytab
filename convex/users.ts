@@ -37,11 +37,51 @@ export const ensureUser = mutation({
                 displayName: identity.name ?? args.username,
                 avatarConfig: {},
                 currency: 5, // Starting currency for new users
+                onboardingCompleted: false, // New users need onboarding
             });
             user = await ctx.db.get(id);
+
+            // Seed the starter item (Computer) to the new user's inventory
+            if (user) {
+                const starterItem = await ctx.db
+                    .query("catalogItems")
+                    .withIndex("by_name", (q) => q.eq("name", "Computer"))
+                    .unique();
+
+                if (starterItem) {
+                    await ctx.db.insert("inventory", {
+                        userId: user._id,
+                        catalogItemId: starterItem._id,
+                        purchasedAt: Date.now(),
+                    });
+                }
+            }
         }
 
         return user;
+    },
+});
+
+export const completeOnboarding = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        await ctx.db.patch(user._id, {
+            onboardingCompleted: true,
+        });
+
+        return { success: true };
     },
 });
 

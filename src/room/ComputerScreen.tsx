@@ -20,9 +20,13 @@ import {
 
   Settings,
 
-  Save
+  Save,
+
+  LogOut
 
 } from "lucide-react";
+
+import { useClerk } from "@clerk/clerk-react";
 
 import type { Shortcut } from "../types";
 
@@ -38,6 +42,8 @@ interface ComputerScreenProps {
 
   onOpenShop: () => void;
 
+  isOnboardingShopStep?: boolean; // For onboarding highlighting
+
 }
 
 
@@ -52,6 +58,8 @@ export function ComputerScreen({
 
   onOpenShop,
 
+  isOnboardingShopStep,
+
 }: ComputerScreenProps) {
 
   const [isEditing, setIsEditing] = useState(false);
@@ -59,6 +67,8 @@ export function ComputerScreen({
   const [newShortcutName, setNewShortcutName] = useState("");
 
   const [newShortcutUrl, setNewShortcutUrl] = useState("");
+
+  const { signOut } = useClerk();
 
 
 
@@ -142,7 +152,7 @@ export function ComputerScreen({
 
         <div className="absolute bottom-3 right-8 flex items-center gap-2">
 
-          <span className="text-stone-400 font-bold text-xs uppercase tracking-widest">CozySys 98</span>
+          <span className="text-stone-400 font-bold text-xs uppercase tracking-widest whitespace-nowrap">COZYSYS 98</span>
 
           <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
 
@@ -200,13 +210,19 @@ export function ComputerScreen({
 
               <div
 
+                data-onboarding="shop-icon"
+
                 onClick={onOpenShop}
 
-                className="group flex flex-col items-center gap-1 cursor-pointer w-20"
+                className={`group flex flex-col items-center gap-1 cursor-pointer w-20 ${
+                  isOnboardingShopStep ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent rounded-lg" : ""
+                }`}
 
               >
 
-                <div className="w-12 h-12 bg-white/10 group-hover:bg-white/20 border border-white/0 group-hover:border-white/40 rounded-lg flex items-center justify-center transition-all shadow-sm">
+                <div className={`w-12 h-12 bg-white/10 group-hover:bg-white/20 border group-hover:border-white/40 rounded-lg flex items-center justify-center transition-all shadow-sm ${
+                  isOnboardingShopStep ? "border-amber-400 animate-pulse" : "border-white/0"
+                }`}>
 
                   <ShoppingBag className="h-7 w-7 text-yellow-300 drop-shadow-md" />
 
@@ -292,7 +308,7 @@ export function ComputerScreen({
 
               {!isEditing ? (
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
 
                   <div className="text-xs text-stone-500 font-mono pl-2">
 
@@ -300,23 +316,45 @@ export function ComputerScreen({
 
                   </div>
 
-                  <Button
+                  <div className="flex gap-2">
 
-                    variant="outline"
+                    <Button
 
-                    size="sm"
+                      variant="outline"
 
-                    onClick={() => setIsEditing(true)}
+                      size="sm"
 
-                    className="h-8 bg-stone-100 hover:bg-white border-stone-400 shadow-sm active:translate-y-px text-xs font-sans"
+                      onClick={() => setIsEditing(true)}
 
-                  >
+                      className="h-8 bg-stone-100 hover:bg-white border-stone-400 shadow-sm active:translate-y-px text-xs font-sans"
 
-                    <Settings className="h-3 w-3 mr-2" />
+                    >
 
-                    Manage Shortcuts
+                      <Settings className="h-3 w-3 mr-2" />
 
-                  </Button>
+                      Manage Shortcuts
+
+                    </Button>
+
+                    <Button
+
+                      variant="outline"
+
+                      size="sm"
+
+                      onClick={() => signOut()}
+
+                      className="h-8 bg-stone-100 hover:bg-red-100 hover:border-red-400 border-stone-400 shadow-sm active:translate-y-px text-xs font-sans text-red-600 hover:text-red-700"
+
+                    >
+
+                      <LogOut className="h-3 w-3 mr-2" />
+
+                      Log Out
+
+                    </Button>
+
+                  </div>
 
                 </div>
 
@@ -368,23 +406,45 @@ export function ComputerScreen({
 
                   </div>
 
-                  <Button
+                  <div className="flex justify-between items-center">
 
-                    variant="ghost"
+                    <Button
 
-                    size="sm"
+                      variant="ghost"
 
-                    onClick={() => setIsEditing(false)}
+                      size="sm"
 
-                    className="h-6 text-xs text-stone-600 hover:text-stone-900 self-center"
+                      onClick={() => setIsEditing(false)}
 
-                  >
+                      className="h-6 text-xs text-stone-600 hover:text-stone-900"
 
-                    <Save className="h-3 w-3 mr-1" />
+                    >
 
-                    Save & Close Manager
+                      <Save className="h-3 w-3 mr-1" />
 
-                  </Button>
+                      Save & Close Manager
+
+                    </Button>
+
+                    <Button
+
+                      variant="outline"
+
+                      size="sm"
+
+                      onClick={() => signOut()}
+
+                      className="h-8 bg-stone-100 hover:bg-red-100 hover:border-red-400 border-stone-400 shadow-sm active:translate-y-px text-xs font-sans text-red-600 hover:text-red-700"
+
+                    >
+
+                      <LogOut className="h-3 w-3 mr-2" />
+
+                      Log Out
+
+                    </Button>
+
+                  </div>
 
                 </div>
 

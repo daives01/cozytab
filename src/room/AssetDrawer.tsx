@@ -9,9 +9,10 @@ import { Package } from "lucide-react";
 interface AssetDrawerProps {
     isOpen: boolean;
     onDragStart: (e: React.DragEvent, id: string) => void;
+    highlightComputer?: boolean; // For onboarding
 }
 
-export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
+export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDrawerProps) {
     // Query user's inventory instead of full catalog
     const inventoryItems = useQuery(api.inventory.getMyInventory);
 
@@ -33,31 +34,39 @@ export function AssetDrawer({ isOpen, onDragStart }: AssetDrawerProps) {
             <ScrollArea className="flex-1 min-h-0 bg-[#f0e6d2]/50">
                 <div className="p-3 grid grid-cols-1 gap-4">
                     {inventoryItems && inventoryItems.length > 0 ? (
-                        inventoryItems.map((item: Doc<"catalogItems">) => (
-                            <Card
-                                key={item._id}
-                                className="p-1 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform border-4 border-white shadow-md bg-white rotate-1 hover:rotate-0 select-none"
-                                draggable
-                                onDragStart={(e) => {
-                                    e.dataTransfer.effectAllowed = "move";
-                                    onDragStart(e, item._id);
-                                }}
-                            >
-                                <div className="aspect-square relative flex items-center justify-center bg-gray-100 overflow-hidden rounded-sm">
-                                    <img
-                                        src={item.assetUrl}
-                                        alt={item.name}
-                                        className="object-contain w-full h-full"
-                                        draggable={false}
-                                    />
-                                </div>
-                                <div className="mt-1 text-center border-t border-dashed border-gray-200 pt-1">
-                                    <span className="font-['Patrick_Hand'] text-sm font-bold text-gray-600 truncate block">
-                                        {item.name}
-                                    </span>
-                                </div>
-                            </Card>
-                        ))
+                        inventoryItems.map((item: Doc<"catalogItems">) => {
+                            const isComputer = item.name.toLowerCase().includes("computer");
+                            return (
+                                <Card
+                                    key={item._id}
+                                    data-onboarding={isComputer ? "storage-item-computer" : undefined}
+                                    className={`p-1 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform border-4 shadow-md bg-white rotate-1 hover:rotate-0 select-none ${
+                                        highlightComputer && isComputer
+                                            ? "border-amber-400 ring-2 ring-amber-300"
+                                            : "border-white"
+                                    }`}
+                                    draggable
+                                    onDragStart={(e) => {
+                                        e.dataTransfer.effectAllowed = "move";
+                                        onDragStart(e, item._id);
+                                    }}
+                                >
+                                    <div className="aspect-square relative flex items-center justify-center bg-gray-100 overflow-hidden rounded-sm">
+                                        <img
+                                            src={item.assetUrl}
+                                            alt={item.name}
+                                            className="object-contain w-full h-full"
+                                            draggable={false}
+                                        />
+                                    </div>
+                                    <div className="mt-1 text-center border-t border-dashed border-gray-200 pt-1">
+                                        <span className="font-['Patrick_Hand'] text-sm font-bold text-gray-600 truncate block">
+                                            {item.name}
+                                        </span>
+                                    </div>
+                                </Card>
+                            );
+                        })
                     ) : (
                         <div className="p-4 flex flex-col items-center gap-3 text-center">
                             <Package className="h-10 w-10 text-[#a89680] opacity-60" />

@@ -16,9 +16,10 @@ interface ItemNodeProps {
     onDragEnd?: () => void;
     onComputerClick?: () => void;
     onMusicPlayerClick?: () => void;
+    isOnboardingComputerTarget?: boolean;
 }
 
-export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick }: ItemNodeProps) {
+export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick, isOnboardingComputerTarget }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
@@ -70,9 +71,12 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
         };
     }, [isDragging, item, onChange, scale, onDragEnd]);
 
+    const isComputer = catalogItem?.category?.toLowerCase() === "computer";
+
     return (
         <div
             className="absolute select-none"
+            data-onboarding={isComputer && isOnboardingComputerTarget ? "placed-computer" : undefined}
             style={{
                 left: item.x,
                 top: item.y,
