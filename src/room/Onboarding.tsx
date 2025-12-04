@@ -28,7 +28,7 @@ interface StepConfig {
 
 const stepConfigs: Record<OnboardingStep, StepConfig> = {
     welcome: {
-        message: "Welcome to your nook! 🏠 This is your cozy corner of the internet. Let me show you around!",
+        message: "Welcome to your cozytab! 🏠 This is your cozy corner of the internet. Let me show you around!",
         bubblePosition: "bottom",
         showSkip: true,
         pulseTarget: false,
@@ -83,7 +83,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     complete: {
-        message: "You're all set! Enjoy decorating your nook! 🎉",
+        message: "You're all set! Enjoy decorating your cozytab! 🎉",
         bubblePosition: "bottom",
         showSkip: false,
         pulseTarget: false,

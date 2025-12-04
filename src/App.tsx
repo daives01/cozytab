@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
 
-const REFERRAL_CODE_KEY = "nook_referral_code";
+const REFERRAL_CODE_KEY = "cozytab_referral_code";
 
 function ReferralCapture() {
   const { code } = useParams<{ code: string }>();

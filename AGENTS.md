@@ -1,8 +1,8 @@
-# AGENTS.md - Nook Project Documentation
+# AGENTS.md - Cozytab Project Documentation
 
 ## Project Overview
 
-**Nook** is a virtual room customization web application that allows users to create and decorate their personal "cozy corner of the internet." Users can add, position, resize, and link furniture/decor items to create a personalized virtual space.
+**Cozytab** is a virtual room customization web application that allows users to create and decorate their personal "cozy corner of the internet." Users can add, position, resize, and link furniture/decor items to create a personalized virtual space.
 
 ### Key Concept
 
@@ -38,7 +38,7 @@
 ## Project Structure
 
 ```
-nook/
+cozytab/
 ├── src/
 │   ├── main.tsx              # App entry point with Clerk + Convex providers
 │   ├── App.tsx               # Root component with auth routing

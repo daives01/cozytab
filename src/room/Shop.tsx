@@ -212,7 +212,7 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
 
                 {/* Footer hint */}
                 <div className="bg-[#e6d5c3] border-t-2 border-[#d4c3aa] px-4 py-2 text-center text-sm text-[#8b7355]">
-                    Earn tokens daily by visiting your nook!
+                    Earn tokens daily by visiting your cozytab!
                 </div>
             </div>
         </div>

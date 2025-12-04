@@ -218,7 +218,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     if (!isGuest && !room) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading your nook...
+                Loading your cozytab...
             </div>
         );
     }
