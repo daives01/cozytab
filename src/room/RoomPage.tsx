@@ -13,7 +13,7 @@ import { Shop } from "./Shop";
 import { ShareModal } from "./ShareModal";
 import { PresenceCursor } from "./PresenceCursor";
 import { LocalCursor } from "./LocalCursor";
-import { usePresence } from "../hooks/usePresence";
+import { useWebSocketPresence } from "../hooks/useWebSocketPresence";
 import { ChatInput } from "./ChatInput";
 import { Onboarding } from "./Onboarding";
 import { useOnboarding } from "./hooks/useOnboarding";
@@ -32,7 +32,7 @@ function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
         api.catalog.getImageUrl,
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
     );
-    
+
     if (!backgroundUrl) return "/src/assets/house.png"; // fallback
     if (isStorageUrl) return resolvedUrl ?? undefined;
     return backgroundUrl;
@@ -57,7 +57,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const saveShortcuts = useMutation(api.rooms.saveShortcuts);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const backgroundUrl = useResolvedBackgroundUrl(room?.template?.backgroundUrl);
-    
+
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
 
@@ -78,7 +78,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
     // Only track presence when room is shared (has active invite)
-    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresence(
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
         !isGuest && room && visitorId && isRoomShared ? room._id : null,
         visitorId ?? "",
         ownerName,
@@ -106,7 +106,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, []);
 
     const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
-    
+
     useEffect(() => {
         debouncedSaveRef.current = debounce((roomId: Id<"rooms">, items: RoomItem[]) => {
             saveRoom({ roomId, items });
@@ -194,7 +194,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
-        
+
         const rect = containerRef.current.getBoundingClientRect();
         const roomX = (e.clientX - rect.left) / scale;
         const roomY = (e.clientY - rect.top) / scale;
@@ -207,9 +207,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     return (
         <div
-            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cursor-hidden ${
-                draggedItemId ? "select-none" : ""
-            }`}
+            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cursor-hidden ${draggedItemId ? "select-none" : ""
+                }`}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onMouseMove={handleMouseEvent}
@@ -288,7 +287,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                             key={visitor.visitorId}
                             name={visitor.displayName}
                             isOwner={visitor.isOwner}
-                            actions={visitor.actions}
+                            x={visitor.x}
+                            y={visitor.y}
+                            chatMessage={visitor.chatMessage}
                         />
                     ))}
             </div>
@@ -324,8 +325,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 className={`
                                     relative h-14 w-14 rounded-full border-4 shadow-[0_4px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px] transition-all
                                     flex items-center justify-center
-                                    ${mode === "view" 
-                                        ? "bg-emerald-400 border-emerald-600 text-emerald-900" 
+                                    ${mode === "view"
+                                        ? "bg-emerald-400 border-emerald-600 text-emerald-900"
                                         : "bg-amber-400 border-amber-600 text-amber-900"
                                     }
                                 `}
@@ -363,7 +364,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             </div>
 
             {showRewardNotification && (
-                <div 
+                <div
                     className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300"
                     onClick={() => setShowRewardNotification(false)}
                 >

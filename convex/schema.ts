@@ -83,22 +83,4 @@ export default defineSchema({
     })
         .index("by_token", ["token"])
         .index("by_room", ["roomId"]),
-
-    presence: defineTable({
-        roomId: v.id("rooms"),
-        visitorId: v.string(),
-        displayName: v.string(),
-        lastSeen: v.number(),
-        isOwner: v.boolean(),
-        actions: v.array(
-            v.object({
-                x: v.number(),
-                y: v.number(),
-                timeSinceBatchStart: v.number(),
-                text: v.optional(v.string()),
-            })
-        ),
-    })
-        .index("by_room", ["roomId"])
-        .index("by_room_and_visitor", ["roomId", "visitorId"]),
 });

@@ -13,7 +13,10 @@ interface MusicPlayerButtonsProps {
 
 export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
-    const lastSyncedRef = useRef<{ playing: boolean; startedAt: number; positionAtStart: number } | null>(null);
+    // Track the last state we processed locally to avoid duplicate syncs
+    const lastProcessedRef = useRef<{ playing: boolean; startedAt: number; positionAtStart: number } | null>(null);
+    // Track if we initiated the current action (to skip sync effect for our own actions)
+    const pendingLocalActionRef = useRef<boolean>(false);
     const updateMusicState = useMutation(api.rooms.updateMusicState);
     const [hasInteracted, setHasInteracted] = useState(false);
 
@@ -42,10 +45,10 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
 
     const syncPlayback = useCallback(() => {
         if (!videoId || !isPlaying) return;
-        
+
         const elapsed = (Date.now() - musicStartedAt) / 1000;
         const targetPosition = musicPositionAtStart + elapsed;
-        
+
         sendCommand("seekTo", [targetPosition, true]);
         sendCommand("playVideo");
     }, [videoId, isPlaying, musicStartedAt, musicPositionAtStart, sendCommand]);
@@ -55,35 +58,42 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
         syncPlayback();
     };
 
+    // Sync effect: responds to remote state changes (from other users)
     useEffect(() => {
-        if (!videoId) return;
+        if (!videoId || !hasInteracted) return;
 
-        const lastSynced = lastSyncedRef.current;
         const currentState = { playing: isPlaying, startedAt: musicStartedAt, positionAtStart: musicPositionAtStart };
+        const lastProcessed = lastProcessedRef.current;
 
-        if (
-            lastSynced &&
-            lastSynced.playing === currentState.playing &&
-            lastSynced.startedAt === currentState.startedAt &&
-            lastSynced.positionAtStart === currentState.positionAtStart
-        ) {
+        // Check if this is a new state we haven't processed yet
+        const isNewState = !lastProcessed ||
+            lastProcessed.playing !== currentState.playing ||
+            lastProcessed.startedAt !== currentState.startedAt ||
+            lastProcessed.positionAtStart !== currentState.positionAtStart;
+
+        if (!isNewState) {
             return;
         }
 
-        lastSyncedRef.current = currentState;
-
-        if (!hasInteracted) {
+        // If we initiated this action, skip the sync (we already sent commands)
+        if (pendingLocalActionRef.current) {
+            pendingLocalActionRef.current = false;
+            lastProcessedRef.current = currentState;
             return;
         }
 
+        lastProcessedRef.current = currentState;
+
+        // This is a remote state change - sync the player
         if (isPlaying) {
             const elapsed = (Date.now() - musicStartedAt) / 1000;
             const targetPosition = musicPositionAtStart + elapsed;
 
+            // Small delay to ensure iframe is ready to receive commands
             setTimeout(() => {
                 sendCommand("seekTo", [targetPosition, true]);
                 sendCommand("playVideo");
-            }, 300);
+            }, 100);
         } else {
             sendCommand("pauseVideo");
             if (musicPositionAtStart > 0) {
@@ -100,11 +110,18 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
         const now = Date.now();
 
         if (isPlaying) {
+            // PAUSING
             const elapsed = (now - musicStartedAt) / 1000;
             const currentPosition = musicPositionAtStart + elapsed;
 
-            lastSyncedRef.current = { playing: false, startedAt: now, positionAtStart: currentPosition };
-            
+            // Mark that we're initiating this action (skip sync effect)
+            pendingLocalActionRef.current = true;
+            lastProcessedRef.current = { playing: false, startedAt: now, positionAtStart: currentPosition };
+
+            // Send command IMMEDIATELY for responsive feel
+            sendCommand("pauseVideo");
+
+            // Then persist to Convex (this will broadcast to other users)
             await updateMusicState({
                 roomId,
                 itemId: item.id,
@@ -112,13 +129,19 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
                 musicStartedAt: now,
                 musicPositionAtStart: currentPosition,
             });
-
-            sendCommand("pauseVideo");
         } else {
+            // PLAYING/RESUMING
             const currentPosition = musicPositionAtStart;
 
-            lastSyncedRef.current = { playing: true, startedAt: now, positionAtStart: currentPosition };
-            
+            // Mark that we're initiating this action (skip sync effect)
+            pendingLocalActionRef.current = true;
+            lastProcessedRef.current = { playing: true, startedAt: now, positionAtStart: currentPosition };
+
+            // Send commands IMMEDIATELY for responsive feel
+            sendCommand("seekTo", [currentPosition, true]);
+            sendCommand("playVideo");
+
+            // Then persist to Convex (this will broadcast to other users)
             await updateMusicState({
                 roomId,
                 itemId: item.id,
@@ -126,9 +149,6 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
                 musicStartedAt: now,
                 musicPositionAtStart: currentPosition,
             });
-
-            sendCommand("seekTo", [currentPosition, true]);
-            sendCommand("playVideo");
         }
     };
 

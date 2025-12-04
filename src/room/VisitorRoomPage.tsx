@@ -8,7 +8,7 @@ import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { PresenceCursor } from "./PresenceCursor";
 import { LocalCursor } from "./LocalCursor";
-import { usePresence } from "../hooks/usePresence";
+import { useWebSocketPresence } from "../hooks/useWebSocketPresence";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
@@ -21,7 +21,7 @@ function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
         api.catalog.getImageUrl,
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
     );
-    
+
     if (!backgroundUrl) return "/src/assets/house.png"; // fallback
     if (isStorageUrl) return resolvedUrl ?? undefined;
     return backgroundUrl;
@@ -40,7 +40,7 @@ export function VisitorRoomPage() {
     const [visitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
     const [visitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
 
-    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresence(
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
         roomData?.room?._id ?? null,
         visitorId,
         visitorName,
@@ -68,7 +68,7 @@ export function VisitorRoomPage() {
 
     const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
-        
+
         const rect = containerRef.current.getBoundingClientRect();
         const roomX = (e.clientX - rect.left) / scale;
         const roomY = (e.clientY - rect.top) / scale;
@@ -150,12 +150,12 @@ export function VisitorRoomPage() {
                         isSelected={false}
                         mode="view"
                         scale={scale}
-                        onSelect={() => {}}
-                        onChange={() => {}}
-                        onDragStart={() => {}}
-                        onDragEnd={() => {}}
-                        onComputerClick={() => {}}
-                        onMusicPlayerClick={() => {}}
+                        onSelect={() => { }}
+                        onChange={() => { }}
+                        onDragStart={() => { }}
+                        onDragEnd={() => { }}
+                        onComputerClick={() => { }}
+                        onMusicPlayerClick={() => { }}
                         isVisitor={true}
                     />
                 ))}
@@ -175,7 +175,9 @@ export function VisitorRoomPage() {
                             key={visitor.visitorId}
                             name={visitor.displayName}
                             isOwner={visitor.isOwner}
-                            actions={visitor.actions}
+                            x={visitor.x}
+                            y={visitor.y}
+                            chatMessage={visitor.chatMessage}
                         />
                     ))}
             </div>
