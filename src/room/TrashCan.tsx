@@ -74,6 +74,7 @@ export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
                 absolute bottom-6 left-6 z-50 pointer-events-auto transition-all duration-300
                 ${isActive ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}
             `}
+            style={{ transitionDelay: draggedItemId ? "120ms" : "0ms" }}
         >
             <div 
                 className={`
