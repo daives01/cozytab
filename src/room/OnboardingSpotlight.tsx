@@ -15,6 +15,8 @@ interface OnboardingSpotlightProps {
     onSkip: () => void;
     showSkip?: boolean;
     pulseTarget?: boolean;
+    onNext?: () => void;
+    showNext?: boolean;
 }
 
 export function OnboardingSpotlight({
@@ -25,6 +27,8 @@ export function OnboardingSpotlight({
     onSkip,
     showSkip = true,
     pulseTarget = true,
+    onNext,
+    showNext = false,
 }: OnboardingSpotlightProps) {
     const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
     const messageRef = useRef<HTMLDivElement>(null);
@@ -221,15 +225,25 @@ export function OnboardingSpotlight({
                         {message}
                     </p>
 
-                    {/* Skip button */}
-                    {showSkip && (
-                        <button
-                            onClick={onSkip}
-                            className="text-sm text-[#8b7355] hover:text-[#5c4d3c] underline underline-offset-2 transition-colors"
-                        >
-                            Skip tutorial
-                        </button>
-                    )}
+                    {/* Action buttons */}
+                    <div className="flex items-center justify-between gap-3">
+                        {showNext && onNext && (
+                            <button
+                                onClick={onNext}
+                                className="bg-[#5c4d3c] text-[#fffef0] px-4 py-2 rounded-lg font-semibold shadow-[3px_3px_0px_0px_rgba(92,77,60,0.8)] hover:shadow-[2px_2px_0px_0px_rgba(92,77,60,0.8)] transition-all active:translate-x-[2px] active:translate-y-[2px]"
+                            >
+                                Got it
+                            </button>
+                        )}
+                        {showSkip && (
+                            <button
+                                onClick={onSkip}
+                                className="text-sm text-[#8b7355] hover:text-[#5c4d3c] underline underline-offset-2 transition-colors ml-auto"
+                            >
+                                Skip tutorial
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

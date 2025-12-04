@@ -1,0 +1,13 @@
+---
+description: when working on any design on UI
+alwaysApply: false
+---
+
+
+- Use hand-drawn feel: friendly borders (2-3px), rounded corners, and subtle paper textures/tones (warm neutrals).
+- Keep depth gentle: light offset shadows only; avoid heavy drops and extreme rotations.
+- Favor flat color blocks over gradients; when accents are needed, keep them soft and low-contrast.
+- Typography: playful but legible; small-caps/uppercase labels are okay when spaced; avoid shouting with oversized text.
+- Motion and states: quick, minimal transitions; emphasize clarity over flair (copy, revoke, create should read instantly).
+- Icons: simple line icons with minimal fills; pair with short, clear labels.
+- Layout: tidy card stacks with comfortable padding; keep hierarchy obvious (title, hint, primary action, secondary action).

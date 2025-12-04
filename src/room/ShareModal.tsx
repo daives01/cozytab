@@ -46,108 +46,152 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
             onClick={onClose}
         >
             <div
-                className="bg-[#f5f0e6] rounded-2xl shadow-2xl w-full max-w-md mx-4 border-4 border-[#d4c4a8] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-        >
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <Share2 className="h-6 w-6 text-white" />
-                        <h2 className="text-2xl font-bold text-white">Share Your Room</h2>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="text-white/80 hover:text-white transition-colors"
-                    >
-                        <X className="h-6 w-6" />
-                </button>
-            </div>
-
-            <div className="p-6 space-y-6">
-                {visitorCount > 0 && (
-                        <div className="flex items-center gap-3 p-3 bg-emerald-100 rounded-xl border-2 border-emerald-300">
-                            <Users className="h-5 w-5 text-emerald-600" />
-                            <span className="text-emerald-800 font-medium">
-                                {visitorCount} {visitorCount === 1 ? "visitor" : "visitors"} in your room right now
+                className="w-full max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="rounded-2xl border-2 border-neutral-900 bg-[#f8f4ec] shadow-[6px_6px_0px_0px_rgba(31,41,55,0.35)] overflow-hidden">
+                    <div className="flex items-center justify-between bg-[#fff7e6] px-6 py-4 border-b-2 border-neutral-900">
+                        <div className="flex items-center gap-3">
+                            <span className="rounded-full bg-white p-2 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.4)]">
+                                <Share2 className="h-5 w-5 text-neutral-800" />
                             </span>
+                            <div>
+                                <p className="text-xs uppercase tracking-[0.08em] text-neutral-700 font-semibold">
+                                    Invite friends
+                                </p>
+                                <h2 className="text-2xl font-bold text-neutral-900 leading-tight">
+                                    Share your cozy room
+                                </h2>
+                            </div>
                         </div>
-                    )}
+                        <button
+                            onClick={onClose}
+                            className="rounded-full border-2 border-neutral-900 bg-white p-2 text-neutral-700 hover:bg-neutral-100 transition-colors shadow-[2px_2px_0px_0px_rgba(31,41,55,0.4)]"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
 
-                    {shareUrl ? (
-                        <div className="space-y-4">
-                            <p className="text-gray-600">
-                                Share this link with friends to let them visit your room:
-                            </p>
+                    <div className="p-6 space-y-5">
+                        <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-neutral-800">
+                            <div className="flex items-center gap-2 rounded-xl border-2 border-neutral-900 bg-emerald-100 px-3 py-2 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
+                                <Users className="h-4 w-4 text-emerald-700" />
+                                <span>
+                                    {visitorCount > 0
+                                        ? `${visitorCount} ${visitorCount === 1 ? "visitor" : "visitors"} hanging out`
+                                        : "No visitors yet"}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2 rounded-xl border-2 border-neutral-900 bg-white px-3 py-2 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
+                                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span>Live & realtime</span>
+                            </div>
+                        </div>
 
-                            <div className="flex gap-2">
-                                <Input
-                                    value={shareUrl}
-                                    readOnly
-                                    className="bg-white font-mono text-sm"
-                                />
+                        {shareUrl ? (
+                            <div className="space-y-4">
+                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-4 py-3 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.3)]">
+                                    <div className="flex items-start gap-3">
+                                        <div className="mt-1 rounded-lg bg-amber-200 px-2 py-1 text-xs font-semibold uppercase text-neutral-900 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
+                                            Ready
+                                        </div>
+                                        <div className="flex-1 space-y-3">
+                                            <p className="text-neutral-700 font-medium">
+                                                Share this link with friends:
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={shareUrl}
+                                                    readOnly
+                                                    className="bg-neutral-50 font-mono text-sm border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)]"
+                                                />
+                                                <Button
+                                                    onClick={handleCopyLink}
+                                                    className={`shrink-0 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)] ${
+                                                        copied
+                                                            ? "bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
+                                                            : "bg-neutral-900 hover:bg-neutral-800 text-white"
+                                                    }`}
+                                                >
+                                                    {copied ? (
+                                                        <>
+                                                            <Check className="h-4 w-4 mr-1" />
+                                                            Copied!
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="h-4 w-4 mr-1" />
+                                                            Copy
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                            <p className="text-xs text-neutral-600">
+                                                Visitors with this link can explore in view-only mode. You can revoke it anytime.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-4 py-3 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-neutral-700">
+                                        <div>
+                                            <p className="font-semibold text-neutral-900">Copy</p>
+                                            <p>Send it to friends.</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-neutral-900">Visit</p>
+                                            <p>They join instantly.</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-neutral-900">Revoke</p>
+                                            <p>End access anytime.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <Button
-                                    onClick={handleCopyLink}
-                                    className={`shrink-0 ${
-                                        copied
-                                            ? "bg-emerald-500 hover:bg-emerald-600"
-                                            : "bg-indigo-500 hover:bg-indigo-600"
-                                    }`}
+                                    variant="outline"
+                                    onClick={handleRevokeLink}
+                                    className="w-full border-2 border-neutral-900 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]"
                                 >
-                                    {copied ? (
-                                        <>
-                                            <Check className="h-4 w-4 mr-1" />
-                                            Copied!
-                                        </>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Revoke link & disconnect visitors
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-6 py-7 text-center shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]">
+                                    <Link2 className="h-10 w-10 text-neutral-400 mx-auto mb-3" />
+                                    <p className="text-neutral-700 font-medium mb-1">
+                                        Generate a cozy invite for your room
+                                    </p>
+                                    <p className="text-sm text-neutral-600">
+                                        Friends get a read-only peek. You stay in control.
+                                    </p>
+                                </div>
+
+                                <Button
+                                    onClick={handleCreateLink}
+                                    disabled={isCreating}
+                                    className="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-lg py-4 border-2 border-neutral-900 shadow-[4px_4px_0px_0px_rgba(31,41,55,0.35)]"
+                                >
+                                    {isCreating ? (
+                                        "Creating..."
                                     ) : (
                                         <>
-                                            <Copy className="h-4 w-4 mr-1" />
-                                            Copy
+                                            <Link2 className="h-5 w-5 mr-2" />
+                                            Generate share link
                                         </>
                                     )}
                                 </Button>
                             </div>
-
-                            <Button
-                                variant="outline"
-                                onClick={handleRevokeLink}
-                                className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Revoke Link
-                            </Button>
-
-                            <p className="text-sm text-gray-500 text-center">
-                                Revoking the link will disconnect all current visitors
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                            <div className="text-center py-6">
-                                <Link2 className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-600 mb-4">
-                                    Generate a shareable link to let friends visit your room in real-time
-                                </p>
-                            </div>
-
-                            <Button
-                                onClick={handleCreateLink}
-                                disabled={isCreating}
-                                className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-lg py-6"
-                            >
-                                {isCreating ? (
-                                    "Creating..."
-                                ) : (
-                                    <>
-                                        <Link2 className="h-5 w-5 mr-2" />
-                                        Generate Share Link
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

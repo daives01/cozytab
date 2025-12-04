@@ -87,21 +87,21 @@ export function RoomTemplatesTab() {
                 {!hasDefault && (
                     <button
                         onClick={handleSeedDefault}
-                        className="px-4 py-2 bg-emerald-600 text-white font-medium rounded hover:bg-emerald-500 transition-colors"
+                        className="px-4 py-2 bg-[var(--success)] text-white font-semibold rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all"
                     >
                         Seed Default Room
                     </button>
                 )}
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
-                    className="px-4 py-2 bg-amber-500 text-stone-900 font-medium rounded hover:bg-amber-400 transition-colors"
+                    className="px-4 py-2 bg-[var(--warning)] text-[var(--ink)] font-semibold rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all"
                 >
                     {showAddForm ? "Cancel" : "+ Add Room Template"}
                 </button>
             </div>
 
             {currentError && (
-                <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded text-red-200">
+                <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
                     <button onClick={() => { setError(null); setUploadError(null); }} className="ml-4 underline">
                         Dismiss
@@ -110,49 +110,49 @@ export function RoomTemplatesTab() {
             )}
 
             {showAddForm && (
-                <div className="mb-8 p-6 bg-stone-800 rounded-lg border border-stone-700">
-                    <h2 className="text-xl font-semibold mb-4 text-amber-300">Add New Room Template</h2>
+                <div className="mb-8 p-6 bg-[var(--paper-header)] rounded-lg border-2 border-[var(--ink)] shadow-md">
+                    <h2 className="text-xl font-semibold mb-4 text-[var(--ink)]">Add New Room Template</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Name *</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Name *</label>
                             <input
                                 type="text"
                                 value={newTemplate.name}
                                 onChange={(e) => setNewTemplate((p) => ({ ...p, name: e.target.value }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                                 placeholder="e.g. Beach House"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Description</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Description</label>
                             <input
                                 type="text"
                                 value={newTemplate.description}
                                 onChange={(e) => setNewTemplate((p) => ({ ...p, description: e.target.value }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                                 placeholder="A relaxing beachside room"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Price</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Price</label>
                             <input
                                 type="number"
                                 value={newTemplate.basePrice}
                                 onChange={(e) => setNewTemplate((p) => ({ ...p, basePrice: Number(e.target.value) }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Background Image *</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Background Image *</label>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newTemplate.backgroundUrl}
                                     onChange={(e) => setNewTemplate((p) => ({ ...p, backgroundUrl: e.target.value }))}
                                     placeholder="URL or upload"
-                                    className="flex-1 px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500 text-sm"
+                                    className="flex-1 px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 text-sm shadow-sm"
                                 />
-                                <label className="px-3 py-2 bg-stone-600 hover:bg-stone-500 rounded cursor-pointer transition-colors text-sm">
+                                <label className="px-3 py-2 bg-[var(--paper-header)] hover:bg-[var(--secondary)] border-2 border-[var(--ink)] rounded-lg cursor-pointer transition-colors text-sm shadow-sm">
                                     {uploading === "new" ? "..." : "📤"}
                                     <input
                                         type="file"
@@ -174,7 +174,7 @@ export function RoomTemplatesTab() {
                                 onChange={(e) => setNewTemplate((p) => ({ ...p, isDefault: e.target.checked }))}
                                 className="w-4 h-4"
                             />
-                            <label htmlFor="isDefault" className="text-sm text-stone-400">
+                            <label htmlFor="isDefault" className="text-sm text-[var(--ink-muted)]">
                                 Set as default (free) room
                             </label>
                         </div>
@@ -182,7 +182,7 @@ export function RoomTemplatesTab() {
                     <div className="mt-4 flex gap-2">
                         <button
                             onClick={handleAddTemplate}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 transition-colors"
+                            className="px-4 py-2 bg-[var(--success)] text-white rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all font-semibold"
                         >
                             Add Template
                         </button>
@@ -196,21 +196,21 @@ export function RoomTemplatesTab() {
                 </div>
             )}
 
-            <div className="bg-stone-800 rounded-lg border border-stone-700 overflow-hidden">
+            <div className="bg-[var(--paper-header)] rounded-lg border-2 border-[var(--ink)] overflow-hidden shadow-md">
                 <table className="w-full">
-                    <thead className="bg-stone-700">
+                    <thead className="bg-[var(--paper-header)] border-b-2 border-[var(--ink)]">
                         <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Preview</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Name</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Description</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Price</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Default</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Background URL</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Preview</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Name</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Description</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Price</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Default</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Background URL</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-700">
+                    <tbody className="divide-y divide-[var(--ink)]/20">
                         {roomTemplates?.map((template) => (
-                            <tr key={template._id} className="hover:bg-stone-750">
+                            <tr key={template._id} className="hover:bg-[var(--paper)]/50">
                                 <td className="px-4 py-3">
                                     <div className="relative group">
                                         <AssetImage
@@ -270,7 +270,7 @@ export function RoomTemplatesTab() {
                                 </td>
                                 <td className="px-4 py-3">
                                     {template.isDefault ? (
-                                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs font-medium">
+                                        <span className="px-2 py-1 bg-[var(--success-light)] text-[var(--success-dark)] rounded-lg text-xs font-semibold border-2 border-[var(--ink)] shadow-sm">
                                             Default
                                         </span>
                                     ) : (
@@ -278,7 +278,7 @@ export function RoomTemplatesTab() {
                                             onClick={async () => {
                                                 await updateTemplate({ id: template._id, isDefault: true });
                                             }}
-                                            className="text-stone-400 hover:text-amber-300 text-xs underline"
+                                            className="text-[var(--ink-subtle)] hover:text-[var(--warning)] text-xs underline"
                                         >
                                             Set as default
                                         </button>
@@ -301,7 +301,7 @@ export function RoomTemplatesTab() {
                     </tbody>
                 </table>
                 {(!roomTemplates || roomTemplates.length === 0) && (
-                    <div className="p-8 text-center text-stone-400">
+                    <div className="p-8 text-center text-[var(--ink-subtle)]">
                         No room templates found. Click "Seed Default Room" to create the starter room.
                     </div>
                 )}

@@ -84,20 +84,20 @@ export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
             >
                 {/* Visual Circle Background */}
                 <div className={`
-                    w-16 h-16 rounded-full border-4 shadow-xl flex items-center justify-center bg-white
-                    ${isHovered ? "border-red-500 bg-red-50" : "border-stone-600"}
+                    w-16 h-16 rounded-full border-2 shadow-md flex items-center justify-center bg-white
+                    ${isHovered ? "border-[var(--danger)] bg-[var(--danger-light)]" : "border-[var(--ink)]"}
                 `}>
                    <Trash2 
                        className={`
                            w-8 h-8 transition-colors
-                           ${isHovered ? "text-red-600" : "text-stone-600"}
+                           ${isHovered ? "text-[var(--danger)]" : "text-[var(--ink)]"}
                        `} 
                    />
                 </div>
 
                 {/* Text Label styling */}
                 <div className={`
-                    absolute -top-8 bg-black/80 text-white text-xs px-2 py-1 rounded font-['Patrick_Hand'] whitespace-nowrap
+                    absolute -top-8 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap
                     transition-opacity duration-200
                     ${isHovered ? "opacity-100" : "opacity-0"}
                 `}>

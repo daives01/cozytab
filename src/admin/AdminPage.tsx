@@ -21,7 +21,7 @@ function AdminContent() {
 
     if (isAdmin === undefined) {
         return (
-            <div className="min-h-screen bg-stone-900 text-stone-100 flex items-center justify-center">
+            <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex items-center justify-center">
                 <p>Loading...</p>
             </div>
         );
@@ -29,12 +29,12 @@ function AdminContent() {
 
     if (!isAdmin) {
         return (
-            <div className="min-h-screen bg-stone-900 text-stone-100 flex flex-col items-center justify-center gap-6">
-                <h1 className="text-6xl font-bold text-stone-400">404</h1>
-                <p className="text-stone-400 text-lg">Page not found</p>
+            <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col items-center justify-center gap-6">
+                <h1 className="text-6xl font-bold text-[var(--ink-subtle)]">404</h1>
+                <p className="text-[var(--ink-subtle)] text-lg">Page not found</p>
                 <a
                     href="/"
-                    className="px-6 py-3 bg-amber-500 text-stone-900 font-medium rounded hover:bg-amber-400 transition-colors"
+                    className="px-6 py-3 bg-[var(--warning)] text-[var(--ink)] font-medium rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all"
                 >
                     Go to Home
                 </a>
@@ -43,39 +43,39 @@ function AdminContent() {
     }
 
     return (
-        <div className="fixed inset-0 bg-stone-900 text-stone-100 overflow-y-auto">
+        <div className="fixed inset-0 bg-[var(--paper)] text-[var(--ink)] overflow-y-auto">
             <div className="max-w-6xl mx-auto p-8">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-amber-400">Admin Dashboard</h1>
-                        <p className="text-stone-400 mt-1">Manage catalog items and room templates</p>
+                        <h1 className="text-3xl font-bold text-[var(--ink)]">Admin Dashboard</h1>
+                        <p className="text-[var(--ink-subtle)] mt-1">Manage catalog items and room templates</p>
                     </div>
                     <a
                         href="/"
-                        className="px-4 py-2 bg-stone-700 text-stone-100 rounded hover:bg-stone-600 transition-colors"
+                        className="px-4 py-2 bg-[var(--paper-header)] text-[var(--ink)] rounded-lg border-2 border-[var(--ink)] shadow-sm hover:shadow-md active:shadow-xs active:translate-x-[1px] active:translate-y-[1px] transition-all"
                     >
                         ← Back
                     </a>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex gap-2 mb-6 border-b border-stone-700">
+                <div className="flex gap-2 mb-6 border-b-2 border-[var(--ink)]">
                     <button
                         onClick={() => setActiveTab("items")}
-                        className={`px-4 py-2 font-medium transition-colors ${
+                        className={`px-4 py-2 font-semibold transition-all border-b-2 ${
                             activeTab === "items"
-                                ? "text-amber-400 border-b-2 border-amber-400"
-                                : "text-stone-400 hover:text-stone-200"
+                                ? "text-[var(--ink)] border-[var(--ink)]"
+                                : "text-[var(--ink-subtle)] border-transparent hover:text-[var(--ink)]"
                         }`}
                     >
                         Catalog Items
                     </button>
                     <button
                         onClick={() => setActiveTab("rooms")}
-                        className={`px-4 py-2 font-medium transition-colors ${
+                        className={`px-4 py-2 font-semibold transition-all border-b-2 ${
                             activeTab === "rooms"
-                                ? "text-amber-400 border-b-2 border-amber-400"
-                                : "text-stone-400 hover:text-stone-200"
+                                ? "text-[var(--ink)] border-[var(--ink)]"
+                                : "text-[var(--ink-subtle)] border-transparent hover:text-[var(--ink)]"
                         }`}
                     >
                         Room Templates

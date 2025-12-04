@@ -72,17 +72,17 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             onClick={onClose}
         >
             <div
-                className="bg-[#fff9e6] border-[6px] border-[#2c2c2c] rounded-xl shadow-2xl w-[90vw] max-w-2xl relative flex flex-col overflow-hidden"
+                className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl shadow-lg w-[90vw] max-w-2xl relative flex flex-col overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="absolute top-0 left-0 w-full h-4 bg-[#e07a5f] border-b-2 border-[#2c2c2c]/20" />
+                <div className="absolute top-0 left-0 w-full h-4 bg-[var(--warning)] border-b-2 border-[var(--ink)]/20" />
 
-                <div className="flex items-center justify-between p-6 pt-10 pb-4">
+                <div className="flex items-center justify-between p-6 pt-10 pb-4 bg-[var(--paper-header)] border-b-2 border-[var(--ink)]">
                     <div className="flex flex-col">
-                        <h2 className="text-4xl font-bold text-[#2c2c2c] tracking-wide flex items-center gap-2">
-                            <span className="text-[#e07a5f]">♫</span> Now Spinning
+                        <h2 className="text-4xl font-bold text-[var(--ink)] tracking-wide flex items-center gap-2">
+                            <span className="text-[var(--warning)]">♫</span> Now Spinning
                         </h2>
-                        <span className="text-muted-foreground text-lg ml-1">
+                        <span className="text-[var(--ink-muted)] text-lg ml-1">
                             Set the room's vibe
                         </span>
                     </div>
@@ -90,9 +90,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="h-10 w-10 hover:bg-[#e07a5f]/20 rounded-full"
+                        className="h-10 w-10 hover:bg-[var(--warning-light)] rounded-full"
                     >
-                        <X className="h-6 w-6 text-[#2c2c2c]" />
+                        <X className="h-6 w-6 text-[var(--ink)]" />
                     </Button>
                 </div>
 
@@ -136,24 +136,24 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                         </div>
                     </div>
 
-                    <div className="bg-[#f0e6d2] p-6 rounded-xl border-2 border-[#d6cbb5] relative mt-8">
-                        <div className="absolute -top-3 left-4 bg-[#e07a5f] text-white px-3 py-1 rounded text-sm font-bold shadow-sm transform -rotate-2">
+                    <div className="bg-[var(--paper-header)] p-6 rounded-xl border-2 border-[var(--ink)] relative mt-8">
+                        <div className="absolute -top-3 left-4 bg-[var(--warning)] text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm transform -rotate-2 border-2 border-[var(--ink)]">
                             SIDE A: TRACK URL
                         </div>
 
                         <div className="mt-2 space-y-4">
                             <div className="relative">
-                                <PlayCircle className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                                <PlayCircle className="absolute left-3 top-2.5 h-5 w-5 text-[var(--ink-subtle)]" />
                                 <Input
                                     placeholder="Paste YouTube Link here..."
                                     value={musicUrl}
                                     onChange={(e) => setMusicUrl(e.target.value)}
-                                    className="pl-10 bg-white border-2 border-[#d6cbb5] focus-visible:ring-[#e07a5f] h-10 font-sans text-base shadow-inner"
+                                    className="pl-10 bg-white border-2 border-[var(--ink)] focus-visible:ring-[var(--warning)] h-10 font-sans text-base"
                                 />
                             </div>
 
                             {error && (
-                                <div className="text-red-500 text-sm font-bold flex items-center gap-2 animate-pulse pl-1">
+                                <div className="text-[var(--danger)] text-sm font-bold flex items-center gap-2 animate-pulse pl-1">
                                     <X className="h-4 w-4" /> {error}
                                 </div>
                             )}
@@ -161,12 +161,12 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                     </div>
                 </div>
 
-                <div className="p-6 bg-[#fff0d4] border-t-2 border-[#e6dbc4] flex gap-4">
+                <div className="p-6 bg-[var(--paper-header)] border-t-2 border-[var(--ink)] flex gap-4">
                     {item.musicUrl && (
                         <Button
                             variant="outline"
                             onClick={handleClear}
-                            className="flex-1 border-2 border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-300 font-bold"
+                            className="flex-1 border-2 border-[var(--danger)] text-[var(--danger)] hover:bg-[var(--danger-light)] hover:text-[var(--danger-dark)] font-bold"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Eject Disc
@@ -176,7 +176,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                     <Button
                         onClick={handleSave}
                         disabled={!musicUrl.trim() || !!error}
-                        className="flex-1 bg-[#2c2c2c] hover:bg-black text-[#fff9e6] border-2 border-transparent font-bold text-lg shadow-md transition-transform active:scale-95"
+                        className="flex-1 bg-[var(--ink)] hover:bg-[var(--ink-light)] text-white border-2 border-[var(--ink)] font-bold text-lg shadow-md transition-all active:scale-95 active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
                     >
                         <Save className="h-5 w-5 mr-2" />
                         Press Vinyl

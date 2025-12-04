@@ -11,11 +11,13 @@ export type OnboardingStep =
     | "click-computer"
     | "open-shop"
     | "buy-item"
+    | "set-homepage"
     | "complete";
 
 interface OnboardingProps {
     currentStep: OnboardingStep;
     onComplete: () => void;
+    onNext?: () => void;
 }
 
 interface StepConfig {
@@ -24,6 +26,7 @@ interface StepConfig {
     bubblePosition: "top" | "bottom" | "left" | "right";
     showSkip: boolean;
     pulseTarget: boolean;
+    showNext?: boolean;
 }
 
 const stepConfigs: Record<OnboardingStep, StepConfig> = {
@@ -82,6 +85,13 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         showSkip: true,
         pulseTarget: true,
     },
+    "set-homepage": {
+        message: "Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set https://cozytab.club as your homepage. Works in Chrome and Firefox!",
+        bubblePosition: "bottom",
+        showSkip: true,
+        pulseTarget: false,
+        showNext: true,
+    },
     complete: {
         message: "You're all set! Enjoy decorating your cozytab! 🎉",
         bubblePosition: "bottom",
@@ -90,7 +100,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
     },
 };
 
-export function Onboarding({ currentStep, onComplete }: OnboardingProps) {
+export function Onboarding({ currentStep, onComplete, onNext }: OnboardingProps) {
     const completeOnboarding = useMutation(api.users.completeOnboarding);
 
     const handleSkip = async () => {
@@ -120,6 +130,8 @@ export function Onboarding({ currentStep, onComplete }: OnboardingProps) {
             onSkip={handleSkip}
             showSkip={config.showSkip}
             pulseTarget={config.pulseTarget}
+            onNext={onNext}
+            showNext={config.showNext ?? false}
         />
     );
 }

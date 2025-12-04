@@ -72,14 +72,14 @@ export function CatalogItemsTab() {
             <div className="flex justify-end mb-4">
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
-                    className="px-4 py-2 bg-amber-500 text-stone-900 font-medium rounded hover:bg-amber-400 transition-colors"
+                    className="px-4 py-2 bg-[var(--warning)] text-[var(--ink)] font-semibold rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all"
                 >
                     {showAddForm ? "Cancel" : "+ Add Item"}
                 </button>
             </div>
 
             {currentError && (
-                <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded text-red-200">
+                <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
                     <button onClick={() => { setError(null); setUploadError(null); }} className="ml-4 underline">
                         Dismiss
@@ -88,56 +88,56 @@ export function CatalogItemsTab() {
             )}
 
             {showAddForm && (
-                <div className="mb-8 p-6 bg-stone-800 rounded-lg border border-stone-700">
-                    <h2 className="text-xl font-semibold mb-4 text-amber-300">Add New Item</h2>
+                <div className="mb-8 p-6 bg-[var(--paper-header)] rounded-lg border-2 border-[var(--ink)] shadow-md">
+                    <h2 className="text-xl font-semibold mb-4 text-[var(--ink)]">Add New Item</h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Name *</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Name *</label>
                             <input
                                 type="text"
                                 value={newItem.name}
                                 onChange={(e) => setNewItem((p) => ({ ...p, name: e.target.value }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Category</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Category</label>
                             <input
                                 type="text"
                                 value={newItem.category}
                                 onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Price</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Price</label>
                             <input
                                 type="number"
                                 value={newItem.basePrice}
                                 onChange={(e) => setNewItem((p) => ({ ...p, basePrice: Number(e.target.value) }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Width (px)</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Width (px)</label>
                             <input
                                 type="number"
                                 value={newItem.defaultWidth}
                                 onChange={(e) => setNewItem((p) => ({ ...p, defaultWidth: Number(e.target.value) }))}
-                                className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-stone-400 mb-1">Image *</label>
+                            <label className="block text-sm text-[var(--ink-muted)] mb-1">Image *</label>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newItem.assetUrl}
                                     onChange={(e) => setNewItem((p) => ({ ...p, assetUrl: e.target.value }))}
                                     placeholder="URL or upload"
-                                    className="flex-1 px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500 text-sm"
+                                    className="flex-1 px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 text-sm shadow-sm"
                                 />
-                                <label className="px-3 py-2 bg-stone-600 hover:bg-stone-500 rounded cursor-pointer transition-colors text-sm">
+                                <label className="px-3 py-2 bg-[var(--paper-header)] hover:bg-[var(--secondary)] border-2 border-[var(--ink)] rounded-lg cursor-pointer transition-colors text-sm shadow-sm">
                                     {uploading === "new" ? "..." : "📤"}
                                     <input
                                         type="file"
@@ -155,7 +155,7 @@ export function CatalogItemsTab() {
                     <div className="mt-4 flex gap-2">
                         <button
                             onClick={handleAddItem}
-                            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500 transition-colors"
+                            className="px-4 py-2 bg-[var(--success)] text-white rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all font-semibold"
                         >
                             Add Item
                         </button>
@@ -169,21 +169,21 @@ export function CatalogItemsTab() {
                 </div>
             )}
 
-            <div className="bg-stone-800 rounded-lg border border-stone-700 overflow-hidden">
+            <div className="bg-[var(--paper-header)] rounded-lg border-2 border-[var(--ink)] overflow-hidden shadow-md">
                 <table className="w-full">
-                    <thead className="bg-stone-700">
+                    <thead className="bg-[var(--paper-header)] border-b-2 border-[var(--ink)]">
                         <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Image</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Name</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Category</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Price</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Width</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Asset URL</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Image</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Name</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Category</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Price</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Width</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Asset URL</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-stone-700">
+                    <tbody className="divide-y divide-[var(--ink)]/20">
                         {catalogItems?.map((item) => (
-                            <tr key={item._id} className="hover:bg-stone-750">
+                            <tr key={item._id} className="hover:bg-[var(--paper)]/50">
                                 <td className="px-4 py-3">
                                     <div className="relative group">
                                         <AssetImage
@@ -269,7 +269,7 @@ export function CatalogItemsTab() {
                     </tbody>
                 </table>
                 {(!catalogItems || catalogItems.length === 0) && (
-                    <div className="p-8 text-center text-stone-400">No catalog items found.</div>
+                    <div className="p-8 text-center text-[var(--ink-subtle)]">No catalog items found.</div>
                 )}
             </div>
         </>

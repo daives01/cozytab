@@ -12,6 +12,7 @@ import { useWebSocketPresence } from "../hooks/useWebSocketPresence";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
+import houseBackground from "../assets/house.png";
 
 // Hook to resolve storage URLs for background images
 function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
@@ -22,13 +23,15 @@ function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
     );
 
-    if (!backgroundUrl) return "/src/assets/house.png"; // fallback
+    if (!backgroundUrl) return houseBackground; // fallback
     if (isStorageUrl) return resolvedUrl ?? undefined;
     return backgroundUrl;
 }
 
 const ROOM_WIDTH = 1920;
 const ROOM_HEIGHT = 1080;
+
+const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
 
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
@@ -112,7 +115,7 @@ export function VisitorRoomPage() {
     }
 
     const items = roomData.room.items as RoomItem[];
-    const musicItems = items.filter((item) => item.musicUrl && item.musicType);
+    const musicItems = items.filter(isMusicItem);
 
     return (
         <div
@@ -182,21 +185,21 @@ export function VisitorRoomPage() {
             </div>
 
             <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
-                <div className="bg-white/90 backdrop-blur-sm rounded-xl px-4 py-2 shadow-lg border-2 border-gray-200">
-                    <div className="text-sm text-gray-500">Visiting</div>
-                    <div className="font-bold text-lg text-gray-800">{roomData.ownerName}'s Room</div>
+                <div className="bg-[var(--paper)] backdrop-blur-sm rounded-xl px-4 py-2 shadow-md border-2 border-[var(--ink)]">
+                    <div className="text-sm text-[var(--ink-subtle)] uppercase tracking-wide text-xs">Visiting</div>
+                    <div className="font-bold text-lg text-[var(--ink)]">{roomData.ownerName}'s Room</div>
                 </div>
             </div>
 
             <div className="absolute top-4 right-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
                 {visitors.length > 1 && (
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 shadow-lg border-2 border-gray-200 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-600" />
-                        <span className="font-bold text-gray-800">{visitors.length}</span>
+                    <div className="bg-[var(--paper)] backdrop-blur-sm rounded-xl px-3 py-2 shadow-md border-2 border-[var(--ink)] flex items-center gap-2">
+                        <Users className="h-4 w-4 text-[var(--ink)]" />
+                        <span className="font-bold text-[var(--ink)]">{visitors.length}</span>
                     </div>
                 )}
                 <Link to="/">
-                    <Button variant="outline" className="bg-white/90 backdrop-blur-sm shadow-lg">
+                    <Button variant="outline" className="bg-[var(--paper)] backdrop-blur-sm shadow-md">
                         <Home className="mr-2 h-4 w-4" />
                         My Room
                     </Button>
@@ -206,8 +209,8 @@ export function VisitorRoomPage() {
             <ChatInput onMessageChange={updateChatMessage} />
 
             <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
-                <div className="bg-gray-900/70 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                    <span className="font-mono bg-gray-700 px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
+                <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
+                    <span className="font-mono bg-[var(--ink-light)] px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
                     <span style={{ fontFamily: "'Patrick Hand', cursive" }}>to chat</span>
                 </div>
             </div>

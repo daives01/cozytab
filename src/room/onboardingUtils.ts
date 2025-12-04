@@ -9,6 +9,7 @@ export function getNextStep(currentStep: OnboardingStep): OnboardingStep {
         "click-computer",
         "open-shop",
         "buy-item",
+        "set-homepage",
         "complete",
     ];
 

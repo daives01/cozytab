@@ -23,6 +23,7 @@ import { SignInButton, useUser } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
+import houseBackground from "../assets/house.png";
 
 // Hook to resolve storage URLs for background images
 function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
@@ -33,12 +34,14 @@ function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
     );
 
-    if (!backgroundUrl) return "/src/assets/house.png"; // fallback
+    if (!backgroundUrl) return houseBackground; // fallback
     if (isStorageUrl) return resolvedUrl ?? undefined;
     return backgroundUrl;
 }
 
 type Mode = "view" | "edit";
+
+const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
 
 interface RoomPageProps {
     isGuest?: boolean;
@@ -175,6 +178,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             catalogItemId: catalogItemId,
             x: x,
             y: y,
+            flipped: false,
         };
 
         setLocalItems((prev) => [...prev, newItem]);
@@ -201,9 +205,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         updateCursor(roomX, roomY, e.clientX, e.clientY);
     };
 
-    const musicItems = (room?.items as RoomItem[] | undefined)?.filter(
-        (item) => item.musicUrl && item.musicType
-    ) ?? [];
+    const musicItems = (room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? [];
 
     return (
         <div
@@ -303,7 +305,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     </SignInButton>
                 ) : (
                     <>
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="relative group">
                             <button
                                 data-onboarding="mode-toggle"
                                 onClick={() => {
@@ -322,11 +324,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                     }
                                 }}
                                 className={`
-                                    relative h-14 w-14 rounded-full border-4 shadow-[0_4px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px] transition-all
+                                    relative h-14 w-14 rounded-full border-2 shadow-md active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all
                                     flex items-center justify-center
                                     ${mode === "view"
-                                        ? "bg-emerald-400 border-emerald-600 text-emerald-900"
-                                        : "bg-amber-400 border-amber-600 text-amber-900"
+                                        ? "bg-[var(--success)] border-[var(--ink)] text-white"
+                                        : "bg-[var(--warning)] border-[var(--ink)] text-[var(--ink)]"
                                     }
                                 `}
                             >
@@ -336,27 +338,27 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                     <LockOpen className="h-7 w-7" />
                                 )}
                             </button>
-                            <span className="font-['Patrick_Hand'] text-white text-lg font-bold drop-shadow-md select-none">
-                                {mode === "view" ? "View" : "Edit"}
-                            </span>
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                {mode === "view" ? "Edit" : "View"}
+                            </div>
                         </div>
 
                         {/* Share Button */}
-                        <div className="flex flex-col items-center gap-1">
+                        <div className="relative group">
                             <button
                                 onClick={() => setIsShareModalOpen(true)}
-                                className="relative h-14 w-14 rounded-full border-4 shadow-[0_4px_0_rgba(0,0,0,0.2)] active:shadow-none active:translate-y-[4px] transition-all flex items-center justify-center bg-indigo-400 border-indigo-600 text-indigo-900"
+                                className="relative h-14 w-14 rounded-full border-2 border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)] shadow-md active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all flex items-center justify-center"
                             >
                                 <Share2 className="h-7 w-7" />
                                 {visitorCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                                    <span className="absolute -top-1 -right-1 bg-[var(--success)] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white shadow-sm">
                                         {visitorCount}
                                     </span>
                                 )}
                             </button>
-                            <span className="font-['Patrick_Hand'] text-white text-lg font-bold drop-shadow-md select-none">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
                                 Share
-                            </span>
+                            </div>
                         </div>
                     </>
                 )}
@@ -367,11 +369,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300"
                     onClick={() => setShowRewardNotification(false)}
                 >
-                    <div className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl px-6 py-3 shadow-xl border-2 border-emerald-400 flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
+                    <div className="bg-[var(--success)] text-white rounded-xl px-6 py-3 shadow-lg border-2 border-[var(--ink)] flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
                         <Gift className="h-6 w-6" />
                         <div>
                             <div className="font-bold text-lg">Daily Reward!</div>
-                            <div className="text-emerald-100 text-sm">+1 token added to your balance</div>
+                            <div className="text-white/90 text-sm">+1 token added to your balance</div>
                         </div>
                     </div>
                 </div>
@@ -379,8 +381,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
             {mode === "edit" && (
                 <div
-                    className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300"
-                    style={{ right: isDrawerOpen ? "180px" : "20px" }}
+                    className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                    style={{ right: isDrawerOpen ? "160px" : "0px" }}
                 >
                     <button
                         data-onboarding="drawer-toggle"
@@ -391,7 +393,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                                 advanceOnboarding();
                             }
                         }}
-                        className="bg-[#c7b299] hover:bg-[#b5a18b] text-[#5c4d3c] h-16 w-8 rounded-l-lg border-y-4 border-l-4 border-[#a6927d] shadow-lg flex items-center justify-center transition-colors outline-none active:scale-95"
+                        className="bg-[var(--paper-header)] hover:bg-[var(--secondary)] text-[var(--ink)] h-16 w-8 rounded-l-lg border-y-2 border-l-2 border-[var(--ink)] shadow-md flex items-center justify-center transition-colors outline-none active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
                     >
                         {isDrawerOpen ? (
                             <ChevronRight className="h-6 w-6" />
@@ -483,6 +485,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 <Onboarding
                     currentStep={onboardingStep}
                     onComplete={handleOnboardingComplete}
+                    onNext={advanceOnboarding}
                 />
             )}
 
@@ -495,8 +498,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
             {!isGuest && hasVisitors && !isComputerOpen && !isShopOpen && !musicPlayerItemId && !isShareModalOpen && (
                 <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
-                    <div className="bg-gray-900/70 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm">
-                        <span className="font-mono bg-gray-700 px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
+                    <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
+                        <span className="font-mono bg-[var(--ink-light)] px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
                         <span style={{ fontFamily: "'Patrick Hand', cursive" }}>to chat</span>
                     </div>
                 </div>

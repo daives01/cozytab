@@ -22,13 +22,27 @@ interface ItemNodeProps {
     isVisitor?: boolean;
 }
 
-export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, onDragStart, onDragEnd, onComputerClick, onMusicPlayerClick, isOnboardingComputerTarget, isVisitor = false }: ItemNodeProps) {
+export function ItemNode({
+    item,
+    isSelected,
+    mode,
+    scale,
+    onSelect,
+    onChange,
+    onDragStart,
+    onDragEnd,
+    onComputerClick,
+    onMusicPlayerClick,
+    isOnboardingComputerTarget,
+    isVisitor = false,
+}: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
     const catalogItems = useQuery(api.catalog.list);
     const catalogItem = catalogItems?.find((ci: Doc<"catalogItems">) => ci._id === item.catalogItemId || ci.name === item.catalogItemId);
     const imageUrl = catalogItem?.assetUrl || "";
+    const resolvedWidth = catalogItem?.defaultWidth ?? 150;
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
@@ -111,27 +125,28 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 }
             }}
         >
-            <div
-                className="relative group"
-                style={{
-                    width: catalogItem?.defaultWidth ?? 150,
-                    transform: item.flipped ? "scaleX(-1)" : "none",
-                }}
-            >
-                {imageUrl ? (
-                    <AssetImage
-                        assetUrl={imageUrl}
-                        alt="Room Item"
-                        className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
-                        style={{
-                            filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
-                        }}
-                    />
-                ) : (
-                    <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-sm">
-                        No Image
-                    </div>
-                )}
+            <div className="relative group" style={{ width: resolvedWidth }}>
+                <div
+                    className="w-full"
+                    style={{
+                        transform: item.flipped ? "scaleX(-1)" : "none",
+                    }}
+                >
+                    {imageUrl ? (
+                        <AssetImage
+                            assetUrl={imageUrl}
+                            alt="Room Item"
+                            className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
+                            style={{
+                                filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
+                            }}
+                        />
+                    ) : (
+                        <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-sm">
+                            No Image
+                        </div>
+                    )}
+                </div>
 
                 {isSelected && mode === "edit" && (
                     <>
@@ -141,11 +156,10 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                                 e.stopPropagation();
                                 onChange({ ...item, flipped: !item.flipped });
                             }}
-                            className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-2 border-gray-300 rounded-full p-1.5 shadow-md hover:bg-gray-100 transition-colors pointer-events-auto"
-                            style={{ transform: item.flipped ? "scaleX(-1) translateX(50%)" : "translateX(-50%)" }}
+                            className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-2 border-[var(--ink)] rounded-full p-1.5 shadow-md hover:bg-[var(--muted)] transition-colors pointer-events-auto z-20"
                             title="Flip horizontally"
                         >
-                            <FlipHorizontal2 className="w-4 h-4 text-gray-600" />
+                            <FlipHorizontal2 className="w-4 h-4 text-[var(--ink)]" />
                         </button>
                     </>
                 )}

@@ -21,7 +21,7 @@ export function RoomsTab({
 }: RoomsTabProps) {
     if (purchasableRooms.length === 0) {
         return (
-            <div className="text-center py-12 text-[#8b7355]">
+            <div className="text-center py-12 text-[var(--ink-subtle)]">
                 <Home className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-xl">No rooms available yet!</p>
                 <p className="text-sm mt-2">Check back later for new room themes.</p>
@@ -32,8 +32,8 @@ export function RoomsTab({
     return (
         <div className="space-y-6">
             <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold text-[#5c4d3c] mb-2">Room Themes</h3>
-                <p className="text-[#8b7355]">Purchase new rooms to customize your space!</p>
+                <h3 className="text-2xl font-bold text-[var(--ink)] mb-2">Room Themes</h3>
+                <p className="text-[var(--ink-subtle)]">Purchase new rooms to customize your space!</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -46,19 +46,19 @@ export function RoomsTab({
                     return (
                         <div
                             key={template._id}
-                            className={`relative bg-white rounded-2xl border-4 overflow-hidden transition-all ${
+                            className={`relative bg-white rounded-2xl border-2 overflow-hidden transition-all shadow-md ${
                                 isOwned
-                                    ? "border-emerald-400 bg-emerald-50"
-                                    : "border-[#d4c3aa] hover:border-rose-400 hover:shadow-xl hover:-translate-y-1"
+                                    ? "border-[var(--success)] bg-[var(--success-light)]"
+                                    : "border-[var(--ink)] hover:border-[var(--danger)] hover:shadow-lg hover:-translate-y-1"
                             }`}
                         >
                             {isOwned && (
-                                <div className="absolute top-3 right-3 bg-emerald-500 text-white rounded-full p-1.5 shadow-lg z-10">
+                                <div className="absolute top-3 right-3 bg-[var(--success)] text-white rounded-full p-1.5 shadow-md border-2 border-[var(--ink)] z-10">
                                     <Check className="h-5 w-5" />
                                 </div>
                             )}
 
-                            <div className="aspect-video bg-gray-200 relative overflow-hidden">
+                            <div className="aspect-video bg-[var(--muted)] relative overflow-hidden">
                                 <AssetImage
                                     assetUrl={template.backgroundUrl}
                                     alt={template.name}
@@ -81,19 +81,19 @@ export function RoomsTab({
 
                             <div className="p-4">
                                 {isOwned ? (
-                                    <div className="text-center text-emerald-600 font-bold text-lg py-1">
+                                    <div className="text-center text-[var(--success-dark)] font-bold text-lg py-1">
                                         ✓ Owned
                                     </div>
                                 ) : (
                                     <button
                                         onClick={() => onPurchaseRoom(template._id)}
                                         disabled={!canAfford || isPurchasing}
-                                        className={`w-full py-3 px-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+                                        className={`w-full py-3 px-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 border-2 ${
                                             isPurchasing
-                                                ? "bg-gray-300 text-gray-500 cursor-wait"
+                                                ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                 : canAfford
-                                                ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-lg active:scale-[0.98]"
-                                                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                ? "bg-[var(--danger)] text-white hover:bg-[var(--danger-dark)] border-[var(--ink)] shadow-md active:scale-[0.98] active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
+                                                : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
                                         }`}
                                     >
                                         <Coins className="h-5 w-5" />
@@ -104,7 +104,7 @@ export function RoomsTab({
                                 {resultForRoom && (
                                     <div
                                         className={`mt-3 text-sm text-center font-medium ${
-                                            resultForRoom.success ? "text-emerald-600" : "text-red-500"
+                                            resultForRoom.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
                                         }`}
                                     >
                                         {resultForRoom.message}

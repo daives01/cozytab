@@ -29,7 +29,7 @@ export function ItemsTab({
 }: ItemsTabProps) {
     if (categories.length === 0) {
         return (
-            <div className="text-center py-12 text-[#8b7355]">
+            <div className="text-center py-12 text-[var(--ink-subtle)]">
                 <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
                 <p className="text-xl">No items available!</p>
                 <p className="text-sm mt-2">Check back later for new items.</p>
@@ -43,7 +43,7 @@ export function ItemsTab({
                 <div key={category}>
                     <div className="flex items-center gap-3 mb-4">
                         <div className={`h-1 flex-1 rounded-full bg-gradient-to-r ${getCategoryColor(category)} opacity-50`} />
-                        <h3 className="text-xl font-bold text-[#5c4d3c] uppercase tracking-wider">
+                        <h3 className="text-xl font-bold text-[var(--ink)] uppercase tracking-wider">
                             {getCategoryDisplayName(category)}
                         </h3>
                         <div className={`h-1 flex-1 rounded-full bg-gradient-to-l ${getCategoryColor(category)} opacity-50`} />
@@ -61,21 +61,21 @@ export function ItemsTab({
                                 <div
                                     key={item._id}
                                     data-onboarding={isOnboardingTarget ? "shop-item" : undefined}
-                                    className={`relative bg-white rounded-xl border-4 p-3 transition-all ${
+                                    className={`relative bg-white rounded-xl border-2 p-3 transition-all shadow-sm ${
                                         isOwned
-                                            ? "border-emerald-400 bg-emerald-50"
+                                            ? "border-[var(--success)] bg-[var(--success-light)]"
                                             : isOnboardingTarget
-                                            ? "border-amber-400 ring-2 ring-amber-300 shadow-lg"
-                                            : "border-[#d4c3aa] hover:border-amber-400 hover:shadow-lg hover:-translate-y-1"
+                                            ? "border-[var(--warning)] ring-2 ring-[var(--warning-light)] shadow-md"
+                                            : "border-[var(--ink)] hover:border-[var(--warning)] hover:shadow-md hover:-translate-y-1"
                                     }`}
                                 >
                                     {isOwned && (
-                                        <div className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-md">
+                                        <div className="absolute -top-2 -right-2 bg-[var(--success)] text-white rounded-full p-1 shadow-sm border-2 border-[var(--ink)]">
                                             <Check className="h-4 w-4" />
                                         </div>
                                     )}
 
-                                    <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+                                    <div className="aspect-square bg-[var(--muted)] rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                                         <AssetImage
                                             assetUrl={item.assetUrl}
                                             alt={item.name}
@@ -84,24 +84,24 @@ export function ItemsTab({
                                         />
                                     </div>
 
-                                    <h4 className="font-bold text-[#5c4d3c] text-center truncate mb-2">
+                                    <h4 className="font-bold text-[var(--ink)] text-center truncate mb-2">
                                         {item.name}
                                     </h4>
 
                                     {isOwned ? (
-                                        <div className="text-center text-emerald-600 font-bold text-sm">
+                                        <div className="text-center text-[var(--success-dark)] font-bold text-sm">
                                             Owned
                                         </div>
                                     ) : (
                                         <button
                                             onClick={() => onPurchase(item._id)}
                                             disabled={!canAfford || isPurchasing}
-                                            className={`w-full py-1.5 px-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
+                                            className={`w-full py-1.5 px-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-1.5 border-2 ${
                                                 isPurchasing
-                                                    ? "bg-gray-300 text-gray-500 cursor-wait"
+                                                    ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                     : canAfford
-                                                    ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md active:scale-95"
-                                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                    ? "bg-[var(--warning)] text-[var(--ink)] hover:bg-[var(--warning-dark)] border-[var(--ink)] shadow-md active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
+                                                    : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
                                             }`}
                                         >
                                             <Coins className="h-4 w-4" />
@@ -112,7 +112,7 @@ export function ItemsTab({
                                     {resultForItem && (
                                         <div
                                             className={`mt-2 text-xs text-center ${
-                                                resultForItem.success ? "text-emerald-600" : "text-red-500"
+                                                resultForItem.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
                                             }`}
                                         >
                                             {resultForItem.message}

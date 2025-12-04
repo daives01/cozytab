@@ -67,7 +67,7 @@ export function MusicPlayerButtons({ item }: MusicPlayerButtonsProps) {
                 }}
             >
                 <button
-                    className="font-['Patrick_Hand'] h-10 w-10 rounded-full border-4 border-emerald-600 bg-emerald-400 text-emerald-900 shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] hover:scale-105 active:scale-95 transition-transform -rotate-1 flex items-center justify-center"
+                    className="font-['Patrick_Hand'] h-10 w-10 rounded-full border-2 border-[var(--ink)] bg-[var(--success)] text-white shadow-md hover:scale-105 active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px] transition-all -rotate-1 flex items-center justify-center"
                     onClick={handlePlayPause}
                     title={isPlaying ? "Pause" : "Play"}
                     disabled={!isReady}
