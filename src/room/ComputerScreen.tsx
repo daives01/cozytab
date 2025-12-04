@@ -11,7 +11,6 @@ import {
   Trash2,
   Monitor,
   Settings,
-  Save,
   LogOut,
   UserPlus,
   Copy,
@@ -20,6 +19,36 @@ import {
 } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import type { Shortcut } from "../types";
+
+// Get favicon URL from a website URL
+function getFaviconUrl(url: string): string {
+  try {
+    const domain = new URL(url).hostname;
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  } catch {
+    return "";
+  }
+}
+
+// Favicon component with fallback to Globe icon
+function SiteFavicon({ url, className }: { url: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  const faviconUrl = getFaviconUrl(url);
+
+  if (failed || !faviconUrl) {
+    return <Globe className={className} />;
+  }
+
+  return (
+    <img
+      src={faviconUrl}
+      alt=""
+      onError={() => setFailed(true)}
+      className={className}
+      draggable={false}
+    />
+  );
+}
 
 interface ComputerScreenProps {
   shortcuts: Shortcut[];
@@ -91,8 +120,8 @@ export function ComputerScreen({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Monitor Branding / Power Light */}
-        <div className="absolute bottom-3 right-8 flex items-center gap-2">
-          <span className="text-stone-400 font-bold text-xs uppercase tracking-widest whitespace-nowrap">COZYSYS 98</span>
+        <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-stone-300/80 px-4 py-1 rounded-t-lg">
+          <span className="text-stone-500 font-bold text-[10px] uppercase tracking-[0.2em]">COZYSYS 98</span>
           <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
         </div>
 
@@ -103,34 +132,34 @@ export function ComputerScreen({
           <div className="w-full h-full bg-[#008080] flex flex-col relative overflow-hidden">
 
             {/* Title Bar */}
-            <div className="bg-gradient-to-r from-blue-900 to-blue-800 text-white p-1 px-2 flex items-center justify-between select-none shadow-sm">
+            <div className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-800 text-white py-1.5 px-2 flex items-center justify-between select-none shadow-md">
               <div className="flex items-center gap-2">
-                <Monitor className="h-4 w-4" />
-                <span className="font-bold tracking-wide text-sm">My Computer</span>
+                <Monitor className="h-4 w-4 text-blue-200" />
+                <span className="font-bold tracking-wide text-sm drop-shadow-sm">My Computer</span>
               </div>
               <button
                 onClick={onClose}
-                className="bg-stone-200 text-black hover:bg-red-500 hover:text-white transition-colors p-0.5 rounded-sm border border-stone-400 w-5 h-5 flex items-center justify-center shadow-sm"
+                className="bg-gradient-to-b from-stone-200 to-stone-300 text-stone-600 hover:from-red-400 hover:to-red-500 hover:text-white transition-all p-0.5 rounded-sm border-2 border-t-white border-l-white border-b-stone-400 border-r-stone-400 w-6 h-6 flex items-center justify-center shadow-sm"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
 
             {/* Desktop Icons Area */}
-            <div className="flex-1 p-6 grid grid-cols-4 md:grid-cols-6 gap-6 content-start overflow-y-auto">
+            <div className="flex-1 p-6 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-x-4 gap-y-6 content-start overflow-y-auto">
 
               {/* Shop Icon */}
               <div
                 data-onboarding="shop-icon"
                 onClick={onOpenShop}
-                className={`group flex flex-col items-center gap-1 cursor-pointer w-20 ${isOnboardingShopStep ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent rounded-lg" : ""
+                className={`group flex flex-col items-center gap-2 cursor-pointer ${isOnboardingShopStep ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-transparent rounded-lg" : ""
                   }`}
               >
-                <div className={`w-12 h-12 bg-white/10 group-hover:bg-white/20 border group-hover:border-white/40 rounded-lg flex items-center justify-center transition-all shadow-sm ${isOnboardingShopStep ? "border-amber-400 animate-pulse" : "border-white/0"
+                <div className={`w-16 h-16 bg-white/10 group-hover:bg-white/20 group-hover:scale-105 border group-hover:border-white/40 rounded-xl flex items-center justify-center transition-all shadow-lg ${isOnboardingShopStep ? "border-amber-400 animate-pulse" : "border-white/20"
                   }`}>
-                  <ShoppingBag className="h-7 w-7 text-yellow-300 drop-shadow-md" />
+                  <ShoppingBag className="h-9 w-9 text-yellow-300 drop-shadow-md" />
                 </div>
-                <span className="text-white text-center text-sm drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/50 px-1 rounded truncate w-full">
+                <span className="text-white text-center text-sm leading-tight drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/60 px-2 py-0.5 rounded max-w-[90px] line-clamp-2">
                   Item Shop
                 </span>
               </div>
@@ -138,12 +167,12 @@ export function ComputerScreen({
               {/* Invite Friends Icon */}
               <div
                 onClick={() => setShowInvitePanel(true)}
-                className="group flex flex-col items-center gap-1 cursor-pointer w-20"
+                className="group flex flex-col items-center gap-2 cursor-pointer"
               >
-                <div className="w-12 h-12 bg-white/10 group-hover:bg-white/20 border border-white/0 group-hover:border-white/40 rounded-lg flex items-center justify-center transition-all shadow-sm">
-                  <UserPlus className="h-7 w-7 text-pink-300 drop-shadow-md" />
+                <div className="w-16 h-16 bg-white/10 group-hover:bg-white/20 group-hover:scale-105 border border-white/20 group-hover:border-white/40 rounded-xl flex items-center justify-center transition-all shadow-lg">
+                  <UserPlus className="h-9 w-9 text-pink-300 drop-shadow-md" />
                 </div>
-                <span className="text-white text-center text-sm drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/50 px-1 rounded truncate w-full">
+                <span className="text-white text-center text-sm leading-tight drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/60 px-2 py-0.5 rounded max-w-[90px] line-clamp-2">
                   Invite Friends
                 </span>
               </div>
@@ -152,26 +181,26 @@ export function ComputerScreen({
               {shortcuts.map((shortcut) => (
                 <div
                   key={shortcut.id}
-                  className="relative group flex flex-col items-center gap-1 cursor-pointer w-20"
+                  className="relative group flex flex-col items-center gap-2 cursor-pointer"
                 >
                   <button
                     onClick={() => handleOpenShortcut(shortcut.url)}
-                    className="flex flex-col items-center w-full"
+                    className="flex flex-col items-center"
                   >
-                    <div className="w-12 h-12 bg-white/10 group-hover:bg-white/20 border border-white/0 group-hover:border-white/40 rounded-lg flex items-center justify-center transition-all shadow-sm relative">
-                      <Globe className="h-7 w-7 text-cyan-200 drop-shadow-md" />
+                    <div className="w-16 h-16 bg-white/10 group-hover:bg-white/20 group-hover:scale-105 border border-white/20 group-hover:border-white/40 rounded-xl flex items-center justify-center transition-all shadow-lg relative">
+                      <SiteFavicon url={shortcut.url} className="h-9 w-9 text-cyan-200 drop-shadow-md rounded" />
                       {isEditing && (
-                        <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 shadow-sm hover:scale-110 transition-transform z-10"
+                        <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-md hover:scale-110 transition-transform z-10"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteShortcut(shortcut.id);
                           }}
                         >
-                          <Trash2 className="h-3 w-3 text-white" />
+                          <Trash2 className="h-3.5 w-3.5 text-white" />
                         </div>
                       )}
                     </div>
-                    <span className="text-white text-center text-sm drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/50 px-1 rounded w-full mt-1 line-clamp-2 break-words">
+                    <span className="text-white text-center text-sm leading-tight drop-shadow-md bg-blue-900/0 group-hover:bg-blue-900/60 px-2 py-0.5 rounded max-w-[90px] line-clamp-2 break-words mt-1">
                       {shortcut.name}
                     </span>
                   </button>
@@ -242,78 +271,83 @@ export function ComputerScreen({
               </div>
             )}
 
-            {/* Taskbar / Control Panel */}
-            <div className="bg-stone-200 border-t-2 border-white/50 p-2 shadow-[0_-2px_4px_rgba(0,0,0,0.1)] text-stone-800">
+            {/* Taskbar */}
+            <div className="bg-gradient-to-b from-stone-300 to-stone-200 border-t-2 border-white p-1.5 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] text-stone-800">
 
               {!isEditing ? (
-                <div className="flex justify-between items-center gap-2">
-                  <div className="text-xs text-stone-500 font-mono pl-2">
-                    Ready
+                <div className="flex justify-between items-center gap-3">
+                  {/* Start-style button */}
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 bg-gradient-to-b from-stone-100 to-stone-200 hover:from-white hover:to-stone-100 px-3 py-1.5 rounded border-2 border-t-white border-l-white border-b-stone-400 border-r-stone-400 shadow-sm active:border-t-stone-400 active:border-l-stone-400 active:border-b-white active:border-r-white active:bg-stone-300 transition-all"
+                  >
+                    <Settings className="h-4 w-4 text-stone-600" />
+                    <span className="text-sm font-semibold text-stone-700">Shortcuts</span>
+                  </button>
+
+                  {/* Spacer with status */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <span className="text-xs text-stone-400 font-mono">{shortcuts.length} shortcut{shortcuts.length !== 1 ? 's' : ''}</span>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                      className="h-8 bg-stone-100 hover:bg-white border-stone-400 shadow-sm active:translate-y-px text-xs font-sans"
-                    >
-                      <Settings className="h-3 w-3 mr-2" />
-                      Manage Shortcuts
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
+
+                  {/* System tray area */}
+                  <div className="flex items-center gap-1 bg-stone-300/50 border border-stone-400/50 rounded px-2 py-1">
+                    <button
                       onClick={() => signOut()}
-                      className="h-8 bg-stone-100 hover:bg-red-100 hover:border-red-400 border-stone-400 shadow-sm active:translate-y-px text-xs font-sans text-red-600 hover:text-red-700"
+                      className="p-1 hover:bg-stone-400/30 rounded transition-colors group"
+                      title="Log Out"
                     >
-                      <LogOut className="h-3 w-3 mr-2" />
-                      Log Out
-                    </Button>
+                      <LogOut className="h-4 w-4 text-stone-500 group-hover:text-red-500 transition-colors" />
+                    </button>
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-2">
-                  <div className="flex gap-2 items-center">
+                <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-200">
+                  {/* Add shortcut row */}
+                  <div className="flex gap-2 items-center bg-white/50 p-2 rounded border border-stone-300">
+                    <Plus className="h-4 w-4 text-stone-400 shrink-0" />
                     <Input
-                      placeholder="Name"
+                      placeholder="Shortcut name"
                       value={newShortcutName}
                       onChange={(e) => setNewShortcutName(e.target.value)}
-                      className="h-8 text-xs bg-white font-mono border-stone-400"
+                      className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-1"
                     />
                     <Input
-                      placeholder="URL"
+                      placeholder="https://..."
                       value={newShortcutUrl}
                       onChange={(e) => setNewShortcutUrl(e.target.value)}
-                      className="h-8 text-xs bg-white font-mono border-stone-400"
+                      className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-[1.5]"
                     />
                     <Button
                       size="sm"
                       onClick={handleAddShortcut}
                       disabled={!newShortcutName.trim() || !newShortcutUrl.trim()}
-                      className="h-8 bg-blue-700 hover:bg-blue-600 text-white shadow-sm"
+                      className="h-8 px-4 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white shadow-sm border border-blue-700 disabled:opacity-50"
                     >
-                      <Plus className="h-3 w-3" />
+                      Add
                     </Button>
                   </div>
+
+                  {/* Bottom controls */}
                   <div className="flex justify-between items-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => setIsEditing(false)}
-                      className="h-6 text-xs text-stone-600 hover:text-stone-900"
+                      className="flex items-center gap-2 bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-4 py-1.5 rounded border border-emerald-700 shadow-sm transition-all text-sm font-medium"
                     >
-                      <Save className="h-3 w-3 mr-1" />
-                      Save & Close Manager
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => signOut()}
-                      className="h-8 bg-stone-100 hover:bg-red-100 hover:border-red-400 border-stone-400 shadow-sm active:translate-y-px text-xs font-sans text-red-600 hover:text-red-700"
-                    >
-                      <LogOut className="h-3 w-3 mr-2" />
-                      Log Out
-                    </Button>
+                      <Check className="h-4 w-4" />
+                      Done Editing
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-stone-500">Click delete icons on shortcuts to remove</span>
+                      <button
+                        onClick={() => signOut()}
+                        className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"
+                        title="Log Out"
+                      >
+                        <LogOut className="h-4 w-4 text-stone-400 group-hover:text-red-500 transition-colors" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

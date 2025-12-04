@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useEffect, useState, type DragEvent, useRef, useCallback, startTransition } from "react";
+import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback, startTransition } from "react";
 import type { RoomItem, Shortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
@@ -35,11 +35,15 @@ const ROOM_HEIGHT = 1080;
 export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
+    const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const { user: clerkUser } = useUser();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const saveShortcuts = useMutation(api.rooms.saveShortcuts);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
+    
+    // Only enable presence when room is shared (has active invite)
+    const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
 
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
@@ -61,8 +65,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
+    // Only track presence when room is shared (has active invite)
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresence(
-        !isGuest && room && visitorId ? room._id : null,
+        !isGuest && room && visitorId && isRoomShared ? room._id : null,
         visitorId ?? "",
         ownerName,
         true
