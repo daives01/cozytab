@@ -1,5 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import type { RoomItem } from "../types";
@@ -11,6 +12,20 @@ import { usePresence } from "../hooks/usePresence";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
+
+// Hook to resolve storage URLs for background images
+function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
+    const isStorageUrl = backgroundUrl?.startsWith("storage:");
+    const storageId = isStorageUrl ? backgroundUrl?.replace("storage:", "") : null;
+    const resolvedUrl = useQuery(
+        api.catalog.getImageUrl,
+        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
+    );
+    
+    if (!backgroundUrl) return "/src/assets/house.png"; // fallback
+    if (isStorageUrl) return resolvedUrl ?? undefined;
+    return backgroundUrl;
+}
 
 const ROOM_WIDTH = 1920;
 const ROOM_HEIGHT = 1080;
@@ -31,6 +46,7 @@ export function VisitorRoomPage() {
         visitorName,
         false
     );
+    const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
 
     useEffect(() => {
         const handleResize = () => {
@@ -118,10 +134,11 @@ export function VisitorRoomPage() {
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundImage: "url('/src/assets/house.png')",
+                        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
+                        backgroundColor: backgroundUrl ? undefined : "#1a1a1a",
                         zIndex: 0,
                     }}
                 />

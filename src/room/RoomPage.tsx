@@ -23,6 +23,20 @@ import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 
+// Hook to resolve storage URLs for background images
+function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
+    const isStorageUrl = backgroundUrl?.startsWith("storage:");
+    const storageId = isStorageUrl ? backgroundUrl?.replace("storage:", "") : null;
+    const resolvedUrl = useQuery(
+        api.catalog.getImageUrl,
+        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
+    );
+    
+    if (!backgroundUrl) return "/src/assets/house.png"; // fallback
+    if (isStorageUrl) return resolvedUrl ?? undefined;
+    return backgroundUrl;
+}
+
 type Mode = "view" | "edit";
 
 interface RoomPageProps {
@@ -33,7 +47,7 @@ const ROOM_WIDTH = 1920;
 const ROOM_HEIGHT = 1080;
 
 export function RoomPage({ isGuest = false }: RoomPageProps) {
-    const room = useQuery(api.rooms.getMyRoom, isGuest ? "skip" : {});
+    const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const { user: clerkUser } = useUser();
@@ -41,6 +55,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const saveShortcuts = useMutation(api.rooms.saveShortcuts);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
+    const backgroundUrl = useResolvedBackgroundUrl(room?.template?.backgroundUrl);
     
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
@@ -260,10 +275,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundImage: "url('/src/assets/house.png')",
+                        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
+                        backgroundColor: backgroundUrl ? undefined : "#1a1a1a",
                         zIndex: 0,
                     }}
                     onClick={() => setSelectedId(null)}

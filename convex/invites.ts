@@ -15,10 +15,14 @@ export const createInvite = mutation({
             .unique();
         if (!user) throw new Error("User not found");
 
-        const room = await ctx.db
+        // Get active room
+        const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_user", (q) => q.eq("userId", user._id))
-            .unique();
+            .withIndex("by_user_active", (q) => 
+                q.eq("userId", user._id).eq("isActive", true)
+            )
+            .collect();
+        const room = rooms[0];
         if (!room) throw new Error("Room not found");
 
         const existingInvites = await ctx.db
@@ -85,10 +89,14 @@ export const revokeAllInvites = mutation({
             .unique();
         if (!user) throw new Error("User not found");
 
-        const room = await ctx.db
+        // Get active room
+        const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_user", (q) => q.eq("userId", user._id))
-            .unique();
+            .withIndex("by_user_active", (q) => 
+                q.eq("userId", user._id).eq("isActive", true)
+            )
+            .collect();
+        const room = rooms[0];
         if (!room) throw new Error("Room not found");
 
         const invites = await ctx.db
@@ -145,10 +153,14 @@ export const getMyActiveInvites = query({
             .unique();
         if (!user) return [];
 
-        const room = await ctx.db
+        // Get active room
+        const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_user", (q) => q.eq("userId", user._id))
-            .unique();
+            .withIndex("by_user_active", (q) => 
+                q.eq("userId", user._id).eq("isActive", true)
+            )
+            .collect();
+        const room = rooms[0];
         if (!room) return [];
 
         const invites = await ctx.db
@@ -163,4 +175,3 @@ export const getMyActiveInvites = query({
         );
     },
 });
-

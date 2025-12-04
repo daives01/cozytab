@@ -16,9 +16,19 @@ export default defineSchema({
         .index("by_externalId", ["externalId"])
         .index("by_referralCode", ["referralCode"]),
 
+    roomTemplates: defineTable({
+        name: v.string(),                    // "Cozy Cabin", "Beach House"
+        description: v.optional(v.string()), // Optional description
+        basePrice: v.number(),               // 0 for default, currency for others
+        backgroundUrl: v.string(),           // Background image (storage:id or URL)
+        isDefault: v.boolean(),              // True for the free starter room
+    }).index("by_default", ["isDefault"]),
+
     rooms: defineTable({
         userId: v.id("users"),
+        templateId: v.id("roomTemplates"),   // Which template this room uses
         name: v.string(),
+        isActive: v.boolean(),               // Which room is currently displayed
         items: v.array(
             v.object({
                 id: v.string(),
@@ -43,7 +53,9 @@ export default defineSchema({
                 })
             )
         ),
-    }).index("by_user", ["userId"]),
+    })
+        .index("by_user", ["userId"])
+        .index("by_user_active", ["userId", "isActive"]),
 
     catalogItems: defineTable({
         name: v.string(),
