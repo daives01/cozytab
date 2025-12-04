@@ -10,7 +10,7 @@ interface CursorDisplayProps {
     showNameBadge?: boolean;
 }
 
-const CHAT_FADE_DURATION_MS = 500;
+import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
 
 export function CursorDisplay({
     name = "",
@@ -60,7 +60,7 @@ export function CursorDisplay({
 
             {showNameBadge && name && (
                 <div
-                    className={`${bgColor} text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md ml-4 -mt-1`}
+                    className={`${bgColor} w-min text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md ml-4 -mt-1`}
                     style={{ fontFamily: "'Patrick Hand', cursive" }}
                 >
                     {name}
@@ -68,18 +68,28 @@ export function CursorDisplay({
                 </div>
             )}
 
-            {chatMessage && (
-                <div
-                    className={`${chatBubbleBg} ${chatTextColor} text-sm px-3 py-1.5 rounded-lg border-2 shadow-md ml-4 mt-1 max-w-[200px] break-words`}
-                    style={{
-                        fontFamily: "'Patrick Hand', cursive",
-                        opacity: chatOpacity,
-                        transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
-                    }}
-                >
-                    {chatMessage}
-                </div>
-            )}
-        </div>
+            {
+                chatMessage !== null && chatMessage !== undefined && (
+                    <div
+                        className={`${chatBubbleBg} ${chatTextColor} text-sm px-4 py-2 rounded-2xl border shadow-lg ml-4 mt-1 max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]`}
+                        style={{
+                            fontFamily: "'Patrick Hand', cursive",
+                            opacity: chatOpacity,
+                            transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
+                        }}
+                    >
+                        {chatMessage === "" ? (
+                            <div className="flex items-center justify-center h-full">
+                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce mx-0.5" style={{ animationDelay: "150ms" }} />
+                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                            </div>
+                        ) : (
+                            chatMessage
+                        )}
+                    </div>
+                )
+            }
+        </div >
     );
 }

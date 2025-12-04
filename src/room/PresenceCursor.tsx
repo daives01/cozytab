@@ -1,3 +1,4 @@
+import { useChatFade } from "../hooks/useChatFade";
 import { CursorDisplay } from "./CursorDisplay";
 
 interface PresenceCursorProps {
@@ -9,14 +10,16 @@ interface PresenceCursorProps {
 }
 
 export function PresenceCursor({ name, isOwner, x, y, chatMessage }: PresenceCursorProps) {
+    const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
+
     return (
         <CursorDisplay
             name={name}
             isOwner={isOwner}
             x={x}
             y={y}
-            chatMessage={chatMessage}
-            chatOpacity={chatMessage ? 1 : 0}
+            chatMessage={displayedMessage}
+            chatOpacity={chatOpacity}
             showNameBadge={true}
         />
     );

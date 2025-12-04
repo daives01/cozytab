@@ -65,12 +65,9 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                     e.preventDefault();
                     const newMessage = messageRef.current.slice(0, -1);
                     messageRef.current = newMessage;
-                    onMessageChange(newMessage || null);
-                    if (newMessage.length === 0) {
-                        clearChat();
-                    } else {
-                        resetTimeout();
-                    }
+                    // Send empty string "" to keep bubble visible with typing indicator
+                    onMessageChange(newMessage);
+                    resetTimeout();
                     return;
                 }
 
