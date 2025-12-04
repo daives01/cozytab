@@ -17,8 +17,38 @@ export const getMe = query({
     },
 });
 
+export const getMyReferralCode = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        return user?.referralCode ?? null;
+    },
+});
+
+// Generate a short, readable referral code
+function generateReferralCode(): string {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars like 0/O, 1/I
+    let code = "";
+    for (let i = 0; i < 8; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
+}
+
 export const ensureUser = mutation({
-    args: { username: v.string() },
+    args: {
+        username: v.string(),
+        referralCode: v.optional(v.string()),
+    },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Not authenticated");
@@ -31,6 +61,41 @@ export const ensureUser = mutation({
             .unique();
 
         if (!user) {
+            let referrerId = undefined;
+            const providedReferralCode = args.referralCode;
+            if (providedReferralCode) {
+                const referrer = await ctx.db
+                    .query("users")
+                    .withIndex("by_referralCode", (q) =>
+                        q.eq("referralCode", providedReferralCode)
+                    )
+                    .unique();
+
+                if (referrer) {
+                    referrerId = referrer._id;
+                    await ctx.db.patch(referrer._id, {
+                        currency: referrer.currency + 1,
+                    });
+                }
+            }
+
+            let newReferralCode = generateReferralCode();
+            let existingCode = await ctx.db
+                .query("users")
+                .withIndex("by_referralCode", (q) =>
+                    q.eq("referralCode", newReferralCode)
+                )
+                .unique();
+            while (existingCode) {
+                newReferralCode = generateReferralCode();
+                existingCode = await ctx.db
+                    .query("users")
+                    .withIndex("by_referralCode", (q) =>
+                        q.eq("referralCode", newReferralCode)
+                    )
+                    .unique();
+            }
+
             const id = await ctx.db.insert("users", {
                 externalId: identity.subject,
                 username: args.username,
@@ -38,6 +103,8 @@ export const ensureUser = mutation({
                 avatarConfig: {},
                 currency: 5,
                 onboardingCompleted: false,
+                referralCode: newReferralCode,
+                referredBy: referrerId,
             });
             user = await ctx.db.get(id);
 

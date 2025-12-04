@@ -10,7 +10,11 @@ export default defineSchema({
         currency: v.number(),
         lastDailyReward: v.optional(v.number()), // timestamp of last reward
         onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
-    }).index("by_externalId", ["externalId"]),
+        referralCode: v.string(), // unique code for sharing
+        referredBy: v.optional(v.id("users")), // who referred this user
+    })
+        .index("by_externalId", ["externalId"])
+        .index("by_referralCode", ["referralCode"]),
 
     rooms: defineTable({
         userId: v.id("users"),

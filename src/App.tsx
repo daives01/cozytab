@@ -2,9 +2,23 @@ import { SignedIn, SignedOut } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
+
+const REFERRAL_CODE_KEY = "nook_referral_code";
+
+function ReferralCapture() {
+  const { code } = useParams<{ code: string }>();
+
+  useEffect(() => {
+    if (code) {
+      sessionStorage.setItem(REFERRAL_CODE_KEY, code);
+    }
+  }, [code]);
+
+  return <Navigate to="/" replace />;
+}
 
 function App() {
   return (
@@ -12,6 +26,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/visit/:token" element={<VisitorRoomPage />} />
+        <Route path="/ref/:code" element={<ReferralCapture />} />
       </Routes>
     </BrowserRouter>
   );
@@ -36,7 +51,11 @@ function AuthenticatedApp() {
 
   useEffect(() => {
     if (user === null) {
-      ensureUser({ username: "User" });
+      const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
+      ensureUser({ username: "User", referralCode: referralCode ?? undefined });
+      if (referralCode) {
+        sessionStorage.removeItem(REFERRAL_CODE_KEY);
+      }
     }
   }, [user, ensureUser]);
 
