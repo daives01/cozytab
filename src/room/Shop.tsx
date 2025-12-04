@@ -1,9 +1,10 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { X, Coins, Check, ShoppingBag, Home, Package } from "lucide-react";
+import { X, Coins, ShoppingBag, Home, Package } from "lucide-react";
 import { useState } from "react";
-import { AssetImage } from "../components/AssetImage";
+import { ItemsTab } from "./shop/ItemsTab";
+import { RoomsTab } from "./shop/RoomsTab";
 
 type ShopTab = "items" | "rooms";
 
@@ -183,212 +184,27 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
                             <div className="animate-pulse text-xl">Loading shop...</div>
                         </div>
                     ) : activeTab === "items" ? (
-                        /* Items Tab Content */
-                        <div className="space-y-8">
-                            {categories.length === 0 ? (
-                                <div className="text-center py-12 text-[#8b7355]">
-                                    <Package className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                                    <p className="text-xl">No items available!</p>
-                                    <p className="text-sm mt-2">Check back later for new items.</p>
-                                </div>
-                            ) : (
-                                categories.map((category) => (
-                                    <div key={category}>
-                                        {/* Category Header */}
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className={`h-1 flex-1 rounded-full bg-gradient-to-r ${getCategoryColor(category)} opacity-50`} />
-                                            <h3 className="text-xl font-bold text-[#5c4d3c] uppercase tracking-wider">
-                                                {getCategoryDisplayName(category)}
-                                            </h3>
-                                            <div className={`h-1 flex-1 rounded-full bg-gradient-to-l ${getCategoryColor(category)} opacity-50`} />
-                                        </div>
-
-                                        {/* Items Grid */}
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                                            {groupedItems[category].map((item, itemIndex) => {
-                                                const isOwned = ownedSet.has(item._id);
-                                                const canAfford = userCurrency >= item.basePrice;
-                                                const isPurchasing = purchasing === item._id;
-                                                const resultForItem = lastResult?.itemId === item._id ? lastResult : null;
-                                                const isOnboardingTarget = isOnboardingBuyStep && !isOwned && canAfford && itemIndex === 0;
-
-                                                return (
-                                                    <div
-                                                        key={item._id}
-                                                        data-onboarding={isOnboardingTarget ? "shop-item" : undefined}
-                                                        className={`relative bg-white rounded-xl border-4 p-3 transition-all ${
-                                                            isOwned
-                                                                ? "border-emerald-400 bg-emerald-50"
-                                                                : isOnboardingTarget
-                                                                ? "border-amber-400 ring-2 ring-amber-300 shadow-lg"
-                                                                : "border-[#d4c3aa] hover:border-amber-400 hover:shadow-lg hover:-translate-y-1"
-                                                        }`}
-                                                    >
-                                                        {/* Owned Badge */}
-                                                        {isOwned && (
-                                                            <div className="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 shadow-md">
-                                                                <Check className="h-4 w-4" />
-                                                            </div>
-                                                        )}
-
-                                                        {/* Item Image */}
-                                                        <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
-                                                            <AssetImage
-                                                                assetUrl={item.assetUrl}
-                                                                alt={item.name}
-                                                                className="object-contain w-full h-full"
-                                                                draggable={false}
-                                                            />
-                                                        </div>
-
-                                                        {/* Item Name */}
-                                                        <h4 className="font-bold text-[#5c4d3c] text-center truncate mb-2">
-                                                            {item.name}
-                                                        </h4>
-
-                                                        {/* Price / Buy Button */}
-                                                        {isOwned ? (
-                                                            <div className="text-center text-emerald-600 font-bold text-sm">
-                                                                Owned
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => handlePurchase(item._id)}
-                                                                disabled={!canAfford || isPurchasing}
-                                                                className={`w-full py-1.5 px-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-1.5 ${
-                                                                    isPurchasing
-                                                                        ? "bg-gray-300 text-gray-500 cursor-wait"
-                                                                        : canAfford
-                                                                        ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md active:scale-95"
-                                                                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                                                }`}
-                                                            >
-                                                                <Coins className="h-4 w-4" />
-                                                                <span>{item.basePrice}</span>
-                                                            </button>
-                                                        )}
-
-                                                        {/* Purchase Result Message */}
-                                                        {resultForItem && (
-                                                            <div
-                                                                className={`mt-2 text-xs text-center ${
-                                                                    resultForItem.success ? "text-emerald-600" : "text-red-500"
-                                                                }`}
-                                                            >
-                                                                {resultForItem.message}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                        <ItemsTab
+                            groupedItems={groupedItems}
+                            categories={categories}
+                            ownedSet={ownedSet}
+                            userCurrency={userCurrency}
+                            purchasing={purchasing}
+                            lastResult={lastResult}
+                            isOnboardingBuyStep={isOnboardingBuyStep}
+                            onPurchase={handlePurchase}
+                            getCategoryDisplayName={getCategoryDisplayName}
+                            getCategoryColor={getCategoryColor}
+                        />
                     ) : (
-                        /* Rooms Tab Content */
-                        <div className="space-y-6">
-                            {/* Rooms Header */}
-                            <div className="text-center mb-6">
-                                <h3 className="text-2xl font-bold text-[#5c4d3c] mb-2">Room Themes</h3>
-                                <p className="text-[#8b7355]">Purchase new rooms to customize your space!</p>
-                            </div>
-
-                            {purchasableRooms.length === 0 ? (
-                                <div className="text-center py-12 text-[#8b7355]">
-                                    <Home className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                                    <p className="text-xl">No rooms available yet!</p>
-                                    <p className="text-sm mt-2">Check back later for new room themes.</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    {purchasableRooms.map((template) => {
-                                        const isOwned = ownedTemplateSet.has(template._id);
-                                        const canAfford = userCurrency >= template.basePrice;
-                                        const isPurchasing = purchasingRoom === template._id;
-                                        const resultForRoom = lastRoomResult?.templateId === template._id ? lastRoomResult : null;
-
-                                        return (
-                                            <div
-                                                key={template._id}
-                                                className={`relative bg-white rounded-2xl border-4 overflow-hidden transition-all ${
-                                                    isOwned
-                                                        ? "border-emerald-400 bg-emerald-50"
-                                                        : "border-[#d4c3aa] hover:border-rose-400 hover:shadow-xl hover:-translate-y-1"
-                                                }`}
-                                            >
-                                                {/* Owned Badge */}
-                                                {isOwned && (
-                                                    <div className="absolute top-3 right-3 bg-emerald-500 text-white rounded-full p-1.5 shadow-lg z-10">
-                                                        <Check className="h-5 w-5" />
-                                                    </div>
-                                                )}
-
-                                                {/* Room Preview */}
-                                                <div className="aspect-video bg-gray-200 relative overflow-hidden">
-                                                    <AssetImage
-                                                        assetUrl={template.backgroundUrl}
-                                                        alt={template.name}
-                                                        className="object-cover w-full h-full"
-                                                        draggable={false}
-                                                    />
-                                                    {/* Gradient overlay for text readability */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                                                    
-                                                    {/* Room Name on image */}
-                                                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                                                        <h4 className="font-bold text-white text-xl drop-shadow-lg">
-                                                            {template.name}
-                                                        </h4>
-                                                        {template.description && (
-                                                            <p className="text-white/80 text-sm mt-0.5 drop-shadow-md line-clamp-1">
-                                                                {template.description}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                {/* Price / Buy Section */}
-                                                <div className="p-4">
-                                                    {isOwned ? (
-                                                        <div className="text-center text-emerald-600 font-bold text-lg py-1">
-                                                            ✓ Owned
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handlePurchaseRoom(template._id)}
-                                                            disabled={!canAfford || isPurchasing}
-                                                            className={`w-full py-3 px-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                                                                isPurchasing
-                                                                    ? "bg-gray-300 text-gray-500 cursor-wait"
-                                                                    : canAfford
-                                                                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 shadow-lg active:scale-[0.98]"
-                                                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                                            }`}
-                                                        >
-                                                            <Coins className="h-5 w-5" />
-                                                            <span>{template.basePrice} tokens</span>
-                                                        </button>
-                                                    )}
-
-                                                    {/* Purchase Result Message */}
-                                                    {resultForRoom && (
-                                                        <div
-                                                            className={`mt-3 text-sm text-center font-medium ${
-                                                                resultForRoom.success ? "text-emerald-600" : "text-red-500"
-                                                            }`}
-                                                        >
-                                                            {resultForRoom.message}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
+                        <RoomsTab
+                            purchasableRooms={purchasableRooms}
+                            ownedTemplateSet={ownedTemplateSet}
+                            userCurrency={userCurrency}
+                            purchasingRoom={purchasingRoom}
+                            lastRoomResult={lastRoomResult}
+                            onPurchaseRoom={handlePurchaseRoom}
+                        />
                     )}
                 </div>
 

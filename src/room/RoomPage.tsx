@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback, startTransition } from "react";
+import { useEffect, useState, useMemo, type DragEvent, useRef } from "react";
 import type { RoomItem, Shortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { AssetDrawer } from "./AssetDrawer";
@@ -15,8 +15,9 @@ import { PresenceCursor } from "./PresenceCursor";
 import { LocalCursor } from "./LocalCursor";
 import { usePresence } from "../hooks/usePresence";
 import { ChatInput } from "./ChatInput";
-import { Onboarding, type OnboardingStep } from "./Onboarding";
-import { getNextStep } from "./onboardingUtils";
+import { Onboarding } from "./Onboarding";
+import { useOnboarding } from "./hooks/useOnboarding";
+import { useDailyReward } from "./hooks/useDailyReward";
 import { Button } from "@/components/ui/button";
 import { SignInButton, useUser } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "lucide-react";
@@ -71,11 +72,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
-    const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
-    const [showRewardNotification, setShowRewardNotification] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
-    const [onboardingActive, setOnboardingActive] = useState(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
 
     const visitorId = clerkUser?.id ?? null;
@@ -119,7 +116,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     useEffect(() => {
         if (!isGuest) {
             if (room === null) {
-                createRoom();
+                createRoom({});
             } else if (room) {
                 if (mode === "view" || localItems.length === 0) {
                     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -140,60 +137,17 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         }
     }, [localItems, mode, room]);
 
-    useEffect(() => {
-        if (!isGuest && user && !dailyRewardClaimed) {
-            claimDailyReward()
-                .then((result) => {
-                    setDailyRewardClaimed(true);
-                    if (result.success) {
-                        setShowRewardNotification(true);
-                        setTimeout(() => setShowRewardNotification(false), 4000);
-                    }
-                })
-                .catch(() => {
-                    setDailyRewardClaimed(true);
-                });
-        }
-    }, [user, isGuest, dailyRewardClaimed, claimDailyReward]);
+    const { showRewardNotification, setShowRewardNotification } = useDailyReward({
+        user,
+        isGuest,
+        claimDailyReward,
+    });
 
-    const onboardingInitialized = useRef(false);
-    useEffect(() => {
-        if (!isGuest && user && user.onboardingCompleted === false && !onboardingActive && !onboardingInitialized.current) {
-            onboardingInitialized.current = true;
-            startTransition(() => {
-                setOnboardingActive(true);
-                setOnboardingStep("welcome");
-            });
-            setTimeout(() => {
-                startTransition(() => {
-                    setOnboardingStep("enter-edit-mode");
-                });
-            }, 3000);
-        }
-    }, [user, isGuest, onboardingActive]);
-
-    const handleOnboardingComplete = useCallback(async () => {
-        if (!onboardingActive) return;
-        
-        setOnboardingActive(false);
-        setOnboardingStep(null);
-        onboardingInitialized.current = true;
-        await completeOnboarding();
-    }, [completeOnboarding, onboardingActive]);
-
-    const advanceOnboarding = useCallback(() => {
-        if (onboardingStep && onboardingActive) {
-            const nextStep = getNextStep(onboardingStep);
-            if (nextStep === "complete") {
-                setOnboardingStep("complete");
-                setTimeout(() => {
-                    handleOnboardingComplete();
-                }, 2500);
-            } else {
-                setOnboardingStep(nextStep);
-            }
-        }
-    }, [onboardingStep, onboardingActive, handleOnboardingComplete]);
+    const { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete } = useOnboarding({
+        user,
+        isGuest,
+        completeOnboarding,
+    });
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();

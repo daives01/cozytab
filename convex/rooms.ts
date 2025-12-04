@@ -1,51 +1,21 @@
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+
+async function getUser(ctx: QueryCtx | MutationCtx) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    return await ctx.db
+        .query("users")
+        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
+        .unique();
+}
 
 export const getMyActiveRoom = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) return null;
-
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-
-        const room = rooms[0];
-        if (!room) return null;
-
-        const template = await ctx.db.get(room.templateId);
-
-        return {
-            ...room,
-            template,
-        };
-    },
-});
-
-export const getMyRoom = query({
-    args: {},
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
+        const user = await getUser(ctx);
         if (!user) return null;
 
         const rooms = await ctx.db
@@ -70,15 +40,7 @@ export const getMyRoom = query({
 export const getMyRooms = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
+        const user = await getUser(ctx);
         if (!user) return [];
 
         const rooms = await ctx.db
@@ -102,16 +64,8 @@ export const createRoom = mutation({
         templateId: v.optional(v.id("roomTemplates")),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await getUser(ctx);
+        if (!user) throw new Error("Not authenticated");
 
         let templateId = args.templateId;
         if (!templateId) {
@@ -154,16 +108,8 @@ export const createRoom = mutation({
 export const setActiveRoom = mutation({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await getUser(ctx);
+        if (!user) throw new Error("Not authenticated");
 
         const targetRoom = await ctx.db.get(args.roomId);
         if (!targetRoom) throw new Error("Room not found");
@@ -189,16 +135,8 @@ export const setActiveRoom = mutation({
 export const deleteRoom = mutation({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await getUser(ctx);
+        if (!user) throw new Error("Not authenticated");
 
         const targetRoom = await ctx.db.get(args.roomId);
         if (!targetRoom) throw new Error("Room not found");
@@ -234,16 +172,8 @@ export const renameRoom = mutation({
         name: v.string(),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await getUser(ctx);
+        if (!user) throw new Error("Not authenticated");
 
         const room = await ctx.db.get(args.roomId);
         if (!room) throw new Error("Room not found");
@@ -274,19 +204,10 @@ export const saveMyRoom = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
         const room = await ctx.db.get(args.roomId);
         if (!room) throw new Error("Room not found");
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const user = await getUser(ctx);
         if (!user || room.userId !== user._id) {
             throw new Error("Forbidden");
         }
@@ -307,19 +228,10 @@ export const saveShortcuts = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
         const room = await ctx.db.get(args.roomId);
         if (!room) throw new Error("Room not found");
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const user = await getUser(ctx);
         if (!user || room.userId !== user._id) {
             throw new Error("Forbidden");
         }

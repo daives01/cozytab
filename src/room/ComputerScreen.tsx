@@ -1,28 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  X,
-  Plus,
-  ShoppingBag,
-  Globe,
-  Trash2,
-  Monitor,
-  Settings,
-  LogOut,
-  UserPlus,
-  Copy,
-  Check,
-  Gift,
-  Home,
-  CheckCircle2,
-} from "lucide-react";
+import { X, ShoppingBag, Globe, Trash2, Monitor, Settings, LogOut, UserPlus, Home } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import type { Shortcut } from "../types";
 import type { Id } from "../../convex/_generated/dataModel";
-import { AssetImage } from "../components/AssetImage";
+import { RoomsPanel } from "./computer/RoomsPanel";
+import { InvitePanel } from "./computer/InvitePanel";
+import { ShortcutsEditor } from "./computer/ShortcutsEditor";
 
 // Get favicon URL from a website URL
 function getFaviconUrl(url: string): string {
@@ -242,160 +227,22 @@ export function ComputerScreen({
               ))}
             </div>
 
-            {/* My Rooms Panel */}
             {showRoomsPanel && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                <div className="bg-stone-100 rounded-lg shadow-xl border-2 border-stone-300 w-96 max-h-[400px] overflow-hidden flex flex-col">
-                  {/* Panel Title Bar */}
-                  <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 text-white p-1 px-2 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2">
-                      <Home className="h-4 w-4" />
-                      <span className="font-bold text-sm">My Rooms</span>
-                    </div>
-                    <button
-                      onClick={() => setShowRoomsPanel(false)}
-                      className="bg-stone-200 text-black hover:bg-red-500 hover:text-white transition-colors p-0.5 rounded-sm border border-stone-400 w-5 h-5 flex items-center justify-center"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-
-                  {/* Panel Content */}
-                  <div className="p-3 space-y-2 overflow-y-auto flex-1">
-                    {!myRooms ? (
-                      <div className="text-center py-4 text-stone-500">Loading rooms...</div>
-                    ) : myRooms.length === 0 ? (
-                      <div className="text-center py-4 text-stone-500">
-                        <Home className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>No rooms yet!</p>
-                        <p className="text-xs mt-1">Visit the shop to buy new rooms.</p>
-                      </div>
-                    ) : (
-                      myRooms.map((room) => {
-                        const isActive = room.isActive;
-                        const isSwitching = switchingRoom === room._id;
-                        
-                        return (
-                          <button
-                            key={room._id}
-                            onClick={() => !isActive && handleSwitchRoom(room._id)}
-                            disabled={isActive || isSwitching}
-                            className={`w-full flex items-center gap-3 p-2 rounded-lg border-2 transition-all text-left ${
-                              isActive
-                                ? "bg-emerald-50 border-emerald-400 cursor-default"
-                                : isSwitching
-                                ? "bg-stone-100 border-stone-300 cursor-wait opacity-70"
-                                : "bg-white border-stone-200 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer"
-                            }`}
-                          >
-                            {/* Room Thumbnail */}
-                            <div className="w-16 h-10 rounded overflow-hidden bg-stone-200 shrink-0">
-                              {room.template?.backgroundUrl && (
-                                <AssetImage
-                                  assetUrl={room.template.backgroundUrl}
-                                  alt={room.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              )}
-                            </div>
-
-                            {/* Room Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="font-bold text-stone-700 truncate text-sm">
-                                {room.name}
-                              </div>
-                              <div className="text-xs text-stone-500">
-                                {room.items.length} item{room.items.length !== 1 ? 's' : ''}
-                              </div>
-                            </div>
-
-                            {/* Active Indicator */}
-                            {isActive && (
-                              <div className="flex items-center gap-1 text-emerald-600 shrink-0">
-                                <CheckCircle2 className="h-5 w-5" />
-                                <span className="text-xs font-bold">Active</span>
-                              </div>
-                            )}
-                            {isSwitching && (
-                              <div className="text-stone-400 text-xs shrink-0">
-                                Switching...
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {/* Footer */}
-                  <div className="bg-stone-200 border-t border-stone-300 px-3 py-2 text-xs text-stone-500 text-center shrink-0">
-                    Buy more rooms from the Item Shop!
-                  </div>
-                </div>
-              </div>
+                <RoomsPanel
+                    myRooms={myRooms}
+                    switchingRoom={switchingRoom}
+                    onClose={() => setShowRoomsPanel(false)}
+                    onSwitchRoom={handleSwitchRoom}
+                />
             )}
 
-            {/* Invite Friends Panel */}
             {showInvitePanel && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-                <div className="bg-stone-100 rounded-lg shadow-xl border-2 border-stone-300 w-80 overflow-hidden">
-                  {/* Panel Title Bar */}
-                  <div className="bg-gradient-to-r from-pink-600 to-pink-500 text-white p-1 px-2 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <UserPlus className="h-4 w-4" />
-                      <span className="font-bold text-sm">Invite Friends</span>
-                    </div>
-                    <button
-                      onClick={() => setShowInvitePanel(false)}
-                      className="bg-stone-200 text-black hover:bg-red-500 hover:text-white transition-colors p-0.5 rounded-sm border border-stone-400 w-5 h-5 flex items-center justify-center"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-
-                  {/* Panel Content */}
-                  <div className="p-4 space-y-4">
-                    <div className="flex items-center gap-2 text-stone-700 text-sm">
-                      <Gift className="h-5 w-5 text-pink-500" />
-                      <span>Earn <strong>1 token</strong> when friends join!</span>
-                    </div>
-
-                    {referralUrl ? (
-                      <div className="space-y-2">
-                        <div className="text-xs text-stone-500 font-medium">Your invite link:</div>
-                        <div className="flex gap-2">
-                          <Input
-                            readOnly
-                            value={referralUrl}
-                            className="h-8 text-xs bg-white font-mono border-stone-400 flex-1"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={handleCopyReferral}
-                            className={`h-8 px-3 transition-colors ${copied
-                              ? "bg-green-600 hover:bg-green-600"
-                              : "bg-pink-600 hover:bg-pink-500"
-                              }`}
-                          >
-                            {copied ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                        {copied && (
-                          <div className="text-xs text-green-600 font-medium">
-                            Copied to clipboard!
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-stone-500">Loading...</div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                <InvitePanel
+                    referralUrl={referralUrl}
+                    copied={copied}
+                    onClose={() => setShowInvitePanel(false)}
+                    onCopyReferral={handleCopyReferral}
+                />
             )}
 
             {/* Taskbar */}
@@ -429,54 +276,14 @@ export function ComputerScreen({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 animate-in slide-in-from-bottom-2 duration-200">
-                  {/* Add shortcut row */}
-                  <div className="flex gap-2 items-center bg-white/50 p-2 rounded border border-stone-300">
-                    <Plus className="h-4 w-4 text-stone-400 shrink-0" />
-                    <Input
-                      placeholder="Shortcut name"
-                      value={newShortcutName}
-                      onChange={(e) => setNewShortcutName(e.target.value)}
-                      className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-1"
-                    />
-                    <Input
-                      placeholder="https://..."
-                      value={newShortcutUrl}
-                      onChange={(e) => setNewShortcutUrl(e.target.value)}
-                      className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-[1.5]"
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleAddShortcut}
-                      disabled={!newShortcutName.trim() || !newShortcutUrl.trim()}
-                      className="h-8 px-4 bg-gradient-to-b from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white shadow-sm border border-blue-700 disabled:opacity-50"
-                    >
-                      Add
-                    </Button>
-                  </div>
-
-                  {/* Bottom controls */}
-                  <div className="flex justify-between items-center">
-                    <button
-                      onClick={() => setIsEditing(false)}
-                      className="flex items-center gap-2 bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-4 py-1.5 rounded border border-emerald-700 shadow-sm transition-all text-sm font-medium"
-                    >
-                      <Check className="h-4 w-4" />
-                      Done Editing
-                    </button>
-
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-stone-500">Click delete icons on shortcuts to remove</span>
-                      <button
-                        onClick={() => signOut()}
-                        className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"
-                        title="Log Out"
-                      >
-                        <LogOut className="h-4 w-4 text-stone-400 group-hover:text-red-500 transition-colors" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ShortcutsEditor
+                    newShortcutName={newShortcutName}
+                    newShortcutUrl={newShortcutUrl}
+                    onNewShortcutNameChange={setNewShortcutName}
+                    onNewShortcutUrlChange={setNewShortcutUrl}
+                    onAddShortcut={handleAddShortcut}
+                    onDoneEditing={() => setIsEditing(false)}
+                />
               )}
             </div>
 

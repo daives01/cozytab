@@ -4,8 +4,8 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const SAMPLING_INTERVAL = 50;
-const BATCH_INTERVAL = 500;
-const HEARTBEAT_INTERVAL = 1000;
+const BATCH_INTERVAL = 1000;
+const HEARTBEAT_INTERVAL = 2000;
 
 type CursorAction = {
     x: number;
