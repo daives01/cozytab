@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
 import { Play, Pause, Volume2 } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
@@ -167,30 +166,26 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
             >
                 <div className="flex items-center justify-center gap-2">
                     {needsSync && isPlaying ? (
-                        <Button
-                            size="sm"
-                            variant="default"
-                            className="rounded-full shadow-lg hover:scale-105 transition-transform bg-emerald-500 hover:bg-emerald-600 animate-pulse"
+                        <button
+                            className="font-['Patrick_Hand'] px-3 py-1.5 rounded-full border-4 border-emerald-600 bg-emerald-400 text-emerald-900 shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] hover:scale-105 active:scale-95 transition-transform animate-pulse rotate-1 flex items-center gap-1.5 font-bold text-sm"
                             onClick={handleEnableAudio}
                             title="Click to resume audio"
                         >
-                            <Volume2 className="h-4 w-4 mr-1" />
+                            <Volume2 className="h-4 w-4" />
                             Resume
-                        </Button>
+                        </button>
                     ) : (
-                        <Button
-                            size="icon"
-                            variant="default"
-                            className="h-10 w-10 rounded-full shadow-lg hover:scale-105 transition-transform"
+                        <button
+                            className="font-['Patrick_Hand'] h-10 w-10 rounded-full border-4 border-emerald-600 bg-emerald-400 text-emerald-900 shadow-[4px_4px_0px_0px_rgba(31,41,55,1)] hover:scale-105 active:scale-95 transition-transform -rotate-1 flex items-center justify-center"
                             onClick={handlePlayPause}
                             title={isPlaying ? "Pause" : "Play"}
                         >
                             {isPlaying ? (
                                 <Pause className="h-5 w-5" />
                             ) : (
-                                <Play className="h-5 w-5" />
+                                <Play className="h-5 w-5 ml-0.5" />
                             )}
-                        </Button>
+                        </button>
                     )}
                 </div>
             </div>
