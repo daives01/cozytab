@@ -1,5 +1,25 @@
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+
+// Helper to check if the current user is an admin
+async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+        throw new Error("Not authenticated");
+    }
+
+    const user = await ctx.db
+        .query("users")
+        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
+        .unique();
+
+    if (!user || user.admin !== true) {
+        throw new Error("Admin access required");
+    }
+
+    return user;
+}
 
 export const list = query({
     args: {},
@@ -28,6 +48,8 @@ export const addItem = mutation({
         defaultHeight: v.number(),
     },
     handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+
         const existing = await ctx.db
             .query("catalogItems")
             .withIndex("by_name", (q) => q.eq("name", args.name))
@@ -53,6 +75,8 @@ export const updateItem = mutation({
         defaultHeight: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
+        await requireAdmin(ctx);
+
         const { id, ...updates } = args;
         
         const existing = await ctx.db.get(id);
@@ -78,6 +102,23 @@ export const updateItem = mutation({
 
         await ctx.db.patch(id, filteredUpdates);
         return { success: true };
+    },
+});
+
+// Generate a signed upload URL for Convex file storage (admin only)
+export const generateUploadUrl = mutation({
+    args: {},
+    handler: async (ctx) => {
+        await requireAdmin(ctx);
+        return await ctx.storage.generateUploadUrl();
+    },
+});
+
+// Get a public URL for a storage ID
+export const getImageUrl = query({
+    args: { storageId: v.id("_storage") },
+    handler: async (ctx, args) => {
+        return await ctx.storage.getUrl(args.storageId);
     },
 });
 

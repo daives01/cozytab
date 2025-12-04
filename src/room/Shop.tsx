@@ -3,6 +3,7 @@ import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { X, Coins, Check, ShoppingBag } from "lucide-react";
 import { useState } from "react";
+import { AssetImage } from "../components/AssetImage";
 
 interface ShopProps {
     onClose: () => void;
@@ -155,8 +156,8 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
 
                                                     {/* Item Image */}
                                                     <div className="aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
-                                                        <img
-                                                            src={item.assetUrl}
+                                                        <AssetImage
+                                                            assetUrl={item.assetUrl}
                                                             alt={item.name}
                                                             className="object-contain w-full h-full"
                                                             draggable={false}

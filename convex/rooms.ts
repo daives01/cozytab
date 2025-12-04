@@ -69,6 +69,7 @@ export const saveMyRoom = mutation({
                 zIndex: v.number(),
                 url: v.optional(v.string()),
                 variant: v.optional(v.string()),
+                flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
                 musicPlaying: v.optional(v.boolean()),
@@ -184,5 +185,28 @@ export const getRoomByInvite = query({
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
             ownerId: owner?._id,
         };
+    },
+});
+
+// Add this migration mutation
+export const migrateFlippedField = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const rooms = await ctx.db.query("rooms").collect();
+        let updated = 0;
+        
+        for (const room of rooms) {
+            const needsUpdate = room.items.some(item => item.flipped === undefined);
+            if (needsUpdate) {
+                const updatedItems = room.items.map(item => ({
+                    ...item,
+                    flipped: item.flipped ?? false,
+                }));
+                await ctx.db.patch(room._id, { items: updatedItems });
+                updated++;
+            }
+        }
+        
+        return `Migrated ${updated} rooms`;
     },
 });

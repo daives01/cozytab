@@ -4,6 +4,8 @@ import { api } from "../../convex/_generated/api";
 import type { RoomItem } from "../types";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type React from "react";
+import { AssetImage } from "../components/AssetImage";
+import { FlipHorizontal2 } from "lucide-react";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -113,11 +115,12 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 className="relative group"
                 style={{
                     width: 150,
+                    transform: item.flipped ? "scaleX(-1)" : "none",
                 }}
             >
                 {imageUrl ? (
-                    <img
-                        src={imageUrl}
+                    <AssetImage
+                        assetUrl={imageUrl}
                         alt="Room Item"
                         className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
                         style={{
@@ -131,7 +134,20 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
                 )}
 
                 {isSelected && mode === "edit" && (
-                    <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
+                    <>
+                        <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onChange({ ...item, flipped: !item.flipped });
+                            }}
+                            className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-2 border-gray-300 rounded-full p-1.5 shadow-md hover:bg-gray-100 transition-colors pointer-events-auto"
+                            style={{ transform: item.flipped ? "scaleX(-1) translateX(50%)" : "translateX(-50%)" }}
+                            title="Flip horizontally"
+                        >
+                            <FlipHorizontal2 className="w-4 h-4 text-gray-600" />
+                        </button>
+                    </>
                 )}
             </div>
         </div>

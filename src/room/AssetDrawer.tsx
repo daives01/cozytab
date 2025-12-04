@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type React from "react";
 import { Package } from "lucide-react";
+import { AssetImage } from "../components/AssetImage";
 
 interface AssetDrawerProps {
     isOpen: boolean;
@@ -51,8 +52,8 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
                                     }}
                                 >
                                     <div className="aspect-square relative flex items-center justify-center bg-gray-100 overflow-hidden rounded-sm">
-                                        <img
-                                            src={item.assetUrl}
+                                        <AssetImage
+                                            assetUrl={item.assetUrl}
                                             alt={item.name}
                                             className="object-contain w-full h-full"
                                             draggable={false}

@@ -17,6 +17,23 @@ export const getMe = query({
     },
 });
 
+export const isAdmin = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return false;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        return user?.admin === true;
+    },
+});
+
 export const getMyReferralCode = query({
     args: {},
     handler: async (ctx) => {

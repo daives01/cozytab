@@ -17,6 +17,7 @@ export interface RoomItem {
     zIndex: number;
     url?: string;
     variant?: string;
+    flipped?: boolean;
     musicUrl?: string;
     musicType?: "youtube" | "spotify";
     // Music sync fields

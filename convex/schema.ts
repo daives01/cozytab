@@ -12,6 +12,7 @@ export default defineSchema({
         onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
         referralCode: v.string(), // unique code for sharing
         referredBy: v.optional(v.id("users")), // who referred this user
+        admin: v.optional(v.boolean()), // admin access, defaults to false
     })
         .index("by_externalId", ["externalId"])
         .index("by_referralCode", ["referralCode"]),
@@ -32,6 +33,7 @@ export default defineSchema({
                 zIndex: v.number(),
                 url: v.optional(v.string()),
                 variant: v.optional(v.string()),
+                flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
                 musicPlaying: v.optional(v.boolean()),

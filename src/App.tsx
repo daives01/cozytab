@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
+import { AdminPage } from "./admin/AdminPage";
 
 const REFERRAL_CODE_KEY = "cozytab_referral_code";
 
@@ -27,6 +28,7 @@ function App() {
         <Route path="/" element={<HomeRoute />} />
         <Route path="/visit/:token" element={<VisitorRoomPage />} />
         <Route path="/ref/:code" element={<ReferralCapture />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
   );
