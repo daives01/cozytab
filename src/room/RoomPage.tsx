@@ -201,11 +201,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             catalogItemId: catalogItemId,
             x: x,
             y: y,
-            scaleX: 1,
-            scaleY: 1,
-            rotation: 0,
-            zIndex: 10,
-            url: "",
         };
 
         setLocalItems((prev) => [...prev, newItem]);

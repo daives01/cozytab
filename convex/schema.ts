@@ -6,7 +6,6 @@ export default defineSchema({
         externalId: v.string(),
         username: v.string(),
         displayName: v.optional(v.string()),
-        avatarConfig: v.optional(v.any()),
         currency: v.number(),
         lastDailyReward: v.optional(v.number()), // timestamp of last reward
         onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
@@ -20,19 +19,13 @@ export default defineSchema({
     rooms: defineTable({
         userId: v.id("users"),
         name: v.string(),
-        backgroundTheme: v.string(),
         items: v.array(
             v.object({
                 id: v.string(),
                 catalogItemId: v.string(),
                 x: v.number(),
                 y: v.number(),
-                scaleX: v.number(),
-                scaleY: v.number(),
-                rotation: v.number(),
-                zIndex: v.number(),
                 url: v.optional(v.string()),
-                variant: v.optional(v.string()),
                 flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
@@ -47,7 +40,6 @@ export default defineSchema({
                     id: v.string(),
                     name: v.string(),
                     url: v.string(),
-                    icon: v.optional(v.string()),
                 })
             )
         ),
@@ -59,7 +51,6 @@ export default defineSchema({
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
-        defaultHeight: v.number(),
     }).index("by_name", ["name"]),
 
     inventory: defineTable({
@@ -87,7 +78,6 @@ export default defineSchema({
         displayName: v.string(),
         lastSeen: v.number(),
         isOwner: v.boolean(),
-        avatarConfig: v.optional(v.any()),
         actions: v.array(
             v.object({
                 x: v.number(),

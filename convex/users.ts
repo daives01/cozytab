@@ -117,7 +117,6 @@ export const ensureUser = mutation({
                 externalId: identity.subject,
                 username: args.username,
                 displayName: identity.name ?? args.username,
-                avatarConfig: {},
                 currency: 5,
                 onboardingCompleted: false,
                 referralCode: newReferralCode,

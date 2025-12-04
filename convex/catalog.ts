@@ -45,7 +45,6 @@ export const addItem = mutation({
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
-        defaultHeight: v.number(),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
@@ -72,7 +71,6 @@ export const updateItem = mutation({
         basePrice: v.optional(v.number()),
         assetUrl: v.optional(v.string()),
         defaultWidth: v.optional(v.number()),
-        defaultHeight: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
@@ -90,7 +88,6 @@ export const updateItem = mutation({
             basePrice?: number;
             assetUrl?: string;
             defaultWidth?: number;
-            defaultHeight?: number;
         } = {};
         
         if (updates.name !== undefined) filteredUpdates.name = updates.name;
@@ -98,7 +95,6 @@ export const updateItem = mutation({
         if (updates.basePrice !== undefined) filteredUpdates.basePrice = updates.basePrice;
         if (updates.assetUrl !== undefined) filteredUpdates.assetUrl = updates.assetUrl;
         if (updates.defaultWidth !== undefined) filteredUpdates.defaultWidth = updates.defaultWidth;
-        if (updates.defaultHeight !== undefined) filteredUpdates.defaultHeight = updates.defaultHeight;
 
         await ctx.db.patch(id, filteredUpdates);
         return { success: true };
@@ -132,7 +128,6 @@ export const seed = mutation({
                 basePrice: 5,
                 assetUrl: "https://placehold.co/100x100/333/fff?text=TV",
                 defaultWidth: 100,
-                defaultHeight: 100,
             },
             {
                 name: "Plant",
@@ -140,7 +135,6 @@ export const seed = mutation({
                 basePrice: 3,
                 assetUrl: "https://placehold.co/60x100/2ecc71/fff?text=Plant",
                 defaultWidth: 60,
-                defaultHeight: 100,
             },
             {
                 name: "Desk",
@@ -148,7 +142,6 @@ export const seed = mutation({
                 basePrice: 8,
                 assetUrl: "https://placehold.co/150x80/e67e22/fff?text=Desk",
                 defaultWidth: 150,
-                defaultHeight: 80,
             },
             {
                 name: "Computer",
@@ -156,7 +149,6 @@ export const seed = mutation({
                 basePrice: 10,
                 assetUrl: "https://placehold.co/120x100/2563eb/fff?text=Computer",
                 defaultWidth: 120,
-                defaultHeight: 100,
             },
             {
                 name: "Vinyl Player",
@@ -164,7 +156,6 @@ export const seed = mutation({
                 basePrice: 12,
                 assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl+Player",
                 defaultWidth: 100,
-                defaultHeight: 100,
             },
             {
                 name: "Lamp",
@@ -172,7 +163,6 @@ export const seed = mutation({
                 basePrice: 4,
                 assetUrl: "https://placehold.co/50x80/f1c40f/fff?text=Lamp",
                 defaultWidth: 50,
-                defaultHeight: 80,
             },
             {
                 name: "Bookshelf",
@@ -180,7 +170,6 @@ export const seed = mutation({
                 basePrice: 10,
                 assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",
                 defaultWidth: 120,
-                defaultHeight: 150,
             },
             {
                 name: "Rug",
@@ -188,7 +177,6 @@ export const seed = mutation({
                 basePrice: 6,
                 assetUrl: "https://placehold.co/150x100/e74c3c/fff?text=Rug",
                 defaultWidth: 150,
-                defaultHeight: 100,
             },
             {
                 name: "Picture Frame",
@@ -196,7 +184,6 @@ export const seed = mutation({
                 basePrice: 3,
                 assetUrl: "https://placehold.co/60x80/9b59b6/fff?text=Frame",
                 defaultWidth: 60,
-                defaultHeight: 80,
             },
             {
                 name: "Chair",
@@ -204,7 +191,6 @@ export const seed = mutation({
                 basePrice: 7,
                 assetUrl: "https://placehold.co/80x100/3498db/fff?text=Chair",
                 defaultWidth: 80,
-                defaultHeight: 100,
             },
         ];
 
@@ -223,7 +209,6 @@ export const seed = mutation({
                     basePrice: item.basePrice,
                     assetUrl: item.assetUrl,
                     defaultWidth: item.defaultWidth,
-                    defaultHeight: item.defaultHeight,
                 });
                 updated++;
             } else {

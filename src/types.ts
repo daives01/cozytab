@@ -11,12 +11,7 @@ export interface RoomItem {
     catalogItemId: string;
     x: number;
     y: number;
-    scaleX: number;
-    scaleY: number;
-    rotation: number;
-    zIndex: number;
     url?: string;
-    variant?: string;
     flipped?: boolean;
     musicUrl?: string;
     musicType?: "youtube" | "spotify";
@@ -30,5 +25,4 @@ export interface Shortcut {
     id: string;
     name: string;
     url: string;
-    icon?: string;
 }

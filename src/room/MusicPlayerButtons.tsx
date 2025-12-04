@@ -162,7 +162,7 @@ export function MusicPlayerButtons({ item, roomId }: MusicPlayerButtonsProps) {
                     left: item.x,
                     top: item.y + offsetY,
                     transform: "translate(-50%, 0)",
-                    zIndex: item.zIndex + 1,
+                    zIndex: 11,
                 }}
             >
                 <div className="flex items-center justify-center gap-2">

@@ -12,7 +12,6 @@ type CatalogItem = {
     basePrice: number;
     assetUrl: string;
     defaultWidth: number;
-    defaultHeight: number;
 };
 
 type EditingItem = {
@@ -46,8 +45,7 @@ function AdminContent() {
         category: "furniture",
         basePrice: 0,
         assetUrl: "",
-        defaultWidth: 100,
-        defaultHeight: 100,
+        defaultWidth: 150,
     });
 
     if (isAdmin === undefined) {
@@ -82,7 +80,7 @@ function AdminContent() {
         if (!editing) return;
 
         const updates: Record<string, string | number> = {};
-        if (editing.field === "basePrice" || editing.field === "defaultWidth" || editing.field === "defaultHeight") {
+        if (editing.field === "basePrice" || editing.field === "defaultWidth") {
             updates[editing.field] = Number(editValue);
         } else {
             updates[editing.field] = editValue;
@@ -149,8 +147,7 @@ function AdminContent() {
             category: "furniture",
             basePrice: 0,
             assetUrl: "",
-            defaultWidth: 100,
-            defaultHeight: 100,
+            defaultWidth: 150,
         });
         setShowAddForm(false);
     };
@@ -229,15 +226,6 @@ function AdminContent() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm text-stone-400 mb-1">Height (px)</label>
-                                <input
-                                    type="number"
-                                    value={newItem.defaultHeight}
-                                    onChange={(e) => setNewItem((p) => ({ ...p, defaultHeight: Number(e.target.value) }))}
-                                    className="w-full px-3 py-2 bg-stone-700 border border-stone-600 rounded text-stone-100 focus:outline-none focus:border-amber-500"
-                                />
-                            </div>
-                            <div>
                                 <label className="block text-sm text-stone-400 mb-1">Image *</label>
                                 <div className="flex gap-2">
                                     <input
@@ -287,7 +275,7 @@ function AdminContent() {
                                 <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Name</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Category</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Price</th>
-                                <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Size</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Width</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-stone-300">Asset URL</th>
                             </tr>
                         </thead>
@@ -350,50 +338,17 @@ function AdminContent() {
                                             type="number"
                                         />
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-stone-400">
-                                        <span
-                                            className="cursor-pointer hover:text-stone-200"
-                                            onClick={() => startEdit(item, "defaultWidth")}
-                                        >
-                                            {editing?.id === item._id && editing?.field === "defaultWidth" ? (
-                                                <input
-                                                    type="number"
-                                                    value={editValue}
-                                                    onChange={(e) => setEditValue(e.target.value)}
-                                                    onBlur={saveEdit}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") saveEdit();
-                                                        if (e.key === "Escape") cancelEdit();
-                                                    }}
-                                                    className="w-12 px-1 bg-stone-700 border border-amber-500 rounded text-stone-100 text-sm"
-                                                    autoFocus
-                                                />
-                                            ) : (
-                                                item.defaultWidth
-                                            )}
-                                        </span>
-                                        ×
-                                        <span
-                                            className="cursor-pointer hover:text-stone-200"
-                                            onClick={() => startEdit(item, "defaultHeight")}
-                                        >
-                                            {editing?.id === item._id && editing?.field === "defaultHeight" ? (
-                                                <input
-                                                    type="number"
-                                                    value={editValue}
-                                                    onChange={(e) => setEditValue(e.target.value)}
-                                                    onBlur={saveEdit}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter") saveEdit();
-                                                        if (e.key === "Escape") cancelEdit();
-                                                    }}
-                                                    className="w-12 px-1 bg-stone-700 border border-amber-500 rounded text-stone-100 text-sm"
-                                                    autoFocus
-                                                />
-                                            ) : (
-                                                item.defaultHeight
-                                            )}
-                                        </span>
+                                    <td className="px-4 py-3">
+                                        <EditableCell
+                                            value={String(item.defaultWidth)}
+                                            isEditing={editing?.id === item._id && editing?.field === "defaultWidth"}
+                                            editValue={editValue}
+                                            onEdit={() => startEdit(item, "defaultWidth")}
+                                            onChange={setEditValue}
+                                            onSave={saveEdit}
+                                            onCancel={cancelEdit}
+                                            type="number"
+                                        />
                                     </td>
                                     <td className="px-4 py-3">
                                         <EditableCell

@@ -46,7 +46,6 @@ export const createRoom = mutation({
         const id = await ctx.db.insert("rooms", {
             userId: user._id,
             name: "My Room",
-            backgroundTheme: "default",
             items: [],
             shortcuts: [],
         });
@@ -63,12 +62,7 @@ export const saveMyRoom = mutation({
                 catalogItemId: v.string(),
                 x: v.number(),
                 y: v.number(),
-                scaleX: v.number(),
-                scaleY: v.number(),
-                rotation: v.number(),
-                zIndex: v.number(),
                 url: v.optional(v.string()),
-                variant: v.optional(v.string()),
                 flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
                 musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
@@ -108,7 +102,6 @@ export const saveShortcuts = mutation({
                 id: v.string(),
                 name: v.string(),
                 url: v.string(),
-                icon: v.optional(v.string()),
             })
         ),
     },
@@ -188,25 +181,3 @@ export const getRoomByInvite = query({
     },
 });
 
-// Add this migration mutation
-export const migrateFlippedField = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const rooms = await ctx.db.query("rooms").collect();
-        let updated = 0;
-        
-        for (const room of rooms) {
-            const needsUpdate = room.items.some(item => item.flipped === undefined);
-            if (needsUpdate) {
-                const updatedItems = room.items.map(item => ({
-                    ...item,
-                    flipped: item.flipped ?? false,
-                }));
-                await ctx.db.patch(room._id, { items: updatedItems });
-                updated++;
-            }
-        }
-        
-        return `Migrated ${updated} rooms`;
-    },
-});

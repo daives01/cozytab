@@ -114,7 +114,7 @@ export function ItemNode({ item, isSelected, mode, scale, onSelect, onChange, on
             <div
                 className="relative group"
                 style={{
-                    width: 150,
+                    width: catalogItem?.defaultWidth ?? 150,
                     transform: item.flipped ? "scaleX(-1)" : "none",
                 }}
             >
