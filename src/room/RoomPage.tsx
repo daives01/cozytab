@@ -276,7 +276,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     <MusicPlayerButtons
                         key={`music-buttons-${item.id}`}
                         item={item}
-                        roomId={room._id}
                     />
                 ))}
 

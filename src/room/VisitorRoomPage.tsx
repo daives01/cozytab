@@ -164,7 +164,6 @@ export function VisitorRoomPage() {
                     <MusicPlayerButtons
                         key={`music-buttons-${item.id}`}
                         item={item}
-                        roomId={roomData.room._id}
                     />
                 ))}
 
