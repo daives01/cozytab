@@ -1,8 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import type { RoomItem } from "../types";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
@@ -12,34 +11,18 @@ import { useWebSocketPresence } from "../hooks/useWebSocketPresence";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import houseBackground from "../assets/house.png";
-
-const BASE_TIME_OF_DAY_BACKGROUND = "/backgrounds/background-day.svg";
-
-// Hook to resolve storage URLs for background images
-function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
-    const isStorageUrl = backgroundUrl?.startsWith("storage:");
-    const storageId = isStorageUrl ? backgroundUrl?.replace("storage:", "") : null;
-    const resolvedUrl = useQuery(
-        api.catalog.getImageUrl,
-        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
-    );
-
-    if (!backgroundUrl) return houseBackground; // fallback
-    if (isStorageUrl) return resolvedUrl ?? undefined;
-    return backgroundUrl;
-}
-
-const ROOM_WIDTH = 1920;
-const ROOM_HEIGHT = 1080;
-
-const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
+import { RoomCanvas } from "./RoomCanvas";
+import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
+import { useRoomScale } from "./hooks/useRoomScale";
+import { useCozyCursor } from "./hooks/useCozyCursor";
+import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
+import { isMusicItem } from "./roomUtils";
 
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
     const roomData = useQuery(api.rooms.getRoomByInvite, token ? { token } : "skip");
 
-    const [scale, setScale] = useState(1);
+    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const [visitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
@@ -52,59 +35,7 @@ export function VisitorRoomPage() {
         false
     );
     const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
-
-    useEffect(() => {
-        const handleResize = () => {
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-
-            const scaleX = windowWidth / ROOM_WIDTH;
-            const scaleY = windowHeight / ROOM_HEIGHT;
-
-            const newScale = Math.min(scaleX, scaleY);
-            setScale(newScale);
-        };
-
-        window.addEventListener("resize", handleResize);
-        handleResize();
-
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
-
-    useEffect(() => {
-        const root = document.documentElement;
-        root.classList.add("cozy-cursor-root");
-
-        const handlePointerDown = () => {
-            root.classList.add("cozy-cursor-click");
-        };
-        const handlePointerUp = () => {
-            root.classList.remove("cozy-cursor-click");
-            root.classList.remove("cozy-cursor-drag");
-        };
-        const handleDragStart = () => {
-            root.classList.add("cozy-cursor-drag");
-        };
-        const handleDragEnd = () => {
-            root.classList.remove("cozy-cursor-drag");
-            root.classList.remove("cozy-cursor-click");
-        };
-
-        window.addEventListener("pointerdown", handlePointerDown);
-        window.addEventListener("pointerup", handlePointerUp);
-        window.addEventListener("dragstart", handleDragStart);
-        window.addEventListener("dragend", handleDragEnd);
-
-        return () => {
-            root.classList.remove("cozy-cursor-root");
-            root.classList.remove("cozy-cursor-click");
-            root.classList.remove("cozy-cursor-drag");
-            window.removeEventListener("pointerdown", handlePointerDown);
-            window.removeEventListener("pointerup", handlePointerUp);
-            window.removeEventListener("dragstart", handleDragStart);
-            window.removeEventListener("dragend", handleDragEnd);
-        };
-    }, []);
+    useCozyCursor(true);
 
     const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
@@ -154,86 +85,49 @@ export function VisitorRoomPage() {
     const items = roomData.room.items as RoomItem[];
     const musicItems = items.filter(isMusicItem);
 
-    return (
-        <div
-            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cozy-cursor"
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-        >
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    backgroundImage: `url('${BASE_TIME_OF_DAY_BACKGROUND}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    zIndex: 0,
-                    filter: "brightness(1) saturate(1)",
-                    transition: "filter 600ms ease, opacity 600ms ease",
-                }}
-            />
-            <div
-                ref={containerRef}
-                style={{
-                    width: ROOM_WIDTH,
-                    height: ROOM_HEIGHT,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "center",
-                    position: "relative",
-                    flexShrink: 0,
-                    zIndex: 1,
-                }}
-            >
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
-                        backgroundSize: "contain",
-                        backgroundPosition: "center",
-                        backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? "transparent" : "#1a1a1a",
-                        zIndex: 0,
-                    }}
+    const roomContent = (
+        <>
+            {items.map((item) => (
+                <ItemNode
+                    key={item.id}
+                    item={item}
+                    isSelected={false}
+                    mode="view"
+                    scale={scale}
+                    onSelect={() => { }}
+                    onChange={() => { }}
+                    onDragStart={() => { }}
+                    onDragEnd={() => { }}
+                    onComputerClick={() => { }}
+                    onMusicPlayerClick={() => { }}
+                    isVisitor={true}
                 />
+            ))}
 
-                {items.map((item) => (
-                    <ItemNode
-                        key={item.id}
-                        item={item}
-                        isSelected={false}
-                        mode="view"
-                        scale={scale}
-                        onSelect={() => { }}
-                        onChange={() => { }}
-                        onDragStart={() => { }}
-                        onDragEnd={() => { }}
-                        onComputerClick={() => { }}
-                        onMusicPlayerClick={() => { }}
-                        isVisitor={true}
+            {musicItems.map((item) => (
+                <MusicPlayerButtons
+                    key={`music-buttons-${item.id}`}
+                    item={item}
+                />
+            ))}
+
+            {visitors
+                .filter((v) => v.visitorId !== visitorId)
+                .map((visitor) => (
+                    <PresenceCursor
+                        key={visitor.visitorId}
+                        name={visitor.displayName}
+                        isOwner={visitor.isOwner}
+                        x={visitor.x}
+                        y={visitor.y}
+                        chatMessage={visitor.chatMessage}
                     />
                 ))}
+        </>
+    );
 
-                {musicItems.map((item) => (
-                    <MusicPlayerButtons
-                        key={`music-buttons-${item.id}`}
-                        item={item}
-                    />
-                ))}
-
-                {visitors
-                    .filter((v) => v.visitorId !== visitorId)
-                    .map((visitor) => (
-                        <PresenceCursor
-                            key={visitor.visitorId}
-                            name={visitor.displayName}
-                            isOwner={visitor.isOwner}
-                            x={visitor.x}
-                            y={visitor.y}
-                            chatMessage={visitor.chatMessage}
-                        />
-                    ))}
-            </div>
-
+    const overlays = (
+        <>
             <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
                 <div className="bg-[var(--paper)] backdrop-blur-sm rounded-xl px-4 py-2 shadow-md border-2 border-[var(--ink)]">
                     <div className="text-sm text-[var(--ink-subtle)] uppercase tracking-wide text-xs">Visiting</div>
@@ -270,6 +164,18 @@ export function VisitorRoomPage() {
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
             />
-        </div>
+        </>
+    );
+
+    return (
+        <RoomCanvas
+            backgroundUrl={backgroundUrl}
+            scale={scale}
+            containerRef={containerRef}
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
+            roomContent={roomContent}
+            overlays={overlays}
+        />
     );
 }

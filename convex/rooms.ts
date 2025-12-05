@@ -37,6 +37,34 @@ export const getMyActiveRoom = query({
     },
 });
 
+export const getDefaultRoom = query({
+    args: {},
+    handler: async (ctx) => {
+        const defaultTemplates = await ctx.db
+            .query("roomTemplates")
+            .withIndex("by_default", (q) => q.eq("isDefault", true))
+            .collect();
+
+        const defaultTemplate = defaultTemplates[0];
+        if (!defaultTemplate) return null;
+
+        const rooms = await ctx.db.query("rooms").collect();
+
+        // Prefer an active room that uses the default template
+        const matchingRoom =
+            rooms.find((room) => room.templateId === defaultTemplate._id && room.isActive) ||
+            rooms.find((room) => room.templateId === defaultTemplate._id) ||
+            null;
+
+        if (!matchingRoom) return null;
+
+        return {
+            ...matchingRoom,
+            template: defaultTemplate,
+        };
+    },
+});
+
 export const getMyRooms = query({
     args: {},
     handler: async (ctx) => {

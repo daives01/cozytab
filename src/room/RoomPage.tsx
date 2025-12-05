@@ -22,37 +22,22 @@ import { SignInButton, useUser } from "@clerk/clerk-react";
 import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
-import houseBackground from "../assets/house.png";
-
-// Hook to resolve storage URLs for background images
-function useResolvedBackgroundUrl(backgroundUrl: string | undefined) {
-    const isStorageUrl = backgroundUrl?.startsWith("storage:");
-    const storageId = isStorageUrl ? backgroundUrl?.replace("storage:", "") : null;
-    const resolvedUrl = useQuery(
-        api.catalog.getImageUrl,
-        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
-    );
-
-    if (!backgroundUrl) return houseBackground; // fallback
-    if (isStorageUrl) return resolvedUrl ?? undefined;
-    return backgroundUrl;
-}
+import { RoomCanvas } from "./RoomCanvas";
+import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
+import { useRoomScale } from "./hooks/useRoomScale";
+import { useCozyCursor } from "./hooks/useCozyCursor";
+import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
+import { isMusicItem } from "./roomUtils";
 
 type Mode = "view" | "edit";
-
-const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
-
-const BASE_TIME_OF_DAY_BACKGROUND = "/backgrounds/background-day.svg";
 
 interface RoomPageProps {
     isGuest?: boolean;
 }
 
-const ROOM_WIDTH = 1920;
-const ROOM_HEIGHT = 1080;
-
 export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
+    const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const { user: clerkUser } = useUser();
@@ -61,7 +46,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
-    const backgroundUrl = useResolvedBackgroundUrl(room?.template?.backgroundUrl);
+    const backgroundUrl = useResolvedBackgroundUrl(
+        isGuest ? guestTemplate?.backgroundUrl : room?.template?.backgroundUrl
+    );
 
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
@@ -70,7 +57,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [localItems, setLocalItems] = useState<RoomItem[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [scale, setScale] = useState(1);
+    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -82,6 +69,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         y: ROOM_HEIGHT / 2,
     });
     const completeOnboarding = useMutation(api.users.completeOnboarding);
+    useCozyCursor(true);
 
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
@@ -94,24 +82,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     );
     const visitorCount = visitors.filter((v) => !v.isOwner).length;
     const hasVisitors = visitorCount > 0;
-
-    useEffect(() => {
-        const handleResize = () => {
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-
-            const scaleX = windowWidth / ROOM_WIDTH;
-            const scaleY = windowHeight / ROOM_HEIGHT;
-
-            const newScale = Math.min(scaleX, scaleY);
-            setScale(newScale);
-        };
-
-        window.addEventListener("resize", handleResize);
-        handleResize();
-
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
 
     const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
 
@@ -158,41 +128,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         isGuest,
         completeOnboarding,
     });
-
-    useEffect(() => {
-        const root = document.documentElement;
-        root.classList.add("cozy-cursor-root");
-
-        const handlePointerDown = () => {
-            root.classList.add("cozy-cursor-click");
-        };
-        const handlePointerUp = () => {
-            root.classList.remove("cozy-cursor-click");
-            root.classList.remove("cozy-cursor-drag");
-        };
-        const handleDragStart = () => {
-            root.classList.add("cozy-cursor-drag");
-        };
-        const handleDragEnd = () => {
-            root.classList.remove("cozy-cursor-drag");
-            root.classList.remove("cozy-cursor-click");
-        };
-
-        window.addEventListener("pointerdown", handlePointerDown);
-        window.addEventListener("pointerup", handlePointerUp);
-        window.addEventListener("dragstart", handleDragStart);
-        window.addEventListener("dragend", handleDragEnd);
-
-        return () => {
-            root.classList.remove("cozy-cursor-root");
-            root.classList.remove("cozy-cursor-click");
-            root.classList.remove("cozy-cursor-drag");
-            window.removeEventListener("pointerdown", handlePointerDown);
-            window.removeEventListener("pointerup", handlePointerUp);
-            window.removeEventListener("dragstart", handleDragStart);
-            window.removeEventListener("dragend", handleDragEnd);
-        };
-    }, []);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -261,109 +196,86 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    const musicItems = (room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? [];
-
-    return (
-        <div
-            className={`relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cozy-cursor ${draggedItemId ? "select-none" : ""
-                }`}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-        >
-            <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                    backgroundImage: `url('${BASE_TIME_OF_DAY_BACKGROUND}')`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                    zIndex: 0,
-                    filter: "brightness(1) saturate(1)",
-                    transition: "filter 600ms ease, opacity 600ms ease",
-                }}
-            />
-            <div
-                ref={containerRef}
-                style={{
-                    width: ROOM_WIDTH,
-                    height: ROOM_HEIGHT,
-                    transform: `scale(${scale})`,
-                    transformOrigin: "center",
-                    position: "relative",
-                    flexShrink: 0,
-                    zIndex: 1,
-                }}
-            >
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
-                        backgroundSize: "contain",
-                        backgroundPosition: "center",
-                        backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? "transparent" : "#1a1a1a",
-                        zIndex: 0,
-                    }}
-                    onClick={() => setSelectedId(null)}
-                />
-
-                {localItems.map((item) => (
-                    <ItemNode
-                        key={item.id}
-                        item={item}
-                        isSelected={item.id === selectedId}
-                        mode={mode}
-                        scale={scale}
-                        onSelect={() => {
-                            setSelectedId(item.id)
-                        }}
-                        onChange={(newItem) => {
-                            setLocalItems((prev) =>
-                                prev.map((i) => (i.id === newItem.id ? newItem : i))
-                            );
-                        }}
-                        onDragStart={() => setDraggedItemId(item.id)}
-                        onDragEnd={() => setDraggedItemId(null)}
-                        onComputerClick={() => {
-                            if (!isGuest && mode === "view") {
-                                setIsComputerOpen(true);
-                                if (onboardingStep === "click-computer") {
-                                    advanceOnboarding();
-                                }
-                            }
-                        }}
-                        onMusicPlayerClick={() => {
-                            if (!isGuest && mode === "view") {
-                                setMusicPlayerItemId(item.id);
-                            }
-                        }}
-                        isOnboardingComputerTarget={onboardingStep === "click-computer"}
-                    />
-                ))}
-
-                {room && musicItems.map((item) => (
-                    <MusicPlayerButtons
-                        key={`music-buttons-${item.id}`}
-                        item={item}
-                    />
-                ))}
-
-                {!isGuest && visitorId && visitors
-                    .filter((v) => v.visitorId !== visitorId)
-                    .map((visitor) => (
-                        <PresenceCursor
-                            key={visitor.visitorId}
-                            name={visitor.displayName}
-                            isOwner={visitor.isOwner}
-                            x={visitor.x}
-                            y={visitor.y}
-                            chatMessage={visitor.chatMessage}
-                        />
-                    ))}
+    if (isGuest && guestTemplate === undefined) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+                Loading cozytab demo...
             </div>
+        );
+    }
 
+    if (isGuest && guestTemplate === null) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+                No demo room found.
+            </div>
+        );
+    }
+
+    const musicItems = isGuest
+        ? []
+        : ((room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? []);
+
+    const roomContent = (
+        <>
+            {localItems.map((item) => (
+                <ItemNode
+                    key={item.id}
+                    item={item}
+                    isSelected={item.id === selectedId}
+                    mode={mode}
+                    scale={scale}
+                    onSelect={() => {
+                        setSelectedId(item.id)
+                    }}
+                    onChange={(newItem) => {
+                        setLocalItems((prev) =>
+                            prev.map((i) => (i.id === newItem.id ? newItem : i))
+                        );
+                    }}
+                    onDragStart={() => setDraggedItemId(item.id)}
+                    onDragEnd={() => setDraggedItemId(null)}
+                    onComputerClick={() => {
+                        if (!isGuest && mode === "view") {
+                            setIsComputerOpen(true);
+                            if (onboardingStep === "click-computer") {
+                                advanceOnboarding();
+                            }
+                        }
+                    }}
+                    onMusicPlayerClick={() => {
+                        if (!isGuest && mode === "view") {
+                            setMusicPlayerItemId(item.id);
+                        }
+                    }}
+                    isOnboardingComputerTarget={onboardingStep === "click-computer"}
+                />
+            ))}
+
+            {room && musicItems.map((item) => (
+                <MusicPlayerButtons
+                    key={`music-buttons-${item.id}`}
+                    item={item}
+                />
+            ))}
+
+            {!isGuest && visitorId && visitors
+                .filter((v) => v.visitorId !== visitorId)
+                .map((visitor) => (
+                    <PresenceCursor
+                        key={visitor.visitorId}
+                        name={visitor.displayName}
+                        isOwner={visitor.isOwner}
+                        x={visitor.x}
+                        y={visitor.y}
+                        chatMessage={visitor.chatMessage}
+                    />
+                ))}
+        </>
+    );
+
+    const overlays = (
+        <>
             <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
                 {isGuest ? (
                     <SignInButton mode="modal">
@@ -570,6 +482,22 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 y={screenCursor.y}
                 chatMessage={!isGuest && hasVisitors ? localChatMessage : null}
             />
-        </div>
+        </>
+    );
+
+    return (
+        <RoomCanvas
+            backgroundUrl={backgroundUrl}
+            scale={scale}
+            containerRef={containerRef}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
+            onBackgroundClick={() => setSelectedId(null)}
+            outerClassName={draggedItemId ? "select-none" : ""}
+            roomContent={roomContent}
+            overlays={overlays}
+        />
     );
 }
