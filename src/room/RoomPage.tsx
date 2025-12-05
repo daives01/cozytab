@@ -470,6 +470,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         x={visitor.x}
                         y={visitor.y}
                         chatMessage={visitor.chatMessage}
+                        scale={scale}
                     />
                 ))}
         </>

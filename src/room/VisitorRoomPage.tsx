@@ -121,6 +121,7 @@ export function VisitorRoomPage() {
                         x={visitor.x}
                         y={visitor.y}
                         chatMessage={visitor.chatMessage}
+                        scale={scale}
                     />
                 ))}
         </>

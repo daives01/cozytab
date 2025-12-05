@@ -7,9 +7,10 @@ interface PresenceCursorProps {
     x: number;
     y: number;
     chatMessage: string | null;
+    scale: number;
 }
 
-export function PresenceCursor({ name, isOwner, x, y, chatMessage }: PresenceCursorProps) {
+export function PresenceCursor({ name, isOwner, x, y, chatMessage, scale }: PresenceCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
     return (
@@ -21,6 +22,7 @@ export function PresenceCursor({ name, isOwner, x, y, chatMessage }: PresenceCur
             chatMessage={displayedMessage}
             chatOpacity={chatOpacity}
             showNameBadge={true}
+            scale={scale}
         />
     );
 }

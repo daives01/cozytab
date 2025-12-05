@@ -37,92 +37,75 @@ export function useWebSocketPresence(
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Connect to WebSocket when roomId changes
-    useEffect(() => {
-        if (!roomId || !visitorId) {
-            return;
-        }
+    const sendMessage = useCallback((msg: PresenceMessage) => {
+        const ws = wsRef.current;
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify(msg));
+    }, []);
 
+    const handleIncomingMessage = useCallback((event: MessageEvent) => {
+        try {
+            const data = JSON.parse(event.data) as PresenceMessage;
+            switch (data.type) {
+                case "state":
+                    setVisitors(data.visitors);
+                    break;
+                case "join":
+                    setVisitors((prev) => {
+                        const exists = prev.some((v) => v.visitorId === data.visitorId);
+                        if (exists) return prev;
+                        return [
+                            ...prev,
+                            {
+                                visitorId: data.visitorId,
+                                displayName: data.displayName,
+                                isOwner: data.isOwner,
+                                x: 960,
+                                y: 540,
+                                chatMessage: null,
+                            },
+                        ];
+                    });
+                    break;
+                case "leave":
+                    setVisitors((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
+                    break;
+                case "cursor":
+                    setVisitors((prev) =>
+                        prev.map((v) =>
+                            v.visitorId === data.visitorId ? { ...v, x: data.x, y: data.y } : v
+                        )
+                    );
+                    break;
+                case "chat":
+                    setVisitors((prev) =>
+                        prev.map((v) =>
+                            v.visitorId === data.visitorId ? { ...v, chatMessage: data.text } : v
+                        )
+                    );
+                    break;
+            }
+        } catch (e) {
+            console.error("Error parsing WebSocket message:", e);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!roomId || !visitorId) return;
 
         const ws = new WebSocket(`${WS_URL}/ws/${roomId}`);
         wsRef.current = ws;
 
         ws.onopen = () => {
-            // Send join message
-            const joinMsg: PresenceMessage = {
+            sendMessage({
                 type: "join",
                 visitorId,
                 displayName,
                 isOwner,
-            };
-            ws.send(JSON.stringify(joinMsg));
+            });
         };
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data) as PresenceMessage;
-
-                switch (data.type) {
-                    case "state": {
-                        // Initial state from server
-                        setVisitors(data.visitors);
-                        break;
-                    }
-
-                    case "join": {
-                        // New visitor joined
-                        setVisitors((prev) => {
-                            const exists = prev.some((v) => v.visitorId === data.visitorId);
-                            if (exists) return prev;
-                            return [
-                                ...prev,
-                                {
-                                    visitorId: data.visitorId,
-                                    displayName: data.displayName,
-                                    isOwner: data.isOwner,
-                                    x: 960,
-                                    y: 540,
-                                    chatMessage: null,
-                                },
-                            ];
-                        });
-                        break;
-                    }
-
-                    case "leave": {
-                        // Visitor left
-                        setVisitors((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
-                        break;
-                    }
-
-                    case "cursor": {
-                        // Update visitor cursor position
-                        setVisitors((prev) =>
-                            prev.map((v) =>
-                                v.visitorId === data.visitorId
-                                    ? { ...v, x: data.x, y: data.y }
-                                    : v
-                            )
-                        );
-                        break;
-                    }
-
-                    case "chat": {
-                        // Update visitor chat message
-                        setVisitors((prev) =>
-                            prev.map((v) =>
-                                v.visitorId === data.visitorId
-                                    ? { ...v, chatMessage: data.text }
-                                    : v
-                            )
-                        );
-                        break;
-                    }
-                }
-            } catch (e) {
-                console.error("Error parsing WebSocket message:", e);
-            }
-        };
+        ws.onmessage = handleIncomingMessage;
 
         ws.onerror = (error) => {
             console.error("[Presence] WebSocket error:", error);
@@ -132,42 +115,29 @@ export function useWebSocketPresence(
             wsRef.current = null;
         };
 
-        // Cleanup on unmount or roomId change
         return () => {
             if (throttleTimeoutRef.current) {
                 clearTimeout(throttleTimeoutRef.current);
             }
 
             if (ws.readyState === WebSocket.OPEN) {
-                const leaveMsg: PresenceMessage = {
-                    type: "leave",
-                    visitorId,
-                };
-                ws.send(JSON.stringify(leaveMsg));
+                sendMessage({ type: "leave", visitorId });
             }
             ws.close();
             wsRef.current = null;
         };
-    }, [roomId, visitorId, displayName, isOwner]);
+    }, [roomId, visitorId, displayName, isOwner, handleIncomingMessage, sendMessage]);
 
     // Send cursor position with throttling
     const sendCursor = useCallback((x: number, y: number) => {
-        const ws = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN || !visitorId) return;
-
+        if (!visitorId) return;
         const now = Date.now();
         const timeSinceLastSend = now - lastSendTimeRef.current;
 
         if (timeSinceLastSend >= THROTTLE_MS) {
             // Send immediately
             lastSendTimeRef.current = now;
-            const msg: PresenceMessage = {
-                type: "cursor",
-                visitorId,
-                x,
-                y,
-            };
-            ws.send(JSON.stringify(msg));
+            sendMessage({ type: "cursor", visitorId, x, y });
             pendingCursorRef.current = null;
         } else {
             // Queue for later
@@ -178,19 +148,18 @@ export function useWebSocketPresence(
                     throttleTimeoutRef.current = null;
                     if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
                         lastSendTimeRef.current = Date.now();
-                        const msg: PresenceMessage = {
+                        sendMessage({
                             type: "cursor",
                             visitorId,
                             x: pendingCursorRef.current.x,
                             y: pendingCursorRef.current.y,
-                        };
-                        wsRef.current.send(JSON.stringify(msg));
+                        });
                         pendingCursorRef.current = null;
                     }
                 }, THROTTLE_MS - timeSinceLastSend);
             }
         }
-    }, [visitorId]);
+    }, [sendMessage, visitorId]);
 
     // Update cursor position (matches usePresence API)
     const updateCursor = useCallback(
@@ -205,18 +174,10 @@ export function useWebSocketPresence(
     const updateChatMessage = useCallback(
         (message: string | null) => {
             setLocalChatMessage(message);
-
-            const ws = wsRef.current;
-            if (!ws || ws.readyState !== WebSocket.OPEN || !visitorId) return;
-
-            const msg: PresenceMessage = {
-                type: "chat",
-                visitorId,
-                text: message,
-            };
-            ws.send(JSON.stringify(msg));
+            if (!visitorId) return;
+            sendMessage({ type: "chat", visitorId, text: message });
         },
-        [visitorId]
+        [sendMessage, visitorId]
     );
 
 

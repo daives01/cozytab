@@ -9,6 +9,7 @@ interface CursorDisplayProps {
     useFixedPosition?: boolean;
     showNameBadge?: boolean;
     hidePointer?: boolean;
+    scale?: number;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -24,6 +25,7 @@ export function CursorDisplay({
     useFixedPosition = false,
     showNameBadge = false,
     hidePointer = false,
+    scale = 1,
 }: CursorDisplayProps) {
     const cursorColor = isOwner ? "#6366f1" : "#10b981";
     const bgColor = isOwner ? "bg-indigo-500" : "bg-emerald-500";
@@ -38,7 +40,10 @@ export function CursorDisplay({
                 left: x,
                 top: y,
                 zIndex: useFixedPosition ? 99999 : (isLocal ? 101 : 100),
-                transform: "translate(-2px, -2px)",
+                transform: useFixedPosition
+                    ? "translate(-2px, -2px)"
+                    : `translate(-2px, -2px) scale(${scale > 0 ? 1 / scale : 1})`,
+                transformOrigin: "top left",
                 transition: isLocal ? "none" : "left 50ms linear, top 50ms linear",
             }}
         >
