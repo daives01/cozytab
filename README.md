@@ -1,73 +1,28 @@
-# React + TypeScript + Vite
+# Cozytab monorepo (Bun)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Workspace layout
+- `./` – Vite web app (React 19 + Tailwind)
+- `convex/` – Convex functions and schema
+- `presence-worker/` – Cloudflare Worker for presence
 
-Currently, two official plugins are available:
+## Setup
+- Install Bun (1.1.32): follow https://bun.sh
+- Install deps: `bun install`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Common scripts
+- Web dev: `bun run web`
+- Web build: `bun run build`
+- Lint: `bun run lint`
+- Convex dev: `bun run convex` (runs `bunx convex dev` from root)
+- Convex deploy: `bun run convex:deploy`
+- Convex codegen: `bun run convex:codegen`
+- Worker dev: `bun run --filter presence-worker dev` (or `cd presence-worker && bun run dev`)
+- Worker deploy: `bun run --filter presence-worker deploy`
 
-## React Compiler
+## Deployment
+- Vercel: install via `bun install`, build via `bunx convex deploy --cmd "bun run build"` (configured in `vercel.json`). Set `BUN_VERSION=1.1.32` in project settings if Vercel doesn’t auto-detect.
+- Convex: deployment piggybacks on the Vercel build command above.
+- Cloudflare Worker: `bun run --filter presence-worker deploy` using Wrangler.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## CI (GitHub Actions)
+Add Bun to runners (e.g., `oven-sh/setup-bun`) and use `bun install` + workspace scripts for web, convex, and worker. Use the same build command as Vercel to stay consistent.
