@@ -17,10 +17,16 @@ export type VisitorState = {
     chatMessage: string | null;
 };
 
-// TODO: Replace with your deployed worker URL
 const WS_URL = import.meta.env.VITE_PRESENCE_WS_URL || "ws://localhost:8787";
 
 const THROTTLE_MS = 50; // Send cursor updates at most every 50ms
+
+const getInitialCursor = () => {
+    if (typeof window === "undefined") {
+        return { x: 0, y: 0 };
+    }
+    return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+};
 
 export function useWebSocketPresence(
     roomId: string | null,
@@ -30,7 +36,7 @@ export function useWebSocketPresence(
 ) {
     const wsRef = useRef<WebSocket | null>(null);
     const [visitors, setVisitors] = useState<VisitorState[]>([]);
-    const [screenCursor, setScreenCursor] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const [screenCursor, setScreenCursor] = useState(getInitialCursor);
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
 
     const lastSendTimeRef = useRef<number>(0);
@@ -113,6 +119,7 @@ export function useWebSocketPresence(
 
         ws.onclose = () => {
             wsRef.current = null;
+            setVisitors([]);
         };
 
         return () => {
@@ -125,6 +132,7 @@ export function useWebSocketPresence(
             }
             ws.close();
             wsRef.current = null;
+            setVisitors([]);
         };
     }, [roomId, visitorId, displayName, isOwner, handleIncomingMessage, sendMessage]);
 
@@ -179,8 +187,6 @@ export function useWebSocketPresence(
         },
         [sendMessage, visitorId]
     );
-
-
 
     return {
         visitors,

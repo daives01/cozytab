@@ -46,7 +46,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "place-computer": {
-        message: "You have a Computer in your storage! Drag it onto your room to place it.",
+        message: "You have a Basic Computer in your storage! Drag it onto your room to place it.",
         targetSelector: "[data-onboarding='storage-item-computer']",
         bubblePosition: "left",
         showSkip: true,
@@ -86,7 +86,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         bubblePosition: "top",
         showSkip: true,
         pulseTarget: false,
-        fixedBubblePosition: { top: 92, right: 24 },
+        fixedBubblePosition: { bottom: 92, right: 24 },
     },
     "set-homepage": {
         message: "Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set https://cozytab.club as your homepage. Works in Chrome and Firefox!",
@@ -128,12 +128,11 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
     }
 
     const config = stepConfigs[currentStep];
-    const message = config.message;
 
     return (
         <OnboardingSpotlight
             targetSelector={config.targetSelector}
-            message={message}
+            message={config.message}
             bubblePosition={config.bubblePosition}
             fixedBubblePosition={config.fixedBubblePosition}
             onSkip={handleSkip}
@@ -144,5 +143,3 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
         />
     );
 }
-
-

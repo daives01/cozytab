@@ -5,14 +5,17 @@ import {
     GUEST_ROOM_STORAGE_KEY,
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
+    STARTER_COMPUTER_NAME,
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
 } from "../../shared/guestTypes";
 
+export const GUEST_STARTER_ITEM_NAME = STARTER_COMPUTER_NAME;
+
 const defaultState: GuestSessionState = {
     coins: GUEST_STARTING_COINS,
-    inventoryIds: [],
+    inventoryIds: [GUEST_STARTER_ITEM_NAME],
     roomItems: [],
     shortcuts: [],
     onboardingCompleted: false,
@@ -21,6 +24,14 @@ const defaultState: GuestSessionState = {
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
     if (typeof value !== "number" || Number.isNaN(value)) return fallback;
     return Math.max(min, Math.min(max, value));
+};
+
+const ensureStarterInventory = (ids: string[]) => {
+    const seen = new Set(ids.filter((id): id is string => typeof id === "string"));
+    if (!seen.has(GUEST_STARTER_ITEM_NAME)) {
+        seen.add(GUEST_STARTER_ITEM_NAME);
+    }
+    return Array.from(seen);
 };
 
 export function clampGuestCoins(value: unknown): number {
@@ -148,9 +159,11 @@ export function readGuestSession(): GuestSessionState {
     const parsedRoom = parseJson<{ items?: GuestRoomItem[] }>(roomRaw, { items: [] });
     const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
 
+    const parsedInventory = parseJson<string[]>(inventoryRaw, []);
+
     return {
         coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
-        inventoryIds: parseJson<string[]>(inventoryRaw, []).filter((id) => typeof id === "string"),
+        inventoryIds: ensureStarterInventory(parsedInventory),
         roomItems: sanitizeRoomItems(parsedRoom.items ?? []),
         shortcuts: sanitizeShortcuts(parsedShortcuts),
         onboardingCompleted: onboardingRaw === "true",
@@ -214,9 +227,11 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
 
     const next: GuestSessionState = {
         coins: clampGuestCoins(partial.coins ?? current.coins),
-        inventoryIds: Array.isArray(partial.inventoryIds)
-            ? partial.inventoryIds.filter((id): id is string => typeof id === "string")
-            : current.inventoryIds,
+        inventoryIds: ensureStarterInventory(
+            Array.isArray(partial.inventoryIds)
+                ? partial.inventoryIds
+                : current.inventoryIds
+        ),
         roomItems: partial.roomItems ? sanitizeRoomItems(partial.roomItems) : current.roomItems,
         shortcuts: partial.shortcuts ? sanitizeShortcuts(partial.shortcuts) : current.shortcuts,
         onboardingCompleted: partial.onboardingCompleted ?? current.onboardingCompleted,

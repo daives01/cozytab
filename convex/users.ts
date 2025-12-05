@@ -1,26 +1,52 @@
 import { query, mutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 import {
     GUEST_STARTING_COINS,
+    STARTER_COMPUTER_NAME,
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
 } from "../shared/guestTypes";
 
+type AnyCtx = QueryCtx | MutationCtx;
+
+async function getIdentity(ctx: AnyCtx) {
+    return await ctx.auth.getUserIdentity();
+}
+
+async function findUserByExternalId(ctx: AnyCtx, externalId: string) {
+    return await ctx.db
+        .query("users")
+        .withIndex("by_externalId", (q) => q.eq("externalId", externalId))
+        .unique();
+}
+
+async function getUserForRequest(ctx: AnyCtx) {
+    const identity = await getIdentity(ctx);
+    if (!identity) return { identity: null, user: null };
+    const user = await findUserByExternalId(ctx, identity.subject);
+    return { identity, user };
+}
+
+async function requireIdentity(ctx: AnyCtx) {
+    const identity = await getIdentity(ctx);
+    if (!identity) throw new Error("Not authenticated");
+    return identity;
+}
+
+async function requireUser(ctx: AnyCtx) {
+    const identity = await requireIdentity(ctx);
+    const user = await findUserByExternalId(ctx, identity.subject);
+    if (!user) throw new Error("User not found");
+    return { identity, user };
+}
+
 export const getMe = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
+        const { user } = await getUserForRequest(ctx);
         return user;
     },
 });
@@ -28,16 +54,7 @@ export const getMe = query({
 export const isAdmin = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return false;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const { user } = await getUserForRequest(ctx);
         return user?.admin === true;
     },
 });
@@ -45,16 +62,7 @@ export const isAdmin = query({
 export const getMyReferralCode = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const { user } = await getUserForRequest(ctx);
         return user?.referralCode ?? null;
     },
 });
@@ -62,18 +70,7 @@ export const getMyReferralCode = query({
 export const getReferralStats = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) {
-            return { referralCount: 0, referralCoins: 0 };
-        }
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const { user } = await getUserForRequest(ctx);
         if (!user) {
             return { referralCount: 0, referralCoins: 0 };
         }
@@ -104,11 +101,57 @@ function generateReferralCode(): string {
     return code;
 }
 
+async function generateUniqueReferralCode(ctx: MutationCtx) {
+    let referralCode = generateReferralCode();
+    let existing = await ctx.db
+        .query("users")
+        .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+        .unique();
+
+    while (existing) {
+        referralCode = generateReferralCode();
+        existing = await ctx.db
+            .query("users")
+            .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+            .unique();
+    }
+
+    return referralCode;
+}
+
 const MAX_GUEST_ITEMS = 100;
 
 function clampGuestCoins(value: unknown): number {
     if (typeof value !== "number" || Number.isNaN(value)) return GUEST_STARTING_COINS;
     return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
+}
+
+async function ensureStarterComputer(
+    ctx: MutationCtx,
+    userId: Id<"users">,
+    catalogItems?: Doc<"catalogItems">[]
+) {
+    const catalog = catalogItems ?? (await ctx.db.query("catalogItems").collect());
+    const starterItem = catalog.find((c) => c.name === STARTER_COMPUTER_NAME) ?? null;
+    if (!starterItem) return false;
+
+    const existing = await ctx.db
+        .query("inventory")
+        .withIndex("by_user_and_item", (q) =>
+            q.eq("userId", userId).eq("catalogItemId", starterItem._id)
+        )
+        .unique();
+
+    if (existing) return true;
+
+    await ctx.db.insert("inventory", {
+        userId,
+        catalogItemId: starterItem._id,
+        purchasedAt: Date.now(),
+        hidden: false,
+    });
+
+    return true;
 }
 
 async function importInventoryWithinBudget(
@@ -133,7 +176,7 @@ async function importInventoryWithinBudget(
         if (!catalogItem) continue;
         const catalogKey = catalogItem._id as unknown as string;
         if (seenCatalogIds.has(catalogKey)) continue;
-        const cost = catalogItem.name === "Computer" ? 0 : catalogItem.basePrice ?? 0;
+        const cost = catalogItem.name === STARTER_COMPUTER_NAME ? 0 : catalogItem.basePrice ?? 0;
         const cachedCost = catalogCostCache[catalogKey] ?? cost;
         if (remainingBudget.value - cachedCost < 0) continue;
 
@@ -268,8 +311,7 @@ export const ensureUser = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
+        const identity = await requireIdentity(ctx);
 
         // Prefer Clerk-provided username; fall back to name/email/caller-provided value
         const clerkUsername =
@@ -288,7 +330,9 @@ export const ensureUser = mutation({
         const derivedDisplayName = clerkName ?? derivedUsername;
 
         const guestSession = args.guestSession;
-        const reportedGuestCoins = clampGuestCoins(guestSession?.coins);
+        const reportedGuestCoins = clampGuestCoins(
+            guestSession?.coins ?? args.guestCurrency
+        );
         const rawGuestInventory = Array.isArray(guestSession?.inventoryIds)
             ? guestSession?.inventoryIds ?? []
             : Array.isArray(args.guestInventory)
@@ -309,16 +353,12 @@ export const ensureUser = mutation({
         const guestRoomItems = guestSessionState.roomItems;
         const guestShortcuts = guestSessionState.shortcuts;
 
-        let user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
+        let catalogItemsCache: Doc<"catalogItems">[] | null = null;
+        let user = await findUserByExternalId(ctx, identity.subject);
 
         if (!user) {
-            let referrerId = undefined;
-            const providedReferralCode = args.referralCode;
+            let referrerId: Id<"users"> | undefined;
+            const providedReferralCode = args.referralCode?.trim();
             if (providedReferralCode) {
                 const referrer = await ctx.db
                     .query("users")
@@ -335,22 +375,7 @@ export const ensureUser = mutation({
                 }
             }
 
-            let newReferralCode = generateReferralCode();
-            let existingCode = await ctx.db
-                .query("users")
-                .withIndex("by_referralCode", (q) =>
-                    q.eq("referralCode", newReferralCode)
-                )
-                .unique();
-            while (existingCode) {
-                newReferralCode = generateReferralCode();
-                existingCode = await ctx.db
-                    .query("users")
-                    .withIndex("by_referralCode", (q) =>
-                        q.eq("referralCode", newReferralCode)
-                    )
-                    .unique();
-            }
+            const newReferralCode = await generateUniqueReferralCode(ctx);
 
             const computedCurrency = reportedGuestCoins;
 
@@ -370,18 +395,10 @@ export const ensureUser = mutation({
             if (user) {
                 const {
                     remainingCurrency,
-                    inventoryNames,
                     catalogItems,
                 } = await importInventoryWithinBudget(ctx, user._id, guestInventory, GUEST_STARTING_COINS);
 
-                const starterItem = catalogItems.find((c) => c.name === "Computer");
-                if (starterItem && !inventoryNames.has("Computer")) {
-                    await ctx.db.insert("inventory", {
-                        userId: user._id,
-                        catalogItemId: starterItem._id,
-                        purchasedAt: Date.now(),
-                    });
-                }
+                catalogItemsCache = catalogItems;
 
                 await ctx.db.patch(user._id, {
                     currency: Math.min(remainingCurrency, reportedGuestCoins),
@@ -403,6 +420,10 @@ export const ensureUser = mutation({
             }
         }
 
+        if (user) {
+            await ensureStarterComputer(ctx, user._id, catalogItemsCache ?? undefined);
+        }
+
         return user;
     },
 });
@@ -410,17 +431,7 @@ export const ensureUser = mutation({
 export const completeOnboarding = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const { user } = await requireUser(ctx);
 
         await ctx.db.patch(user._id, {
             onboardingCompleted: true,
@@ -433,17 +444,7 @@ export const completeOnboarding = mutation({
 export const claimDailyReward = mutation({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const { user } = await requireUser(ctx);
 
         const now = Date.now();
         const lastReward = user.lastDailyReward ?? 0;
@@ -472,13 +473,8 @@ export const devDeleteMyAccount = mutation({
             throw new Error("Dev-only mutation");
         }
 
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-            .unique();
+        const identity = await requireIdentity(ctx);
+        const user = await findUserByExternalId(ctx, identity.subject);
 
         if (!user) {
             return { deleted: false };
@@ -563,16 +559,7 @@ function normalizeShortcutsWithGrid<
 export const getMyComputer = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
+        const { user } = await getUserForRequest(ctx);
         if (!user) return null;
 
         // If user has computer state, ensure it has grid positions
@@ -628,17 +615,7 @@ export const saveMyComputer = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-
-        if (!user) throw new Error("User not found");
+        const { user } = await requireUser(ctx);
 
         const normalized = normalizeShortcutsWithGrid(args.shortcuts);
 

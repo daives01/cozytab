@@ -27,7 +27,12 @@ import { canSave, canShare, canUseComputer } from "./utils/sessionGuards";
 import { RoomToolbar } from "./RoomToolbar";
 import { EditDrawer } from "./EditDrawer";
 import { ComputerOverlay } from "./ComputerOverlay";
-import { clearGuestSession, readGuestSession, saveGuestSession } from "./guestSession";
+import {
+    clearGuestSession,
+    readGuestSession,
+    saveGuestSession,
+} from "./guestSession";
+import { STARTER_COMPUTER_NAME } from "../../shared/guestTypes";
 import { GUEST_STARTING_COINS, type GuestShortcut } from "../../shared/guestTypes";
 
 type Mode = "view" | "edit";
@@ -77,6 +82,24 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const backgroundUrl = useResolvedBackgroundUrl(
         isGuest ? guestTemplate?.backgroundUrl : room?.template?.backgroundUrl
     );
+    const computerCatalogItem = useMemo(() => {
+        if (!catalogItems) return null;
+        return catalogItems.find((c) => c.name === STARTER_COMPUTER_NAME) ?? null;
+    }, [catalogItems]);
+    const computerStorageId = useMemo(() => {
+        if (!computerCatalogItem?.assetUrl?.startsWith("storage:")) return null;
+        return computerCatalogItem.assetUrl.replace("storage:", "");
+    }, [computerCatalogItem]);
+    const computerResolvedUrl = useQuery(
+        api.catalog.getImageUrl,
+        computerStorageId ? { storageId: computerStorageId as Id<"_storage"> } : "skip"
+    );
+    const resolvedComputerAssetUrl = useMemo(() => {
+        const assetUrl = computerCatalogItem?.assetUrl;
+        if (!assetUrl) return null;
+        if (assetUrl.startsWith("storage:")) return computerResolvedUrl ?? null;
+        return assetUrl;
+    }, [computerCatalogItem?.assetUrl, computerResolvedUrl]);
 
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
@@ -109,6 +132,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         x: ROOM_WIDTH / 2,
         y: ROOM_HEIGHT / 2,
     });
+    const computerPrefetchedRef = useRef(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     useCozyCursor(true);
 
@@ -153,15 +177,12 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         const session = initialGuestSession ?? readGuestSession();
 
         if (session.roomItems.length > 0) {
-             
             setLocalItems(session.roomItems as RoomItem[]);
         } else if (guestRoom?.items) {
-             
             setLocalItems(guestRoom.items as RoomItem[]);
         } else {
             const templateItems = (guestTemplate as unknown as { items?: RoomItem[] } | undefined)?.items;
             if (templateItems && templateItems.length > 0) {
-                 
                 setLocalItems(templateItems as RoomItem[]);
             }
         }
@@ -177,30 +198,21 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
-        const computerCatalog = catalogItems.find((c) => c.name === "Computer");
-        if (!computerCatalog) return [];
+        const uniqueInventoryIds = Array.from(
+            new Set<string>([...guestInventory, STARTER_COMPUTER_NAME])
+        );
 
-        return [
-            {
-                inventoryId: `guest-${computerCatalog._id ?? computerCatalog.name}`,
-                catalogItemId: computerCatalog.name,
-                name: computerCatalog.name,
-                assetUrl: computerCatalog.assetUrl,
-                category: computerCatalog.category,
+        return uniqueInventoryIds
+            .map((id) => catalogItems.find((c) => c._id === id || c.name === id))
+            .filter((item): item is (typeof catalogItems)[number] => Boolean(item))
+            .map((item) => ({
+                inventoryId: `guest-${item._id ?? item.name ?? STARTER_COMPUTER_NAME}`,
+                catalogItemId: item.name ?? STARTER_COMPUTER_NAME,
+                name: item.name ?? STARTER_COMPUTER_NAME,
+                assetUrl: item.assetUrl,
+                category: item.category,
                 hidden: false,
-            },
-            ...guestInventory
-                .map((id) => catalogItems.find((c) => c._id === id || c.name === id))
-                .filter((item): item is (typeof catalogItems)[number] => Boolean(item))
-                .map((item) => ({
-                    inventoryId: `guest-${item._id ?? item.name}`,
-                    catalogItemId: item.name,
-                    name: item.name,
-                    assetUrl: item.assetUrl,
-                    category: item.category,
-                    hidden: false,
-                })),
-        ];
+            }));
     }, [catalogItems, guestInventory]);
 
     const reconciledGuestOnboarding = useRef(false);
@@ -291,6 +303,16 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         guestOnboardingCompleted,
         markGuestOnboardingComplete,
     });
+
+    useEffect(() => {
+        if (!onboardingActive) return;
+        if (computerPrefetchedRef.current) return;
+        if (!resolvedComputerAssetUrl) return;
+
+        const img = new Image();
+        img.src = resolvedComputerAssetUrl;
+        computerPrefetchedRef.current = true;
+    }, [resolvedComputerAssetUrl, onboardingActive]);
 
     const handleModeToggle = useCallback(() => {
         if (mode === "edit") {
@@ -427,7 +449,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     mode={mode}
                     scale={scale}
                     onSelect={() => {
-                        setSelectedId(item.id)
+                        setSelectedId(item.id);
                     }}
                     onChange={(newItem) => {
                         setLocalItems((prev) =>

@@ -138,9 +138,23 @@ export function Shop({
         }
     };
 
-    const guestOwnedSet = new Set(
-        (guestOwnedIds || []).map((id) => id as Id<"catalogItems">)
-    );
+    const guestOwnedSet = useMemo(() => {
+        const set = new Set<Id<"catalogItems">>();
+        const owned = guestOwnedIds || [];
+        const catalogByName = new Map(
+            (catalogItems || []).map((item) => [item.name.toLowerCase(), item])
+        );
+
+        owned.forEach((raw) => {
+            const match =
+                catalogItems?.find((item) => item._id === raw) ??
+                catalogByName.get(String(raw).toLowerCase());
+            if (match) {
+                set.add(match._id);
+            }
+        });
+        return set;
+    }, [guestOwnedIds, catalogItems]);
     const ownedSet = new Set([...(ownedItemIds || []), ...guestOwnedSet]);
     const ownedTemplateSet = new Set(ownedTemplateIds || []);
     const groupedItems = catalogItems ? groupByCategory(catalogItems) : {};

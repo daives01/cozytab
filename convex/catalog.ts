@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { STARTER_COMPUTER_NAME } from "../shared/guestTypes";
 
 // Helper to check if the current user is an admin
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -76,25 +77,25 @@ export const updateItem = mutation({
         await requireAdmin(ctx);
 
         const { id, ...updates } = args;
-        
+
         const existing = await ctx.db.get(id);
         if (!existing) {
             return { success: false, message: "Item not found" };
         }
 
-        const filteredUpdates: {
-            name?: string;
-            category?: string;
-            basePrice?: number;
-            assetUrl?: string;
-            defaultWidth?: number;
-        } = {};
-        
-        if (updates.name !== undefined) filteredUpdates.name = updates.name;
-        if (updates.category !== undefined) filteredUpdates.category = updates.category;
-        if (updates.basePrice !== undefined) filteredUpdates.basePrice = updates.basePrice;
-        if (updates.assetUrl !== undefined) filteredUpdates.assetUrl = updates.assetUrl;
-        if (updates.defaultWidth !== undefined) filteredUpdates.defaultWidth = updates.defaultWidth;
+        const filteredUpdates = Object.fromEntries(
+            Object.entries(updates).filter(([, value]) => value !== undefined)
+        ) as Partial<{
+            name: string;
+            category: string;
+            basePrice: number;
+            assetUrl: string;
+            defaultWidth: number;
+        }>;
+
+        if (Object.keys(filteredUpdates).length === 0) {
+            return { success: true };
+        }
 
         await ctx.db.patch(id, filteredUpdates);
         return { success: true };
@@ -144,9 +145,9 @@ export const seed = mutation({
                 defaultWidth: 150,
             },
             {
-                name: "Computer",
+                name: STARTER_COMPUTER_NAME,
                 category: "Computers",
-                basePrice: 10,
+                basePrice: 1,
                 assetUrl: "https://placehold.co/120x100/2563eb/fff?text=Computer",
                 defaultWidth: 120,
             },
@@ -170,20 +171,6 @@ export const seed = mutation({
                 basePrice: 10,
                 assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",
                 defaultWidth: 120,
-            },
-            {
-                name: "Rug",
-                category: "Decor",
-                basePrice: 6,
-                assetUrl: "https://placehold.co/150x100/e74c3c/fff?text=Rug",
-                defaultWidth: 150,
-            },
-            {
-                name: "Chair",
-                category: "Furniture",
-                basePrice: 7,
-                assetUrl: "https://placehold.co/80x100/3498db/fff?text=Chair",
-                defaultWidth: 80,
             },
         ];
 
