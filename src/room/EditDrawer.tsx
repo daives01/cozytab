@@ -31,7 +31,7 @@ export function EditDrawer({
     return (
         <>
             <div
-                className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
                 style={{ right: isDrawerOpen ? `${ASSET_DRAWER_WIDTH}px` : "0px" }}
             >
                 <button

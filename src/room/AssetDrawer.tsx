@@ -199,9 +199,9 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
     };
 
     return (
-        <div 
+        <div
             style={{ width: ASSET_DRAWER_WIDTH }}
-            className={`absolute top-4 right-0 bottom-4 bg-[var(--paper-header)] border-2 border-[var(--ink)] rounded-lg z-40 shadow-lg transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] flex flex-col ${
+            className={`absolute top-0 right-0 bottom-0 bg-[var(--paper-header)] border-2 border-[var(--ink)] rounded-lg z-40 shadow-lg transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col ${
                 isOpen ? "translate-x-0" : "translate-x-full"
             }`}
         >
