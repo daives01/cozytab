@@ -1,5 +1,3 @@
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
 
 export type OnboardingStep =
@@ -18,6 +16,8 @@ interface OnboardingProps {
     currentStep: OnboardingStep;
     onComplete: () => void;
     onNext?: () => void;
+    onSkip?: () => void;
+    isGuest?: boolean;
 }
 
 interface StepConfig {
@@ -100,18 +100,22 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
     },
 };
 
-export function Onboarding({ currentStep, onComplete, onNext }: OnboardingProps) {
-    const completeOnboarding = useMutation(api.users.completeOnboarding);
-
+export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = false }: OnboardingProps) {
     const handleSkip = async () => {
-        await completeOnboarding();
-        onComplete();
+        if (onSkip) {
+            await onSkip();
+        } else {
+            onComplete();
+        }
     };
 
     if (currentStep === "complete") {
+        const completeMessage = isGuest
+            ? "You're all set! Log in to save and share your cozytab."
+            : stepConfigs.complete.message;
         return (
             <OnboardingSpotlight
-                message={stepConfigs.complete.message}
+                message={completeMessage}
                 bubblePosition={stepConfigs.complete.bubblePosition}
                 onSkip={handleSkip}
                 showSkip={false}
@@ -121,11 +125,12 @@ export function Onboarding({ currentStep, onComplete, onNext }: OnboardingProps)
     }
 
     const config = stepConfigs[currentStep];
+    const message = config.message;
 
     return (
         <OnboardingSpotlight
             targetSelector={config.targetSelector}
-            message={config.message}
+            message={message}
             bubblePosition={config.bubblePosition}
             onSkip={handleSkip}
             showSkip={config.showSkip}

@@ -1,5 +1,13 @@
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id, Doc } from "./_generated/dataModel";
+import {
+    GUEST_STARTING_COINS,
+    type GuestRoomItem,
+    type GuestSessionState,
+    type GuestShortcut,
+} from "../shared/guestTypes";
 
 export const getMe = query({
     args: {},
@@ -96,10 +104,155 @@ function generateReferralCode(): string {
     return code;
 }
 
+const MAX_GUEST_ITEMS = 100;
+
+async function importInventoryWithinBudget(
+    ctx: MutationCtx,
+    userId: Id<"users">,
+    guestInventory: string[],
+    startingCurrency: number
+) {
+    const inventoryNames = new Set<string>();
+    const catalogCostCache: Record<string, number> = {};
+    const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
+    const remainingBudget = { value: startingCurrency };
+
+    for (const name of guestInventory) {
+        if (inventoryNames.has(name)) continue;
+        const catalogItem = catalogItems.find((c) => c.name === name);
+        if (!catalogItem) continue;
+        const cost = catalogItem.name === "Computer" ? 0 : catalogItem.basePrice ?? 0;
+        const cachedCost = catalogCostCache[name] ?? cost;
+        if (remainingBudget.value - cachedCost < 0) continue;
+
+        inventoryNames.add(name);
+        catalogCostCache[name] = cachedCost;
+        remainingBudget.value -= cachedCost;
+
+        await ctx.db.insert("inventory", {
+            userId,
+            catalogItemId: catalogItem._id,
+            purchasedAt: Date.now(),
+        });
+    }
+
+    return {
+        remainingCurrency: Math.max(0, Math.min(remainingBudget.value, startingCurrency)),
+        inventoryNames,
+        catalogItems,
+    };
+}
+
+function sanitizeGuestRoomItems(
+    items: GuestRoomItem[] | undefined,
+    catalogNames: Set<string>
+): GuestRoomItem[] {
+    if (!items) return [];
+    return items
+        .slice(0, MAX_GUEST_ITEMS)
+        .filter((item) => catalogNames.has(item.catalogItemId))
+        .map((item) => ({
+            id: item.id,
+            catalogItemId: item.catalogItemId,
+            x: Number.isFinite(item.x) ? item.x : 0,
+            y: Number.isFinite(item.y) ? item.y : 0,
+            url: item.url,
+            flipped: item.flipped,
+            musicUrl: item.musicUrl,
+            musicType: item.musicType,
+            musicPlaying: item.musicPlaying,
+            musicStartedAt: item.musicStartedAt,
+            musicPositionAtStart: item.musicPositionAtStart,
+            scaleX: Number.isFinite(item.scaleX ?? 1) ? item.scaleX : 1,
+            scaleY: Number.isFinite(item.scaleY ?? 1) ? item.scaleY : 1,
+            rotation: Number.isFinite(item.rotation ?? 0) ? item.rotation : 0,
+            zIndex: Number.isFinite(item.zIndex ?? Date.now()) ? item.zIndex : Date.now(),
+        }));
+}
+
+function sanitizeGuestShortcuts(shortcuts: GuestShortcut[] | undefined) {
+    const trimmed = (shortcuts ?? []).slice(0, MAX_GUEST_ITEMS).map((s) => ({
+        id: s.id,
+        name: s.name,
+        url: s.url,
+        row: s.row,
+        col: s.col,
+        type: s.type,
+    }));
+    return normalizeShortcutsWithGrid(trimmed);
+}
+
+async function seedRoomFromGuest(
+    ctx: MutationCtx,
+    userId: Id<"users">,
+    templateId: Id<"roomTemplates">,
+    templateName: string,
+    guestItems: GuestRoomItem[] | undefined,
+    guestShortcuts: GuestShortcut[] | undefined,
+    catalogNames: Set<string>
+) {
+    const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogNames);
+    const sanitizedShortcuts = sanitizeGuestShortcuts(guestShortcuts).map((s) => ({
+        id: s.id,
+        name: s.name,
+        url: s.url,
+    }));
+
+    await ctx.db.insert("rooms", {
+        userId,
+        templateId,
+        name: templateName,
+        isActive: true,
+        items: sanitizedItems,
+        shortcuts: sanitizedShortcuts,
+    });
+}
+
+const guestRoomItemValidator = v.object({
+    id: v.string(),
+    catalogItemId: v.string(),
+    x: v.number(),
+    y: v.number(),
+    url: v.optional(v.string()),
+    flipped: v.optional(v.boolean()),
+    musicUrl: v.optional(v.string()),
+    musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+    musicPlaying: v.optional(v.boolean()),
+    musicStartedAt: v.optional(v.number()),
+    musicPositionAtStart: v.optional(v.number()),
+    scaleX: v.optional(v.number()),
+    scaleY: v.optional(v.number()),
+    rotation: v.optional(v.number()),
+    zIndex: v.optional(v.number()),
+});
+
+const guestShortcutValidator = v.object({
+    id: v.string(),
+    name: v.string(),
+    url: v.string(),
+    row: v.optional(v.number()),
+    col: v.optional(v.number()),
+    type: v.optional(v.union(v.literal("user"), v.literal("system"))),
+});
+
+
 export const ensureUser = mutation({
     args: {
         username: v.string(),
         referralCode: v.optional(v.string()),
+        guestCurrency: v.optional(v.number()),
+        guestInventory: v.optional(v.array(v.string())),
+        guestRoomItems: v.optional(v.array(guestRoomItemValidator)),
+        guestShortcuts: v.optional(v.array(guestShortcutValidator)),
+        guestSession: v.optional(
+            v.object({
+                coins: v.optional(v.number()),
+                inventoryIds: v.optional(v.array(v.string())),
+                roomItems: v.optional(v.array(guestRoomItemValidator)),
+                shortcuts: v.optional(v.array(guestShortcutValidator)),
+                onboardingCompleted: v.optional(v.boolean()),
+            })
+        ),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -120,6 +273,27 @@ export const ensureUser = mutation({
             tokenIdentifier?.split(":").pop() ??
             args.username;
         const derivedDisplayName = clerkName ?? derivedUsername;
+
+        const guestSession = args.guestSession;
+        const rawGuestInventory = Array.isArray(guestSession?.inventoryIds)
+            ? guestSession?.inventoryIds ?? []
+            : Array.isArray(args.guestInventory)
+                ? args.guestInventory
+                : [];
+        const rawGuestRoomItems = (guestSession?.roomItems ?? args.guestRoomItems) as GuestRoomItem[] | undefined;
+        const rawGuestShortcuts = (guestSession?.shortcuts ?? args.guestShortcuts) as GuestShortcut[] | undefined;
+
+        const guestSessionState: GuestSessionState = {
+            coins: GUEST_STARTING_COINS,
+            inventoryIds: rawGuestInventory,
+            roomItems: rawGuestRoomItems ?? [],
+            shortcuts: rawGuestShortcuts ?? [],
+            onboardingCompleted: Boolean(guestSession?.onboardingCompleted),
+        };
+
+        const guestInventory = guestSessionState.inventoryIds;
+        const guestRoomItems = guestSessionState.roomItems;
+        const guestShortcuts = guestSessionState.shortcuts;
 
         let user = await ctx.db
             .query("users")
@@ -164,32 +338,53 @@ export const ensureUser = mutation({
                     .unique();
             }
 
+            const computedCurrency = GUEST_STARTING_COINS;
+
             const id = await ctx.db.insert("users", {
                 externalId: identity.subject,
                 username: derivedUsername,
                 displayName: derivedDisplayName,
-                currency: 5,
+                currency: computedCurrency,
                 computer: {
                     shortcuts: [],
                 },
-                onboardingCompleted: false,
+                onboardingCompleted: guestSessionState.onboardingCompleted === true,
                 referralCode: newReferralCode,
                 referredBy: referrerId,
             });
             user = await ctx.db.get(id);
-
             if (user) {
-                const starterItem = await ctx.db
-                    .query("catalogItems")
-                    .withIndex("by_name", (q) => q.eq("name", "Computer"))
-                    .unique();
+                const {
+                    remainingCurrency,
+                    inventoryNames,
+                    catalogItems,
+                } = await importInventoryWithinBudget(ctx, user._id, guestInventory, computedCurrency);
 
-                if (starterItem) {
+                const starterItem = catalogItems.find((c) => c.name === "Computer");
+                if (starterItem && !inventoryNames.has("Computer")) {
                     await ctx.db.insert("inventory", {
                         userId: user._id,
                         catalogItemId: starterItem._id,
                         purchasedAt: Date.now(),
                     });
+                }
+
+                await ctx.db.patch(user._id, {
+                    currency: remainingCurrency,
+                    onboardingCompleted: guestSessionState.onboardingCompleted === true || user.onboardingCompleted === true,
+                });
+
+                // Create initial room seeded with guest room state if provided
+                const defaultTemplates = await ctx.db
+                    .query("roomTemplates")
+                    .withIndex("by_default", (q) => q.eq("isDefault", true))
+                    .collect();
+                const template = defaultTemplates[0];
+
+                if (template) {
+                    const catalogNames = new Set(catalogItems.map((c) => c.name));
+
+                    await seedRoomFromGuest(ctx, user._id, template._id, template.name, guestRoomItems, guestShortcuts, catalogNames);
                 }
             }
         }

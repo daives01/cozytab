@@ -6,12 +6,14 @@ interface InvitePanelProps {
     referralUrl: string | null;
     copied: boolean;
     onCopyReferral: () => void;
+    isGuest?: boolean;
 }
 
 export function InvitePanel({
     referralUrl,
     copied,
     onCopyReferral,
+    isGuest = false,
 }: InvitePanelProps) {
     const baseContainerClass =
         "bg-stone-50 w-full h-full overflow-hidden flex flex-col";
@@ -24,7 +26,11 @@ export function InvitePanel({
                     <span>Earn <strong>1 token</strong> when friends join!</span>
                 </div>
 
-                {referralUrl ? (
+                {isGuest ? (
+                    <div className="text-sm text-stone-600 font-medium">
+                        Log in to invite friends!
+                    </div>
+                ) : referralUrl ? (
                     <div className="space-y-2">
                         <div className="text-xs text-stone-500 font-medium">Your invite link:</div>
                         <div className="flex gap-2">

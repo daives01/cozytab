@@ -6,27 +6,53 @@ interface UseOnboardingOptions {
     user: { onboardingCompleted?: boolean } | null | undefined;
     isGuest: boolean;
     completeOnboarding: () => Promise<{ success: boolean }>;
+    guestOnboardingCompleted: boolean;
+    markGuestOnboardingComplete: () => void;
+    autoStart?: boolean;
 }
 
-export function useOnboarding({ user, isGuest, completeOnboarding }: UseOnboardingOptions) {
+export function useOnboarding({
+    user,
+    isGuest,
+    completeOnboarding,
+    guestOnboardingCompleted,
+    markGuestOnboardingComplete,
+    autoStart = true,
+}: UseOnboardingOptions) {
     const [onboardingStep, setOnboardingStep] = useState<OnboardingStep | null>(null);
     const [onboardingActive, setOnboardingActive] = useState(false);
     const onboardingInitialized = useRef(false);
 
+    // Kick off onboarding once per session when eligible
     useEffect(() => {
-        if (!isGuest && user && user.onboardingCompleted === false && !onboardingActive && !onboardingInitialized.current) {
+        if (!autoStart || onboardingInitialized.current) return;
+
+        const alreadyCompleted = isGuest ? guestOnboardingCompleted : user?.onboardingCompleted === true;
+        if (alreadyCompleted) {
             onboardingInitialized.current = true;
-            startTransition(() => {
-                setOnboardingActive(true);
-                setOnboardingStep("welcome");
-            });
-            setTimeout(() => {
-                startTransition(() => {
-                    setOnboardingStep("enter-edit-mode");
-                });
-            }, 3000);
+            return;
         }
-    }, [user, isGuest, onboardingActive]);
+
+        const shouldStart = (isGuest && !guestOnboardingCompleted) || (!isGuest && user && user.onboardingCompleted === false);
+        if (!shouldStart) return;
+
+        onboardingInitialized.current = true;
+        startTransition(() => {
+            setOnboardingActive(true);
+            setOnboardingStep("welcome");
+        });
+    }, [autoStart, guestOnboardingCompleted, isGuest, user]);
+
+    // Auto-advance from welcome to the first actionable step
+    useEffect(() => {
+        if (!onboardingActive || onboardingStep !== "welcome") return;
+        const timer = setTimeout(() => {
+            startTransition(() => {
+                setOnboardingStep("enter-edit-mode");
+            });
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [onboardingActive, onboardingStep]);
 
     const handleOnboardingComplete = useCallback(async () => {
         if (!onboardingActive) return;
@@ -34,8 +60,14 @@ export function useOnboarding({ user, isGuest, completeOnboarding }: UseOnboardi
         setOnboardingActive(false);
         setOnboardingStep(null);
         onboardingInitialized.current = true;
+
+        if (isGuest) {
+            markGuestOnboardingComplete();
+            return;
+        }
+
         await completeOnboarding().catch(() => {});
-    }, [completeOnboarding, onboardingActive]);
+    }, [completeOnboarding, onboardingActive, isGuest, markGuestOnboardingComplete]);
 
     const advanceOnboarding = useCallback(() => {
         if (onboardingStep && onboardingActive) {

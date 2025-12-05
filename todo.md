@@ -1,5 +1,1 @@
-[ ] add new "about" window in the computerscreen task bar
-[ ] fix daily reward
-[ ] remove darkening for onboarding
-[ ] add right click in computerscreen to add new shortcut from anywhere
-[ ] 
+[ ] as a guest, the computer opens in a "guest mode" that lets you change your name

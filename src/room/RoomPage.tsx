@@ -4,9 +4,6 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback } from "react";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { ItemNode } from "./ItemNode";
-import { ASSET_DRAWER_WIDTH, AssetDrawer } from "./AssetDrawer";
-import { TrashCan } from "./TrashCan";
-import { ComputerScreen } from "./ComputerScreen";
 import { MusicPlayerModal } from "./MusicPlayerModal";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { ShareModal } from "./ShareModal";
@@ -17,9 +14,7 @@ import { ChatInput } from "./ChatInput";
 import { Onboarding } from "./Onboarding";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
-import { Button } from "@/components/ui/button";
-import { SignInButton, useUser } from "@clerk/clerk-react";
-import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { useUser } from "@clerk/clerk-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 import { RoomCanvas } from "./RoomCanvas";
@@ -28,8 +23,38 @@ import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
+import { canSave, canShare, canUseComputer } from "./utils/sessionGuards";
+import { RoomToolbar } from "./RoomToolbar";
+import { EditDrawer } from "./EditDrawer";
+import { ComputerOverlay } from "./ComputerOverlay";
+import { clearGuestSession, readGuestSession, saveGuestSession } from "./guestSession";
+import { GUEST_STARTING_COINS, type GuestShortcut } from "../../shared/guestTypes";
 
 type Mode = "view" | "edit";
+
+const NORMALIZE_COLUMNS = 6;
+
+function normalizeGuestShortcuts(shortcuts: GuestShortcut[]): ComputerShortcut[] {
+    return shortcuts.map((shortcut, index) => {
+        const row =
+            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
+                ? shortcut.row
+                : Math.floor(index / NORMALIZE_COLUMNS);
+        const col =
+            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
+                ? shortcut.col
+                : index % NORMALIZE_COLUMNS;
+
+        return {
+            id: shortcut.id,
+            name: shortcut.name,
+            url: shortcut.url,
+            row,
+            col,
+            type: shortcut.type ?? "user",
+        };
+    });
+}
 
 interface RoomPageProps {
     isGuest?: boolean;
@@ -38,8 +63,10 @@ interface RoomPageProps {
 export function RoomPage({ isGuest = false }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
+    const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip");
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
+    const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
     const { user: clerkUser } = useUser();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
@@ -53,16 +80,26 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
 
+    const initialGuestSession = useMemo(() => (isGuest ? readGuestSession() : null), [isGuest]);
+
     const [mode, setMode] = useState<Mode>("view");
-    const [localItems, setLocalItems] = useState<RoomItem[]>([]);
+    const [localItems, setLocalItems] = useState<RoomItem[]>(() => initialGuestSession?.roomItems ?? []);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [localShortcuts, setLocalShortcuts] = useState<ComputerShortcut[]>([]);
+    const [localShortcuts, setLocalShortcuts] = useState<ComputerShortcut[]>(() =>
+        normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? [])
+    );
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
+    const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
+    const [guestOnboardingCompleted, setGuestOnboardingCompleted] = useState<boolean>(
+        () => initialGuestSession?.onboardingCompleted ?? false
+    );
+    const [guestCoins, setGuestCoins] = useState<number>(() => initialGuestSession?.coins ?? GUEST_STARTING_COINS);
+    const [guestInventory, setGuestInventory] = useState<string[]>(() => initialGuestSession?.inventoryIds ?? []);
     const containerRef = useRef<HTMLDivElement>(null);
     const lastRoomPositionRef = useRef<{ x: number; y: number }>({
         x: ROOM_WIDTH / 2,
@@ -70,6 +107,115 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     });
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     useCozyCursor(true);
+
+    const markGuestOnboardingComplete = useCallback(() => {
+        setGuestOnboardingCompleted(true);
+        saveGuestSession({ onboardingCompleted: true });
+    }, []);
+
+    const updateGuestCoins = useCallback(
+        (next: number | ((prev: number) => number)) => {
+            setGuestCoins((prev) => {
+                const value = typeof next === "function" ? (next as (p: number) => number)(prev) : next;
+                const session = saveGuestSession({ coins: value });
+                return session.coins;
+            });
+        },
+        []
+    );
+
+    const updateGuestInventory = useCallback((updater: (prev: string[]) => string[]) => {
+        setGuestInventory((prev) => {
+            const next = updater(prev);
+            saveGuestSession({ inventoryIds: next });
+            return next;
+        });
+    }, []);
+
+    const updateGuestShortcuts = useCallback(
+        (next: ComputerShortcut[]) => {
+            setLocalShortcuts(next);
+            if (isGuest) {
+                saveGuestSession({ shortcuts: next });
+            }
+        },
+        [isGuest]
+    );
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    useEffect(() => {
+        if (!isGuest || guestSessionLoaded) return;
+
+        const session = initialGuestSession ?? readGuestSession();
+
+        if (session.roomItems.length > 0) {
+             
+            setLocalItems(session.roomItems as RoomItem[]);
+        } else if (guestRoom?.items) {
+             
+            setLocalItems(guestRoom.items as RoomItem[]);
+        } else {
+            const templateItems = (guestTemplate as unknown as { items?: RoomItem[] } | undefined)?.items;
+            if (templateItems && templateItems.length > 0) {
+                 
+                setLocalItems(templateItems as RoomItem[]);
+            }
+        }
+
+        setGuestSessionLoaded(true);
+    }, [guestSessionLoaded, guestRoom, guestTemplate, initialGuestSession, isGuest]);
+    /* eslint-enable react-hooks/set-state-in-effect */
+
+    useEffect(() => {
+        if (!isGuest || !guestSessionLoaded) return;
+        saveGuestSession({ roomItems: localItems });
+    }, [isGuest, guestSessionLoaded, localItems]);
+
+    const guestDrawerItems = useMemo(() => {
+        if (!catalogItems) return undefined;
+        const computerCatalog = catalogItems.find((c) => c.name === "Computer");
+        if (!computerCatalog) return [];
+
+        return [
+            {
+                inventoryId: `guest-${computerCatalog._id ?? computerCatalog.name}`,
+                catalogItemId: computerCatalog.name,
+                name: computerCatalog.name,
+                assetUrl: computerCatalog.assetUrl,
+                category: computerCatalog.category,
+                hidden: false,
+            },
+            ...guestInventory
+                .map((id) => catalogItems.find((c) => c._id === id || c.name === id))
+                .filter((item): item is (typeof catalogItems)[number] => Boolean(item))
+                .map((item) => ({
+                    inventoryId: `guest-${item._id ?? item.name}`,
+                    catalogItemId: item.name,
+                    name: item.name,
+                    assetUrl: item.assetUrl,
+                    category: item.category,
+                    hidden: false,
+                })),
+        ];
+    }, [catalogItems, guestInventory]);
+
+    const reconciledGuestOnboarding = useRef(false);
+    useEffect(() => {
+        if (isGuest || reconciledGuestOnboarding.current || !user) return;
+
+        const guestCompleted = readGuestSession().onboardingCompleted;
+
+        if (guestCompleted) {
+            reconciledGuestOnboarding.current = true;
+            completeOnboarding()
+                .catch(() => {})
+                .finally(() => {
+                    clearGuestSession();
+                });
+        } else {
+            clearGuestSession();
+        }
+    }, [completeOnboarding, isGuest, user]);
 
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
@@ -112,10 +258,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, [computerState, isGuest]);
 
     useEffect(() => {
+        if (!canSave(isGuest)) return;
         if (mode === "edit" && room && debouncedSaveRef.current) {
             debouncedSaveRef.current(room._id, localItems);
         }
-    }, [localItems, mode, room]);
+    }, [isGuest, localItems, mode, room]);
 
     useDailyReward({
         user,
@@ -127,7 +274,33 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         user,
         isGuest,
         completeOnboarding,
+        guestOnboardingCompleted,
+        markGuestOnboardingComplete,
     });
+
+    const handleModeToggle = useCallback(() => {
+        if (mode === "edit") {
+            setMode("view");
+            setIsDrawerOpen(false);
+            if (onboardingStep === "switch-to-view") {
+                advanceOnboarding();
+            }
+        } else {
+            setMode("edit");
+            setIsDrawerOpen(true);
+            if (onboardingStep === "enter-edit-mode") {
+                advanceOnboarding();
+            }
+        }
+    }, [advanceOnboarding, mode, onboardingStep]);
+
+    const handleDrawerToggle = useCallback(() => {
+        const wasOpen = isDrawerOpen;
+        setIsDrawerOpen(!isDrawerOpen);
+        if (!wasOpen && onboardingStep === "open-storage") {
+            advanceOnboarding();
+        }
+    }, [advanceOnboarding, isDrawerOpen, onboardingStep]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -196,7 +369,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    if (isGuest && guestTemplate === undefined) {
+    if (isGuest && guestTemplate === undefined && guestRoom === undefined) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
                 Loading cozytab demo...
@@ -204,7 +377,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    if (isGuest && guestTemplate === null) {
+    if (isGuest && guestTemplate === null && guestRoom === null) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
                 No demo room found.
@@ -215,6 +388,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const musicItems = isGuest
         ? []
         : ((room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? []);
+
+    const shareAllowed = canShare(isGuest);
+    const computerGuard = canUseComputer(isGuest);
 
     const roomContent = (
         <>
@@ -236,11 +412,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onDragStart={() => setDraggedItemId(item.id)}
                     onDragEnd={() => setDraggedItemId(null)}
                     onComputerClick={() => {
-                        if (!isGuest && mode === "view") {
-                            setIsComputerOpen(true);
-                            if (onboardingStep === "click-computer") {
-                                advanceOnboarding();
-                            }
+                        if (mode !== "view") return;
+                        if (!computerGuard.allowOpen) return;
+                        setIsComputerOpen(true);
+                        if (onboardingStep === "click-computer") {
+                            advanceOnboarding();
                         }
                     }}
                     onMusicPlayerClick={() => {
@@ -276,145 +452,68 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     const overlays = (
         <>
-            <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
-                {isGuest ? (
-                    <SignInButton mode="modal">
-                        <Button size="lg" className="font-bold text-lg shadow-lg">
-                            <LogIn className="mr-2 h-5 w-5" />
-                            Login
-                        </Button>
-                    </SignInButton>
-                ) : (
-                    <>
-                        <div className="relative group">
-                            <button
-                                data-onboarding="mode-toggle"
-                                onClick={() => {
-                                    if (mode === "edit") {
-                                        setMode("view");
-                                        setIsDrawerOpen(false);
-                                        if (onboardingStep === "switch-to-view") {
-                                            advanceOnboarding();
-                                        }
-                                    } else {
-                                        setMode("edit");
-                                        setIsDrawerOpen(true);
-                                        if (onboardingStep === "enter-edit-mode") {
-                                            advanceOnboarding();
-                                        }
-                                    }
-                                }}
-                                className={`
-                                    relative h-14 w-14 rounded-full border-2 shadow-md active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all
-                                    flex items-center justify-center
-                                    ${mode === "view"
-                                        ? "bg-[var(--success)] border-[var(--ink)] text-white"
-                                        : "bg-[var(--warning)] border-[var(--ink)] text-[var(--ink)]"
-                                    }
-                                `}
-                            >
-                                {mode === "view" ? (
-                                    <Lock className="h-7 w-7" />
-                                ) : (
-                                    <LockOpen className="h-7 w-7" />
-                                )}
-                            </button>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                {mode === "view" ? "Edit" : "View"}
-                            </div>
-                        </div>
+            <RoomToolbar
+                isGuest={isGuest}
+                mode={mode}
+                onToggleMode={handleModeToggle}
+                shareAllowed={shareAllowed}
+                visitorCount={visitorCount}
+                onShareClick={() => setIsShareModalOpen(true)}
+            />
 
-                        {/* Share Button */}
-                        <div className="relative group">
-                            <button
-                                onClick={() => setIsShareModalOpen(true)}
-                                className="relative h-14 w-14 rounded-full border-2 border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)] shadow-md active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all flex items-center justify-center"
-                            >
-                                <Share2 className="h-7 w-7" />
-                                {visitorCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-[var(--success)] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white shadow-sm">
-                                        {visitorCount}
-                                    </span>
-                                )}
-                            </button>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                                Share
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
+            <EditDrawer
+                mode={mode}
+                isDrawerOpen={isDrawerOpen}
+                onDrawerToggle={handleDrawerToggle}
+                draggedItemId={draggedItemId}
+                onDeleteItem={(itemId) => {
+                    setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+                    setSelectedId((current) => (current === itemId ? null : current));
+                }}
+                highlightComputer={onboardingStep === "place-computer"}
+                isGuest={isGuest}
+                guestItems={guestDrawerItems}
+            />
 
-            {mode === "edit" && (
-                <div
-                    className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-                    style={{ right: isDrawerOpen ? `${ASSET_DRAWER_WIDTH}px` : "0px" }}
-                >
-                    <button
-                        data-onboarding="drawer-toggle"
-                        onClick={() => {
-                            const wasOpen = isDrawerOpen;
-                            setIsDrawerOpen(!isDrawerOpen);
-                            if (!wasOpen && onboardingStep === "open-storage") {
-                                advanceOnboarding();
-                            }
-                        }}
-                        className="bg-[var(--paper-header)] hover:bg-[var(--secondary)] text-[var(--ink)] h-16 w-8 rounded-l-lg border-y-2 border-l-2 border-[var(--ink)] shadow-md flex items-center justify-center transition-colors outline-none active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
-                    >
-                        {isDrawerOpen ? (
-                            <ChevronRight className="h-6 w-6" />
-                        ) : (
-                            <ChevronLeft className="h-6 w-6" />
-                        )}
-                    </button>
-                </div>
-            )}
-
-            {mode === "edit" && (
-                <AssetDrawer
-                    isOpen={isDrawerOpen}
-                    onDragStart={(e: React.DragEvent, id: string) => {
-                        e.dataTransfer.setData("catalogItemId", id);
-                    }}
-                    highlightComputer={onboardingStep === "place-computer"}
-                />
-            )}
-
-            {mode === "edit" && (
-                <TrashCan
-                    draggedItemId={draggedItemId}
-                    onDelete={(itemId) => {
-                        setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
-                        setSelectedId((current) => current === itemId ? null : current);
-                    }}
-                />
-            )}
-
-            {!isGuest && isComputerOpen && room && (
-                <ComputerScreen
-                    shortcuts={localShortcuts}
-                    onClose={() => setIsComputerOpen(false)}
-                    onUpdateShortcuts={(shortcuts) => {
+            <ComputerOverlay
+                isGuest={isGuest}
+                isComputerOpen={isComputerOpen}
+                onCloseComputer={() => setIsComputerOpen(false)}
+                shortcuts={localShortcuts}
+                onUpdateShortcuts={(shortcuts) => {
+                    if (isGuest) {
+                        updateGuestShortcuts(shortcuts);
+                    } else {
                         setLocalShortcuts(shortcuts);
                         saveComputer({ shortcuts });
-                    }}
-                    userCurrency={user?.currency ?? 0}
-                    lastDailyReward={user?.lastDailyReward}
-                    onShopOpened={() => {
-                        if (onboardingStep === "open-shop") {
-                            advanceOnboarding();
-                        }
-                    }}
-                    onOnboardingPurchase={() => {
-                        if (onboardingStep === "buy-item") {
-                            advanceOnboarding();
-                        }
-                    }}
-                    isOnboardingBuyStep={onboardingStep === "buy-item"}
-                    isOnboardingShopStep={onboardingStep === "open-shop"}
-                    onPointerMove={updateCursorFromClient}
-                />
-            )}
+                    }
+                }}
+                userCurrency={user?.currency ?? guestCoins ?? 0}
+                lastDailyReward={user?.lastDailyReward}
+                onShopOpened={() => {
+                    if (onboardingStep === "open-shop") {
+                        advanceOnboarding();
+                    }
+                }}
+                onOnboardingPurchase={() => {
+                    if (onboardingStep === "buy-item") {
+                        advanceOnboarding();
+                    }
+                }}
+                isOnboardingBuyStep={onboardingStep === "buy-item"}
+                isOnboardingShopStep={onboardingStep === "open-shop"}
+                onPointerMove={updateCursorFromClient}
+                guestCoins={guestCoins}
+                onGuestCoinsChange={(coins) => updateGuestCoins(coins)}
+                startingCoins={GUEST_STARTING_COINS}
+                guestInventory={guestInventory}
+                onGuestPurchase={(itemId) => {
+                    updateGuestInventory((prev) => {
+                        if (prev.includes(itemId)) return prev;
+                        return [...prev, itemId];
+                    });
+                }}
+            />
 
             {!isGuest && musicPlayerItemId && room && (() => {
                 const item = localItems.find((i) => i.id === musicPlayerItemId);
@@ -439,11 +538,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             )}
 
-            {!isGuest && onboardingActive && onboardingStep && (
+            {onboardingActive && onboardingStep && (
                 <Onboarding
                     currentStep={onboardingStep}
                     onComplete={handleOnboardingComplete}
                     onNext={advanceOnboarding}
+                    onSkip={handleOnboardingComplete}
+                    isGuest={isGuest}
                 />
             )}
 

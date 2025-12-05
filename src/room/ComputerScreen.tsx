@@ -15,12 +15,10 @@ import {
 import { useClerk } from "@clerk/clerk-react";
 import type { ComputerShortcut } from "../types";
 import type { Id } from "../../convex/_generated/dataModel";
-import { RoomsPanel } from "./computer/RoomsPanel";
-import { InvitePanel } from "./computer/InvitePanel";
-import { Shop } from "./Shop";
-import { AboutPanel } from "./computer/AboutPanel";
-
-type ComputerWindowApp = "shop" | "rooms" | "invite" | "about";
+import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import { WindowFrame } from "./computer/WindowFrame";
+import { ComputerWindowContent } from "./computer/ComputerWindowContent";
+import type { ComputerWindowApp } from "./computer/computerTypes";
 
 interface ComputerWindow {
     id: string;
@@ -172,6 +170,12 @@ interface ComputerScreenProps {
     isOnboardingBuyStep?: boolean;
     isOnboardingShopStep?: boolean; // For onboarding highlighting
     onPointerMove?: (clientX: number, clientY: number) => void;
+    isGuest?: boolean;
+    guestCoins?: number;
+    onGuestCoinsChange?: (coins: number) => void;
+    startingCoins?: number;
+    guestInventory?: string[];
+    onGuestPurchase?: (catalogItemId: string) => void;
 }
 
 export function ComputerScreen({
@@ -185,6 +189,12 @@ export function ComputerScreen({
     isOnboardingBuyStep,
     isOnboardingShopStep,
     onPointerMove,
+    isGuest = false,
+    guestCoins,
+    onGuestCoinsChange,
+    startingCoins = GUEST_STARTING_COINS,
+    guestInventory,
+    onGuestPurchase,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
@@ -233,9 +243,9 @@ export function ComputerScreen({
     } | null>(null);
     const windowsRef = useRef<ComputerWindow[]>([]);
     const { signOut } = useClerk();
-    const referralCode = useQuery(api.users.getMyReferralCode);
+    const referralCode = useQuery(api.users.getMyReferralCode, isGuest ? "skip" : undefined);
     const referralUrl = referralCode ? `${window.location.origin}/ref/${referralCode}` : null;
-    const myRooms = useQuery(api.rooms.getMyRooms);
+    const myRooms = useQuery(api.rooms.getMyRooms, isGuest ? "skip" : undefined);
     const setActiveRoom = useMutation(api.rooms.setActiveRoom);
     const [switchingRoom, setSwitchingRoom] = useState<Id<"rooms"> | null>(null);
 
@@ -289,53 +299,6 @@ export function ComputerScreen({
     }, [recomputeScale]);
 
     useEffect(() => {
-        const handleKey = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement | null;
-            const isTypingTarget =
-                target &&
-                (target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.getAttribute("contenteditable") === "true");
-
-            if (e.key === "Escape") {
-                setIsStartMenuOpen(false);
-                setContextMenu(null);
-                if (renamingId) {
-                    cancelRename();
-                }
-                if (inlineAddPrompt) {
-                    setInlineAddPrompt(null);
-                    setPendingShortcutPosition(null);
-                    setNewShortcutUrl("");
-                }
-                return;
-            }
-
-            if (e.key === "Enter") {
-                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
-                const selected = desktopShortcuts.find((s) => s.id === selectedId);
-                if (selected) {
-                    e.preventDefault();
-                    setContextMenu(null);
-                    setIsStartMenuOpen(false);
-                    handleOpenShortcut(selected);
-                }
-            }
-
-            if (e.key === "Backspace" || e.key === "Delete") {
-                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
-                const selected = desktopShortcuts.find((s) => s.id === selectedId);
-                if (selected && selected.type !== "system") {
-                    e.preventDefault();
-                    handleDeleteShortcut(selected.id);
-                }
-            }
-        };
-        window.addEventListener("keydown", handleKey);
-        return () => window.removeEventListener("keydown", handleKey);
-    }, [cancelRename, desktopShortcuts, draggingId, inlineAddPrompt, renamingId, selectedId]);
-
-    useEffect(() => {
         windowsRef.current = windows;
     }, [windows]);
 
@@ -359,26 +322,40 @@ export function ComputerScreen({
         return /^https?:\/\//i.test(url) ? url : `https://${url}`;
     };
 
-    const normalizeAndSave = (next: ComputerShortcut[]) => {
-        const normalized = normalizeShortcuts(next);
-        onUpdateShortcuts(normalized);
-    };
+    const normalizeAndSave = useCallback(
+        (next: ComputerShortcut[]) => {
+            const normalized = normalizeShortcuts(next);
+            onUpdateShortcuts(normalized);
+        },
+        [onUpdateShortcuts]
+    );
 
-    const getDesktopBounds = () => desktopRef.current?.getBoundingClientRect() ?? null;
+    const cancelRename = useCallback(() => {
+        setRenamingId(null);
+        setRenameValue("");
+    }, []);
 
-    const clampWindow = <T extends ComputerWindow>(win: T): T => {
-        const bounds = getDesktopBounds();
-        if (!bounds) return win;
-        const maxX = Math.max(0, bounds.width - win.width);
-        const maxY = Math.max(0, bounds.height - win.height);
-        return {
-            ...win,
-            x: Math.min(Math.max(0, win.x), maxX),
-            y: Math.min(Math.max(0, win.y), maxY),
-            width: Math.min(Math.max(MIN_WINDOW_WIDTH, win.width), bounds.width),
-            height: Math.min(Math.max(MIN_WINDOW_HEIGHT, win.height), bounds.height),
-        } as T;
-    };
+    const getDesktopBounds = useCallback(
+        () => desktopRef.current?.getBoundingClientRect() ?? null,
+        []
+    );
+
+    const clampWindow = useCallback(
+        <T extends ComputerWindow>(win: T): T => {
+            const bounds = getDesktopBounds();
+            if (!bounds) return win;
+            const maxX = Math.max(0, bounds.width - win.width);
+            const maxY = Math.max(0, bounds.height - win.height);
+            return {
+                ...win,
+                x: Math.min(Math.max(0, win.x), maxX),
+                y: Math.min(Math.max(0, win.y), maxY),
+                width: Math.min(Math.max(MIN_WINDOW_WIDTH, win.width), bounds.width),
+                height: Math.min(Math.max(MIN_WINDOW_HEIGHT, win.height), bounds.height),
+            } as T;
+        },
+        [getDesktopBounds]
+    );
 
     const bringToFront = (id: string) => {
         const nextZ = zCounterRef.current + 1;
@@ -526,7 +503,7 @@ export function ComputerScreen({
                 forwardPointerMove(event.clientX, event.clientY);
             }
         },
-        [clampWindow, forwardPointerMove]
+        [clampWindow, forwardPointerMove, getDesktopBounds]
     );
 
     const stopWindowInteractions = useCallback(() => {
@@ -605,17 +582,62 @@ export function ComputerScreen({
         setRenameValue(initialName);
     };
 
-    const handleDeleteShortcut = (id: string) => {
-        const target = desktopShortcuts.find((s) => s.id === id);
-        if (!target || target.type === "system") return;
-        normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
-        setContextMenu(null);
-    };
+    const handleDeleteShortcut = useCallback(
+        (id: string) => {
+            const target = desktopShortcuts.find((s) => s.id === id);
+            if (!target || target.type === "system") return;
+            normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
+            setContextMenu(null);
+        },
+        [desktopShortcuts, normalizeAndSave]
+    );
 
-    function cancelRename() {
-        setRenamingId(null);
-        setRenameValue("");
-    }
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const isTypingTarget =
+                target &&
+                (target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.getAttribute("contenteditable") === "true");
+
+            if (e.key === "Escape") {
+                setIsStartMenuOpen(false);
+                setContextMenu(null);
+                if (renamingId) {
+                    cancelRename();
+                }
+                if (inlineAddPrompt) {
+                    setInlineAddPrompt(null);
+                    setPendingShortcutPosition(null);
+                    setNewShortcutUrl("");
+                }
+                return;
+            }
+
+            if (e.key === "Enter") {
+                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
+                const selected = desktopShortcuts.find((s) => s.id === selectedId);
+                if (selected) {
+                    e.preventDefault();
+                    setContextMenu(null);
+                    setIsStartMenuOpen(false);
+                    handleOpenShortcut(selected);
+                }
+            }
+
+            if (e.key === "Backspace" || e.key === "Delete") {
+                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
+                const selected = desktopShortcuts.find((s) => s.id === selectedId);
+                if (selected && selected.type !== "system") {
+                    e.preventDefault();
+                    handleDeleteShortcut(selected.id);
+                }
+            }
+        };
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [cancelRename, desktopShortcuts, draggingId, handleDeleteShortcut, inlineAddPrompt, renamingId, selectedId]);
 
     function commitRename(id: string) {
         const target = desktopShortcuts.find((s) => s.id === id);
@@ -660,6 +682,7 @@ export function ComputerScreen({
     };
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
+        if (isGuest) return;
         setSwitchingRoom(roomId);
         try {
             await setActiveRoom({ roomId });
@@ -914,71 +937,49 @@ export function ComputerScreen({
 
                             <div className="absolute inset-0 pointer-events-none">
                                 {windows.map((win) => (
-                                    <div
+                                    <WindowFrame
                                         key={win.id}
-                                        data-window
-                                        className={`absolute pointer-events-auto rounded-xl shadow-2xl flex flex-col overflow-hidden bg-stone-50 transition-shadow ${activeWindowId === win.id
-                                                ? "ring-2 ring-blue-200 border-2 border-stone-700 shadow-[8px_10px_0_rgba(0,0,0,0.2)]"
-                                                : "ring-1 ring-stone-200 border-2 border-stone-500"
-                                            }`}
-                                        style={{
-                                            top: win.y,
-                                            left: win.x,
-                                            width: win.width,
-                                            height: win.height,
-                                            zIndex: 50 + win.z,
-                                        }}
+                                        id={win.id}
+                                        title={win.title}
+                                        x={win.x}
+                                        y={win.y}
+                                        width={win.width}
+                                        height={win.height}
+                                        zIndex={50 + win.z}
+                                        accent={WINDOW_ACCENTS[win.app]}
+                                        isActive={activeWindowId === win.id}
                                         onPointerDown={() => handleWindowPointerDown(win.id)}
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClose={() => closeWindow(win.id)}
+                                        onStartDrag={(e) => startDragWindow(win.id, e)}
+                                        onStartResize={(e) => startResizeWindow(win.id, e)}
                                     >
-                                        <div
-                                            className={`flex items-center justify-between px-3 py-2 text-white text-sm font-bold select-none bg-gradient-to-r ${WINDOW_ACCENTS[win.app]} shadow-sm cursor-grab active:cursor-grabbing`}
-                                            onPointerDown={(e) => startDragWindow(win.id, e)}
-                                        >
-                                            <span className="truncate">{win.title}</span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    closeWindow(win.id);
-                                                }}
-                                                className="w-7 h-7 flex items-center justify-center rounded-sm bg-white/20 hover:bg-red-500 hover:text-white border border-white/40"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex-1 bg-white/90 overflow-hidden p-2">
-                                            {win.app === "shop" ? (
-                                                <Shop
-                                                    userCurrency={userCurrency}
-                                                    lastDailyReward={lastDailyReward}
-                                                    isOnboardingBuyStep={isOnboardingBuyStep}
-                                                    onOnboardingPurchase={onOnboardingPurchase}
-                                                />
-                                            ) : win.app === "rooms" ? (
-                                                <RoomsPanel
-                                                    myRooms={myRooms}
-                                                    switchingRoom={switchingRoom}
-                                                    onSwitchRoom={(roomId) =>
-                                                        handleSwitchRoom(roomId, win.id)
-                                                    }
-                                                />
-                                            ) : win.app === "invite" ? (
-                                                <InvitePanel
-                                                    referralUrl={referralUrl}
-                                                    copied={copied}
-                                                    onCopyReferral={handleCopyReferral}
-                                                />
-                                            ) : (
-                                                <AboutPanel />
-                                            )}
-                                        </div>
-
-                                        <div
-                                            className="absolute bottom-1 right-1 w-4 h-4 border-2 border-stone-400 bg-stone-200/80 rounded-sm cursor-se-resize"
-                                            onPointerDown={(e) => startResizeWindow(win.id, e)}
+                                        <ComputerWindowContent
+                                            app={win.app}
+                                            shopProps={{
+                                                userCurrency,
+                                                lastDailyReward,
+                                                isOnboardingBuyStep,
+                                                onOnboardingPurchase,
+                                                isGuest,
+                                                guestCoins,
+                                                onGuestCoinsChange,
+                                                startingCoins,
+                                                guestOwnedIds: guestInventory,
+                                                onGuestPurchase,
+                                            }}
+                                            roomsProps={{
+                                                myRooms: myRooms ?? [],
+                                                switchingRoom,
+                                                onSwitchRoom: (roomId) => handleSwitchRoom(roomId, win.id),
+                                            }}
+                                            inviteProps={{
+                                                referralUrl,
+                                                copied,
+                                                onCopyReferral: handleCopyReferral,
+                                                isGuest,
+                                            }}
                                         />
-                                    </div>
+                                    </WindowFrame>
                                 ))}
                             </div>
                         </div>

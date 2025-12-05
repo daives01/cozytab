@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
 import { AdminPage } from "./admin/AdminPage";
+import { clearGuestSession, readGuestSession } from "./room/guestSession";
 
 const REFERRAL_CODE_KEY = "cozytab_referral_code";
 
@@ -56,10 +57,23 @@ function AuthenticatedApp() {
     if (user === null && isLoaded) {
       const username = clerkUser?.username ?? "User";
       const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
-      ensureUser({ username, referralCode: referralCode ?? undefined });
+      const guestSession = readGuestSession();
+
+      ensureUser({
+        username,
+        referralCode: referralCode ?? undefined,
+        guestSession: {
+          coins: guestSession.coins,
+          inventoryIds: guestSession.inventoryIds,
+          roomItems: guestSession.roomItems,
+          shortcuts: guestSession.shortcuts,
+          onboardingCompleted: guestSession.onboardingCompleted,
+        },
+      });
       if (referralCode) {
         sessionStorage.removeItem(REFERRAL_CODE_KEY);
       }
+      clearGuestSession();
     }
   }, [user, ensureUser, clerkUser, isLoaded]);
 

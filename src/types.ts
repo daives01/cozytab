@@ -31,3 +31,5 @@ export interface ComputerShortcut {
     col: number;
     type?: ShortcutType; // Defaults to "user" if omitted
 }
+
+export type { GuestRoomItem, GuestSessionState, GuestShortcut } from "../shared/guestTypes";

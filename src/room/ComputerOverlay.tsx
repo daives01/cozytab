@@ -1,0 +1,67 @@
+import type { ComputerShortcut } from "../types";
+import { ComputerScreen } from "./ComputerScreen";
+
+interface ComputerOverlayProps {
+    isGuest: boolean;
+    isComputerOpen: boolean;
+    onCloseComputer: () => void;
+    shortcuts: ComputerShortcut[];
+    onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    userCurrency: number;
+    lastDailyReward?: number;
+    onShopOpened?: () => void;
+    onOnboardingPurchase?: () => void;
+    isOnboardingBuyStep: boolean;
+    isOnboardingShopStep: boolean;
+    onPointerMove: (clientX: number, clientY: number) => void;
+    guestCoins?: number;
+    onGuestCoinsChange?: (coins: number) => void;
+    startingCoins: number;
+    guestInventory: string[];
+    onGuestPurchase: (catalogItemId: string) => void;
+}
+
+export function ComputerOverlay({
+    isGuest,
+    isComputerOpen,
+    onCloseComputer,
+    shortcuts,
+    onUpdateShortcuts,
+    userCurrency,
+    lastDailyReward,
+    onShopOpened,
+    onOnboardingPurchase,
+    isOnboardingBuyStep,
+    isOnboardingShopStep,
+    onPointerMove,
+    guestCoins,
+    onGuestCoinsChange,
+    startingCoins,
+    guestInventory,
+    onGuestPurchase,
+}: ComputerOverlayProps) {
+    return (
+        <>
+            {isComputerOpen && (
+                <ComputerScreen
+                    shortcuts={shortcuts}
+                    onClose={onCloseComputer}
+                    onUpdateShortcuts={onUpdateShortcuts}
+                    userCurrency={userCurrency}
+                    lastDailyReward={lastDailyReward}
+                    onShopOpened={onShopOpened}
+                    onOnboardingPurchase={onOnboardingPurchase}
+                    isOnboardingBuyStep={isOnboardingBuyStep}
+                    isOnboardingShopStep={isOnboardingShopStep}
+                    onPointerMove={onPointerMove}
+                    isGuest={isGuest}
+                    guestCoins={guestCoins}
+                    onGuestCoinsChange={onGuestCoinsChange}
+                    startingCoins={startingCoins}
+                    guestInventory={guestInventory}
+                    onGuestPurchase={onGuestPurchase}
+                />
+            )}
+        </>
+    );
+}

@@ -3,8 +3,10 @@ import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { Coins, Home, Package } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
 import { ItemsTab } from "./shop/ItemsTab";
 import { RoomsTab } from "./shop/RoomsTab";
+import { purchaseWithBudget } from "./utils/sessionGuards";
 
 type ShopTab = "items" | "rooms";
 
@@ -13,6 +15,12 @@ interface ShopProps {
     lastDailyReward?: number;
     isOnboardingBuyStep?: boolean;
     onOnboardingPurchase?: () => void;
+    isGuest?: boolean;
+    guestCoins?: number;
+    onGuestCoinsChange?: (coins: number) => void;
+    startingCoins?: number;
+    guestOwnedIds?: string[];
+    onGuestPurchase?: (catalogItemId: string) => void;
 }
 
 function groupByCategory(items: Doc<"catalogItems">[]) {
@@ -51,24 +59,49 @@ export function Shop({
     lastDailyReward,
     isOnboardingBuyStep,
     onOnboardingPurchase,
+    isGuest = false,
+    guestCoins,
+    onGuestCoinsChange,
+    startingCoins = GUEST_STARTING_COINS,
+    guestOwnedIds,
+    onGuestPurchase,
 }: ShopProps) {
     const [activeTab, setActiveTab] = useState<ShopTab>("items");
     const catalogItems = useQuery(api.catalog.list);
-    const ownedItemIds = useQuery(api.inventory.getMyInventoryIds);
-    const referralStats = useQuery(api.users.getReferralStats);
+    const ownedItemIds = useQuery(api.inventory.getMyInventoryIds, isGuest ? "skip" : undefined);
+    const referralStats = useQuery(api.users.getReferralStats, isGuest ? "skip" : undefined);
     const purchaseItem = useMutation(api.inventory.purchaseItem);
     const [purchasing, setPurchasing] = useState<Id<"catalogItems"> | null>(null);
     const [lastResult, setLastResult] = useState<{ itemId: Id<"catalogItems">; message: string; success: boolean } | null>(null);
     const roomTemplates = useQuery(api.roomTemplates.list);
-    const ownedTemplateIds = useQuery(api.roomTemplates.listOwnedTemplateIds);
+    const ownedTemplateIds = useQuery(api.roomTemplates.listOwnedTemplateIds, isGuest ? "skip" : undefined);
     const purchaseRoom = useMutation(api.roomTemplates.purchaseRoom);
     const [purchasingRoom, setPurchasingRoom] = useState<Id<"roomTemplates"> | null>(null);
     const [lastRoomResult, setLastRoomResult] = useState<{ templateId: Id<"roomTemplates">; message: string; success: boolean } | null>(null);
+
+    const effectiveCoins = isGuest ? Math.max(0, Math.min(guestCoins ?? startingCoins, startingCoins)) : userCurrency;
 
     const handlePurchase = async (itemId: Id<"catalogItems">) => {
         setPurchasing(itemId);
         setLastResult(null);
         try {
+            if (isGuest) {
+                const item = catalogItems?.find((c) => c._id === itemId);
+                const cost = item?.basePrice ?? 0;
+                const budget = purchaseWithBudget(effectiveCoins, cost);
+                if (!budget.canPurchase) {
+                    setLastResult({ itemId, message: "Not enough coins. Log in to keep purchases.", success: false });
+                    return;
+                }
+                onGuestCoinsChange?.(budget.remaining);
+                onGuestPurchase?.(itemId);
+                setLastResult({ itemId, message: "Log in to keep purchases.", success: true });
+                if (onOnboardingPurchase) {
+                    onOnboardingPurchase();
+                }
+                return;
+            }
+
             const result = await purchaseItem({ catalogItemId: itemId });
             setLastResult({ itemId, message: result.message || "Purchase successful!", success: result.success });
             if (result.success && onOnboardingPurchase) {
@@ -85,6 +118,15 @@ export function Shop({
         setPurchasingRoom(templateId);
         setLastRoomResult(null);
         try {
+            if (isGuest) {
+                setLastRoomResult({
+                    templateId,
+                    message: "Log in to keep purchases.",
+                    success: false,
+                });
+                return;
+            }
+
             const result = await purchaseRoom({ templateId });
             setLastRoomResult({ 
                 templateId, 
@@ -98,7 +140,10 @@ export function Shop({
         }
     };
 
-    const ownedSet = new Set(ownedItemIds || []);
+    const guestOwnedSet = new Set(
+        (guestOwnedIds || []).map((id) => id as Id<"catalogItems">)
+    );
+    const ownedSet = new Set([...(ownedItemIds || []), ...guestOwnedSet]);
     const ownedTemplateSet = new Set(ownedTemplateIds || []);
     const groupedItems = catalogItems ? groupByCategory(catalogItems) : {};
     const categories = Object.keys(groupedItems).sort();
@@ -193,11 +238,18 @@ export function Shop({
                     <div className="flex items-center gap-3">
                         <div className="flex flex-col items-end leading-tight">
                             <span className="text-xs font-bold text-[var(--ink)]">{nextRewardText}</span>
-                            <span className="text-[10px] font-semibold text-[var(--ink-subtle)]">{referralText}</span>
+                            <span className="text-[10px] font-semibold text-[var(--ink-subtle)]">
+                                {referralText}
+                            </span>
+                            {isGuest && (
+                                <span className="text-[10px] font-semibold text-[var(--ink-muted)]">
+                                    Log in to keep purchases.
+                                </span>
+                            )}
                         </div>
                         <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-3 py-1 border-2 border-[var(--ink)] shadow-sm">
                             <Coins className="h-4 w-4 text-[var(--warning)]" />
-                            <span className="font-bold text-sm text-[var(--ink)]">{userCurrency}</span>
+                            <span className="font-bold text-sm text-[var(--ink)]">{effectiveCoins}</span>
                         </div>
                     </div>
                 </div>
@@ -214,7 +266,7 @@ export function Shop({
                         groupedItems={groupedItems}
                         categories={categories}
                         ownedSet={ownedSet}
-                        userCurrency={userCurrency}
+                        userCurrency={effectiveCoins}
                         purchasing={purchasing}
                         lastResult={lastResult}
                         isOnboardingBuyStep={isOnboardingBuyStep}

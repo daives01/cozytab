@@ -9,10 +9,21 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { AssetImage } from "../components/AssetImage";
 import { ChevronDown, Eye, EyeOff, Package } from "lucide-react";
 
+type GuestDrawerItem = {
+    inventoryId: Id<"inventory"> | string;
+    catalogItemId: string;
+    name: string;
+    assetUrl: string;
+    category: string;
+    hidden?: boolean;
+};
+
 interface AssetDrawerProps {
     isOpen: boolean;
     onDragStart: (e: React.DragEvent, id: string) => void;
     highlightComputer?: boolean;
+    isGuest?: boolean;
+    guestItems?: GuestDrawerItem[] | undefined;
 }
 
 export const ASSET_DRAWER_WIDTH = 260;
@@ -47,17 +58,20 @@ const SectionHeader = ({
     </button>
 );
 
-export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDrawerProps) {
-    const inventoryItems = useQuery(api.inventory.getMyInventory);
+export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = false, guestItems }: AssetDrawerProps) {
+    const inventoryItems = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : undefined);
     const setHiddenMutation = useMutation(api.inventory.setHidden);
-    const isLoading = inventoryItems === undefined;
+    const isLoading = isGuest ? guestItems === undefined : inventoryItems === undefined;
     const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
         hidden: true,
     });
-    const [pendingHides, setPendingHides] = useState<Record<Id<"inventory">, boolean>>({});
+    const [pendingHides, setPendingHides] = useState<Record<string, boolean>>({});
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
-    const items = inventoryItems ?? [];
+    const items: GuestDrawerItem[] = useMemo(
+        () => (isGuest ? guestItems : inventoryItems) ?? [],
+        [guestItems, inventoryItems, isGuest]
+    );
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
 
     const toggleSection = (key: string) => {
@@ -65,19 +79,21 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
     };
 
     const handleToggleHidden = useCallback(
-        async (inventoryId: Id<"inventory">, nextHidden: boolean) => {
-            setPendingHides((prev) => ({ ...prev, [inventoryId]: true }));
+        async (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => {
+            if (isGuest) return;
+            const key = String(inventoryId);
+            setPendingHides((prev) => ({ ...prev, [key]: true }));
             try {
-                await setHiddenMutation({ inventoryId, hidden: nextHidden });
+                await setHiddenMutation({ inventoryId: inventoryId as Id<"inventory">, hidden: nextHidden });
             } finally {
                 setPendingHides((prev) => {
                     const updated = { ...prev };
-                    delete updated[inventoryId];
+                    delete updated[key];
                     return updated;
                 });
             }
         },
-        [setHiddenMutation]
+        [isGuest, setHiddenMutation]
     );
 
     const categories = useMemo(
@@ -107,23 +123,23 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
     );
 
     const handleUnhideAll = useCallback(async () => {
-        if (hiddenItems.length === 0) return;
+        if (isGuest || hiddenItems.length === 0) return;
         setIsBulkUnhiding(true);
         try {
             await Promise.all(
                 hiddenItems.map((item) =>
-                    setHiddenMutation({ inventoryId: item.inventoryId, hidden: false })
+                    setHiddenMutation({ inventoryId: item.inventoryId as Id<"inventory">, hidden: false })
                 )
             );
         } finally {
             setIsBulkUnhiding(false);
         }
-    }, [hiddenItems, setHiddenMutation]);
+    }, [hiddenItems, isGuest, setHiddenMutation]);
 
     const renderItemCard = (item: (typeof items)[number]) => {
         const categoryKey = item.category.toLowerCase();
         const isComputer = categoryKey.includes("computer");
-        const isPending = pendingHides[item.inventoryId];
+        const isPending = pendingHides[String(item.inventoryId)];
         const cardPadding = "p-2";
 
         return (
@@ -151,22 +167,24 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
                         className="object-contain w-full h-full"
                         draggable={false}
                     />
-                    <button
-                        type="button"
-                        className={`opacity-0 group-hover:opacity-100 absolute right-1.5 top-1.5 inline-flex items-center justify-center rounded-full border-2 bg-white/90 px-2 py-2 text-[var(--ink)] shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--secondary)] ${
-                            item.hidden ? "border-[var(--warning)]/70" : "border-[var(--ink)]/20"
-                        } ${isPending ? "opacity-60" : ""}`}
-                        onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            handleToggleHidden(item.inventoryId, !item.hidden);
-                        }}
-                        disabled={isPending}
-                        aria-label={item.hidden ? "Unhide item" : "Hide item"}
-                        title={item.hidden ? "Unhide" : "Hide"}
-                    >
-                        {item.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </button>
+                    {!isGuest && (
+                        <button
+                            type="button"
+                            className={`opacity-0 group-hover:opacity-100 absolute right-1.5 top-1.5 inline-flex items-center justify-center rounded-full border-2 bg-white/90 px-2 py-2 text-[var(--ink)] shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--secondary)] ${
+                                item.hidden ? "border-[var(--warning)]/70" : "border-[var(--ink)]/20"
+                            } ${isPending ? "opacity-60" : ""}`}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleToggleHidden(item.inventoryId, !item.hidden);
+                            }}
+                            disabled={isPending}
+                            aria-label={item.hidden ? "Unhide item" : "Hide item"}
+                            title={item.hidden ? "Unhide" : "Hide"}
+                        >
+                            {item.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </button>
+                    )}
                 </div>
                 <div className="mt-1 border-t border-dashed border-[var(--ink)]/15 pt-1">
                     <div
@@ -247,40 +265,42 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
                                 </div>
                             )}
 
-                            <div className="space-y-2 pt-1">
-                                <SectionHeader
-                                    title="Hidden"
-                                    count={hiddenItems.length}
-                                    collapsed={collapsedSections.hidden ?? true}
-                                    onToggle={() => toggleSection("hidden")}
-                                />
-                                {!(collapsedSections.hidden ?? true) && (
-                                    <div className="space-y-3">
-                                        {hiddenItems.length > 0 ? (
-                                            <>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {hiddenItems.map((item) => renderItemCard(item))}
+                            {!isGuest && (
+                                <div className="space-y-2 pt-1">
+                                    <SectionHeader
+                                        title="Hidden"
+                                        count={hiddenItems.length}
+                                        collapsed={collapsedSections.hidden ?? true}
+                                        onToggle={() => toggleSection("hidden")}
+                                    />
+                                    {!(collapsedSections.hidden ?? true) && (
+                                        <div className="space-y-3">
+                                            {hiddenItems.length > 0 ? (
+                                                <>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {hiddenItems.map((item) => renderItemCard(item))}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="secondary"
+                                                            onClick={handleUnhideAll}
+                                                            disabled={isBulkUnhiding}
+                                                            className="w-full text-[var(--ink)]"
+                                                        >
+                                                            {isBulkUnhiding ? "Unhiding..." : "Unhide all"}
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center text-xs text-[var(--ink-muted)] py-3">
+                                                    No hidden items yet.
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="secondary"
-                                                        onClick={handleUnhideAll}
-                                                        disabled={isBulkUnhiding}
-                                                        className="w-full text-[var(--ink)]"
-                                                    >
-                                                        {isBulkUnhiding ? "Unhiding..." : "Unhide all"}
-                                                    </Button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="text-center text-xs text-[var(--ink-muted)] py-3">
-                                                No hidden items yet.
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="p-4 flex flex-col items-center gap-3 text-center">
