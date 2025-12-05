@@ -7,6 +7,22 @@ export default defineSchema({
         username: v.string(),
         displayName: v.optional(v.string()),
         currency: v.number(),
+        computer: v.optional(
+            v.object({
+                shortcuts: v.array(
+                    v.object({
+                        id: v.string(),
+                        name: v.string(),
+                        url: v.string(),
+                        row: v.number(),
+                        col: v.number(),
+                        type: v.optional(
+                            v.union(v.literal("user"), v.literal("system"))
+                        ),
+                    })
+                ),
+            })
+        ),
         lastDailyReward: v.optional(v.number()), // timestamp of last reward
         onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
         referralCode: v.string(), // unique code for sharing

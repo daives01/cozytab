@@ -58,7 +58,7 @@ export function ShortcutsEditor({
                 </button>
 
                 <div className="flex items-center gap-3">
-                    <span className="text-xs text-stone-500">Click delete icons on shortcuts to remove</span>
+                    <span className="text-xs text-stone-500">Right-click a shortcut to delete it</span>
                     <button
                         onClick={() => signOut()}
                         className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"

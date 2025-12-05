@@ -118,6 +118,9 @@ export const ensureUser = mutation({
                 username: args.username,
                 displayName: identity.name ?? args.username,
                 currency: 5,
+                computer: {
+                    shortcuts: [],
+                },
                 onboardingCompleted: false,
                 referralCode: newReferralCode,
                 referredBy: referrerId,
@@ -196,5 +199,140 @@ export const claimDailyReward = mutation({
         });
 
         return { success: true, newBalance: user.currency + 1 };
+    },
+});
+
+const GRID_COLUMNS = 6;
+
+function normalizeShortcutsWithGrid<
+    T extends {
+        id: string;
+        name: string;
+        url: string;
+        row?: number;
+        col?: number;
+        type?: "user" | "system";
+    }
+>(shortcuts: T[]) {
+    const occupied = new Set<string>();
+
+    const clamp = (value: number) => Math.max(0, Math.round(value));
+
+    return shortcuts.map((shortcut, index) => {
+        let row =
+            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
+                ? clamp(shortcut.row)
+                : Math.floor(index / GRID_COLUMNS);
+        let col =
+            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
+                ? clamp(shortcut.col)
+                : index % GRID_COLUMNS;
+
+        // Resolve collisions by walking forward in row-major order
+        while (occupied.has(`${row}-${col}`)) {
+            col++;
+            if (col >= GRID_COLUMNS) {
+                col = 0;
+                row++;
+            }
+        }
+        occupied.add(`${row}-${col}`);
+
+        return {
+            ...shortcut,
+            row,
+            col,
+            type: shortcut.type ?? "user",
+        };
+    });
+}
+
+export const getMyComputer = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user) return null;
+
+        // If user has computer state, ensure it has grid positions
+        if (user.computer) {
+            const needsNormalization = user.computer.shortcuts.some(
+                (shortcut) =>
+                    typeof shortcut.row !== "number" ||
+                    typeof shortcut.col !== "number"
+            );
+
+            if (needsNormalization) {
+                const normalized = normalizeShortcutsWithGrid(
+                    user.computer.shortcuts
+                );
+                return { shortcuts: normalized };
+            }
+
+            return user.computer;
+        }
+
+        // Migrate from the active room shortcuts if present
+        const rooms = await ctx.db
+            .query("rooms")
+            .withIndex("by_user_active", (q) =>
+                q.eq("userId", user._id).eq("isActive", true)
+            )
+            .collect();
+        const activeRoom = rooms[0];
+        const migrated =
+            activeRoom?.shortcuts && activeRoom.shortcuts.length > 0
+                ? normalizeShortcutsWithGrid(activeRoom.shortcuts)
+                : [];
+
+        const computerState = { shortcuts: migrated };
+
+        return computerState;
+    },
+});
+
+export const saveMyComputer = mutation({
+    args: {
+        shortcuts: v.array(
+            v.object({
+                id: v.string(),
+                name: v.string(),
+                url: v.string(),
+                row: v.number(),
+                col: v.number(),
+                type: v.optional(
+                    v.union(v.literal("user"), v.literal("system"))
+                ),
+            })
+        ),
+    },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const normalized = normalizeShortcutsWithGrid(args.shortcuts);
+
+        await ctx.db.patch(user._id, {
+            computer: { shortcuts: normalized },
+        });
+
+        return { success: true };
     },
 });

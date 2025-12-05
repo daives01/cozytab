@@ -1,15 +1,14 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useEffect, useState, useMemo, type DragEvent, useRef } from "react";
-import type { RoomItem, Shortcut } from "../types";
+import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback } from "react";
+import type { RoomItem, ComputerShortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { ASSET_DRAWER_WIDTH, AssetDrawer } from "./AssetDrawer";
 import { TrashCan } from "./TrashCan";
 import { ComputerScreen } from "./ComputerScreen";
 import { MusicPlayerModal } from "./MusicPlayerModal";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
-import { Shop } from "./Shop";
 import { ShareModal } from "./ShareModal";
 import { PresenceCursor } from "./PresenceCursor";
 import { LocalCursor } from "./LocalCursor";
@@ -57,7 +56,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const { user: clerkUser } = useUser();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
-    const saveShortcuts = useMutation(api.rooms.saveShortcuts);
+    const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
+    const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const backgroundUrl = useResolvedBackgroundUrl(room?.template?.backgroundUrl);
 
@@ -71,11 +71,14 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const [scale, setScale] = useState(1);
     const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
     const [isComputerOpen, setIsComputerOpen] = useState(false);
-    const [isShopOpen, setIsShopOpen] = useState(false);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [localShortcuts, setLocalShortcuts] = useState<Shortcut[]>([]);
+    const [localShortcuts, setLocalShortcuts] = useState<ComputerShortcut[]>([]);
     const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const lastRoomPositionRef = useRef<{ x: number; y: number }>({
+        x: ROOM_WIDTH / 2,
+        y: ROOM_HEIGHT / 2,
+    });
     const completeOnboarding = useMutation(api.users.completeOnboarding);
 
     const visitorId = clerkUser?.id ?? null;
@@ -125,14 +128,16 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     // eslint-disable-next-line react-hooks/set-state-in-effect
                     setLocalItems(room.items as RoomItem[]);
                 }
-                if (room.shortcuts) {
-                    setLocalShortcuts(room.shortcuts as Shortcut[]);
-                } else {
-                    setLocalShortcuts([]);
-                }
             }
         }
     }, [room, createRoom, isGuest, mode, localItems.length]);
+
+    useEffect(() => {
+        if (isGuest) return;
+        if (!computerState) return;
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocalShortcuts(computerState.shortcuts as ComputerShortcut[]);
+    }, [computerState, isGuest]);
 
     useEffect(() => {
         if (mode === "edit" && room && debouncedSaveRef.current) {
@@ -154,6 +159,29 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
+    };
+
+    const updateCursorFromClient = useCallback(
+        (clientX: number, clientY: number) => {
+            const rect = containerRef.current?.getBoundingClientRect();
+
+            if (rect) {
+                const roomX = (clientX - rect.left) / scale;
+                const roomY = (clientY - rect.top) / scale;
+                const clampedX = Math.max(0, Math.min(ROOM_WIDTH, roomX));
+                const clampedY = Math.max(0, Math.min(ROOM_HEIGHT, roomY));
+                lastRoomPositionRef.current = { x: clampedX, y: clampedY };
+                updateCursor(clampedX, clampedY, clientX, clientY);
+            } else {
+                const { x, y } = lastRoomPositionRef.current;
+                updateCursor(x, y, clientX, clientY);
+            }
+        },
+        [scale, updateCursor]
+    );
+
+    const handleMouseEvent = (e: React.MouseEvent) => {
+        updateCursorFromClient(e.clientX, e.clientY);
     };
 
     const handleDrop = (e: DragEvent) => {
@@ -195,15 +223,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             </div>
         );
     }
-
-    const handleMouseEvent = (e: React.MouseEvent) => {
-        if (!containerRef.current) return;
-
-        const rect = containerRef.current.getBoundingClientRect();
-        const roomX = (e.clientX - rect.left) / scale;
-        const roomY = (e.clientY - rect.top) / scale;
-        updateCursor(roomX, roomY, e.clientX, e.clientY);
-    };
 
     const musicItems = (room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? [];
 
@@ -430,31 +449,22 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     onClose={() => setIsComputerOpen(false)}
                     onUpdateShortcuts={(shortcuts) => {
                         setLocalShortcuts(shortcuts);
-                        if (room) {
-                            saveShortcuts({ roomId: room._id, shortcuts });
-                        }
+                        saveComputer({ shortcuts });
                     }}
-                    onOpenShop={() => {
-                        setIsComputerOpen(false);
-                        setIsShopOpen(true);
+                    userCurrency={user?.currency ?? 0}
+                    onShopOpened={() => {
                         if (onboardingStep === "open-shop") {
                             advanceOnboarding();
                         }
                     }}
-                    isOnboardingShopStep={onboardingStep === "open-shop"}
-                />
-            )}
-
-            {!isGuest && isShopOpen && user && (
-                <Shop
-                    onClose={() => setIsShopOpen(false)}
-                    userCurrency={user.currency}
-                    isOnboardingBuyStep={onboardingStep === "buy-item"}
                     onOnboardingPurchase={() => {
                         if (onboardingStep === "buy-item") {
                             advanceOnboarding();
                         }
                     }}
+                    isOnboardingBuyStep={onboardingStep === "buy-item"}
+                    isOnboardingShopStep={onboardingStep === "open-shop"}
+                    onPointerMove={updateCursorFromClient}
                 />
             )}
 
@@ -492,11 +502,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             {!isGuest && hasVisitors && (
                 <ChatInput
                     onMessageChange={updateChatMessage}
-                    disabled={isComputerOpen || isShopOpen || musicPlayerItemId !== null || isShareModalOpen}
+                    disabled={isComputerOpen || musicPlayerItemId !== null || isShareModalOpen}
                 />
             )}
 
-            {!isGuest && hasVisitors && !isComputerOpen && !isShopOpen && !musicPlayerItemId && !isShareModalOpen && (
+            {!isGuest && hasVisitors && !isComputerOpen && !musicPlayerItemId && !isShareModalOpen && (
                 <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
                     <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
                         <span className="font-mono bg-[var(--ink-light)] px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>

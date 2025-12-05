@@ -49,7 +49,7 @@ export function ItemsTab({
                         <div className={`h-1 flex-1 rounded-full bg-gradient-to-l ${getCategoryColor(category)} opacity-50`} />
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    <div className="flex flex-wrap gap-4 justify-center md:justify-start">
                         {groupedItems[category].map((item, itemIndex) => {
                             const isOwned = ownedSet.has(item._id);
                             const canAfford = userCurrency >= item.basePrice;
@@ -61,7 +61,7 @@ export function ItemsTab({
                                 <div
                                     key={item._id}
                                     data-onboarding={isOnboardingTarget ? "shop-item" : undefined}
-                                    className={`relative bg-white rounded-xl border-2 p-3 transition-all shadow-sm ${
+                                    className={`relative w-[150px] shrink-0 bg-white rounded-xl border-2 p-3 transition-all shadow-sm ${
                                         isOwned
                                             ? "border-[var(--success)] bg-[var(--success-light)]"
                                             : isOnboardingTarget
@@ -75,7 +75,7 @@ export function ItemsTab({
                                         </div>
                                     )}
 
-                                    <div className="aspect-square bg-[var(--muted)] rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+                                    <div className="w-full h-[150px] bg-[var(--muted)] rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                                         <AssetImage
                                             assetUrl={item.assetUrl}
                                             alt={item.name}

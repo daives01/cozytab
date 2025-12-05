@@ -5,6 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { AssetImage } from "../components/AssetImage";
 import { ChevronDown, Eye, EyeOff, Package } from "lucide-react";
 
@@ -53,7 +54,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
     const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
         hidden: true,
     });
-    const [pendingHides, setPendingHides] = useState<Record<string, boolean>>({});
+    const [pendingHides, setPendingHides] = useState<Record<Id<"inventory">, boolean>>({});
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
     const items = inventoryItems ?? [];
@@ -64,7 +65,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer }: AssetDra
     };
 
     const handleToggleHidden = useCallback(
-        async (inventoryId: string, nextHidden: boolean) => {
+        async (inventoryId: Id<"inventory">, nextHidden: boolean) => {
             setPendingHides((prev) => ({ ...prev, [inventoryId]: true }));
             try {
                 await setHiddenMutation({ inventoryId, hidden: nextHidden });

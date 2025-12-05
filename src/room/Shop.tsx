@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { X, Coins, ShoppingBag, Home, Package } from "lucide-react";
+import { Coins, Home, Package } from "lucide-react";
 import { useState } from "react";
 import { ItemsTab } from "./shop/ItemsTab";
 import { RoomsTab } from "./shop/RoomsTab";
@@ -9,7 +9,6 @@ import { RoomsTab } from "./shop/RoomsTab";
 type ShopTab = "items" | "rooms";
 
 interface ShopProps {
-    onClose: () => void;
     userCurrency: number;
     isOnboardingBuyStep?: boolean;
     onOnboardingPurchase?: () => void;
@@ -31,7 +30,7 @@ function getCategoryDisplayName(category: string): string {
         furniture: "Furniture",
         decor: "Decorations",
         computer: "Electronics",
-        player: "Music & Media",
+        music: "Music",
     };
     return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
 }
@@ -46,7 +45,11 @@ function getCategoryColor(category: string): string {
     return colors[category] || "from-gray-500 to-gray-600";
 }
 
-export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingPurchase }: ShopProps) {
+export function Shop({
+    userCurrency,
+    isOnboardingBuyStep,
+    onOnboardingPurchase,
+}: ShopProps) {
     const [activeTab, setActiveTab] = useState<ShopTab>("items");
     const catalogItems = useQuery(api.catalog.list);
     const ownedItemIds = useQuery(api.inventory.getMyInventoryIds);
@@ -100,119 +103,104 @@ export function Shop({ onClose, userCurrency, isOnboardingBuyStep, onOnboardingP
 
     const isLoading = !catalogItems || !roomTemplates;
 
-    return (
-        <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center font-['Patrick_Hand']"
-            onClick={onClose}
-        >
-            {/* Shop Window */}
-            <div
-                className="relative bg-[var(--paper)] rounded-2xl shadow-lg w-[90vw] max-w-3xl max-h-[80vh] border-2 border-[var(--ink)] overflow-hidden flex flex-col"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="bg-[var(--paper-header)] border-b-2 border-[var(--ink)] text-[var(--ink)] p-4 flex items-center justify-between shadow-sm shrink-0">
-                    <div className="flex items-center gap-3">
-                        <ShoppingBag className="h-7 w-7" />
-                        <h2 className="text-2xl font-bold tracking-wide">Shop</h2>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        {/* Currency Display */}
-                        <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-4 py-1.5 border-2 border-[var(--ink)] shadow-sm">
-                            <Coins className="h-5 w-5 text-[var(--warning)]" />
-                            <span className="font-bold text-lg text-[var(--ink)]">{userCurrency}</span>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="bg-white hover:bg-[var(--muted)] rounded-full p-1.5 transition-colors border-2 border-[var(--ink)] shadow-sm"
-                        >
-                            <X className="h-5 w-5 text-[var(--ink)]" />
-                        </button>
-                    </div>
-                </div>
+    const containerClasses =
+        "relative bg-[var(--paper)] rounded-xl shadow-lg w-full h-full border-2 border-[var(--ink)] overflow-hidden flex flex-col";
 
-                {/* Tab Navigation */}
-                <div className="bg-[var(--paper-header)] border-b-2 border-[var(--ink)] px-4 pt-2 shrink-0">
+    const content = (
+        <div className={containerClasses} onClick={(e) => e.stopPropagation()}>
+            {/* Tabs with coins inline */}
+            <div className="bg-[var(--paper-header)] border-b-2 border-[var(--ink)] px-4 pt-2 pb-0 shrink-0 shadow-sm">
+                <div className="flex items-center justify-between gap-3">
                     <div className="flex gap-1">
-                        <button
-                            onClick={() => setActiveTab("items")}
-                            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-t-xl font-bold text-lg transition-all border-2 ${
+                    <button
+                        onClick={() => setActiveTab("items")}
+                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-base transition-all border-2 ${
                                 activeTab === "items"
-                                    ? "bg-[var(--paper)] text-[var(--ink)] border-b-0 border-[var(--ink)] -mb-[2px] z-10 shadow-sm"
+                                    ? "bg-[var(--paper)] text-[var(--ink)] border-[var(--ink)] border-b-[var(--paper)] -mb-[2px] z-10 rounded-b-none shadow-none"
                                     : "bg-transparent text-[var(--ink-subtle)] hover:text-[var(--ink)] border-transparent"
                             }`}
-                        >
-                            <Package className="h-5 w-5" />
-                            Items
-                            {catalogItems && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full border-2 ${
-                                    activeTab === "items" 
-                                        ? "bg-[var(--warning)] text-white border-[var(--ink)]" 
+                    >
+                        <Package className="h-5 w-5" />
+                        Items
+                        {catalogItems && (
+                            <span
+                                className={`text-xs px-2 py-0.5 rounded-full border-2 ${
+                                    activeTab === "items"
+                                        ? "bg-[var(--warning)] text-white border-[var(--ink)]"
                                         : "bg-[var(--muted)] text-[var(--ink-muted)] border-[var(--ink)]"
-                                }`}>
-                                    {catalogItems.length}
-                                </span>
-                            )}
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("rooms")}
-                            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-t-xl font-bold text-lg transition-all border-2 ${
-                                activeTab === "rooms"
-                                    ? "bg-[var(--paper)] text-[var(--ink)] border-b-0 border-[var(--ink)] -mb-[2px] z-10 shadow-sm"
-                                    : "bg-transparent text-[var(--ink-subtle)] hover:text-[var(--ink)] border-transparent"
-                            }`}
-                        >
-                            <Home className="h-5 w-5" />
-                            Rooms
-                            {purchasableRooms.length > 0 && (
-                                <span className={`text-xs px-2 py-0.5 rounded-full border-2 ${
-                                    activeTab === "rooms" 
-                                        ? "bg-[var(--danger)] text-white border-[var(--ink)]" 
+                                }`}
+                            >
+                                {catalogItems.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("rooms")}
+                        className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-base transition-all border-2 ${
+                            activeTab === "rooms"
+                                ? "bg-[var(--paper)] text-[var(--ink)] border-[var(--ink)] border-b-[var(--paper)] -mb-[2px] z-10 rounded-b-none shadow-none"
+                                : "bg-transparent text-[var(--ink-subtle)] hover:text-[var(--ink)] border-transparent"
+                        }`}
+                    >
+                        <Home className="h-5 w-5" />
+                        Rooms
+                        {purchasableRooms.length > 0 && (
+                            <span
+                                className={`text-xs px-2 py-0.5 rounded-full border-2 ${
+                                    activeTab === "rooms"
+                                        ? "bg-[var(--danger)] text-white border-[var(--ink)]"
                                         : "bg-[var(--muted)] text-[var(--ink-muted)] border-[var(--ink)]"
-                                }`}>
-                                    {purchasableRooms.length}
-                                </span>
-                            )}
-                        </button>
+                                }`}
+                            >
+                                {purchasableRooms.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+                    <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-3 py-1 border-2 border-[var(--ink)] shadow-sm">
+                        <Coins className="h-4 w-4 text-[var(--warning)]" />
+                        <span className="font-bold text-sm text-[var(--ink)]">{userCurrency}</span>
                     </div>
                 </div>
+            </div>
 
-                {/* Shop Content */}
-                <div className="p-6 overflow-y-auto flex-1">
-                    {isLoading ? (
-                        <div className="text-center py-12 text-[var(--ink-subtle)]">
-                            <div className="animate-pulse text-xl">Loading shop...</div>
-                        </div>
-                    ) : activeTab === "items" ? (
-                        <ItemsTab
-                            groupedItems={groupedItems}
-                            categories={categories}
-                            ownedSet={ownedSet}
-                            userCurrency={userCurrency}
-                            purchasing={purchasing}
-                            lastResult={lastResult}
-                            isOnboardingBuyStep={isOnboardingBuyStep}
-                            onPurchase={handlePurchase}
-                            getCategoryDisplayName={getCategoryDisplayName}
-                            getCategoryColor={getCategoryColor}
-                        />
-                    ) : (
-                        <RoomsTab
-                            purchasableRooms={purchasableRooms}
-                            ownedTemplateSet={ownedTemplateSet}
-                            userCurrency={userCurrency}
-                            purchasingRoom={purchasingRoom}
-                            lastRoomResult={lastRoomResult}
-                            onPurchaseRoom={handlePurchaseRoom}
-                        />
-                    )}
-                </div>
+            {/* Shop Content */}
+            <div className="p-4 overflow-y-auto flex-1 bg-[var(--paper)]">
+                {isLoading ? (
+                    <div className="text-center py-12 text-[var(--ink-subtle)]">
+                        <div className="animate-pulse text-xl">Loading shop...</div>
+                    </div>
+                ) : activeTab === "items" ? (
+                    <ItemsTab
+                        groupedItems={groupedItems}
+                        categories={categories}
+                        ownedSet={ownedSet}
+                        userCurrency={userCurrency}
+                        purchasing={purchasing}
+                        lastResult={lastResult}
+                        isOnboardingBuyStep={isOnboardingBuyStep}
+                        onPurchase={handlePurchase}
+                        getCategoryDisplayName={getCategoryDisplayName}
+                        getCategoryColor={getCategoryColor}
+                    />
+                ) : (
+                    <RoomsTab
+                        purchasableRooms={purchasableRooms}
+                        ownedTemplateSet={ownedTemplateSet}
+                        userCurrency={userCurrency}
+                        purchasingRoom={purchasingRoom}
+                        lastRoomResult={lastRoomResult}
+                        onPurchaseRoom={handlePurchaseRoom}
+                    />
+                )}
+            </div>
 
-                {/* Footer hint */}
-                <div className="bg-[var(--paper-header)] border-t-2 border-[var(--ink)] px-4 py-2 text-center text-sm text-[var(--ink-subtle)] shrink-0">
-                    Earn tokens daily by visiting your cozytab!
-                </div>
+            {/* Footer hint */}
+            <div className="bg-[var(--paper-header)] border-t-2 border-[var(--ink)] px-4 py-2 text-center text-sm text-[var(--ink-subtle)] shrink-0">
+                Earn tokens daily by visiting your cozytab!
             </div>
         </div>
     );
+
+    return <div className="w-full h-full font-['Patrick_Hand']">{content}</div>;
 }

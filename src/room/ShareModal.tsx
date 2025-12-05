@@ -64,7 +64,7 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                                     Invite friends
                                 </p>
                                 <h2 className="text-2xl font-bold text-neutral-900 leading-tight">
-                                    Share your cozy room
+                                    Share your room
                                 </h2>
                             </div>
                         </div>

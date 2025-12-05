@@ -21,8 +21,13 @@ export interface RoomItem {
     musicPositionAtStart?: number; // seconds into video when started
 }
 
-export interface Shortcut {
+export type ShortcutType = "user" | "system";
+
+export interface ComputerShortcut {
     id: string;
     name: string;
     url: string;
+    row: number;
+    col: number;
+    type?: ShortcutType; // Defaults to "user" if omitted
 }
