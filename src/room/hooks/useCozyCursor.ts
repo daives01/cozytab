@@ -7,19 +7,32 @@ export function useCozyCursor(enabled = true) {
         const root = document.documentElement;
         root.classList.add("cozy-cursor-root");
 
-        const handlePointerDown = () => {
-            root.classList.add("cozy-cursor-click");
+        const CLICKABLE_SELECTOR = "[data-cozy-clickable]";
+
+        const setClickState = (isClickable: boolean) => {
+            root.classList.toggle("cozy-cursor-click", isClickable);
         };
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (!target) return;
+
+            const clickableTarget = target.closest(CLICKABLE_SELECTOR);
+            setClickState(Boolean(clickableTarget));
+        };
+
         const handlePointerUp = () => {
-            root.classList.remove("cozy-cursor-click");
+            setClickState(false);
             root.classList.remove("cozy-cursor-drag");
         };
+
         const handleDragStart = () => {
             root.classList.add("cozy-cursor-drag");
         };
+
         const handleDragEnd = () => {
             root.classList.remove("cozy-cursor-drag");
-            root.classList.remove("cozy-cursor-click");
+            setClickState(false);
         };
 
         window.addEventListener("pointerdown", handlePointerDown);

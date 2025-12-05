@@ -433,8 +433,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }
 
     const musicItems = isGuest
-        ? []
+        ? localItems.filter(isMusicItem)
         : ((room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? []);
+    const shouldHighlightMusicPurchase = onboardingStep === "buy-item";
 
     const shareAllowed = canShare(isGuest);
     const computerGuard = canUseComputer(isGuest);
@@ -467,7 +468,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         }
                     }}
                     onMusicPlayerClick={() => {
-                        if (!isGuest && mode === "view") {
+                        if (mode === "view") {
                             setMusicPlayerItemId(item.id);
                         }
                     }}
@@ -475,7 +476,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 />
             ))}
 
-            {room && musicItems.map((item) => (
+            {musicItems.map((item) => (
                 <MusicPlayerButtons
                     key={`music-buttons-${item.id}`}
                     item={item}
@@ -565,9 +566,10 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         advanceOnboarding();
                     }
                 }}
+                highlightFirstMusicItem={shouldHighlightMusicPurchase}
             />
 
-            {!isGuest && musicPlayerItemId && room && (() => {
+            {musicPlayerItemId && (() => {
                 const item = localItems.find((i) => i.id === musicPlayerItemId);
                 return item ? (
                     <MusicPlayerModal
@@ -576,7 +578,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         onSave={(updatedItem) => {
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             setLocalItems(updatedItems);
-                            saveRoom({ roomId: room._id, items: updatedItems });
+                            if (isGuest) {
+                                saveGuestSession({ roomItems: updatedItems });
+                            } else if (room) {
+                                saveRoom({ roomId: room._id, items: updatedItems });
+                            }
                             setMusicPlayerItemId(null);
                         }}
                     />

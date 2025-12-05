@@ -10,6 +10,27 @@ import { purchaseWithBudget } from "./utils/sessionGuards";
 
 type ShopTab = "items" | "rooms";
 
+const CATEGORY_ORDER = ["music", "decor", "furniture", "computer"] as const;
+const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+    music: "Music",
+    decor: "Decorations",
+    furniture: "Furniture",
+    computer: "Computers",
+};
+const CATEGORY_COLORS: Record<string, string> = {
+    music: "from-purple-500 to-pink-600",
+    decor: "from-emerald-500 to-teal-600",
+    furniture: "from-amber-500 to-orange-600",
+    computer: "from-blue-500 to-indigo-600",
+};
+
+function normalizeCategory(category: string) {
+    const key = category.trim().toLowerCase();
+    if (key === "computers") return "computer";
+    if (key === "decoration" || key === "decorations") return "decor";
+    return key;
+}
+
 interface ShopProps {
     userCurrency: number;
     lastDailyReward?: number;
@@ -20,37 +41,47 @@ interface ShopProps {
     startingCoins?: number;
     guestOwnedIds?: string[];
     onGuestPurchase?: (catalogItemId: string) => void;
+    highlightFirstMusicItem?: boolean;
 }
 
 function groupByCategory(items: Doc<"catalogItems">[]) {
-    const groups: Record<string, Doc<"catalogItems">[]> = {};
-    for (const item of items) {
-        if (!groups[item.category]) {
-            groups[item.category] = [];
+    return items.reduce<Record<string, Doc<"catalogItems">[]>>((groups, item) => {
+        const key = normalizeCategory(item.category);
+        if (!groups[key]) {
+            groups[key] = [];
         }
-        groups[item.category].push(item);
-    }
-    return groups;
+        groups[key].push(item);
+        return groups;
+    }, {});
 }
 
 function getCategoryDisplayName(category: string): string {
-    const names: Record<string, string> = {
-        music: "Music",
-        computer: "Electronics",
-        furniture: "Furniture",
-        decor: "Decorations",
-    };
-    return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
+    const key = normalizeCategory(category);
+    return CATEGORY_DISPLAY_NAMES[key] || key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 function getCategoryColor(category: string): string {
-    const colors: Record<string, string> = {
-        furniture: "from-amber-500 to-orange-600",
-        decor: "from-emerald-500 to-teal-600",
-        computer: "from-blue-500 to-indigo-600",
-        player: "from-purple-500 to-pink-600",
-    };
-    return colors[category] || "from-gray-500 to-gray-600";
+    const key = normalizeCategory(category);
+    return CATEGORY_COLORS[key] || "from-gray-500 to-gray-600";
+}
+
+function sortCategories(categories: string[]) {
+    return categories.sort((a, b) => {
+        const keyA = normalizeCategory(a) as typeof CATEGORY_ORDER[number];
+        const keyB = normalizeCategory(b) as typeof CATEGORY_ORDER[number];
+        const orderA = CATEGORY_ORDER.indexOf(keyA);
+        const orderB = CATEGORY_ORDER.indexOf(keyB);
+
+        if (orderA !== -1 || orderB !== -1) {
+            const resolvedA = orderA === -1 ? CATEGORY_ORDER.length : orderA;
+            const resolvedB = orderB === -1 ? CATEGORY_ORDER.length : orderB;
+            if (resolvedA !== resolvedB) {
+                return resolvedA - resolvedB;
+            }
+        }
+
+        return a.localeCompare(b);
+    });
 }
 
 export function Shop({
@@ -63,6 +94,7 @@ export function Shop({
     startingCoins = GUEST_STARTING_COINS,
     guestOwnedIds,
     onGuestPurchase,
+    highlightFirstMusicItem = false,
 }: ShopProps) {
     const [activeTab, setActiveTab] = useState<ShopTab>("items");
     const catalogItems = useQuery(api.catalog.list);
@@ -158,7 +190,11 @@ export function Shop({
     const ownedSet = new Set([...(ownedItemIds || []), ...guestOwnedSet]);
     const ownedTemplateSet = new Set(ownedTemplateIds || []);
     const groupedItems = catalogItems ? groupByCategory(catalogItems) : {};
-    const categories = Object.keys(groupedItems).sort();
+    const categories = sortCategories(Object.keys(groupedItems));
+    const highlightItemId =
+        highlightFirstMusicItem && groupedItems.music?.length
+            ? groupedItems.music[0]._id
+            : null;
     const purchasableRooms = roomTemplates?.filter(t => !t.isDefault) || [];
 
     const isLoading = !catalogItems || !roomTemplates;
@@ -281,6 +317,7 @@ export function Shop({
                         onPurchase={handlePurchase}
                         getCategoryDisplayName={getCategoryDisplayName}
                         getCategoryColor={getCategoryColor}
+                        highlightItemId={highlightItemId}
                     />
                 ) : (
                     <RoomsTab

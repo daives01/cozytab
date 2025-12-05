@@ -248,11 +248,7 @@ async function seedRoomFromGuest(
     catalogNames: Set<string>
 ) {
     const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogNames);
-    const sanitizedShortcuts = sanitizeGuestShortcuts(guestShortcuts).map((s) => ({
-        id: s.id,
-        name: s.name,
-        url: s.url,
-    }));
+    const sanitizedShortcuts = sanitizeGuestShortcuts(guestShortcuts);
 
     await ctx.db.insert("rooms", {
         userId,
@@ -352,6 +348,7 @@ export const ensureUser = mutation({
         const guestInventory = guestSessionState.inventoryIds;
         const guestRoomItems = guestSessionState.roomItems;
         const guestShortcuts = guestSessionState.shortcuts;
+        const normalizedGuestShortcuts = sanitizeGuestShortcuts(guestShortcuts);
 
         let catalogItemsCache: Doc<"catalogItems">[] | null = null;
         let user = await findUserByExternalId(ctx, identity.subject);
@@ -385,7 +382,7 @@ export const ensureUser = mutation({
                 displayName: derivedDisplayName,
                 currency: computedCurrency,
                 computer: {
-                    shortcuts: [],
+                    shortcuts: normalizedGuestShortcuts,
                 },
                 onboardingCompleted: guestSessionState.onboardingCompleted === true,
                 referralCode: newReferralCode,
@@ -415,7 +412,15 @@ export const ensureUser = mutation({
                 if (template) {
                     const catalogNames = new Set(catalogItems.map((c) => c.name));
 
-                    await seedRoomFromGuest(ctx, user._id, template._id, template.name, guestRoomItems, guestShortcuts, catalogNames);
+                    await seedRoomFromGuest(
+                        ctx,
+                        user._id,
+                        template._id,
+                        template.name,
+                        guestRoomItems,
+                        normalizedGuestShortcuts,
+                        catalogNames
+                    );
                 }
             }
         }
@@ -562,22 +567,20 @@ export const getMyComputer = query({
         const { user } = await getUserForRequest(ctx);
         if (!user) return null;
 
-        // If user has computer state, ensure it has grid positions
-        if (user.computer) {
-            const needsNormalization = user.computer.shortcuts.some(
-                (shortcut) =>
-                    typeof shortcut.row !== "number" ||
-                    typeof shortcut.col !== "number"
-            );
+        const existingShortcuts = user.computer?.shortcuts ?? [];
+        const needsNormalization = existingShortcuts.some(
+            (shortcut) =>
+                typeof shortcut.row !== "number" ||
+                typeof shortcut.col !== "number"
+        );
 
-            if (needsNormalization) {
-                const normalized = normalizeShortcutsWithGrid(
-                    user.computer.shortcuts
-                );
-                return { shortcuts: normalized };
-            }
+        if (needsNormalization) {
+            const normalized = normalizeShortcutsWithGrid(existingShortcuts);
+            return { shortcuts: normalized };
+        }
 
-            return user.computer;
+        if (existingShortcuts.length > 0) {
+            return { shortcuts: existingShortcuts };
         }
 
         // Migrate from the active room shortcuts if present

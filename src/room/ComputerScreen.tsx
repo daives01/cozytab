@@ -57,6 +57,7 @@ interface ComputerScreenProps {
     startingCoins?: number;
     guestInventory?: string[];
     onGuestPurchase?: (catalogItemId: string) => void;
+    highlightFirstMusicItem?: boolean;
 }
 
 export function ComputerScreen({
@@ -76,6 +77,7 @@ export function ComputerScreen({
     startingCoins = GUEST_STARTING_COINS,
     guestInventory,
     onGuestPurchase,
+    highlightFirstMusicItem = false,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
@@ -689,6 +691,19 @@ export function ComputerScreen({
         setRenamingId(null);
     };
 
+    const shopWindowProps = {
+        userCurrency,
+        lastDailyReward,
+        onOnboardingPurchase,
+        isGuest,
+        guestCoins,
+        onGuestCoinsChange,
+        startingCoins,
+        guestOwnedIds: guestInventory,
+        onGuestPurchase,
+        highlightFirstMusicItem,
+    };
+
     return (
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center font-['Patrick_Hand']"
@@ -771,17 +786,7 @@ export function ComputerScreen({
                                     >
                                         <ComputerWindowContent
                                             app={win.app}
-                                            shopProps={{
-                                                userCurrency,
-                                                lastDailyReward,
-                                                onOnboardingPurchase,
-                                                isGuest,
-                                                guestCoins,
-                                                onGuestCoinsChange,
-                                                startingCoins,
-                                                guestOwnedIds: guestInventory,
-                                                onGuestPurchase,
-                                            }}
+                                            shopProps={shopWindowProps}
                                             roomsProps={{
                                                 myRooms: myRooms ?? [],
                                                 switchingRoom,

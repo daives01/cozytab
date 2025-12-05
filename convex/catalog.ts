@@ -154,7 +154,7 @@ export const seed = mutation({
             {
                 name: "Vinyl Player",
                 category: "Music",
-                basePrice: 12,
+                basePrice: 3,
                 assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl+Player",
                 defaultWidth: 100,
             },
@@ -168,7 +168,7 @@ export const seed = mutation({
             {
                 name: "Bookshelf",
                 category: "Furniture",
-                basePrice: 10,
+                basePrice: 6,
                 assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",
                 defaultWidth: 120,
             },

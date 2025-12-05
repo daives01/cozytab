@@ -82,11 +82,11 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "buy-item": {
-        message: "Use your coins to buy items! Try buying something you like. You earn more coins each day you visit!",
-        bubblePosition: "top",
+        message: "Use your coins to buy items! I'd get the music player first. You'll earn more coins each day you visit!",
+        targetSelector: "[data-onboarding='first-music-player']",
+        bubblePosition: "bottom",
         showSkip: true,
-        pulseTarget: false,
-        fixedBubblePosition: { bottom: 92, right: 24 },
+        pulseTarget: true,
     },
     "set-homepage": {
         message: "Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set https://cozytab.club as your homepage. Works in Chrome and Firefox!",

@@ -54,27 +54,35 @@ function AuthenticatedApp() {
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
-    if (user === null && isLoaded) {
-      const username = clerkUser?.username ?? "User";
-      const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
-      const guestSession = readGuestSession();
+    if (user !== null || !isLoaded) return;
 
-      ensureUser({
-        username,
-        referralCode: referralCode ?? undefined,
-        guestSession: {
-          coins: guestSession.coins,
-          inventoryIds: guestSession.inventoryIds,
-          roomItems: guestSession.roomItems,
-          shortcuts: guestSession.shortcuts,
-          onboardingCompleted: guestSession.onboardingCompleted,
-        },
-      });
-      if (referralCode) {
-        sessionStorage.removeItem(REFERRAL_CODE_KEY);
+    const username = clerkUser?.username ?? "User";
+    const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
+    const guestSession = readGuestSession();
+
+    const run = async () => {
+      try {
+        await ensureUser({
+          username,
+          referralCode: referralCode ?? undefined,
+          guestSession: {
+            coins: guestSession.coins,
+            inventoryIds: guestSession.inventoryIds,
+            roomItems: guestSession.roomItems,
+            shortcuts: guestSession.shortcuts,
+            onboardingCompleted: guestSession.onboardingCompleted,
+          },
+        });
+        if (referralCode) {
+          sessionStorage.removeItem(REFERRAL_CODE_KEY);
+        }
+        clearGuestSession();
+      } catch (error) {
+        console.error("Failed to ensure user", error);
       }
-      clearGuestSession();
-    }
+    };
+
+    void run();
   }, [user, ensureUser, clerkUser, isLoaded]);
 
   if (!user) return <div className="h-screen w-screen flex items-center justify-center">Loading user...</div>;

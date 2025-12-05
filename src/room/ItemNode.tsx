@@ -85,43 +85,61 @@ export function ItemNode({
         };
     }, [isDragging, item, onChange, scale, onDragEnd]);
 
-    const isComputer = catalogItem?.category?.toLowerCase() === "computer";
+    const category = catalogItem?.category?.toLowerCase();
+    const isComputerCategory = category?.includes("computer");
+    const isMusicCategory = category?.includes("music");
+    const hasUrl = Boolean(item.url);
+    const isInteractable =
+        mode === "view" &&
+        (isVisitor
+            ? hasUrl
+            : Boolean(
+                (isComputerCategory && onComputerClick) ||
+                (isMusicCategory && onMusicPlayerClick) ||
+                hasUrl
+            ));
+
+    const cursor =
+        mode === "edit"
+            ? "url('/cursor-drag.svg') 15 14, move"
+            : isInteractable
+                ? "url('/cursor-click.svg') 6 3, pointer"
+                : "url('/cursor.svg') 6 3, auto";
 
     return (
         <div
             className="absolute select-none"
-            data-onboarding={isComputer && isOnboardingComputerTarget ? "placed-computer" : undefined}
+            data-onboarding={isComputerCategory && isOnboardingComputerTarget ? "placed-computer" : undefined}
+            data-cozy-clickable={isInteractable ? "true" : undefined}
             style={{
                 left: item.x,
                 top: item.y,
                 transform: "translate(-50%, -50%)",
                 zIndex: 10,
-                cursor: mode === "edit"
-                    ? "url('/cursor-drag.svg') 15 14, move"
-                    : "url('/cursor-click.svg') 6 3, pointer",
+                cursor,
             }}
             onMouseDown={handleMouseDown}
             onClick={(e) => {
                 e.stopPropagation();
-                if (mode === "view") {
-                    if (isVisitor) {
-                        if (item.url) {
-                            window.open(item.url, "_blank");
-                        }
-                        return;
-                    }
-                    const category = catalogItem?.category?.toLowerCase();
-                    if (category && category.includes("computer") && onComputerClick) {
-                        onComputerClick();
-                        return;
-                    }
-                    if (category && (category.includes("music")) && onMusicPlayerClick) {
-                        onMusicPlayerClick();
-                        return;
-                    }
-                    if (item.url) {
-                        window.open(item.url, "_blank");
-                    }
+                if (mode !== "view" || !isInteractable) return;
+
+                if (isVisitor && item.url) {
+                    window.open(item.url, "_blank");
+                    return;
+                }
+
+                if (isComputerCategory && onComputerClick) {
+                    onComputerClick();
+                    return;
+                }
+
+                if (isMusicCategory && onMusicPlayerClick) {
+                    onMusicPlayerClick();
+                    return;
+                }
+
+                if (item.url) {
+                    window.open(item.url, "_blank");
                 }
             }}
         >
