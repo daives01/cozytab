@@ -30,7 +30,8 @@ export default defineSchema({
         admin: v.optional(v.boolean()), // admin access, defaults to false
     })
         .index("by_externalId", ["externalId"])
-        .index("by_referralCode", ["referralCode"]),
+        .index("by_referralCode", ["referralCode"])
+        .index("by_referredBy", ["referredBy"]),
 
     roomTemplates: defineTable({
         name: v.string(),                    // "Cozy Cabin", "Beach House"

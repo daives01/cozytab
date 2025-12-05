@@ -8,17 +8,13 @@ interface UseDailyRewardOptions {
 
 export function useDailyReward({ user, isGuest, claimDailyReward }: UseDailyRewardOptions) {
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
-    const [showRewardNotification, setShowRewardNotification] = useState(false);
 
     useEffect(() => {
         if (!isGuest && user && !dailyRewardClaimed) {
             claimDailyReward()
-                .then((result: { success: boolean }) => {
+                .then(() => {
                     setDailyRewardClaimed(true);
-                    if (result.success) {
-                        setShowRewardNotification(true);
-                        setTimeout(() => setShowRewardNotification(false), 4000);
-                    }
+                    // We silently claim the reward and let the UI display status elsewhere.
                 })
                 .catch(() => {
                     setDailyRewardClaimed(true);
@@ -26,9 +22,6 @@ export function useDailyReward({ user, isGuest, claimDailyReward }: UseDailyRewa
         }
     }, [user, isGuest, dailyRewardClaimed, claimDailyReward]);
 
-    return {
-        showRewardNotification,
-        setShowRewardNotification,
-    };
+    return null;
 }
 

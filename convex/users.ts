@@ -51,6 +51,41 @@ export const getMyReferralCode = query({
     },
 });
 
+export const getReferralStats = query({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) {
+            return { referralCount: 0, referralCoins: 0 };
+        }
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) =>
+                q.eq("externalId", identity.subject)
+            )
+            .unique();
+
+        if (!user) {
+            return { referralCount: 0, referralCoins: 0 };
+        }
+
+        const referredUsers = await ctx.db
+            .query("users")
+            .withIndex("by_referredBy", (q) =>
+                q.eq("referredBy", user._id)
+            )
+            .collect();
+
+        const referralCount = referredUsers.length;
+
+        return {
+            referralCount,
+            referralCoins: referralCount, // one coin per referral
+        };
+    },
+});
+
 // Generate a short, readable referral code
 function generateReferralCode(): string {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars like 0/O, 1/I

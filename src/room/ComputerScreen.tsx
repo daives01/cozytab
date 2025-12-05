@@ -9,16 +9,18 @@ import {
     Home,
     UserPlus,
     Clock3,
+    Info,
+    User,
 } from "lucide-react";
 import { useClerk } from "@clerk/clerk-react";
 import type { ComputerShortcut } from "../types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { RoomsPanel } from "./computer/RoomsPanel";
 import { InvitePanel } from "./computer/InvitePanel";
-import { ShortcutsEditor } from "./computer/ShortcutsEditor";
 import { Shop } from "./Shop";
+import { AboutPanel } from "./computer/AboutPanel";
 
-type ComputerWindowApp = "shop" | "rooms" | "invite";
+type ComputerWindowApp = "shop" | "rooms" | "invite" | "about";
 
 interface ComputerWindow {
     id: string;
@@ -40,11 +42,13 @@ const WINDOW_DEFAULTS: Record<ComputerWindowApp, { width: number; height: number
     shop: { width: 920, height: 560 },
     rooms: { width: 480, height: 440 },
     invite: { width: 420, height: 340 },
+    about: { width: 520, height: 360 },
 };
 const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
     shop: "from-amber-400 to-orange-500",
     rooms: "from-emerald-500 to-green-600",
     invite: "from-pink-400 to-rose-500",
+    about: "from-indigo-400 to-sky-500",
 };
 
 // Get favicon URL from a website URL
@@ -54,6 +58,22 @@ function getFaviconUrl(url: string): string {
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
     } catch {
         return "";
+    }
+}
+
+function deriveShortcutName(url: string) {
+    try {
+        const hostname = new URL(url).hostname.replace(/^www\./, "");
+        const toTitle = (value: string) =>
+            value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+        const parts = hostname.split(".");
+        if (parts.length >= 2) {
+            // use second-level domain, e.g. "example" from "example.com"
+            return toTitle(parts[parts.length - 2]);
+        }
+        return toTitle(hostname || url);
+    } catch {
+        return url;
     }
 }
 
@@ -109,9 +129,18 @@ function findNearestCell(
     container: HTMLDivElement,
     scale: number
 ) {
+    return findCellFromPoint(event.clientX, event.clientY, container, scale);
+}
+
+function findCellFromPoint(
+    clientX: number,
+    clientY: number,
+    container: HTMLDivElement,
+    scale: number
+) {
     const rect = container.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / (scale || 1);
-    const y = (event.clientY - rect.top) / (scale || 1);
+    const x = (clientX - rect.left) / (scale || 1);
+    const y = (clientY - rect.top) / (scale || 1);
 
     const col = Math.min(
         GRID_COLUMNS - 1,
@@ -137,6 +166,7 @@ interface ComputerScreenProps {
     onClose: () => void;
     onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
     userCurrency: number;
+    lastDailyReward?: number;
     onShopOpened?: () => void;
     onOnboardingPurchase?: () => void;
     isOnboardingBuyStep?: boolean;
@@ -149,22 +179,29 @@ export function ComputerScreen({
     onClose,
     onUpdateShortcuts,
     userCurrency,
+    lastDailyReward,
     onShopOpened,
     onOnboardingPurchase,
     isOnboardingBuyStep,
     isOnboardingShopStep,
     onPointerMove,
 }: ComputerScreenProps) {
-    const [isEditing, setIsEditing] = useState(false);
-    const [newShortcutName, setNewShortcutName] = useState("");
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
-    const [contextMenu, setContextMenu] = useState<{
-        id: string;
+    const [renamingId, setRenamingId] = useState<string | null>(null);
+    const [renameValue, setRenameValue] = useState("");
+    const [contextMenu, setContextMenu] = useState<
+        | { target: "shortcut"; id: string; x: number; y: number }
+        | { target: "desktop"; x: number; y: number; row: number; col: number }
+        | null
+    >(null);
+    const [inlineAddPrompt, setInlineAddPrompt] = useState<{
         x: number;
         y: number;
+        row: number;
+        col: number;
     } | null>(null);
     const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
     const [now, setNow] = useState(() => new Date());
@@ -173,6 +210,12 @@ export function ComputerScreen({
     const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
+    const renameInputRef = useRef<HTMLInputElement | null>(null);
+    const addUrlInputRef = useRef<HTMLInputElement | null>(null);
+    const [pendingShortcutPosition, setPendingShortcutPosition] = useState<{
+        row: number;
+        col: number;
+    } | null>(null);
     const zCounterRef = useRef(1);
     const dragWindowRef = useRef<{
         id: string;
@@ -246,15 +289,51 @@ export function ComputerScreen({
     }, [recomputeScale]);
 
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
+        const handleKey = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement | null;
+            const isTypingTarget =
+                target &&
+                (target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.getAttribute("contenteditable") === "true");
+
             if (e.key === "Escape") {
                 setIsStartMenuOpen(false);
                 setContextMenu(null);
+                if (renamingId) {
+                    cancelRename();
+                }
+                if (inlineAddPrompt) {
+                    setInlineAddPrompt(null);
+                    setPendingShortcutPosition(null);
+                    setNewShortcutUrl("");
+                }
+                return;
+            }
+
+            if (e.key === "Enter") {
+                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
+                const selected = desktopShortcuts.find((s) => s.id === selectedId);
+                if (selected) {
+                    e.preventDefault();
+                    setContextMenu(null);
+                    setIsStartMenuOpen(false);
+                    handleOpenShortcut(selected);
+                }
+            }
+
+            if (e.key === "Backspace" || e.key === "Delete") {
+                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
+                const selected = desktopShortcuts.find((s) => s.id === selectedId);
+                if (selected && selected.type !== "system") {
+                    e.preventDefault();
+                    handleDeleteShortcut(selected.id);
+                }
             }
         };
-        window.addEventListener("keydown", handleEscape);
-        return () => window.removeEventListener("keydown", handleEscape);
-    }, []);
+        window.addEventListener("keydown", handleKey);
+        return () => window.removeEventListener("keydown", handleKey);
+    }, [cancelRename, desktopShortcuts, draggingId, inlineAddPrompt, renamingId, selectedId]);
 
     useEffect(() => {
         windowsRef.current = windows;
@@ -273,6 +352,11 @@ export function ComputerScreen({
         await navigator.clipboard.writeText(referralUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const withProtocol = (url: string) => {
+        if (!url) return url;
+        return /^https?:\/\//i.test(url) ? url : `https://${url}`;
     };
 
     const normalizeAndSave = (next: ComputerShortcut[]) => {
@@ -329,6 +413,7 @@ export function ComputerScreen({
             shop: "Shop",
             rooms: "My Rooms",
             invite: "Invite Friends",
+            about: "About Cozytab",
         };
 
         const newWindow: ComputerWindow = {
@@ -492,28 +577,32 @@ export function ComputerScreen({
         [cleanupDragImage, desktopScale]
     );
 
-    const handleAddShortcut = () => {
-        if (!newShortcutName.trim() || !newShortcutUrl.trim()) return;
-
-        let url = newShortcutUrl.trim();
-        if (!/^https?:\/\//i.test(url)) {
-            url = "https://" + url;
+    const handleAddShortcutInline = () => {
+        if (!pendingShortcutPosition || !newShortcutUrl.trim()) {
+            addUrlInputRef.current?.focus();
+            return;
         }
 
-        const nextIndex = desktopShortcuts.length;
+        const url = withProtocol(newShortcutUrl.trim());
+        const { row, col } = pendingShortcutPosition;
+        const newId = crypto.randomUUID();
+        const initialName = deriveShortcutName(url);
         const newShortcut: ComputerShortcut = {
-            id: crypto.randomUUID(),
-            name: newShortcutName.trim(),
+            id: newId,
+            name: initialName,
             url,
-            row: Math.floor(nextIndex / GRID_COLUMNS),
-            col: nextIndex % GRID_COLUMNS,
+            row,
+            col,
             type: "user",
         };
 
         normalizeAndSave([...desktopShortcuts, newShortcut]);
-        setNewShortcutName("");
         setNewShortcutUrl("");
-        setIsEditing(false);
+        setPendingShortcutPosition(null);
+        setInlineAddPrompt(null);
+        setSelectedId(newId);
+        setRenamingId(newId);
+        setRenameValue(initialName);
     };
 
     const handleDeleteShortcut = (id: string) => {
@@ -522,6 +611,49 @@ export function ComputerScreen({
         normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
         setContextMenu(null);
     };
+
+    function cancelRename() {
+        setRenamingId(null);
+        setRenameValue("");
+    }
+
+    function commitRename(id: string) {
+        const target = desktopShortcuts.find((s) => s.id === id);
+        if (!target || target.type === "system") {
+            cancelRename();
+            return;
+        }
+        const trimmedName = renameValue.trim();
+        if (!trimmedName) {
+            cancelRename();
+            return;
+        }
+        normalizeAndSave(
+            desktopShortcuts.map((s) => (s.id === id ? { ...s, name: trimmedName } : s))
+        );
+        setSelectedId(id);
+        cancelRename();
+    }
+
+    const startRename = (id: string) => {
+        const target = desktopShortcuts.find((s) => s.id === id);
+        if (!target || target.type === "system") return;
+        setSelectedId(id);
+        setContextMenu(null);
+        setIsStartMenuOpen(false);
+        setRenamingId(id);
+        setRenameValue(target.name);
+    };
+
+    useEffect(() => {
+        if (!renamingId) return;
+        requestAnimationFrame(() => {
+            if (renameInputRef.current) {
+                renameInputRef.current.focus();
+                renameInputRef.current.select();
+            }
+        });
+    }, [renamingId]);
 
     const handleOpenShortcut = (shortcut: ComputerShortcut) => {
         window.open(shortcut.url, "_blank", "noopener,noreferrer");
@@ -568,6 +700,14 @@ export function ComputerScreen({
         setSelectedId(null);
         setContextMenu(null);
         setIsStartMenuOpen(false);
+        if (renamingId) {
+            cancelRename();
+        }
+        if (inlineAddPrompt) {
+            setInlineAddPrompt(null);
+            setPendingShortcutPosition(null);
+            setNewShortcutUrl("");
+        }
     };
 
     const handleContextMenuOpen = (
@@ -576,9 +716,49 @@ export function ComputerScreen({
     ) => {
         if (shortcut.type === "system") return;
         event.preventDefault();
+        event.stopPropagation();
         setSelectedId(shortcut.id);
-        setContextMenu({ id: shortcut.id, x: event.clientX, y: event.clientY });
+        setContextMenu({ target: "shortcut", id: shortcut.id, x: event.clientX, y: event.clientY });
     };
+
+    const handleDesktopContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+        event.preventDefault();
+        const target = event.target as HTMLElement;
+        if (target.closest("[data-window]")) return;
+        if (!desktopRef.current) return;
+        const { row, col } = findCellFromPoint(
+            event.clientX,
+            event.clientY,
+            desktopRef.current,
+            desktopScale
+        );
+        setSelectedId(null);
+        setContextMenu({
+            target: "desktop",
+            x: event.clientX,
+            y: event.clientY,
+            row,
+            col,
+        });
+        setIsStartMenuOpen(false);
+    };
+
+    const startAddAtCell = (row: number, col: number, x: number, y: number) => {
+        setPendingShortcutPosition({ row, col });
+        setNewShortcutUrl("");
+        setInlineAddPrompt({ row, col, x, y });
+        setContextMenu(null);
+        setSelectedId(null);
+        setRenamingId(null);
+    };
+
+    useEffect(() => {
+        if (!inlineAddPrompt) return;
+        requestAnimationFrame(() => {
+            addUrlInputRef.current?.focus();
+            addUrlInputRef.current?.select();
+        });
+    }, [inlineAddPrompt]);
 
     return (
         <div
@@ -628,6 +808,7 @@ export function ComputerScreen({
                             }}
                             onDrop={handleDrop}
                             onPointerMove={(e) => forwardPointerMove(e.clientX, e.clientY)}
+                            onContextMenu={handleDesktopContextMenu}
                         >
                             <div
                                 className="relative w-full"
@@ -678,31 +859,53 @@ export function ComputerScreen({
                                                 }}
                                                 onDoubleClick={(event) => {
                                                     event.stopPropagation();
-                                                    handleOpenShortcut(shortcut);
+                                                    if (renamingId !== shortcut.id) {
+                                                        handleOpenShortcut(shortcut);
+                                                    }
                                                 }}
                                                 onContextMenu={(event) =>
                                                     handleContextMenuOpen(event, shortcut)
                                                 }
                                             >
                                                 <div
-                                                    className={`w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-xl border border-white/30 bg-white/15 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all relative ${
-                                                        isSelected
+                                                    className={`w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-xl border border-white/30 bg-white/15 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all relative ${isSelected
                                                             ? "ring-2 ring-blue-200 bg-white/25"
                                                             : "hover:bg-white/25 hover:border-white/50"
-                                                    } ${isDragging ? "opacity-60" : ""}`}
+                                                        } ${isDragging ? "opacity-60" : ""}`}
                                                 >
                                                     <SiteFavicon
                                                         url={shortcut.url}
                                                         className="h-9 w-9 text-cyan-100 drop-shadow"
                                                     />
                                                 </div>
-                                                <span
-                                                    className={`text-white text-center text-sm leading-tight drop-shadow-md px-2 py-0.5 rounded max-w-[120px] break-words ${
-                                                        isSelected ? "bg-blue-900/60" : "bg-blue-900/0"
-                                                    }`}
-                                                >
-                                                    {shortcut.name}
-                                                </span>
+                                                {renamingId === shortcut.id ? (
+                                                    <input
+                                                        ref={renameInputRef}
+                                                        value={renameValue}
+                                                        onChange={(e) => setRenameValue(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                e.preventDefault();
+                                                                commitRename(shortcut.id);
+                                                            }
+                                                            if (e.key === "Escape") {
+                                                                e.preventDefault();
+                                                                cancelRename();
+                                                            }
+                                                        }}
+                                                        onBlur={() => commitRename(shortcut.id)}
+                                                        className="text-sm text-blue-900 bg-white rounded px-2 py-1 w-[120px] text-center shadow-inner border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                                        spellCheck={false}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                ) : (
+                                                    <span
+                                                        className={`text-white text-center text-sm leading-tight drop-shadow-md px-2 py-0.5 rounded max-w-[120px] break-words ${isSelected ? "bg-blue-900/60" : "bg-blue-900/0"
+                                                            }`}
+                                                    >
+                                                        {shortcut.name}
+                                                    </span>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -713,11 +916,11 @@ export function ComputerScreen({
                                 {windows.map((win) => (
                                     <div
                                         key={win.id}
-                                        className={`absolute pointer-events-auto rounded-xl shadow-2xl flex flex-col overflow-hidden bg-stone-50 transition-shadow ${
-                                            activeWindowId === win.id
+                                        data-window
+                                        className={`absolute pointer-events-auto rounded-xl shadow-2xl flex flex-col overflow-hidden bg-stone-50 transition-shadow ${activeWindowId === win.id
                                                 ? "ring-2 ring-blue-200 border-2 border-stone-700 shadow-[8px_10px_0_rgba(0,0,0,0.2)]"
                                                 : "ring-1 ring-stone-200 border-2 border-stone-500"
-                                        }`}
+                                            }`}
                                         style={{
                                             top: win.y,
                                             left: win.x,
@@ -748,6 +951,7 @@ export function ComputerScreen({
                                             {win.app === "shop" ? (
                                                 <Shop
                                                     userCurrency={userCurrency}
+                                                    lastDailyReward={lastDailyReward}
                                                     isOnboardingBuyStep={isOnboardingBuyStep}
                                                     onOnboardingPurchase={onOnboardingPurchase}
                                                 />
@@ -759,12 +963,14 @@ export function ComputerScreen({
                                                         handleSwitchRoom(roomId, win.id)
                                                     }
                                                 />
-                                            ) : (
+                                            ) : win.app === "invite" ? (
                                                 <InvitePanel
                                                     referralUrl={referralUrl}
                                                     copied={copied}
                                                     onCopyReferral={handleCopyReferral}
                                                 />
+                                            ) : (
+                                                <AboutPanel />
                                             )}
                                         </div>
 
@@ -775,19 +981,6 @@ export function ComputerScreen({
                                     </div>
                                 ))}
                             </div>
-
-                            {isEditing && (
-                                <div className="absolute left-3 right-3 bottom-3 z-[90]">
-                                    <ShortcutsEditor
-                                        newShortcutName={newShortcutName}
-                                        newShortcutUrl={newShortcutUrl}
-                                        onNewShortcutNameChange={setNewShortcutName}
-                                        onNewShortcutUrlChange={setNewShortcutUrl}
-                                        onAddShortcut={handleAddShortcut}
-                                        onDoneEditing={() => setIsEditing(false)}
-                                    />
-                                </div>
-                            )}
                         </div>
 
                         <div className="bg-gradient-to-b from-stone-300 to-stone-200 border-t-2 border-white p-1.5 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] text-stone-800 relative">
@@ -798,12 +991,10 @@ export function ComputerScreen({
                                         setIsStartMenuOpen((prev) => !prev);
                                         setContextMenu(null);
                                     }}
-                                    className="flex items-center gap-2 bg-gradient-to-b from-lime-300 to-lime-400 hover:from-lime-200 hover:to-lime-300 px-3 py-1.5 rounded border-2 border-t-white border-l-white border-b-lime-600 border-r-lime-600 shadow-sm active:border-t-lime-600 active:border-l-lime-600 active:border-b-white active:border-r-white active:translate-y-[1px] transition-all"
+                                    aria-label="User menu"
+                                    className="flex items-center justify-center bg-gradient-to-b from-gray-300 to-gray-400 hover:from-gray-200 hover:to-gray-300 px-3 py-1.5 rounded border-2 border-t-white border-l-white border-b-gray-600 border-r-gray-600 shadow-sm active:border-t-gray-600 active:border-l-gray-600 active:border-b-white active:border-r-white active:translate-y-[1px] transition-all"
                                 >
-                                    <div className="w-5 h-5 rounded-sm bg-gradient-to-br from-emerald-500 via-lime-400 to-yellow-300 border border-emerald-800 shadow-inner" />
-                                    <span className="text-sm font-semibold text-emerald-900">
-                                        Start
-                                    </span>
+                                    <User className="h-5 w-5 text-gray-800" />
                                 </button>
 
                                 <div className="flex items-center gap-2 h-8">
@@ -813,15 +1004,14 @@ export function ComputerScreen({
                                             e.stopPropagation();
                                             setIsStartMenuOpen(false);
                                             setContextMenu(null);
-                                        openWindow("shop");
+                                            openWindow("shop");
                                         }}
                                         title="Shop"
                                         aria-label="Shop"
-                                        className={`flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all ${
-                                            isOnboardingShopStep
+                                        className={`flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all ${isOnboardingShopStep
                                                 ? "ring-2 ring-amber-300 ring-offset-1 ring-offset-stone-200 animate-pulse"
                                                 : ""
-                                        }`}
+                                            }`}
                                     >
                                         <ShoppingBag className="h-5 w-5 text-amber-600" />
                                     </button>
@@ -853,6 +1043,20 @@ export function ComputerScreen({
                                     >
                                         <UserPlus className="h-5 w-5 text-pink-600" />
                                     </button>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsStartMenuOpen(false);
+                                            setContextMenu(null);
+                                            openWindow("about");
+                                        }}
+                                        title="About"
+                                        aria-label="About"
+                                        className="flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all"
+                                    >
+                                        <Info className="h-5 w-5 text-indigo-600" />
+                                    </button>
                                 </div>
 
                                 <div className="flex-1" />
@@ -867,25 +1071,12 @@ export function ComputerScreen({
 
                             {isStartMenuOpen && (
                                 <div
-                                    className="absolute bottom-12 left-2 w-64 bg-slate-50 border-2 border-slate-300 shadow-xl rounded-md overflow-hidden z-[70]"
+                                    className="absolute bottom-12 left-2 w-52 bg-white border-2 border-stone-300 shadow-xl rounded-md overflow-hidden z-[70]"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className="bg-gradient-to-r from-blue-800 via-blue-700 to-blue-800 text-white px-3 py-2 text-sm font-semibold flex items-center gap-2">
-                                        <div className="w-5 h-5 rounded-sm bg-gradient-to-br from-emerald-500 via-lime-400 to-yellow-300 border border-emerald-800 shadow-inner" />
-                                        Cozy Start
-                                    </div>
-                                    <div className="flex flex-col divide-y divide-slate-200">
+                                    <div className="flex flex-col divide-y divide-stone-200">
                                         <button
-                                            className="text-left px-3 py-2 hover:bg-blue-100 text-sm"
-                                            onClick={() => {
-                                                setIsEditing(true);
-                                                setIsStartMenuOpen(false);
-                                            }}
-                                        >
-                                            Add shortcut…
-                                        </button>
-                                        <button
-                                            className="text-left px-3 py-2 hover:bg-blue-100 text-sm"
+                                            className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
                                             onClick={() => {
                                                 setIsStartMenuOpen(false);
                                                 signOut();
@@ -894,7 +1085,7 @@ export function ComputerScreen({
                                             Log out
                                         </button>
                                         <button
-                                            className="text-left px-3 py-2 hover:bg-blue-100 text-sm"
+                                            className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
                                             onClick={() => {
                                                 setIsStartMenuOpen(false);
                                                 onClose();
@@ -912,19 +1103,111 @@ export function ComputerScreen({
                 </div>
             </div>
 
+            {inlineAddPrompt && (
+                <div
+                    className="fixed z-[120]"
+                    style={{
+                        top: inlineAddPrompt.y,
+                        left: inlineAddPrompt.x,
+                        transform: "translate(-4px, -8px)",
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="bg-white rounded-lg shadow-xl border border-stone-300 p-3 w-[320px] flex flex-col gap-2 overflow-hidden">
+                        <div className="text-xs text-stone-500">Add shortcut URL</div>
+                        <div className="flex gap-2 items-center">
+                            <input
+                                ref={addUrlInputRef}
+                                value={newShortcutUrl}
+                                onChange={(e) => setNewShortcutUrl(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddShortcutInline();
+                                    }
+                                    if (e.key === "Escape") {
+                                        e.preventDefault();
+                                        setInlineAddPrompt(null);
+                                        setPendingShortcutPosition(null);
+                                        setNewShortcutUrl("");
+                                    }
+                                }}
+                                placeholder="youtube.com"
+                                className="flex-1 min-w-0 h-9 rounded border border-stone-300 px-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                autoFocus
+                            />
+                            <button
+                                onClick={handleAddShortcutInline}
+                                disabled={!newShortcutUrl.trim()}
+                                className="h-9 px-3 rounded bg-blue-600 text-white text-sm font-medium shadow disabled:opacity-50 shrink-0 whitespace-nowrap"
+                            >
+                                Add
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setInlineAddPrompt(null);
+                                    setPendingShortcutPosition(null);
+                                    setNewShortcutUrl("");
+                                }}
+                                className="h-9 px-3 rounded border border-stone-300 text-sm text-stone-700 hover:bg-stone-100 shrink-0 whitespace-nowrap"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {contextMenu && (
                 <div
                     className="fixed z-[120] bg-white border border-stone-300 rounded shadow-lg text-sm"
                     style={{ top: contextMenu.y, left: contextMenu.x }}
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <button
-                        className="px-3 py-2 hover:bg-red-50 text-left text-red-600 w-full flex items-center gap-2"
-                        onClick={() => handleDeleteShortcut(contextMenu.id)}
-                    >
-                        <X className="h-4 w-4" />
-                        Delete shortcut
-                    </button>
+                    {contextMenu.target === "shortcut" ? (
+                        <div className="flex flex-col">
+                            <button
+                                className="px-3 py-2 hover:bg-slate-50 text-left w-full"
+                                onClick={() => {
+                                    const target = desktopShortcuts.find(
+                                        (s) => s.id === contextMenu.id
+                                    );
+                                    if (target) {
+                                        handleOpenShortcut(target);
+                                        setContextMenu(null);
+                                    }
+                                }}
+                            >
+                                Open
+                            </button>
+                            <button
+                                className="px-3 py-2 hover:bg-slate-50 text-left w-full"
+                                onClick={() => startRename(contextMenu.id)}
+                            >
+                                Rename
+                            </button>
+                            <button
+                                className="px-3 py-2 hover:bg-red-50 text-left text-red-600 w-full flex items-center gap-2"
+                                onClick={() => handleDeleteShortcut(contextMenu.id)}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            className="px-3 py-2 hover:bg-slate-50 text-left w-full"
+                            onClick={() =>
+                                startAddAtCell(
+                                    contextMenu.row,
+                                    contextMenu.col,
+                                    contextMenu.x,
+                                    contextMenu.y
+                                )
+                            }
+                        >
+                            New Shortcut
+                        </button>
+                    )}
                 </div>
             )}
         </div>

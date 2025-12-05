@@ -19,7 +19,7 @@ import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
 import { Button } from "@/components/ui/button";
 import { SignInButton, useUser } from "@clerk/clerk-react";
-import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Gift, Share2 } from "lucide-react";
+import { Lock, LockOpen, LogIn, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
 import { RoomCanvas } from "./RoomCanvas";
@@ -117,7 +117,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         }
     }, [localItems, mode, room]);
 
-    const { showRewardNotification, setShowRewardNotification } = useDailyReward({
+    useDailyReward({
         user,
         isGuest,
         claimDailyReward,
@@ -345,21 +345,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                 )}
             </div>
 
-            {showRewardNotification && (
-                <div
-                    className="absolute top-20 left-1/2 -translate-x-1/2 z-[60] animate-in slide-in-from-top-4 fade-in duration-300"
-                    onClick={() => setShowRewardNotification(false)}
-                >
-                    <div className="bg-[var(--success)] text-white rounded-xl px-6 py-3 shadow-lg border-2 border-[var(--ink)] flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
-                        <Gift className="h-6 w-6" />
-                        <div>
-                            <div className="font-bold text-lg">Daily Reward!</div>
-                            <div className="text-white/90 text-sm">+1 token added to your balance</div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {mode === "edit" && (
                 <div
                     className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
@@ -414,6 +399,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         saveComputer({ shortcuts });
                     }}
                     userCurrency={user?.currency ?? 0}
+                    lastDailyReward={user?.lastDailyReward}
                     onShopOpened={() => {
                         if (onboardingStep === "open-shop") {
                             advanceOnboarding();

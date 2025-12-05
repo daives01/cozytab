@@ -168,7 +168,7 @@ export function OnboardingSpotlight({
                     y="0"
                     width="100%"
                     height="100%"
-                    fill="rgba(0, 0, 0, 0.7)"
+                    fill="rgba(0, 0, 0, 0.12)"
                     mask="url(#spotlight-mask)"
                 />
             </svg>

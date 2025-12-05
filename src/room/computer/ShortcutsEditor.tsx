@@ -1,4 +1,4 @@
-import { Plus, Check, LogOut } from "lucide-react";
+import { Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useClerk } from "@clerk/clerk-react";
@@ -9,7 +9,6 @@ interface ShortcutsEditorProps {
     onNewShortcutNameChange: (value: string) => void;
     onNewShortcutUrlChange: (value: string) => void;
     onAddShortcut: () => void;
-    onDoneEditing: () => void;
 }
 
 export function ShortcutsEditor({
@@ -18,7 +17,6 @@ export function ShortcutsEditor({
     onNewShortcutNameChange,
     onNewShortcutUrlChange,
     onAddShortcut,
-    onDoneEditing,
 }: ShortcutsEditorProps) {
     const { signOut } = useClerk();
 
@@ -48,25 +46,17 @@ export function ShortcutsEditor({
                 </Button>
             </div>
 
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-end gap-3">
+                <span className="text-xs text-stone-500">
+                    Right-click a shortcut to rename or delete it
+                </span>
                 <button
-                    onClick={onDoneEditing}
-                    className="flex items-center gap-2 bg-gradient-to-b from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white px-4 py-1.5 rounded border border-emerald-700 shadow-sm transition-all text-sm font-medium"
+                    onClick={() => signOut()}
+                    className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"
+                    title="Log Out"
                 >
-                    <Check className="h-4 w-4" />
-                    Done Editing
+                    <LogOut className="h-4 w-4 text-stone-400 group-hover:text-red-500 transition-colors" />
                 </button>
-
-                <div className="flex items-center gap-3">
-                    <span className="text-xs text-stone-500">Right-click a shortcut to delete it</span>
-                    <button
-                        onClick={() => signOut()}
-                        className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"
-                        title="Log Out"
-                    >
-                        <LogOut className="h-4 w-4 text-stone-400 group-hover:text-red-500 transition-colors" />
-                    </button>
-                </div>
             </div>
         </div>
     );

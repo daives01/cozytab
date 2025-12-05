@@ -1,3 +1,3 @@
-import type { RoomItem } from "./types";
+import type { RoomItem } from "@/types";
 
 export const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
