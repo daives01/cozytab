@@ -43,17 +43,6 @@ export function useOnboarding({
         });
     }, [autoStart, guestOnboardingCompleted, isGuest, user]);
 
-    // Auto-advance from welcome to the first actionable step
-    useEffect(() => {
-        if (!onboardingActive || onboardingStep !== "welcome") return;
-        const timer = setTimeout(() => {
-            startTransition(() => {
-                setOnboardingStep("enter-edit-mode");
-            });
-        }, 3000);
-        return () => clearTimeout(timer);
-    }, [onboardingActive, onboardingStep]);
-
     const handleOnboardingComplete = useCallback(async () => {
         if (!onboardingActive) return;
 

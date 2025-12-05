@@ -4,10 +4,10 @@ export function getNextStep(currentStep: OnboardingStep): OnboardingStep {
     const order: OnboardingStep[] = [
         "welcome",
         "enter-edit-mode",
-        "open-storage",
         "place-computer",
         "switch-to-view",
         "click-computer",
+        "add-shortcut",
         "open-shop",
         "buy-item",
         "set-homepage",

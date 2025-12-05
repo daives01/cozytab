@@ -106,6 +106,11 @@ function generateReferralCode(): string {
 
 const MAX_GUEST_ITEMS = 100;
 
+function clampGuestCoins(value: unknown): number {
+    if (typeof value !== "number" || Number.isNaN(value)) return GUEST_STARTING_COINS;
+    return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
+}
+
 async function importInventoryWithinBudget(
     ctx: MutationCtx,
     userId: Id<"users">,
@@ -113,20 +118,28 @@ async function importInventoryWithinBudget(
     startingCurrency: number
 ) {
     const inventoryNames = new Set<string>();
+    const seenCatalogIds = new Set<string>();
     const catalogCostCache: Record<string, number> = {};
     const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
     const remainingBudget = { value: startingCurrency };
 
-    for (const name of guestInventory) {
-        if (inventoryNames.has(name)) continue;
-        const catalogItem = catalogItems.find((c) => c.name === name);
+    const resolveCatalogItem = (idOrName: string) =>
+        catalogItems.find(
+            (c) => c.name === idOrName || (c._id as unknown as string) === idOrName
+        );
+
+    for (const idOrName of guestInventory) {
+        const catalogItem = resolveCatalogItem(idOrName);
         if (!catalogItem) continue;
+        const catalogKey = catalogItem._id as unknown as string;
+        if (seenCatalogIds.has(catalogKey)) continue;
         const cost = catalogItem.name === "Computer" ? 0 : catalogItem.basePrice ?? 0;
-        const cachedCost = catalogCostCache[name] ?? cost;
+        const cachedCost = catalogCostCache[catalogKey] ?? cost;
         if (remainingBudget.value - cachedCost < 0) continue;
 
-        inventoryNames.add(name);
-        catalogCostCache[name] = cachedCost;
+        seenCatalogIds.add(catalogKey);
+        inventoryNames.add(catalogItem.name);
+        catalogCostCache[catalogKey] = cachedCost;
         remainingBudget.value -= cachedCost;
 
         await ctx.db.insert("inventory", {
@@ -275,6 +288,7 @@ export const ensureUser = mutation({
         const derivedDisplayName = clerkName ?? derivedUsername;
 
         const guestSession = args.guestSession;
+        const reportedGuestCoins = clampGuestCoins(guestSession?.coins);
         const rawGuestInventory = Array.isArray(guestSession?.inventoryIds)
             ? guestSession?.inventoryIds ?? []
             : Array.isArray(args.guestInventory)
@@ -284,7 +298,7 @@ export const ensureUser = mutation({
         const rawGuestShortcuts = (guestSession?.shortcuts ?? args.guestShortcuts) as GuestShortcut[] | undefined;
 
         const guestSessionState: GuestSessionState = {
-            coins: GUEST_STARTING_COINS,
+            coins: reportedGuestCoins,
             inventoryIds: rawGuestInventory,
             roomItems: rawGuestRoomItems ?? [],
             shortcuts: rawGuestShortcuts ?? [],
@@ -338,7 +352,7 @@ export const ensureUser = mutation({
                     .unique();
             }
 
-            const computedCurrency = GUEST_STARTING_COINS;
+            const computedCurrency = reportedGuestCoins;
 
             const id = await ctx.db.insert("users", {
                 externalId: identity.subject,
@@ -358,7 +372,7 @@ export const ensureUser = mutation({
                     remainingCurrency,
                     inventoryNames,
                     catalogItems,
-                } = await importInventoryWithinBudget(ctx, user._id, guestInventory, computedCurrency);
+                } = await importInventoryWithinBudget(ctx, user._id, guestInventory, GUEST_STARTING_COINS);
 
                 const starterItem = catalogItems.find((c) => c.name === "Computer");
                 if (starterItem && !inventoryNames.has("Computer")) {
@@ -370,7 +384,7 @@ export const ensureUser = mutation({
                 }
 
                 await ctx.db.patch(user._id, {
-                    currency: remainingCurrency,
+                    currency: Math.min(remainingCurrency, reportedGuestCoins),
                     onboardingCompleted: guestSessionState.onboardingCompleted === true || user.onboardingCompleted === true,
                 });
 
@@ -445,6 +459,59 @@ export const claimDailyReward = mutation({
         });
 
         return { success: true, newBalance: user.currency + 1 };
+    },
+});
+
+export const devDeleteMyAccount = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const nodeEnv =
+            (globalThis as { process?: { env?: Record<string, string | undefined> } })
+                .process?.env?.NODE_ENV;
+        if (nodeEnv !== "development") {
+            throw new Error("Dev-only mutation");
+        }
+
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
+            .unique();
+
+        if (!user) {
+            return { deleted: false };
+        }
+
+        const rooms = await ctx.db
+            .query("rooms")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+
+        for (const room of rooms) {
+            const invites = await ctx.db
+                .query("roomInvites")
+                .withIndex("by_room", (q) => q.eq("roomId", room._id))
+                .collect();
+            for (const invite of invites) {
+                await ctx.db.delete(invite._id);
+            }
+            await ctx.db.delete(room._id);
+        }
+
+        const inventory = await ctx.db
+            .query("inventory")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+
+        for (const item of inventory) {
+            await ctx.db.delete(item._id);
+        }
+
+        await ctx.db.delete(user._id);
+
+        return { deleted: true };
     },
 });
 

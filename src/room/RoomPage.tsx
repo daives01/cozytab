@@ -295,12 +295,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, [advanceOnboarding, mode, onboardingStep]);
 
     const handleDrawerToggle = useCallback(() => {
-        const wasOpen = isDrawerOpen;
         setIsDrawerOpen(!isDrawerOpen);
-        if (!wasOpen && onboardingStep === "open-storage") {
-            advanceOnboarding();
-        }
-    }, [advanceOnboarding, isDrawerOpen, onboardingStep]);
+    }, [isDrawerOpen]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -372,7 +368,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     if (isGuest && guestTemplate === undefined && guestRoom === undefined) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading cozytab demo...
+                Loading cozytab...
             </div>
         );
     }
@@ -500,7 +496,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         advanceOnboarding();
                     }
                 }}
-                isOnboardingBuyStep={onboardingStep === "buy-item"}
                 isOnboardingShopStep={onboardingStep === "open-shop"}
                 onPointerMove={updateCursorFromClient}
                 guestCoins={guestCoins}
@@ -512,6 +507,11 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         if (prev.includes(itemId)) return prev;
                         return [...prev, itemId];
                     });
+                }}
+                onOnboardingShortcutAdded={() => {
+                    if (onboardingStep === "add-shortcut") {
+                        advanceOnboarding();
+                    }
                 }}
             />
 

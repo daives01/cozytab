@@ -11,7 +11,7 @@ interface ComputerOverlayProps {
     lastDailyReward?: number;
     onShopOpened?: () => void;
     onOnboardingPurchase?: () => void;
-    isOnboardingBuyStep: boolean;
+    onOnboardingShortcutAdded?: () => void;
     isOnboardingShopStep: boolean;
     onPointerMove: (clientX: number, clientY: number) => void;
     guestCoins?: number;
@@ -31,7 +31,7 @@ export function ComputerOverlay({
     lastDailyReward,
     onShopOpened,
     onOnboardingPurchase,
-    isOnboardingBuyStep,
+    onOnboardingShortcutAdded,
     isOnboardingShopStep,
     onPointerMove,
     guestCoins,
@@ -51,7 +51,7 @@ export function ComputerOverlay({
                     lastDailyReward={lastDailyReward}
                     onShopOpened={onShopOpened}
                     onOnboardingPurchase={onOnboardingPurchase}
-                    isOnboardingBuyStep={isOnboardingBuyStep}
+                    onOnboardingShortcutAdded={onOnboardingShortcutAdded}
                     isOnboardingShopStep={isOnboardingShopStep}
                     onPointerMove={onPointerMove}
                     isGuest={isGuest}

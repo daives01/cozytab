@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef } from "react";
+import type React from "react";
+import { useEffect, useState } from "react";
 
 interface SpotlightPosition {
     top: number;
@@ -12,6 +13,7 @@ interface OnboardingSpotlightProps {
     targetRef?: React.RefObject<HTMLElement | null>;
     message: string;
     bubblePosition?: "top" | "bottom" | "left" | "right";
+    fixedBubblePosition?: Partial<Record<"top" | "left" | "right" | "bottom", number>>;
     onSkip: () => void;
     showSkip?: boolean;
     pulseTarget?: boolean;
@@ -24,6 +26,7 @@ export function OnboardingSpotlight({
     targetRef,
     message,
     bubblePosition = "bottom",
+    fixedBubblePosition,
     onSkip,
     showSkip = true,
     pulseTarget = true,
@@ -31,7 +34,6 @@ export function OnboardingSpotlight({
     showNext = false,
 }: OnboardingSpotlightProps) {
     const [spotlight, setSpotlight] = useState<SpotlightPosition | null>(null);
-    const messageRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const updateSpotlight = () => {
@@ -73,6 +75,22 @@ export function OnboardingSpotlight({
     }, [targetSelector, targetRef]);
 
     const getBubbleStyle = (): React.CSSProperties => {
+        const gap = 20;
+        const bubbleWidth = 300;
+        const bubbleHeight = 150;
+        const margin = 20;
+
+        if (fixedBubblePosition) {
+            return {
+                position: "fixed",
+                top: fixedBubblePosition.top,
+                left: fixedBubblePosition.left,
+                right: fixedBubblePosition.right,
+                bottom: fixedBubblePosition.bottom,
+                maxWidth: bubbleWidth,
+            };
+        }
+
         if (!spotlight) {
             return {
                 position: "fixed",
@@ -81,11 +99,6 @@ export function OnboardingSpotlight({
                 transform: "translate(-50%, -50%)",
             };
         }
-
-        const gap = 20;
-        const bubbleWidth = 300;
-        const bubbleHeight = 150;
-        const margin = 20;
 
         let top: number | undefined;
         let left: number | undefined;
@@ -143,36 +156,6 @@ export function OnboardingSpotlight({
 
     return (
         <div className="fixed inset-0 z-[200] pointer-events-none font-['Patrick_Hand']">
-            {/* Dark overlay with cutout */}
-            <svg
-                className="absolute inset-0 w-full h-full pointer-events-none"
-            >
-                <defs>
-                    <mask id="spotlight-mask">
-                        <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                        {spotlight && (
-                            <rect
-                                x={spotlight.left}
-                                y={spotlight.top}
-                                width={spotlight.width}
-                                height={spotlight.height}
-                                rx="12"
-                                ry="12"
-                                fill="black"
-                            />
-                        )}
-                    </mask>
-                </defs>
-                <rect
-                    x="0"
-                    y="0"
-                    width="100%"
-                    height="100%"
-                    fill="rgba(0, 0, 0, 0.12)"
-                    mask="url(#spotlight-mask)"
-                />
-            </svg>
-
             {/* Pulse ring around spotlight target */}
             {spotlight && pulseTarget && (
                 <div
@@ -190,7 +173,6 @@ export function OnboardingSpotlight({
 
             {/* Speech bubble */}
             <div
-                ref={messageRef}
                 style={{
                     ...getBubbleStyle(),
                     pointerEvents: "auto",

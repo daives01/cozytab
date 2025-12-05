@@ -13,7 +13,6 @@ type ShopTab = "items" | "rooms";
 interface ShopProps {
     userCurrency: number;
     lastDailyReward?: number;
-    isOnboardingBuyStep?: boolean;
     onOnboardingPurchase?: () => void;
     isGuest?: boolean;
     guestCoins?: number;
@@ -36,10 +35,10 @@ function groupByCategory(items: Doc<"catalogItems">[]) {
 
 function getCategoryDisplayName(category: string): string {
     const names: Record<string, string> = {
+        music: "Music",
+        computer: "Electronics",
         furniture: "Furniture",
         decor: "Decorations",
-        computer: "Electronics",
-        music: "Music",
     };
     return names[category] || category.charAt(0).toUpperCase() + category.slice(1);
 }
@@ -57,7 +56,6 @@ function getCategoryColor(category: string): string {
 export function Shop({
     userCurrency,
     lastDailyReward,
-    isOnboardingBuyStep,
     onOnboardingPurchase,
     isGuest = false,
     guestCoins,
@@ -159,6 +157,7 @@ export function Shop({
     }, []);
 
     const nextRewardText = useMemo(() => {
+        if (isGuest) return "";
         if (!lastDailyReward) {
             return "(next coin ready)";
         }
@@ -174,12 +173,13 @@ export function Shop({
         }
         const hours = Math.ceil(diff / oneHourMs);
         return `(next coin in ${hours} hr${hours === 1 ? "" : "s"})`;
-    }, [lastDailyReward, now]);
+    }, [lastDailyReward, now, isGuest]);
 
     const referralText = useMemo(() => {
+        if (isGuest) return "";
         const count = referralStats?.referralCoins ?? referralStats?.referralCount ?? 0;
         return `(${count} referral coins so far)`;
-    }, [referralStats]);
+    }, [referralStats, isGuest]);
 
     const containerClasses =
         "relative bg-[var(--paper)] rounded-xl shadow-lg w-full h-full border-2 border-[var(--ink)] overflow-hidden flex flex-col";
@@ -241,11 +241,6 @@ export function Shop({
                             <span className="text-[10px] font-semibold text-[var(--ink-subtle)]">
                                 {referralText}
                             </span>
-                            {isGuest && (
-                                <span className="text-[10px] font-semibold text-[var(--ink-muted)]">
-                                    Log in to keep purchases.
-                                </span>
-                            )}
                         </div>
                         <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-3 py-1 border-2 border-[var(--ink)] shadow-sm">
                             <Coins className="h-4 w-4 text-[var(--warning)]" />
@@ -269,7 +264,6 @@ export function Shop({
                         userCurrency={effectiveCoins}
                         purchasing={purchasing}
                         lastResult={lastResult}
-                        isOnboardingBuyStep={isOnboardingBuyStep}
                         onPurchase={handlePurchase}
                         getCategoryDisplayName={getCategoryDisplayName}
                         getCategoryColor={getCategoryColor}
@@ -284,11 +278,6 @@ export function Shop({
                         onPurchaseRoom={handlePurchaseRoom}
                     />
                 )}
-            </div>
-
-            {/* Footer hint */}
-            <div className="bg-[var(--paper-header)] border-t-2 border-[var(--ink)] px-4 py-2 text-center text-sm text-[var(--ink-subtle)] shrink-0">
-                Earn tokens daily by visiting your cozytab!
             </div>
         </div>
     );

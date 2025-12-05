@@ -9,7 +9,6 @@ interface ItemsTabProps {
     userCurrency: number;
     purchasing: Id<"catalogItems"> | null;
     lastResult: { itemId: Id<"catalogItems">; message: string; success: boolean } | null;
-    isOnboardingBuyStep?: boolean;
     onPurchase: (itemId: Id<"catalogItems">) => void;
     getCategoryDisplayName: (category: string) => string;
     getCategoryColor: (category: string) => string;
@@ -22,7 +21,6 @@ export function ItemsTab({
     userCurrency,
     purchasing,
     lastResult,
-    isOnboardingBuyStep,
     onPurchase,
     getCategoryDisplayName,
     getCategoryColor,
@@ -38,44 +36,40 @@ export function ItemsTab({
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             {categories.map((category) => (
                 <div key={category}>
-                    <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
                         <div className={`h-1 flex-1 rounded-full bg-gradient-to-r ${getCategoryColor(category)} opacity-50`} />
-                        <h3 className="text-xl font-bold text-[var(--ink)] uppercase tracking-wider">
+                        <h3 className="text-lg font-bold text-[var(--ink)] uppercase tracking-wide">
                             {getCategoryDisplayName(category)}
                         </h3>
                         <div className={`h-1 flex-1 rounded-full bg-gradient-to-l ${getCategoryColor(category)} opacity-50`} />
                     </div>
 
-                    <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                        {groupedItems[category].map((item, itemIndex) => {
+                    <div className="flex flex-wrap gap-2.5 md:gap-3 justify-center md:justify-start">
+                        {groupedItems[category].map((item) => {
                             const isOwned = ownedSet.has(item._id);
                             const canAfford = userCurrency >= item.basePrice;
                             const isPurchasing = purchasing === item._id;
                             const resultForItem = lastResult?.itemId === item._id ? lastResult : null;
-                            const isOnboardingTarget = isOnboardingBuyStep && !isOwned && canAfford && itemIndex === 0;
 
                             return (
                                 <div
                                     key={item._id}
-                                    data-onboarding={isOnboardingTarget ? "shop-item" : undefined}
-                                    className={`relative w-[150px] shrink-0 bg-white rounded-xl border-2 p-3 transition-all shadow-sm ${
+                                    className={`relative w-[130px] shrink-0 bg-white rounded-lg border-2 p-2.5 transition-all shadow-sm ${
                                         isOwned
                                             ? "border-[var(--success)] bg-[var(--success-light)]"
-                                            : isOnboardingTarget
-                                            ? "border-[var(--warning)] ring-2 ring-[var(--warning-light)] shadow-md"
                                             : "border-[var(--ink)] hover:border-[var(--warning)] hover:shadow-md hover:-translate-y-1"
                                     }`}
                                 >
                                     {isOwned && (
-                                        <div className="absolute -top-2 -right-2 bg-[var(--success)] text-white rounded-full p-1 shadow-sm border-2 border-[var(--ink)]">
-                                            <Check className="h-4 w-4" />
+                                        <div className="absolute -top-2 -right-2 bg-[var(--success)] text-white rounded-full p-0.5 shadow-sm border-2 border-[var(--ink)]">
+                                            <Check className="h-3.5 w-3.5" />
                                         </div>
                                     )}
 
-                                    <div className="w-full h-[150px] bg-[var(--muted)] rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+                                    <div className="w-full h-[112px] bg-[var(--muted)] rounded-md mb-2 flex items-center justify-center overflow-hidden">
                                         <AssetImage
                                             assetUrl={item.assetUrl}
                                             alt={item.name}
@@ -84,19 +78,19 @@ export function ItemsTab({
                                         />
                                     </div>
 
-                                    <h4 className="font-bold text-[var(--ink)] text-center truncate mb-2">
+                                    <h4 className="font-bold text-[var(--ink)] text-center truncate mb-1.5 text-sm">
                                         {item.name}
                                     </h4>
 
                                     {isOwned ? (
-                                        <div className="text-center text-[var(--success-dark)] font-bold text-sm">
+                                        <div className="text-center text-[var(--success-dark)] font-bold text-xs">
                                             Owned
                                         </div>
                                     ) : (
                                         <button
                                             onClick={() => onPurchase(item._id)}
                                             disabled={!canAfford || isPurchasing}
-                                            className={`w-full py-1.5 px-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-1.5 border-2 ${
+                                            className={`w-full py-1 px-2.5 rounded-md font-bold text-xs transition-all flex items-center justify-center gap-1.5 border-2 ${
                                                 isPurchasing
                                                     ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                     : canAfford
@@ -104,14 +98,14 @@ export function ItemsTab({
                                                     : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
                                             }`}
                                         >
-                                            <Coins className="h-4 w-4" />
+                                            <Coins className="h-3.5 w-3.5" />
                                             <span>{item.basePrice}</span>
                                         </button>
                                     )}
 
                                     {resultForItem && (
                                         <div
-                                            className={`mt-2 text-xs text-center ${
+                                            className={`mt-1.5 text-[11px] leading-tight text-center ${
                                                 resultForItem.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
                                             }`}
                                         >

@@ -3,10 +3,10 @@ import { OnboardingSpotlight } from "./OnboardingSpotlight";
 export type OnboardingStep =
     | "welcome"
     | "enter-edit-mode"
-    | "open-storage"
     | "place-computer"
     | "switch-to-view"
     | "click-computer"
+    | "add-shortcut"
     | "open-shop"
     | "buy-item"
     | "set-homepage"
@@ -24,6 +24,7 @@ interface StepConfig {
     message: string;
     targetSelector?: string;
     bubblePosition: "top" | "bottom" | "left" | "right";
+    fixedBubblePosition?: Partial<Record<"top" | "left" | "right" | "bottom", number>>;
     showSkip: boolean;
     pulseTarget: boolean;
     showNext?: boolean;
@@ -31,22 +32,16 @@ interface StepConfig {
 
 const stepConfigs: Record<OnboardingStep, StepConfig> = {
     welcome: {
-        message: "Welcome to your cozytab! 🏠 This is your cozy corner of the internet. Let me show you around!",
+        message: "Welcome to your cozytab! This is your cozy corner of the internet. Let's show you around!",
         bubblePosition: "bottom",
         showSkip: true,
         pulseTarget: false,
+        showNext: true,
     },
     "enter-edit-mode": {
         message: "First, let's unlock your room so you can decorate! Click the lock button to enter Edit Mode.",
         targetSelector: "[data-onboarding='mode-toggle']",
         bubblePosition: "right",
-        showSkip: true,
-        pulseTarget: true,
-    },
-    "open-storage": {
-        message: "Great! Now let's open your storage. Click the drawer tab to see your items.",
-        targetSelector: "[data-onboarding='drawer-toggle']",
-        bubblePosition: "left",
         showSkip: true,
         pulseTarget: true,
     },
@@ -67,23 +62,31 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
     "click-computer": {
         message: "Click on your computer to open it!",
         targetSelector: "[data-onboarding='placed-computer']",
-        bubblePosition: "bottom",
+        fixedBubblePosition: { top: 92, left: 24 },
+        bubblePosition: "top",
         showSkip: true,
         pulseTarget: true,
     },
     "open-shop": {
         message: "Click on the Item Shop to browse and buy new decorations!",
         targetSelector: "[data-onboarding='shop-icon']",
-        bubblePosition: "bottom",
+        bubblePosition: "top",
+        showSkip: true,
+        pulseTarget: true,
+    },
+    "add-shortcut": {
+        message: "Add a shortcut: right-click the computer desktop and paste a URL to pin your favorite site. Drag it wherever you want! ",
+        targetSelector: "[data-onboarding='shortcut-desktop']",
+        bubblePosition: "top",
         showSkip: true,
         pulseTarget: true,
     },
     "buy-item": {
-        message: "Use your tokens to buy items! Try buying something you like. You earn more tokens each day you visit!",
-        targetSelector: "[data-onboarding='shop-item']",
-        bubblePosition: "left",
+        message: "Use your coins to buy items! Try buying something you like. You earn more coins each day you visit!",
+        bubblePosition: "top",
         showSkip: true,
-        pulseTarget: true,
+        pulseTarget: false,
+        fixedBubblePosition: { top: 92, right: 24 },
     },
     "set-homepage": {
         message: "Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set https://cozytab.club as your homepage. Works in Chrome and Firefox!",
@@ -132,6 +135,7 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
             targetSelector={config.targetSelector}
             message={message}
             bubblePosition={config.bubblePosition}
+            fixedBubblePosition={config.fixedBubblePosition}
             onSkip={handleSkip}
             showSkip={config.showSkip}
             pulseTarget={config.pulseTarget}
