@@ -69,6 +69,7 @@ export default defineSchema({
         userId: v.id("users"),
         catalogItemId: v.id("catalogItems"),
         purchasedAt: v.number(), // timestamp
+        hidden: v.optional(v.boolean()), // allow users to hide items in the drawer
     })
         .index("by_user", ["userId"])
         .index("by_user_and_item", ["userId", "catalogItemId"]),

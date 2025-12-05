@@ -86,10 +86,6 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                                         : "No visitors yet"}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-2 rounded-xl border-2 border-neutral-900 bg-white px-3 py-2 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
-                                <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span>Live & realtime</span>
-                            </div>
                         </div>
 
                         {shareUrl ? (
@@ -168,7 +164,7 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                                 <div className="rounded-xl border-2 border-neutral-900 bg-white px-6 py-7 text-center shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]">
                                     <Link2 className="h-10 w-10 text-neutral-400 mx-auto mb-3" />
                                     <p className="text-neutral-700 font-medium mb-1">
-                                        Generate a cozy invite for your room
+                                        Generate an invite for your room
                                     </p>
                                     <p className="text-sm text-neutral-600">
                                         Friends get a read-only peek. You stay in control.

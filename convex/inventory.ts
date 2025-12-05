@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import type { Doc } from "./_generated/dataModel";
 
 export const getMyInventory = query({
     args: {},
@@ -21,14 +22,32 @@ export const getMyInventory = query({
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
 
-        const catalogItems = await Promise.all(
+        const catalogCache = new Map<string, Doc<"catalogItems">>();
+
+        const detailedInventory = await Promise.all(
             inventoryItems.map(async (inv) => {
-                const catalogItem = await ctx.db.get(inv.catalogItemId);
-                return catalogItem;
+                const cached = catalogCache.get(inv.catalogItemId);
+                const catalogItem = cached ?? (await ctx.db.get(inv.catalogItemId));
+                if (!catalogItem) return null;
+                catalogCache.set(inv.catalogItemId, catalogItem);
+
+                return {
+                    inventoryId: inv._id,
+                    catalogItemId: inv.catalogItemId,
+                    name: catalogItem.name,
+                    category: catalogItem.category,
+                    basePrice: catalogItem.basePrice,
+                    assetUrl: catalogItem.assetUrl,
+                    defaultWidth: catalogItem.defaultWidth,
+                    hidden: inv.hidden ?? false,
+                    purchasedAt: inv.purchasedAt,
+                };
             })
         );
 
-        return catalogItems.filter((item): item is NonNullable<typeof item> => item !== null);
+        return detailedInventory
+            .filter((item): item is NonNullable<typeof item> => item !== null)
+            .sort((a, b) => b.purchasedAt - a.purchasedAt);
     },
 });
 
@@ -125,12 +144,37 @@ export const purchaseItem = mutation({
             userId: user._id,
             catalogItemId: args.catalogItemId,
             purchasedAt: Date.now(),
+            hidden: false,
         });
 
         return {
             success: true,
             newBalance: user.currency - catalogItem.basePrice,
         };
+    },
+});
+
+export const setHidden = mutation({
+    args: { inventoryId: v.id("inventory"), hidden: v.boolean() },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Not authenticated");
+
+        const user = await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
+            .unique();
+
+        if (!user) throw new Error("User not found");
+
+        const inventoryItem = await ctx.db.get(args.inventoryId);
+        if (!inventoryItem || inventoryItem.userId !== user._id) {
+            throw new Error("Not authorized to update this item");
+        }
+
+        await ctx.db.patch(args.inventoryId, { hidden: args.hidden });
+
+        return { success: true };
     },
 });
 

@@ -108,14 +108,12 @@ export function ItemNode({
                         }
                         return;
                     }
-                    
                     const category = catalogItem?.category?.toLowerCase();
-                    
-                    if (category === "computer" && onComputerClick) {
+                    if (category && category.includes("computer") && onComputerClick) {
                         onComputerClick();
                         return;
                     }
-                    if (category === "player" && onMusicPlayerClick) {
+                    if (category && (category.includes("music")) && onMusicPlayerClick) {
                         onMusicPlayerClick();
                         return;
                     }
