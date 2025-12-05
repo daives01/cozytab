@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect } from "react";
@@ -48,18 +48,20 @@ function HomeRoute() {
 }
 
 function AuthenticatedApp() {
+  const { user: clerkUser, isLoaded } = useUser();
   const user = useQuery(api.users.getMe);
   const ensureUser = useMutation(api.users.ensureUser);
 
   useEffect(() => {
-    if (user === null) {
+    if (user === null && isLoaded) {
+      const username = clerkUser?.username ?? "User";
       const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
-      ensureUser({ username: "User", referralCode: referralCode ?? undefined });
+      ensureUser({ username, referralCode: referralCode ?? undefined });
       if (referralCode) {
         sessionStorage.removeItem(REFERRAL_CODE_KEY);
       }
     }
-  }, [user, ensureUser]);
+  }, [user, ensureUser, clerkUser, isLoaded]);
 
   if (!user) return <div className="h-screen w-screen flex items-center justify-center">Loading user...</div>;
 

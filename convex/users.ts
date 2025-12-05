@@ -70,6 +70,22 @@ export const ensureUser = mutation({
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Not authenticated");
 
+        // Prefer Clerk-provided username; fall back to name/email/caller-provided value
+        const clerkUsername =
+            typeof identity.username === "string" ? identity.username : undefined;
+        const clerkName = typeof identity.name === "string" ? identity.name : undefined;
+        const tokenIdentifier =
+            typeof identity.tokenIdentifier === "string"
+                ? identity.tokenIdentifier
+                : undefined;
+        const derivedUsername =
+            clerkUsername ??
+            clerkName ??
+            // Some providers map the identifier into the tokenIdentifier (e.g., email)
+            tokenIdentifier?.split(":").pop() ??
+            args.username;
+        const derivedDisplayName = clerkName ?? derivedUsername;
+
         let user = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) =>
@@ -115,8 +131,8 @@ export const ensureUser = mutation({
 
             const id = await ctx.db.insert("users", {
                 externalId: identity.subject,
-                username: args.username,
-                displayName: identity.name ?? args.username,
+                username: derivedUsername,
+                displayName: derivedDisplayName,
                 currency: 5,
                 computer: {
                     shortcuts: [],
