@@ -69,6 +69,41 @@ export function VisitorRoomPage() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    useEffect(() => {
+        const root = document.documentElement;
+        root.classList.add("cozy-cursor-root");
+
+        const handlePointerDown = () => {
+            root.classList.add("cozy-cursor-click");
+        };
+        const handlePointerUp = () => {
+            root.classList.remove("cozy-cursor-click");
+            root.classList.remove("cozy-cursor-drag");
+        };
+        const handleDragStart = () => {
+            root.classList.add("cozy-cursor-drag");
+        };
+        const handleDragEnd = () => {
+            root.classList.remove("cozy-cursor-drag");
+            root.classList.remove("cozy-cursor-click");
+        };
+
+        window.addEventListener("pointerdown", handlePointerDown);
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("dragstart", handleDragStart);
+        window.addEventListener("dragend", handleDragEnd);
+
+        return () => {
+            root.classList.remove("cozy-cursor-root");
+            root.classList.remove("cozy-cursor-click");
+            root.classList.remove("cozy-cursor-drag");
+            window.removeEventListener("pointerdown", handlePointerDown);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("dragstart", handleDragStart);
+            window.removeEventListener("dragend", handleDragEnd);
+        };
+    }, []);
+
     const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
 
@@ -119,7 +154,7 @@ export function VisitorRoomPage() {
 
     return (
         <div
-            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cursor-hidden"
+            className="relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cozy-cursor"
             onMouseMove={handleMouseEvent}
             onMouseEnter={handleMouseEvent}
         >

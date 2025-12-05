@@ -8,6 +8,7 @@ interface CursorDisplayProps {
     isLocal?: boolean;
     useFixedPosition?: boolean;
     showNameBadge?: boolean;
+    hidePointer?: boolean;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -22,6 +23,7 @@ export function CursorDisplay({
     isLocal = false,
     useFixedPosition = false,
     showNameBadge = false,
+    hidePointer = false,
 }: CursorDisplayProps) {
     const cursorColor = isOwner ? "#6366f1" : "#10b981";
     const bgColor = isOwner ? "bg-indigo-500" : "bg-emerald-500";
@@ -40,23 +42,25 @@ export function CursorDisplay({
                 transition: isLocal ? "none" : "left 50ms linear, top 50ms linear",
             }}
         >
-            <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.3))" }}
-            >
-                <path
-                    d="M5 3 L5 17 L9 13 L12 19 L15 18 L12 12 L18 12 L5 3Z"
-                    fill={cursorColor}
-                    stroke="#1f2937"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                    strokeLinecap="round"
-                />
-            </svg>
+            {!hidePointer && (
+                <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    style={{ filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.3))" }}
+                >
+                    <path
+                        d="M5 3 L5 17 L9 13 L12 19 L15 18 L12 12 L18 12 L5 3Z"
+                        fill={cursorColor}
+                        stroke="#1f2937"
+                        strokeWidth="1.5"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                    />
+                </svg>
+            )}
 
             {showNameBadge && name && (
                 <div

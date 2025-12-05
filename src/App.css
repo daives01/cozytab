@@ -225,3 +225,79 @@
 .cursor-hidden * {
   cursor: none !important;
 }
+
+.cozy-cursor {
+  cursor: url("/cursor.svg") 6 3, auto;
+}
+
+html.cozy-cursor-root,
+body.cozy-cursor-root {
+  cursor: url("/cursor.svg") 6 3, auto;
+}
+
+html.cozy-cursor-click,
+body.cozy-cursor-click {
+  cursor: url("/cursor-click.svg") 6 3, pointer;
+}
+
+html.cozy-cursor-drag,
+body.cozy-cursor-drag {
+  cursor: url("/cursor-drag.svg") 15 14, grab;
+}
+
+/* Ensure custom cursor persists on common cursor utility classes */
+html.cozy-cursor-root .cursor-pointer,
+body.cozy-cursor-root .cursor-pointer {
+  cursor: url("/cursor-click.svg") 6 3, pointer;
+}
+
+html.cozy-cursor-root .cursor-grab,
+body.cozy-cursor-root .cursor-grab,
+html.cozy-cursor-drag .cursor-grab,
+body.cozy-cursor-drag .cursor-grab {
+  cursor: url("/cursor-drag.svg") 15 14, grab;
+}
+
+html.cozy-cursor-root .cursor-grabbing,
+body.cozy-cursor-root .cursor-grabbing,
+html.cozy-cursor-drag .cursor-grabbing,
+body.cozy-cursor-drag .cursor-grabbing {
+  cursor: url("/cursor-drag.svg") 15 14, grabbing;
+}
+
+html.cozy-cursor-root .cursor-move,
+body.cozy-cursor-root .cursor-move {
+  cursor: url("/cursor-drag.svg") 15 14, move;
+}
+
+html.cozy-cursor-root .cursor-se-resize,
+body.cozy-cursor-root .cursor-se-resize {
+  cursor: url("/cursor-drag.svg") 15 14, se-resize;
+}
+
+/* Draggable items default to the drag cursor */
+html.cozy-cursor-root [draggable],
+body.cozy-cursor-root [draggable] {
+  cursor: url("/cursor-drag.svg") 15 14, grab;
+}
+
+html.cozy-cursor-drag [draggable],
+body.cozy-cursor-drag [draggable] {
+  cursor: url("/cursor-drag.svg") 15 14, grabbing;
+}
+
+/* Common interactive elements */
+html.cozy-cursor-root button,
+body.cozy-cursor-root button,
+html.cozy-cursor-root [type="button"],
+body.cozy-cursor-root [type="button"],
+html.cozy-cursor-root [type="submit"],
+body.cozy-cursor-root [type="submit"],
+html.cozy-cursor-root [type="reset"],
+body.cozy-cursor-root [type="reset"],
+html.cozy-cursor-root a,
+body.cozy-cursor-root a,
+html.cozy-cursor-root [role="button"],
+body.cozy-cursor-root [role="button"] {
+  cursor: url("/cursor-click.svg") 6 3, pointer;
+}

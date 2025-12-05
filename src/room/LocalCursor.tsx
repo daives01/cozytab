@@ -10,6 +10,10 @@ interface LocalCursorProps {
 export function LocalCursor({ x, y, chatMessage = null }: LocalCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
+    if (displayedMessage === null) {
+        return null;
+    }
+
     return (
         <CursorDisplay
             x={x}
@@ -18,6 +22,7 @@ export function LocalCursor({ x, y, chatMessage = null }: LocalCursorProps) {
             chatOpacity={chatOpacity}
             isLocal={true}
             useFixedPosition={true}
+            hidePointer={true}
         />
     );
 }

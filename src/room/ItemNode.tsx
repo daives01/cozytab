@@ -96,7 +96,9 @@ export function ItemNode({
                 top: item.y,
                 transform: "translate(-50%, -50%)",
                 zIndex: 10,
-                cursor: mode === "edit" ? "move" : "pointer",
+                cursor: mode === "edit"
+                    ? "url('/cursor-drag.svg') 15 14, move"
+                    : "url('/cursor-click.svg') 6 3, pointer",
             }}
             onMouseDown={handleMouseDown}
             onClick={(e) => {

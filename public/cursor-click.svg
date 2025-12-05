@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="click-glow" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#fde68a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#facc15" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="11" cy="12" r="9" fill="url(#click-glow)"/>
+  <path d="M6 3L6 24L11.5 18.2L15.6 26L20 24.4L15.8 16.8L24.5 17L6 3Z" fill="#facc15" stroke="#1f2937" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M8.8 7.2L8.8 18.9L12.6 15.1L16.2 22.1L18.5 21.3L14.9 14.5L21.7 14.6L8.8 7.2Z" fill="#fff7d6"/>
+</svg>

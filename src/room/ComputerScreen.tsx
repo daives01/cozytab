@@ -651,7 +651,7 @@ export function ComputerScreen({
                                         return (
                                             <div
                                                 key={shortcut.id}
-                                                className="flex flex-col items-center gap-2 select-none"
+                                                className="flex flex-col items-center gap-2 select-none cursor-grab active:cursor-grabbing"
                                                 style={{
                                                     gridColumnStart: shortcut.col + 1,
                                                     gridRowStart: shortcut.row + 1,
@@ -659,12 +659,16 @@ export function ComputerScreen({
                                                 draggable
                                                 onDragStart={(event) => {
                                                     event.dataTransfer.setData("text/plain", shortcut.id);
+                                                    event.dataTransfer.effectAllowed = "move";
+                                                    event.dataTransfer.dropEffect = "move";
                                                     createDragImage(event);
                                                     handleDragStart(shortcut.id);
+                                                    document.documentElement.classList.add("cozy-cursor-drag");
                                                 }}
                                                 onDragEnd={() => {
                                                     setDraggingId(null);
                                                     cleanupDragImage();
+                                                    document.documentElement.classList.remove("cozy-cursor-drag");
                                                 }}
                                                 onClick={(event) => {
                                                     event.stopPropagation();
