@@ -9,6 +9,7 @@ interface RoomsTabProps {
     purchasingRoom: Id<"roomTemplates"> | null;
     lastRoomResult: { templateId: Id<"roomTemplates">; message: string; success: boolean } | null;
     onPurchaseRoom: (templateId: Id<"roomTemplates">) => void;
+    isGuest?: boolean;
 }
 
 export function RoomsTab({
@@ -18,6 +19,7 @@ export function RoomsTab({
     purchasingRoom,
     lastRoomResult,
     onPurchaseRoom,
+    isGuest = false,
 }: RoomsTabProps) {
     if (purchasableRooms.length === 0) {
         return (
@@ -39,18 +41,53 @@ export function RoomsTab({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {purchasableRooms.map((template) => {
                     const isOwned = ownedTemplateSet.has(template._id);
-                    const canAfford = userCurrency >= template.basePrice;
+                    const guestLocked = isGuest && !isOwned;
+                    const canAfford = !guestLocked && userCurrency >= template.basePrice;
                     const isPurchasing = purchasingRoom === template._id;
                     const resultForRoom = lastRoomResult?.templateId === template._id ? lastRoomResult : null;
+                    const cardClasses = isOwned
+                        ? "border-[var(--success)] bg-[var(--success-light)]"
+                        : "border-[var(--ink)] hover:border-[var(--danger)] hover:shadow-lg hover:-translate-y-1";
+
+                    const renderAction = () => {
+                        if (isOwned) {
+                            return (
+                                <div className="text-center text-[var(--success-dark)] font-bold text-lg py-1">
+                                    ✓ Owned
+                                </div>
+                            );
+                        }
+
+                        if (guestLocked) {
+                            return (
+                                <div className="text-center text-[var(--ink)] font-bold text-lg py-2 border-2 border-[var(--ink)] rounded-xl bg-[var(--muted)] shadow-inner">
+                                    Log in to purchase rooms!
+                                </div>
+                            );
+                        }
+
+                        const buttonStateClasses = isPurchasing
+                            ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
+                            : canAfford
+                            ? "bg-[var(--danger)] text-white hover:bg-[var(--danger-dark)] border-[var(--ink)] shadow-md active:scale-[0.98] active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
+                            : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]";
+
+                        return (
+                            <button
+                                onClick={() => onPurchaseRoom(template._id)}
+                                disabled={!canAfford || isPurchasing}
+                                className={`w-full py-3 px-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 border-2 ${buttonStateClasses}`}
+                            >
+                                <Coins className="h-5 w-5" />
+                                <span>{template.basePrice} tokens</span>
+                            </button>
+                        );
+                    };
 
                     return (
                         <div
                             key={template._id}
-                            className={`relative bg-white rounded-2xl border-2 overflow-hidden transition-all shadow-md ${
-                                isOwned
-                                    ? "border-[var(--success)] bg-[var(--success-light)]"
-                                    : "border-[var(--ink)] hover:border-[var(--danger)] hover:shadow-lg hover:-translate-y-1"
-                            }`}
+                            className={`relative bg-white rounded-2xl border-2 overflow-hidden transition-all shadow-md ${cardClasses}`}
                         >
                             {isOwned && (
                                 <div className="absolute top-3 right-3 bg-[var(--success)] text-white rounded-full p-1.5 shadow-md border-2 border-[var(--ink)] z-10">
@@ -80,26 +117,7 @@ export function RoomsTab({
                             </div>
 
                             <div className="p-4">
-                                {isOwned ? (
-                                    <div className="text-center text-[var(--success-dark)] font-bold text-lg py-1">
-                                        ✓ Owned
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => onPurchaseRoom(template._id)}
-                                        disabled={!canAfford || isPurchasing}
-                                        className={`w-full py-3 px-4 rounded-xl font-bold text-lg transition-all flex items-center justify-center gap-2 border-2 ${
-                                            isPurchasing
-                                                ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
-                                                : canAfford
-                                                ? "bg-[var(--danger)] text-white hover:bg-[var(--danger-dark)] border-[var(--ink)] shadow-md active:scale-[0.98] active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
-                                                : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
-                                        }`}
-                                    >
-                                        <Coins className="h-5 w-5" />
-                                        <span>{template.basePrice} tokens</span>
-                                    </button>
-                                )}
+                                {renderAction()}
 
                                 {resultForRoom && (
                                     <div

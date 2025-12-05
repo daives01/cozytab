@@ -88,12 +88,12 @@ export function Shop({
                 const cost = item?.basePrice ?? 0;
                 const budget = purchaseWithBudget(effectiveCoins, cost);
                 if (!budget.canPurchase) {
-                    setLastResult({ itemId, message: "Not enough coins. Log in to keep purchases.", success: false });
+                    setLastResult({ itemId, message: "Not enough coins.", success: false });
                     return;
                 }
                 onGuestCoinsChange?.(budget.remaining);
                 onGuestPurchase?.(itemId);
-                setLastResult({ itemId, message: "Log in to keep purchases.", success: true });
+                setLastResult({ itemId, message: "Purchase successful.", success: true });
                 if (onOnboardingPurchase) {
                     onOnboardingPurchase();
                 }
@@ -119,7 +119,7 @@ export function Shop({
             if (isGuest) {
                 setLastRoomResult({
                     templateId,
-                    message: "Log in to keep purchases.",
+                    message: "Log in to purchase rooms!",
                     success: false,
                 });
                 return;
@@ -276,6 +276,7 @@ export function Shop({
                         purchasingRoom={purchasingRoom}
                         lastRoomResult={lastRoomResult}
                         onPurchaseRoom={handlePurchaseRoom}
+                        isGuest={isGuest}
                     />
                 )}
             </div>
