@@ -129,7 +129,7 @@ export function ComputerScreen({
     const [switchingRoom, setSwitchingRoom] = useState<Id<"rooms"> | null>(null);
 
     const desktopShortcuts = useMemo(
-        () => normalizeShortcuts(shortcuts ?? []).filter((s) => s.type !== "system"),
+        () => normalizeShortcuts(shortcuts ?? []),
         [shortcuts]
     );
 
@@ -470,7 +470,6 @@ export function ComputerScreen({
             url,
             row,
             col,
-            type: "user",
         };
 
         normalizeAndSave([...desktopShortcuts, newShortcut]);
@@ -486,7 +485,7 @@ export function ComputerScreen({
     const handleDeleteShortcut = useCallback(
         (id: string) => {
             const target = desktopShortcuts.find((s) => s.id === id);
-            if (!target || target.type === "system") return;
+            if (!target) return;
             normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
             setContextMenu(null);
         },
@@ -530,7 +529,7 @@ export function ComputerScreen({
             if (e.key === "Backspace" || e.key === "Delete") {
                 if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
                 const selected = desktopShortcuts.find((s) => s.id === selectedId);
-                if (selected && selected.type !== "system") {
+                if (selected) {
                     e.preventDefault();
                     handleDeleteShortcut(selected.id);
                 }
@@ -542,7 +541,7 @@ export function ComputerScreen({
 
     function commitRename(id: string) {
         const target = desktopShortcuts.find((s) => s.id === id);
-        if (!target || target.type === "system") {
+        if (!target) {
             cancelRename();
             return;
         }
@@ -560,7 +559,7 @@ export function ComputerScreen({
 
     const startRename = (id: string) => {
         const target = desktopShortcuts.find((s) => s.id === id);
-        if (!target || target.type === "system") return;
+        if (!target) return;
         setSelectedId(id);
         setContextMenu(null);
         setIsStartMenuOpen(false);
@@ -653,7 +652,6 @@ export function ComputerScreen({
         event: React.MouseEvent,
         shortcut: ComputerShortcut
     ) => {
-        if (shortcut.type === "system") return;
         event.preventDefault();
         event.stopPropagation();
         setSelectedId(shortcut.id);

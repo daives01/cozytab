@@ -90,11 +90,9 @@ function sanitizeRoomItems(items: unknown): GuestRoomItem[] {
                 typeof (item as GuestRoomItem).musicUrl === "string"
                     ? (item as GuestRoomItem).musicUrl
                     : undefined,
-            musicType:
-                (item as GuestRoomItem).musicType === "spotify" ||
-                (item as GuestRoomItem).musicType === "youtube"
-                    ? (item as GuestRoomItem).musicType
-                    : undefined,
+            musicType: (item as GuestRoomItem).musicType === "youtube"
+                ? (item as GuestRoomItem).musicType
+                : undefined,
             musicPlaying:
                 typeof (item as GuestRoomItem).musicPlaying === "boolean"
                     ? (item as GuestRoomItem).musicPlaying
@@ -137,10 +135,6 @@ function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
             url: typeof shortcut.url === "string" ? shortcut.url : "",
             row: typeof shortcut.row === "number" ? shortcut.row : undefined,
             col: typeof shortcut.col === "number" ? shortcut.col : undefined,
-            type:
-                shortcut.type === "user" || shortcut.type === "system"
-                    ? shortcut.type
-                    : "user",
         }))
         .filter((shortcut) => shortcut.url);
 }

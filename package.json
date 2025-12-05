@@ -12,7 +12,6 @@
     "web": "bunx vite",
     "convex": "bunx convex dev",
     "convex:deploy": "bunx convex deploy",
-    "convex:codegen": "bunx convex codegen",
     "worker": "bun run --filter presence-worker dev",
     "worker:deploy": "bun run --filter presence-worker deploy",
     "all": "bunx concurrently \"bun run web\" \"bun run convex\" \"bun run worker\"",

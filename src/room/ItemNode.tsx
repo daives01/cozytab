@@ -20,6 +20,7 @@ interface ItemNodeProps {
     onMusicPlayerClick?: () => void;
     isOnboardingComputerTarget?: boolean;
     isVisitor?: boolean;
+    overlay?: React.ReactNode;
 }
 
 export function ItemNode({
@@ -35,6 +36,7 @@ export function ItemNode({
     onMusicPlayerClick,
     isOnboardingComputerTarget,
     isVisitor = false,
+    overlay,
 }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
@@ -181,6 +183,8 @@ export function ItemNode({
                         </button>
                     </>
                 )}
+
+                {overlay}
             </div>
         </div>
     );

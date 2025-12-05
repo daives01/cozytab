@@ -16,9 +16,6 @@ export default defineSchema({
                         url: v.string(),
                         row: v.number(),
                         col: v.number(),
-                        type: v.optional(
-                            v.union(v.literal("user"), v.literal("system"))
-                        ),
                     })
                 ),
             })
@@ -55,7 +52,7 @@ export default defineSchema({
                 url: v.optional(v.string()),
                 flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
-                musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+                musicType: v.optional(v.literal("youtube")),
                 musicPlaying: v.optional(v.boolean()),
                 musicStartedAt: v.optional(v.number()),
                 musicPositionAtStart: v.optional(v.number()),
@@ -67,6 +64,8 @@ export default defineSchema({
                     id: v.string(),
                     name: v.string(),
                     url: v.string(),
+                    row: v.optional(v.number()),
+                    col: v.optional(v.number()),
                 })
             )
         ),

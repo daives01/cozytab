@@ -14,14 +14,12 @@ export interface RoomItem {
     url?: string;
     flipped?: boolean;
     musicUrl?: string;
-    musicType?: "youtube" | "spotify";
+    musicType?: "youtube";
     // Music sync fields
     musicPlaying?: boolean;
     musicStartedAt?: number;      // timestamp when playback started
     musicPositionAtStart?: number; // seconds into video when started
 }
-
-export type ShortcutType = "user" | "system";
 
 export interface ComputerShortcut {
     id: string;
@@ -29,7 +27,6 @@ export interface ComputerShortcut {
     url: string;
     row: number;
     col: number;
-    type?: ShortcutType; // Defaults to "user" if omitted
 }
 
 export type { GuestRoomItem, GuestSessionState, GuestShortcut } from "../shared/guestTypes";

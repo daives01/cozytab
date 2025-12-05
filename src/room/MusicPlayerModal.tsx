@@ -49,6 +49,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             ...item,
             musicUrl: musicUrl.trim(),
             musicType: "youtube",
+            musicPlaying: false,
+            musicStartedAt: undefined,
+            musicPositionAtStart: undefined,
         };
 
         onSave(updatedItem);
@@ -60,6 +63,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             ...item,
             musicUrl: undefined,
             musicType: undefined,
+            musicPlaying: undefined,
+            musicStartedAt: undefined,
+            musicPositionAtStart: undefined,
         };
 
         onSave(updatedItem);
@@ -148,6 +154,12 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                     placeholder="Paste YouTube Link here..."
                                     value={musicUrl}
                                     onChange={(e) => setMusicUrl(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleSave();
+                                    }
+                                }}
                                     className="pl-10 bg-white border-2 border-[var(--ink)] focus-visible:ring-[var(--warning)] h-10 font-sans text-base"
                                 />
                             </div>

@@ -6,8 +6,6 @@ export const GUEST_INVENTORY_STORAGE_KEY = "cozytab_guest_inventory";
 export const GUEST_SHORTCUTS_STORAGE_KEY = "cozytab_guest_shortcuts";
 export const STARTER_COMPUTER_NAME = "Basic Computer";
 
-export type GuestShortcutType = "user" | "system";
-
 export interface GuestRoomItem {
     id: string;
     catalogItemId: string;
@@ -16,7 +14,7 @@ export interface GuestRoomItem {
     url?: string;
     flipped?: boolean;
     musicUrl?: string;
-    musicType?: "youtube" | "spotify";
+    musicType?: "youtube";
     musicPlaying?: boolean;
     musicStartedAt?: number;
     musicPositionAtStart?: number;
@@ -32,7 +30,6 @@ export interface GuestShortcut {
     url: string;
     row?: number;
     col?: number;
-    type?: GuestShortcutType;
 }
 
 export interface GuestSessionState {

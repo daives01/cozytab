@@ -20,7 +20,7 @@
 - `users`: externalId, username, displayName?, currency, computer.shortcuts[], lastDailyReward?, onboardingCompleted?, referralCode, referredBy?, admin?; indexes `by_externalId`, `by_referralCode`, `by_referredBy`.
 - `roomTemplates`: name, description?, basePrice, backgroundUrl, isDefault; index `by_default`.
 - `rooms`: userId, templateId, name, isActive, items[], shortcuts?; indexes `by_user`, `by_user_active`.
-  - Item fields: id, catalogItemId, x, y, url?, flipped?, musicUrl?, musicType? ("youtube"|"spotify"), musicPlaying?, musicStartedAt?, musicPositionAtStart?.
+  - Item fields: id, catalogItemId, x, y, url?, flipped?, musicUrl?, musicType? ("youtube"), musicPlaying?, musicStartedAt?, musicPositionAtStart?.
   - Shortcuts: id, name, url.
 - `catalogItems`: name, category, basePrice, assetUrl, defaultWidth; index `by_name`.
 - `inventory`: userId, catalogItemId, purchasedAt, hidden?; indexes `by_user`, `by_user_and_item`.
@@ -36,8 +36,8 @@
 - Install: `bun install`.
 - Run: `bun run web` (Vite), `bun run convex`, `bun run --filter presence-worker dev`, or `bun run all` to start web + convex + worker.
 - You do NOT need to try running/install the apps, the user already is running them
-- Checks (you SHOULD do these for confidence): `bun run build` for type-check + build; staged lint: `bunx lint-staged` (runs lint on staged files); full lint: `bun run lint`; preview: `bun run preview`.
-- Convex: `bun run convex:codegen`, `bun run convex:deploy`.
+- Checks (agents SHOULD run): `bun run build` for type-check + build; staged lint: `bunx lint-staged` (runs lint on staged files); full lint: `bun run lint`; preview: `bun run preview`.
+- Convex dev server auto-runs codegen; agents do NOT run `convex:codegen`. Deploy with `bun run convex:deploy` only when asked.
 - Worker deploy: `bun run --filter presence-worker deploy`.
 - Env: `.env.local` needs `VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_ISSUER_DOMAIN`.
 

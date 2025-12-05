@@ -2,6 +2,14 @@ import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
+const roomShortcutValidator = v.object({
+    id: v.string(),
+    name: v.string(),
+    url: v.string(),
+    row: v.optional(v.number()),
+    col: v.optional(v.number()),
+});
+
 async function getUser(ctx: QueryCtx | MutationCtx) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -224,7 +232,7 @@ export const saveMyRoom = mutation({
                 url: v.optional(v.string()),
                 flipped: v.optional(v.boolean()),
                 musicUrl: v.optional(v.string()),
-                musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+                musicType: v.optional(v.literal("youtube")),
                 musicPlaying: v.optional(v.boolean()),
                 musicStartedAt: v.optional(v.number()),
                 musicPositionAtStart: v.optional(v.number()),
@@ -247,13 +255,7 @@ export const saveMyRoom = mutation({
 export const saveShortcuts = mutation({
     args: {
         roomId: v.id("rooms"),
-        shortcuts: v.array(
-            v.object({
-                id: v.string(),
-                name: v.string(),
-                url: v.string(),
-            })
-        ),
+        shortcuts: v.array(roomShortcutValidator),
     },
     handler: async (ctx, args) => {
         const room = await ctx.db.get(args.roomId);
@@ -319,6 +321,7 @@ export const getRoomByInvite = query({
             room: { ...room, template },
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
             ownerId: owner?._id,
+            ownerReferralCode: owner?.referralCode ?? null,
         };
     },
 });

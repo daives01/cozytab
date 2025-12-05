@@ -1,7 +1,7 @@
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useParams, Link } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RoomItem } from "../types";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
@@ -17,10 +17,14 @@ import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
+import { getReferralCode, saveReferralCode } from "../referralStorage";
+
+const nowTimestamp = () => Date.now();
 
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
     const roomData = useQuery(api.rooms.getRoomByInvite, token ? { token } : "skip");
+    const updateMusicState = useMutation(api.rooms.updateMusicState);
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +40,27 @@ export function VisitorRoomPage() {
     );
     const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
     useCozyCursor(true);
+
+    useEffect(() => {
+        const ownerReferralCode = roomData?.ownerReferralCode;
+        if (!ownerReferralCode) return;
+
+        const existingCode = getReferralCode();
+        if (!existingCode) {
+            saveReferralCode(ownerReferralCode);
+        }
+    }, [roomData?.ownerReferralCode]);
+
+    const handleMusicToggle = (itemId: string, playing: boolean) => {
+        if (!roomData?.room?._id) return;
+        updateMusicState({
+            roomId: roomData.room._id,
+            itemId,
+            musicPlaying: playing,
+            musicStartedAt: playing ? nowTimestamp() : 0,
+            musicPositionAtStart: 0,
+        });
+    };
 
     const handleMouseEvent = (e: React.MouseEvent) => {
         if (!containerRef.current) return;
@@ -83,7 +108,6 @@ export function VisitorRoomPage() {
     }
 
     const items = roomData.room.items as RoomItem[];
-    const musicItems = items.filter(isMusicItem);
 
     const roomContent = (
         <>
@@ -101,13 +125,15 @@ export function VisitorRoomPage() {
                     onComputerClick={() => { }}
                     onMusicPlayerClick={() => { }}
                     isVisitor={true}
-                />
-            ))}
-
-            {musicItems.map((item) => (
-                <MusicPlayerButtons
-                    key={`music-buttons-${item.id}`}
-                    item={item}
+                    overlay={
+                        isMusicItem(item) ? (
+                            <MusicPlayerButtons
+                                key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                item={item}
+                                onToggle={(playing) => handleMusicToggle(item.id, playing)}
+                            />
+                        ) : null
+                    }
                 />
             ))}
 

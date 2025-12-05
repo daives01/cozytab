@@ -57,7 +57,6 @@ function normalizeGuestShortcuts(shortcuts: GuestShortcut[]): ComputerShortcut[]
             url: shortcut.url,
             row,
             col,
-            type: shortcut.type ?? "user",
         };
     });
 }
@@ -76,6 +75,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const { user: clerkUser } = useUser();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
+    const updateMusicState = useMutation(api.rooms.updateMusicState);
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
@@ -168,6 +168,41 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             }
         },
         [isGuest]
+    );
+
+    const handleMusicToggle = useCallback(
+        (itemId: string, playing: boolean) => {
+            const now = Date.now();
+            setLocalItems((prev) => {
+                const next = prev.map((item) =>
+                    item.id === itemId
+                        ? {
+                            ...item,
+                            musicPlaying: playing,
+                            musicStartedAt: playing ? now : undefined,
+                            musicPositionAtStart: playing ? 0 : undefined,
+                        }
+                        : item
+                );
+
+                if (isGuest) {
+                    saveGuestSession({ roomItems: next });
+                }
+
+                return next;
+            });
+
+            if (!isGuest && room) {
+                updateMusicState({
+                    roomId: room._id,
+                    itemId,
+                    musicPlaying: playing,
+                    musicStartedAt: playing ? now : 0,
+                    musicPositionAtStart: 0,
+                });
+            }
+        },
+        [isGuest, room, updateMusicState]
     );
 
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -432,9 +467,6 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    const musicItems = isGuest
-        ? localItems.filter(isMusicItem)
-        : ((room?.items as RoomItem[] | undefined)?.filter(isMusicItem) ?? []);
     const shouldHighlightMusicPurchase = onboardingStep === "buy-item";
 
     const shareAllowed = canShare(isGuest);
@@ -473,13 +505,15 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                         }
                     }}
                     isOnboardingComputerTarget={onboardingStep === "click-computer"}
-                />
-            ))}
-
-            {musicItems.map((item) => (
-                <MusicPlayerButtons
-                    key={`music-buttons-${item.id}`}
-                    item={item}
+                    overlay={
+                        isMusicItem(item) ? (
+                            <MusicPlayerButtons
+                                key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                item={item}
+                                onToggle={(playing) => handleMusicToggle(item.id, playing)}
+                            />
+                        ) : null
+                    }
                 />
             ))}
 

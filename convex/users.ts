@@ -233,7 +233,6 @@ function sanitizeGuestShortcuts(shortcuts: GuestShortcut[] | undefined) {
         url: s.url,
         row: s.row,
         col: s.col,
-        type: s.type,
     }));
     return normalizeShortcutsWithGrid(trimmed);
 }
@@ -268,7 +267,7 @@ const guestRoomItemValidator = v.object({
     url: v.optional(v.string()),
     flipped: v.optional(v.boolean()),
     musicUrl: v.optional(v.string()),
-    musicType: v.optional(v.union(v.literal("youtube"), v.literal("spotify"))),
+    musicType: v.optional(v.literal("youtube")),
     musicPlaying: v.optional(v.boolean()),
     musicStartedAt: v.optional(v.number()),
     musicPositionAtStart: v.optional(v.number()),
@@ -284,7 +283,6 @@ const guestShortcutValidator = v.object({
     url: v.string(),
     row: v.optional(v.number()),
     col: v.optional(v.number()),
-    type: v.optional(v.union(v.literal("user"), v.literal("system"))),
 });
 
 
@@ -525,7 +523,6 @@ function normalizeShortcutsWithGrid<
         url: string;
         row?: number;
         col?: number;
-        type?: "user" | "system";
     }
 >(shortcuts: T[]) {
     const occupied = new Set<string>();
@@ -556,7 +553,6 @@ function normalizeShortcutsWithGrid<
             ...shortcut,
             row,
             col,
-            type: shortcut.type ?? "user",
         };
     });
 }
@@ -611,9 +607,6 @@ export const saveMyComputer = mutation({
                 url: v.string(),
                 row: v.number(),
                 col: v.number(),
-                type: v.optional(
-                    v.union(v.literal("user"), v.literal("system"))
-                ),
             })
         ),
     },

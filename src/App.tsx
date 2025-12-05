@@ -7,15 +7,18 @@ import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
 import { AdminPage } from "./admin/AdminPage";
 import { clearGuestSession, readGuestSession } from "./room/guestSession";
-
-const REFERRAL_CODE_KEY = "cozytab_referral_code";
+import {
+  clearReferralCode,
+  getReferralCode,
+  saveReferralCode,
+} from "./referralStorage";
 
 function ReferralCapture() {
   const { code } = useParams<{ code: string }>();
 
   useEffect(() => {
     if (code) {
-      sessionStorage.setItem(REFERRAL_CODE_KEY, code);
+      saveReferralCode(code);
     }
   }, [code]);
 
@@ -57,7 +60,7 @@ function AuthenticatedApp() {
     if (user !== null || !isLoaded) return;
 
     const username = clerkUser?.username ?? "User";
-    const referralCode = sessionStorage.getItem(REFERRAL_CODE_KEY);
+    const referralCode = getReferralCode();
     const guestSession = readGuestSession();
 
     const run = async () => {
@@ -74,7 +77,7 @@ function AuthenticatedApp() {
           },
         });
         if (referralCode) {
-          sessionStorage.removeItem(REFERRAL_CODE_KEY);
+          clearReferralCode();
         }
         clearGuestSession();
       } catch (error) {
