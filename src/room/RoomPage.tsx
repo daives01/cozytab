@@ -33,6 +33,7 @@ import { GUEST_STARTING_COINS, type GuestShortcut } from "../../shared/guestType
 type Mode = "view" | "edit";
 
 const NORMALIZE_COLUMNS = 6;
+const MOBILE_MAX_WIDTH = 640;
 
 function normalizeGuestShortcuts(shortcuts: GuestShortcut[]): ComputerShortcut[] {
     return shortcuts.map((shortcut, index) => {
@@ -100,6 +101,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     );
     const [guestCoins, setGuestCoins] = useState<number>(() => initialGuestSession?.coins ?? GUEST_STARTING_COINS);
     const [guestInventory, setGuestInventory] = useState<string[]>(() => initialGuestSession?.inventoryIds ?? []);
+    const [viewportWidth, setViewportWidth] = useState<number>(() =>
+        typeof window !== "undefined" ? window.innerWidth : MOBILE_MAX_WIDTH + 1
+    );
     const containerRef = useRef<HTMLDivElement>(null);
     const lastRoomPositionRef = useRef<{ x: number; y: number }>({
         x: ROOM_WIDTH / 2,
@@ -258,6 +262,16 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     }, [computerState, isGuest]);
 
     useEffect(() => {
+        const handleResize = () => {
+            setViewportWidth(window.innerWidth);
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    useEffect(() => {
         if (!canSave(isGuest)) return;
         if (mode === "edit" && room && debouncedSaveRef.current) {
             debouncedSaveRef.current(room._id, localItems);
@@ -356,6 +370,21 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             advanceOnboarding();
         }
     };
+
+    const isTooNarrow = viewportWidth <= MOBILE_MAX_WIDTH;
+
+    if (isTooNarrow) {
+        return (
+            <div className="min-h-screen min-w-screen bg-[var(--paper,#f5f2e9)] text-[var(--ink,#111827)] flex items-center justify-center p-6 font-['Patrick_Hand']">
+                <div className="max-w-md w-full bg-white border-4 border-[var(--ink,#111827)] rounded-2xl shadow-[4px_4px_0px_0px_rgba(31,41,55,0.65)] p-6 rotate-1 text-center space-y-3">
+                    <div className="text-2xl">Desktop only (for now)</div>
+                    <p className="text-lg leading-relaxed">
+                        Cozytab needs a bit more room. Please visit on a desktop or widen your browser to continue.
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     if (!isGuest && !room) {
         return (

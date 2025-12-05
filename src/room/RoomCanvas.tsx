@@ -1,5 +1,4 @@
 import type React from "react";
-import { useEffect, useState } from "react";
 import { BASE_TIME_OF_DAY_BACKGROUND, ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 
 interface RoomCanvasProps {
@@ -29,22 +28,8 @@ export function RoomCanvas({
     roomContent,
     overlays,
 }: RoomCanvasProps) {
-    const [skyBackgroundSize, setSkyBackgroundSize] = useState<"cover" | "contain">("cover");
-
-    useEffect(() => {
-        const updateBackgroundFit = () => {
-            const viewportAspect = window.innerWidth / window.innerHeight;
-            const tallThreshold = 1.2; // start easing to contain on portrait-ish screens
-            setSkyBackgroundSize(viewportAspect < tallThreshold ? "contain" : "cover");
-        };
-
-        updateBackgroundFit();
-        window.addEventListener("resize", updateBackgroundFit);
-        return () => window.removeEventListener("resize", updateBackgroundFit);
-    }, []);
-
     const outerClass = [
-        "relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black flex items-center justify-center cozy-cursor",
+        "relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
     ]
         .filter(Boolean)
@@ -62,8 +47,8 @@ export function RoomCanvas({
                 className="absolute inset-0 pointer-events-none"
                 style={{
                     backgroundImage: `url('${BASE_TIME_OF_DAY_BACKGROUND}')`,
-                    backgroundSize: skyBackgroundSize,
-                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center center",
                     backgroundRepeat: "no-repeat",
                     zIndex: 0,
                     filter: "brightness(1) saturate(1)",
@@ -89,7 +74,7 @@ export function RoomCanvas({
                         backgroundSize: "contain",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? "transparent" : "#1a1a1a",
+                        backgroundColor: backgroundUrl ? "transparent" : "var(--paper, #f5f2e9)",
                         zIndex: 0,
                     }}
                     onClick={onBackgroundClick}
