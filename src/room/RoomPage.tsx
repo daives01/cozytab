@@ -42,6 +42,8 @@ type Mode = "view" | "edit";
 
 const isMusicItem = (item: RoomItem) => Boolean(item.musicUrl && item.musicType);
 
+const BASE_TIME_OF_DAY_BACKGROUND = "/backgrounds/background-day.svg";
+
 interface RoomPageProps {
     isGuest?: boolean;
 }
@@ -101,7 +103,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             const scaleX = windowWidth / ROOM_WIDTH;
             const scaleY = windowHeight / ROOM_HEIGHT;
 
-            const newScale = Math.max(scaleX, scaleY);
+            const newScale = Math.min(scaleX, scaleY);
             setScale(newScale);
         };
 
@@ -271,6 +273,18 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
             onMouseEnter={handleMouseEvent}
         >
             <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    backgroundImage: `url('${BASE_TIME_OF_DAY_BACKGROUND}')`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    zIndex: 0,
+                    filter: "brightness(1) saturate(1)",
+                    transition: "filter 600ms ease, opacity 600ms ease",
+                }}
+            />
+            <div
                 ref={containerRef}
                 style={{
                     width: ROOM_WIDTH,
@@ -279,16 +293,17 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     transformOrigin: "center",
                     position: "relative",
                     flexShrink: 0,
+                    zIndex: 1,
                 }}
             >
                 <div
                     className="absolute inset-0"
                     style={{
                         backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
-                        backgroundSize: "cover",
+                        backgroundSize: "contain",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? undefined : "#1a1a1a",
+                        backgroundColor: backgroundUrl ? "transparent" : "#1a1a1a",
                         zIndex: 0,
                     }}
                     onClick={() => setSelectedId(null)}
