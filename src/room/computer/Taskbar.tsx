@@ -14,12 +14,14 @@ interface TaskbarProps {
     isStartMenuOpen: boolean;
     isOnboardingShopStep?: boolean;
     isDevEnv: boolean;
+    canEditDisplayName: boolean;
     onToggleStartMenu: () => void;
     onCloseStartMenu: () => void;
     onOpenShop: () => void;
     onOpenRooms: () => void;
     onOpenInvite: () => void;
     onOpenAbout: () => void;
+    onOpenProfile: () => void;
     onLogout: () => void;
     onShutdown: () => void;
     onResetStorage: () => void;
@@ -31,12 +33,14 @@ export function Taskbar({
     isStartMenuOpen,
     isOnboardingShopStep,
     isDevEnv,
+    canEditDisplayName,
     onToggleStartMenu,
     onCloseStartMenu,
     onOpenShop,
     onOpenRooms,
     onOpenInvite,
     onOpenAbout,
+    onOpenProfile,
     onLogout,
     onShutdown,
     onResetStorage,
@@ -129,6 +133,17 @@ export function Taskbar({
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex flex-col divide-y divide-stone-200">
+                        {canEditDisplayName && (
+                            <button
+                                className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
+                                onClick={() => {
+                                    onCloseStartMenu();
+                                    onOpenProfile();
+                                }}
+                            >
+                                Update display name
+                            </button>
+                        )}
                         <button
                             className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
                             onClick={onLogout}

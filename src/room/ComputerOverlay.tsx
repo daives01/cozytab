@@ -20,6 +20,9 @@ interface ComputerOverlayProps {
     guestInventory: string[];
     onGuestPurchase: (catalogItemId: string) => void;
     highlightFirstMusicItem?: boolean;
+    displayName?: string;
+    username?: string;
+    onDisplayNameUpdated?: (next: string) => void;
 }
 
 export function ComputerOverlay({
@@ -41,6 +44,9 @@ export function ComputerOverlay({
     guestInventory,
     onGuestPurchase,
     highlightFirstMusicItem = false,
+    displayName,
+    username,
+    onDisplayNameUpdated,
 }: ComputerOverlayProps) {
     return (
         <>
@@ -63,6 +69,9 @@ export function ComputerOverlay({
                     guestInventory={guestInventory}
                     onGuestPurchase={onGuestPurchase}
                     highlightFirstMusicItem={highlightFirstMusicItem}
+                    displayName={displayName}
+                    username={username}
+                    onDisplayNameUpdated={onDisplayNameUpdated}
                 />
             )}
         </>

@@ -33,7 +33,7 @@ import {
     saveGuestSession,
 } from "./guestSession";
 import { STARTER_COMPUTER_NAME } from "../../shared/guestTypes";
-import { GUEST_STARTING_COINS, type GuestShortcut } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestShortcut, type GuestSessionState } from "../../shared/guestTypes";
 
 type Mode = "view" | "edit";
 
@@ -63,9 +63,10 @@ function normalizeGuestShortcuts(shortcuts: GuestShortcut[]): ComputerShortcut[]
 
 interface RoomPageProps {
     isGuest?: boolean;
+    guestSession?: GuestSessionState;
 }
 
-export function RoomPage({ isGuest = false }: RoomPageProps) {
+export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
     const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip");
@@ -79,9 +80,13 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
-    const backgroundUrl = useResolvedBackgroundUrl(
-        isGuest ? guestTemplate?.backgroundUrl : room?.template?.backgroundUrl
-    );
+    const backgroundSource = useMemo(() => {
+        if (isGuest) return guestTemplate?.backgroundUrl;
+        if (room?.template?.backgroundUrl) return room.template.backgroundUrl;
+        return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
+    }, [guestRoom?.template?.backgroundUrl, guestTemplate?.backgroundUrl, isGuest, room?.template?.backgroundUrl]);
+
+    const backgroundUrl = useResolvedBackgroundUrl(backgroundSource);
     const computerCatalogItem = useMemo(() => {
         if (!catalogItems) return null;
         return catalogItems.find((c) => c.name === STARTER_COMPUTER_NAME) ?? null;
@@ -104,7 +109,23 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     // Only enable presence when room is shared (has active invite)
     const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
 
-    const initialGuestSession = useMemo(() => (isGuest ? readGuestSession() : null), [isGuest]);
+    const initialGuestSession = useMemo(() => {
+        if (guestSession) return guestSession;
+        if (isGuest) return readGuestSession();
+        return null;
+    }, [guestSession, isGuest]);
+
+    const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
+
+    const computedDisplayName = useMemo(
+        () => localDisplayName ?? user?.displayName ?? user?.username ?? clerkUser?.username ?? "You",
+        [clerkUser?.username, localDisplayName, user?.displayName, user?.username]
+    );
+
+    const computedUsername = useMemo(
+        () => user?.username ?? clerkUser?.username ?? "you",
+        [clerkUser?.username, user?.username]
+    );
 
     const [mode, setMode] = useState<Mode>("view");
     const [localItems, setLocalItems] = useState<RoomItem[]>(() => initialGuestSession?.roomItems ?? []);
@@ -254,7 +275,8 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
     useEffect(() => {
         if (isGuest || reconciledGuestOnboarding.current || !user) return;
 
-        const guestCompleted = readGuestSession().onboardingCompleted;
+        const guestCompleted =
+            initialGuestSession?.onboardingCompleted ?? readGuestSession().onboardingCompleted;
 
         if (guestCompleted) {
             reconciledGuestOnboarding.current = true;
@@ -266,7 +288,7 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         } else {
             clearGuestSession();
         }
-    }, [completeOnboarding, isGuest, user]);
+    }, [completeOnboarding, initialGuestSession?.onboardingCompleted, isGuest, user]);
 
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
@@ -443,7 +465,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
         );
     }
 
-    if (!isGuest && !room) {
+    const showGuestFallback = (room === undefined || room === null) && Boolean(initialGuestSession);
+
+    if (!isGuest && !room && !showGuestFallback) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
                 Loading your cozytab...
@@ -601,6 +625,9 @@ export function RoomPage({ isGuest = false }: RoomPageProps) {
                     }
                 }}
                 highlightFirstMusicItem={shouldHighlightMusicPurchase}
+                displayName={isGuest ? undefined : computedDisplayName}
+                username={isGuest ? undefined : computedUsername}
+                onDisplayNameUpdated={(next) => setLocalDisplayName(next)}
             />
 
             {musicPlayerItemId && (() => {

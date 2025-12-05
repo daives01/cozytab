@@ -3,6 +3,7 @@ import { InvitePanel } from "./InvitePanel";
 import { RoomsPanel } from "./RoomsPanel";
 import { Shop } from "../Shop";
 import { AboutPanel } from "./AboutPanel";
+import { DisplayNamePanel } from "./DisplayNamePanel";
 import type { ComputerWindowApp } from "./computerTypes";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -26,9 +27,16 @@ interface ComputerWindowContentProps {
     shopProps: ShopWindowProps;
     roomsProps?: RoomsWindowProps;
     inviteProps?: InviteWindowProps;
+    profileProps?: {
+        currentDisplayName: string;
+        usernameFallback?: string;
+        isSaving: boolean;
+        error?: string | null;
+        onSave: (next: string) => void;
+    };
 }
 
-export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps }: ComputerWindowContentProps) {
+export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps, profileProps }: ComputerWindowContentProps) {
     if (app === "shop") {
         return <Shop {...shopProps} />;
     }
@@ -50,6 +58,18 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps 
                 copied={inviteProps.copied}
                 onCopyReferral={inviteProps.onCopyReferral}
                 isGuest={inviteProps.isGuest}
+            />
+        );
+    }
+
+    if (app === "profile" && profileProps) {
+        return (
+            <DisplayNamePanel
+                currentDisplayName={profileProps.currentDisplayName}
+                usernameFallback={profileProps.usernameFallback}
+                isSaving={profileProps.isSaving}
+                error={profileProps.error}
+                onSave={profileProps.onSave}
             />
         );
     }

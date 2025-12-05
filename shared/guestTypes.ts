@@ -4,7 +4,7 @@ export const GUEST_ONBOARDING_STORAGE_KEY = "cozytab_guest_onboarding_complete";
 export const GUEST_COINS_STORAGE_KEY = "cozytab_guest_coins";
 export const GUEST_INVENTORY_STORAGE_KEY = "cozytab_guest_inventory";
 export const GUEST_SHORTCUTS_STORAGE_KEY = "cozytab_guest_shortcuts";
-export const STARTER_COMPUTER_NAME = "Basic Computer";
+export const STARTER_COMPUTER_NAME = "cozy computer";
 
 export interface GuestRoomItem {
     id: string;

@@ -2,7 +2,7 @@
 
 ## Overview
 - Cozytab lets users or guests build shareable rooms with draggable catalog items, shortcuts, and optional music. Rooms are created from templates; one room is marked active.
-- Auth via Clerk; guest sessions can be imported on sign-in (referrals add coins). Presence is handled with Convex plus a Cloudflare Worker.
+- Auth via Clerk; guest sessions can be imported on sign-in (referrals add cozy coins). Presence is handled with Convex plus a Cloudflare Worker.
 
 ## Tech Stack
 - React 19 + React Router 7, TypeScript, Vite 7 (packageManager: bun@1.1.32).

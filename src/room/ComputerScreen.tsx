@@ -58,6 +58,9 @@ interface ComputerScreenProps {
     guestInventory?: string[];
     onGuestPurchase?: (catalogItemId: string) => void;
     highlightFirstMusicItem?: boolean;
+    displayName?: string;
+    username?: string;
+    onDisplayNameUpdated?: (next: string) => void;
 }
 
 export function ComputerScreen({
@@ -78,6 +81,9 @@ export function ComputerScreen({
     guestInventory,
     onGuestPurchase,
     highlightFirstMusicItem = false,
+    displayName,
+    username,
+    onDisplayNameUpdated,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
@@ -97,6 +103,9 @@ export function ComputerScreen({
     const [desktopScale, setDesktopScale] = useState(1);
     const [windows, setWindows] = useState<ComputerWindow[]>([]);
     const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
+    const [currentDisplayName, setCurrentDisplayName] = useState(displayName ?? username ?? "You");
+    const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
+    const [displayNameError, setDisplayNameError] = useState<string | null>(null);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
     const [pendingShortcutPosition, setPendingShortcutPosition] = useState<{
@@ -122,6 +131,7 @@ export function ComputerScreen({
     const { signOut } = useClerk();
     const isDevEnv = import.meta.env.DEV;
     const devDeleteMyAccount = useMutation(api.users.devDeleteMyAccount);
+    const updateDisplayNameMutation = useMutation(api.users.updateDisplayName);
     const referralCode = useQuery(api.users.getMyReferralCode, isGuest ? "skip" : undefined);
     const referralUrl = referralCode ? `${window.location.origin}/ref/${referralCode}` : null;
     const myRooms = useQuery(api.rooms.getMyRooms, isGuest ? "skip" : undefined);
@@ -166,6 +176,10 @@ export function ComputerScreen({
         const interval = setInterval(() => setNow(new Date()), 30_000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        setCurrentDisplayName(displayName ?? username ?? "You");
+    }, [displayName, username]);
 
     useEffect(() => {
         recomputeScale();
@@ -214,6 +228,28 @@ export function ComputerScreen({
             console.error("Storage reset failed", error);
         }
     };
+
+    const handleSaveDisplayName = useCallback(
+        async (next: string) => {
+            const value = next.trim();
+            if (value.length === 0) {
+                setDisplayNameError("Display name cannot be empty");
+                return;
+            }
+            setIsSavingDisplayName(true);
+            setDisplayNameError(null);
+            try {
+                const result = await updateDisplayNameMutation({ displayName: value });
+                setCurrentDisplayName(result.displayName);
+                onDisplayNameUpdated?.(result.displayName);
+            } catch (error) {
+                setDisplayNameError(error instanceof Error ? error.message : "Failed to update display name");
+            } finally {
+                setIsSavingDisplayName(false);
+            }
+        },
+        [onDisplayNameUpdated, updateDisplayNameMutation]
+    );
 
     const normalizeAndSave = useCallback(
         (next: ComputerShortcut[]) => {
@@ -294,6 +330,7 @@ export function ComputerScreen({
             rooms: "My Rooms",
             invite: "Invite Friends",
             about: "About Cozytab",
+            profile: "Update Display Name",
         };
 
         const newWindow: ComputerWindow = {
@@ -796,6 +833,17 @@ export function ComputerScreen({
                                                 onCopyReferral: handleCopyReferral,
                                                 isGuest,
                                             }}
+                                        profileProps={
+                                            win.app === "profile"
+                                                ? {
+                                                    currentDisplayName: currentDisplayName ?? username ?? "You",
+                                                    usernameFallback: username,
+                                                    isSaving: isSavingDisplayName,
+                                                    error: displayNameError,
+                                                    onSave: handleSaveDisplayName,
+                                                }
+                                                : undefined
+                                        }
                                         />
                                     </WindowFrame>
                                 ))}
@@ -807,12 +855,14 @@ export function ComputerScreen({
                             isStartMenuOpen={isStartMenuOpen}
                             isOnboardingShopStep={isOnboardingShopStep}
                             isDevEnv={isDevEnv}
+                            canEditDisplayName={!isGuest}
                             onToggleStartMenu={toggleStartMenu}
                             onCloseStartMenu={closeStartMenu}
                             onOpenShop={() => openWindow("shop")}
                             onOpenRooms={() => openWindow("rooms")}
                             onOpenInvite={() => openWindow("invite")}
                             onOpenAbout={() => openWindow("about")}
+                            onOpenProfile={() => openWindow("profile")}
                             onLogout={() => {
                                 closeStartMenu();
                                 signOut();

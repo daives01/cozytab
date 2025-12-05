@@ -127,7 +127,7 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                                                 </Button>
                                             </div>
                                             <p className="text-xs text-neutral-600">
-                                                Visitors with this link can explore in view-only mode. If they create an account after visiting, you&apos;ll earn a referral coin automatically. You can revoke it anytime.
+                                                Visitors with this link can explore in view-only mode. If they create an account after visiting, you&apos;ll earn a referral cozy coin automatically. You can revoke it anytime.
                                             </p>
                                         </div>
                                     </div>
@@ -167,7 +167,7 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                                         Generate an invite for your room
                                     </p>
                                     <p className="text-sm text-neutral-600">
-                                        Friends get a read-only peek. If they sign up, you get a coin for the referral.
+                                        Friends get a read-only peek. If they sign up, you get a cozy coin for the referral.
                                     </p>
                                 </div>
 

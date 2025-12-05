@@ -46,7 +46,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "place-computer": {
-        message: "You have a Basic Computer in your storage! Drag it onto your room to place it.",
+        message: "You have a cozy computer in your storage! Drag it onto your room to place it.",
         targetSelector: "[data-onboarding='storage-item-computer']",
         bubblePosition: "left",
         showSkip: true,
@@ -82,7 +82,8 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "buy-item": {
-        message: "Use your coins to buy items! I'd get the music player first. You'll earn more coins each day you visit!",
+        message:
+            "Use your cozy coins to buy items! I'd get the music player first. You'll earn more cozy coins each day you visit!",
         targetSelector: "[data-onboarding='first-music-player']",
         bubblePosition: "bottom",
         showSkip: true,

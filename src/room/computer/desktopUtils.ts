@@ -13,6 +13,7 @@ export const WINDOW_DEFAULTS: Record<ComputerWindowApp, { width: number; height:
     rooms: { width: 480, height: 440 },
     invite: { width: 420, height: 340 },
     about: { width: 520, height: 360 },
+    profile: { width: 420, height: 320 },
 };
 
 export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
@@ -20,6 +21,7 @@ export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
     rooms: "from-emerald-500 to-green-600",
     invite: "from-pink-400 to-rose-500",
     about: "from-indigo-400 to-sky-500",
+    profile: "from-blue-500 to-sky-500",
 };
 
 export function deriveShortcutName(url: string) {

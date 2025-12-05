@@ -43,6 +43,37 @@ async function requireUser(ctx: AnyCtx) {
     return { identity, user };
 }
 
+type DerivedNames = { username: string; displayName: string };
+
+function normalizeString(value: unknown) {
+    return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function deriveNames(identity: Awaited<ReturnType<typeof getIdentity>>, fallbackUsername: string): DerivedNames {
+    const identityName = normalizeString(identity?.name);
+    const identityUsername = normalizeString(identity?.username);
+    const tokenIdentifier =
+        typeof identity?.tokenIdentifier === "string"
+            ? identity.tokenIdentifier
+            : undefined;
+    const tokenTail = tokenIdentifier?.split(":").pop();
+    const rawEmail =
+        normalizeString((identity as { email?: string }).email) ??
+        normalizeString((identity as { emailAddress?: string }).emailAddress) ??
+        (tokenTail?.includes("@") ? tokenTail : undefined);
+    const emailLocal = rawEmail?.split("@")[0];
+
+    const username =
+        identityUsername ??
+        emailLocal ??
+        identityName ??
+        (tokenTail ? tokenTail : undefined) ??
+        fallbackUsername;
+    const displayName = identityName ?? emailLocal ?? username;
+
+    return { username, displayName };
+}
+
 export const getMe = query({
     args: {},
     handler: async (ctx) => {
@@ -86,7 +117,7 @@ export const getReferralStats = query({
 
         return {
             referralCount,
-            referralCoins: referralCount, // one coin per referral
+            referralCoins: referralCount, // one cozy coin per referral
         };
     },
 });
@@ -307,21 +338,10 @@ export const ensureUser = mutation({
     handler: async (ctx, args) => {
         const identity = await requireIdentity(ctx);
 
-        // Prefer Clerk-provided username; fall back to name/email/caller-provided value
-        const clerkUsername =
-            typeof identity.username === "string" ? identity.username : undefined;
-        const clerkName = typeof identity.name === "string" ? identity.name : undefined;
-        const tokenIdentifier =
-            typeof identity.tokenIdentifier === "string"
-                ? identity.tokenIdentifier
-                : undefined;
-        const derivedUsername =
-            clerkUsername ??
-            clerkName ??
-            // Some providers map the identifier into the tokenIdentifier (e.g., email)
-            tokenIdentifier?.split(":").pop() ??
-            args.username;
-        const derivedDisplayName = clerkName ?? derivedUsername;
+        const { username: derivedUsername, displayName: derivedDisplayName } = deriveNames(
+            identity,
+            args.username
+        );
 
         const guestSession = args.guestSession;
         const reportedGuestCoins = clampGuestCoins(
@@ -424,10 +444,39 @@ export const ensureUser = mutation({
         }
 
         if (user) {
+            const updates: Partial<Doc<"users">> = {};
+            if (!user.username) {
+                updates.username = derivedUsername;
+            }
+            if (!user.displayName) {
+                updates.displayName = derivedDisplayName;
+            }
+            if (Object.keys(updates).length > 0) {
+                await ctx.db.patch(user._id, updates);
+                user = { ...user, ...updates };
+            }
+
             await ensureStarterComputer(ctx, user._id, catalogItemsCache ?? undefined);
         }
 
         return user;
+    },
+});
+
+export const updateDisplayName = mutation({
+    args: { displayName: v.string() },
+    handler: async (ctx, args) => {
+        const { user } = await requireUser(ctx);
+        const next = args.displayName.trim();
+        if (next.length < 2) {
+            throw new Error("Display name must be at least 2 characters");
+        }
+        if (next.length > 50) {
+            throw new Error("Display name must be at most 50 characters");
+        }
+
+        await ctx.db.patch(user._id, { displayName: next });
+        return { displayName: next };
     },
 });
 

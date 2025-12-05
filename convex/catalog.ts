@@ -124,21 +124,21 @@ export const seed = mutation({
     handler: async (ctx) => {
         const items = [
             {
-                name: "TV",
+                name: "tv",
                 category: "Furniture",
                 basePrice: 5,
                 assetUrl: "https://placehold.co/100x100/333/fff?text=TV",
                 defaultWidth: 100,
             },
             {
-                name: "Plant",
+                name: "plant",
                 category: "Decor",
                 basePrice: 3,
                 assetUrl: "https://placehold.co/60x100/2ecc71/fff?text=Plant",
                 defaultWidth: 60,
             },
             {
-                name: "Desk",
+                name: "desk",
                 category: "Furniture",
                 basePrice: 8,
                 assetUrl: "https://placehold.co/150x80/e67e22/fff?text=Desk",
@@ -152,21 +152,21 @@ export const seed = mutation({
                 defaultWidth: 120,
             },
             {
-                name: "Vinyl Player",
+                name: "vinyl player",
                 category: "Music",
                 basePrice: 3,
                 assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl+Player",
                 defaultWidth: 100,
             },
             {
-                name: "Lamp",
+                name: "lamp",
                 category: "Decor",
                 basePrice: 4,
                 assetUrl: "https://placehold.co/50x80/f1c40f/fff?text=Lamp",
                 defaultWidth: 50,
             },
             {
-                name: "Bookshelf",
+                name: "bookshelf",
                 category: "Furniture",
                 basePrice: 6,
                 assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",

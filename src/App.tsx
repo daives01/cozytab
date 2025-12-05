@@ -1,7 +1,7 @@
-import { SignedIn, SignedOut, useUser } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
@@ -39,29 +39,19 @@ function App() {
 }
 
 function HomeRoute() {
-  return (
-    <>
-      <SignedIn>
-        <AuthenticatedApp />
-      </SignedIn>
-      <SignedOut>
-        <RoomPage isGuest />
-      </SignedOut>
-    </>
-  );
-}
-
-function AuthenticatedApp() {
-  const { user: clerkUser, isLoaded } = useUser();
-  const user = useQuery(api.users.getMe);
+  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
   const ensureUser = useMutation(api.users.ensureUser);
+  const user = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
+  const guestSession = useMemo(() => readGuestSession(), []);
 
   useEffect(() => {
-    if (user !== null || !isLoaded) return;
+    if (!isLoaded || !isSignedIn) return;
+    if (user === undefined) return;
+    if (user !== null) return;
 
     const username = clerkUser?.username ?? "User";
     const referralCode = getReferralCode();
-    const guestSession = readGuestSession();
+    const session = guestSession;
 
     const run = async () => {
       try {
@@ -69,11 +59,11 @@ function AuthenticatedApp() {
           username,
           referralCode: referralCode ?? undefined,
           guestSession: {
-            coins: guestSession.coins,
-            inventoryIds: guestSession.inventoryIds,
-            roomItems: guestSession.roomItems,
-            shortcuts: guestSession.shortcuts,
-            onboardingCompleted: guestSession.onboardingCompleted,
+            coins: session.coins,
+            inventoryIds: session.inventoryIds,
+            roomItems: session.roomItems,
+            shortcuts: session.shortcuts,
+            onboardingCompleted: session.onboardingCompleted,
           },
         });
         if (referralCode) {
@@ -86,11 +76,11 @@ function AuthenticatedApp() {
     };
 
     void run();
-  }, [user, ensureUser, clerkUser, isLoaded]);
+  }, [clerkUser, ensureUser, guestSession, isLoaded, isSignedIn, user]);
 
-  if (!user) return <div className="h-screen w-screen flex items-center justify-center">Loading user...</div>;
+  const isGuestView = !isSignedIn || !user;
 
-  return <RoomPage />;
+  return <RoomPage isGuest={isGuestView} guestSession={guestSession} />;
 }
 
 export default App;

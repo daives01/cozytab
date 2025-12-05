@@ -120,7 +120,7 @@ export function Shop({
                 const cost = item?.basePrice ?? 0;
                 const budget = purchaseWithBudget(effectiveCoins, cost);
                 if (!budget.canPurchase) {
-                    setLastResult({ itemId, message: "Not enough coins.", success: false });
+                    setLastResult({ itemId, message: "Not enough cozy coins.", success: false });
                     return;
                 }
                 onGuestCoinsChange?.(budget.remaining);
@@ -209,26 +209,26 @@ export function Shop({
     const nextRewardText = useMemo(() => {
         if (isGuest) return "";
         if (!lastDailyReward) {
-            return "(next coin ready)";
+            return "(next cozy coin ready)";
         }
         const nextAvailableAt = lastDailyReward + 24 * 60 * 60 * 1000;
         const diff = nextAvailableAt - now;
         if (diff <= 0) {
-            return "(next coin ready)";
+            return "(next cozy coin ready)";
         }
         const oneHourMs = 60 * 60 * 1000;
         if (diff < oneHourMs) {
             const minutes = Math.ceil(diff / (60 * 1000));
-            return `(next coin in ${minutes} min${minutes === 1 ? "" : "s"})`;
+            return `(next cozy coin in ${minutes} min${minutes === 1 ? "" : "s"})`;
         }
         const hours = Math.ceil(diff / oneHourMs);
-        return `(next coin in ${hours} hr${hours === 1 ? "" : "s"})`;
+        return `(next cozy coin in ${hours} hr${hours === 1 ? "" : "s"})`;
     }, [lastDailyReward, now, isGuest]);
 
     const referralText = useMemo(() => {
         if (isGuest) return "";
         const count = referralStats?.referralCoins ?? referralStats?.referralCount ?? 0;
-        return `(${count} referral coins so far)`;
+        return `(${count} cozy coins from referrals so far)`;
     }, [referralStats, isGuest]);
 
     const containerClasses =
