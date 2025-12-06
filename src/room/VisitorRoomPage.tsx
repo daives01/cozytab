@@ -1,8 +1,7 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import type { RoomItem } from "../types";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { PresenceCursor } from "./PresenceCursor";
@@ -12,6 +11,8 @@ import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
 import { RoomCanvas } from "./RoomCanvas";
+import type { RoomItem } from "../types";
+import { api } from "../../convex/_generated/api";
 import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
@@ -30,6 +31,8 @@ export function VisitorRoomPage() {
         api.rooms.getRoomStatus,
         roomData?.room?._id ? { roomId: roomData.room._id } : "skip"
     );
+    const { user: clerkUser, isSignedIn } = useUser();
+    const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const updateMusicState = useMutation(api.rooms.updateMusicState);
     const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
     const navigate = useNavigate();
@@ -37,11 +40,38 @@ export function VisitorRoomPage() {
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const [visitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
-    const [visitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
+    const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
+    const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
+    const [guestCursorColor] = useState(() => randomBrightColor());
 
-    const [visitorCursorColor] = useState(() => randomBrightColor());
-    const [roomClosed, setRoomClosed] = useState(false);
+    const visitorIdentity = useMemo(() => {
+        const id = isSignedIn && clerkUser?.id ? clerkUser.id : guestVisitorId;
+        const name =
+            authedUser?.displayName ??
+            authedUser?.username ??
+            clerkUser?.username ??
+            guestVisitorName;
+        const cursorColor =
+            authedUser?.cursorColor ??
+            authedUser?.computer?.cursorColor ??
+            guestCursorColor;
+
+        return { id, name, cursorColor };
+    }, [
+        authedUser?.computer?.cursorColor,
+        authedUser?.cursorColor,
+        authedUser?.displayName,
+        authedUser?.username,
+        clerkUser?.id,
+        clerkUser?.username,
+        guestCursorColor,
+        guestVisitorId,
+        guestVisitorName,
+        isSignedIn,
+    ]);
+    const [roomClosedOverride, setRoomClosedOverride] = useState(false);
+    const roomClosed =
+        roomClosedOverride || roomData?.closed === true || roomStatus?.status !== "open";
     const presenceRoomId =
         roomStatus?.status === "open" && !roomData?.closed && !roomClosed
             ? roomData?.room?._id ?? null
@@ -49,14 +79,14 @@ export function VisitorRoomPage() {
 
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
         presenceRoomId,
-        visitorId,
-        visitorName,
+        visitorIdentity.id,
+        visitorIdentity.name,
         false,
-        visitorCursorColor
+        visitorIdentity.cursorColor
     );
     const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
     useCozyCursor(true);
-    useCursorColor(visitorCursorColor);
+    useCursorColor(visitorIdentity.cursorColor);
 
     useEffect(() => {
         const ownerReferralCode = roomData?.ownerReferralCode;
@@ -69,19 +99,10 @@ export function VisitorRoomPage() {
     }, [roomData?.ownerReferralCode]);
 
     useEffect(() => {
-        if (roomData?.closed) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setRoomClosed(true);
-        }
-    }, [roomData?.closed]);
-
-    useEffect(() => {
         if (!roomData?.room?._id) return;
         if (!roomStatus) return;
         if (roomStatus.status === "open") return;
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setRoomClosed(true);
         cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
         const timer = setTimeout(() => navigate("/"), 1500);
         return () => clearTimeout(timer);
@@ -97,15 +118,14 @@ export function VisitorRoomPage() {
 
         const delay = closesAt - Date.now();
         if (delay <= 0) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setRoomClosed(true);
+            setTimeout(() => setRoomClosedOverride(true), 0);
             cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
             navigate("/");
             return;
         }
 
         const timer = setTimeout(() => {
-            setRoomClosed(true);
+            setRoomClosedOverride(true);
             cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
             navigate("/");
         }, delay);
@@ -195,12 +215,12 @@ export function VisitorRoomPage() {
                     isSelected={false}
                     mode="view"
                     scale={scale}
-                    onSelect={() => { }}
-                    onChange={() => { }}
-                    onDragStart={() => { }}
-                    onDragEnd={() => { }}
-                    onComputerClick={() => { }}
-                    onMusicPlayerClick={() => { }}
+                    onSelect={() => {}}
+                    onChange={() => {}}
+                    onDragStart={() => {}}
+                    onDragEnd={() => {}}
+                    onComputerClick={() => {}}
+                    onMusicPlayerClick={() => {}}
                     isVisitor={true}
                     overlay={
                         isMusicItem(item) ? (
@@ -215,7 +235,7 @@ export function VisitorRoomPage() {
             ))}
 
             {visitors
-                .filter((v) => v.visitorId !== visitorId)
+                .filter((v) => v.visitorId !== visitorIdentity.id)
                 .map((visitor) => (
                     <PresenceCursor
                         key={visitor.visitorId}
@@ -268,7 +288,7 @@ export function VisitorRoomPage() {
                 x={screenCursor.x}
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
-                cursorColor={visitorCursorColor}
+                cursorColor={visitorIdentity.cursorColor}
             />
         </>
     );

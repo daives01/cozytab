@@ -37,6 +37,7 @@ interface ComputerWindowContentProps {
         };
         color: string;
         onColorChange: (next: string) => void;
+        allowColorChange?: boolean;
     };
 }
 
@@ -67,7 +68,14 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps,
     }
 
     if (app === "customize" && customizeProps) {
-        return <CustomizePanel displayNameProps={customizeProps.displayNameProps} color={customizeProps.color} onColorChange={customizeProps.onColorChange} />;
+        return (
+            <CustomizePanel
+                displayNameProps={customizeProps.displayNameProps}
+                color={customizeProps.color}
+                onColorChange={customizeProps.onColorChange}
+                allowColorChange={customizeProps.allowColorChange}
+            />
+        );
     }
 
     return <AboutPanel />;

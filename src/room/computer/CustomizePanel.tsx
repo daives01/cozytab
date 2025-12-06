@@ -13,12 +13,28 @@ interface CustomizePanelProps {
     displayNameProps?: DisplayNameSectionProps;
     color: string;
     onColorChange: (next: string) => void;
+    allowColorChange?: boolean;
 }
 
-export function CustomizePanel({ displayNameProps, color, onColorChange }: CustomizePanelProps) {
+export function CustomizePanel({
+    displayNameProps,
+    color,
+    onColorChange,
+    allowColorChange = true,
+}: CustomizePanelProps) {
     const [localName, setLocalName] = useState(displayNameProps?.currentDisplayName ?? "");
     const [hasTyped, setHasTyped] = useState(false);
     const hsl = useMemo<HslColor>(() => hexToHsl(color), [color]);
+
+    const safeHue = clampHue(hsl.h ?? 0);
+    const safeSaturation = hsl.s ?? 80;
+    const safeLightness = Math.max(30, Math.min(90, hsl.l ?? 55));
+
+    const brightnessGradient = useMemo(
+        () =>
+            `linear-gradient(90deg, hsl(${safeHue}, 80%, 25%), hsl(${safeHue}, 90%, 60%), hsl(${safeHue}, 90%, 90%))`,
+        [safeHue]
+    );
 
     useEffect(() => {
         if (!displayNameProps) return;
@@ -33,15 +49,26 @@ export function CustomizePanel({ displayNameProps, color, onColorChange }: Custo
         return () => clearTimeout(handle);
     }, [displayNameProps, localName]);
 
+    useEffect(() => {
+        if (!displayNameProps) return;
+        const handle = window.setTimeout(() => {
+            setLocalName(displayNameProps.currentDisplayName ?? "");
+            setHasTyped(false);
+        }, 0);
+        return () => clearTimeout(handle);
+    }, [displayNameProps]);
+
     const applyHue = (nextHue: number) => {
+        if (!allowColorChange) return;
         const hue = clampHue(nextHue);
-        const nextColor = hslToHex(hue, hsl.s || 80, hsl.l || 55);
+        const nextColor = hslToHex(hue, safeSaturation, safeLightness);
         onColorChange(nextColor);
     };
 
     const applyLightness = (nextLightness: number) => {
+        if (!allowColorChange) return;
         const l = Math.max(30, Math.min(90, nextLightness));
-        const nextColor = hslToHex(hsl.h || 200, hsl.s || 80, l);
+        const nextColor = hslToHex(safeHue, safeSaturation, l);
         onColorChange(nextColor);
     };
 
@@ -71,17 +98,23 @@ export function CustomizePanel({ displayNameProps, color, onColorChange }: Custo
 
                         <div className="bg-white border border-black/5 rounded-2xl p-4 shadow-md space-y-3 text-[var(--ink,#0f172a)]">
                             <h3 className="text-lg font-semibold">Cursor color</h3>
+                            {!allowColorChange ? (
+                                <p className="text-xs text-slate-600">
+                                    Sign in to adjust your cursor color.
+                                </p>
+                            ) : null}
 
-                            <div className="space-y-2">
+                            <div className={`space-y-2 ${!allowColorChange ? "opacity-60" : ""}`}>
                                 <p className="text-xs text-slate-600">Hue</p>
                                 <input
                                     aria-label="Hue"
                                     type="range"
                                     min={0}
                                     max={360}
-                                    value={hsl.h}
+                                    value={safeHue}
                                     onChange={(e) => applyHue(Number(e.target.value))}
-                                    className="w-full h-3 rounded-full appearance-none cursor-pointer shadow-inner"
+                                    disabled={!allowColorChange}
+                                    className="w-full h-3 rounded-full appearance-none cursor-pointer shadow-inner disabled:cursor-not-allowed"
                                     style={{
                                         background:
                                             "linear-gradient(90deg, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)",
@@ -89,18 +122,19 @@ export function CustomizePanel({ displayNameProps, color, onColorChange }: Custo
                                 />
                             </div>
 
-                            <div className="space-y-2">
+                            <div className={`space-y-2 ${!allowColorChange ? "opacity-60" : ""}`}>
                                 <p className="text-xs text-slate-600">Brightness</p>
                                 <input
                                     aria-label="Glow"
                                     type="range"
                                     min={30}
                                     max={90}
-                                    value={hsl.l}
+                                    value={safeLightness}
                                     onChange={(e) => applyLightness(Number(e.target.value))}
-                                    className="w-full h-3 rounded-full appearance-none cursor-pointer shadow-inner"
+                                    disabled={!allowColorChange}
+                                    className="w-full h-3 rounded-full appearance-none cursor-pointer shadow-inner disabled:cursor-not-allowed"
                                     style={{
-                                        background: `linear-gradient(90deg, hsl(${hsl.h}, 80%, 25%), hsl(${hsl.h}, 90%, 60%), hsl(${hsl.h}, 90%, 90%))`,
+                                        background: brightnessGradient,
                                     }}
                                 />
                             </div>

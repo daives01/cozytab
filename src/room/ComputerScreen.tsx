@@ -851,6 +851,7 @@ export function ComputerScreen({
                                                             },
                                                         color: cursorColor ?? "#f59e0b",
                                                         onColorChange: onCursorColorChange ?? (() => {}),
+                                                        allowColorChange: !isGuest && Boolean(onCursorColorChange),
                                                     }
                                                     : undefined
                                             }
