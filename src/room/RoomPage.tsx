@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback } from "react";
+import { useAtomValue, useSetAtom, useAtom } from "jotai";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerModal } from "./MusicPlayerModal";
@@ -30,36 +31,30 @@ import { ComputerOverlay } from "./ComputerOverlay";
 import {
     clearGuestSession,
     readGuestSession,
-    saveGuestSession,
 } from "./guestSession";
 import { STARTER_COMPUTER_NAME } from "../../shared/guestTypes";
-import { GUEST_STARTING_COINS, type GuestShortcut, type GuestSessionState } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestSessionState } from "../../shared/guestTypes";
+import {
+    guestCoinsAtom,
+    guestComputerOpenAtom,
+    guestDisplayNameAtom,
+    guestDrawerOpenAtom,
+    guestDraggedItemIdAtom,
+    guestInventoryAtom,
+    guestModeAtom,
+    guestMusicPlayerItemIdAtom,
+    guestRoomItemsAtom,
+    guestSelectedItemIdAtom,
+    guestShortcutsAtom,
+    guestOnboardingCompletedAtom,
+    guestShareModalOpenAtom,
+    guestNormalizedShortcutsAtom,
+    normalizeGuestShortcuts,
+} from "./guestState";
 
 type Mode = "view" | "edit";
 
-const NORMALIZE_COLUMNS = 6;
 const MOBILE_MAX_WIDTH = 640;
-
-function normalizeGuestShortcuts(shortcuts: GuestShortcut[]): ComputerShortcut[] {
-    return shortcuts.map((shortcut, index) => {
-        const row =
-            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
-                ? shortcut.row
-                : Math.floor(index / NORMALIZE_COLUMNS);
-        const col =
-            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
-                ? shortcut.col
-                : index % NORMALIZE_COLUMNS;
-
-        return {
-            id: shortcut.id,
-            name: shortcut.name,
-            url: shortcut.url,
-            row,
-            col,
-        };
-    });
-}
 
 interface RoomPageProps {
     isGuest?: boolean;
@@ -117,37 +112,92 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
 
     const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
 
-    const computedDisplayName = useMemo(
-        () => localDisplayName ?? user?.displayName ?? user?.username ?? clerkUser?.username ?? "You",
-        [clerkUser?.username, localDisplayName, user?.displayName, user?.username]
-    );
-
-    const computedUsername = useMemo(
-        () => user?.username ?? clerkUser?.username ?? "you",
-        [clerkUser?.username, user?.username]
-    );
-
-    const [mode, setMode] = useState<Mode>("view");
-    const [localItems, setLocalItems] = useState<RoomItem[]>(() => initialGuestSession?.roomItems ?? []);
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [authedMode, setAuthedMode] = useState<Mode>("view");
+    const [authedItems, setAuthedItems] = useState<RoomItem[]>(() => initialGuestSession?.roomItems ?? []);
+    const [authedSelectedId, setAuthedSelectedId] = useState<string | null>(null);
+    const [authedDrawerOpen, setAuthedDrawerOpen] = useState(false);
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
-    const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
-    const [isComputerOpen, setIsComputerOpen] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [localShortcuts, setLocalShortcuts] = useState<ComputerShortcut[]>(() =>
+    const [authedDraggedItemId, setAuthedDraggedItemId] = useState<string | null>(null);
+    const [authedComputerOpen, setAuthedComputerOpen] = useState(false);
+    const [authedShareModalOpen, setAuthedShareModalOpen] = useState(false);
+    const [authedShortcuts, setAuthedShortcuts] = useState<ComputerShortcut[]>(() =>
         normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? [])
     );
-    const [musicPlayerItemId, setMusicPlayerItemId] = useState<string | null>(null);
+    const [authedMusicPlayerItemId, setAuthedMusicPlayerItemId] = useState<string | null>(null);
     const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
-    const [guestOnboardingCompleted, setGuestOnboardingCompleted] = useState<boolean>(
+    const [guestOnboardingCompletedState, setGuestOnboardingCompletedState] = useState<boolean>(
         () => initialGuestSession?.onboardingCompleted ?? false
     );
-    const [guestCoins, setGuestCoins] = useState<number>(() => initialGuestSession?.coins ?? GUEST_STARTING_COINS);
-    const [guestInventory, setGuestInventory] = useState<string[]>(() => initialGuestSession?.inventoryIds ?? []);
+    const [guestCoinsState, setGuestCoinsState] = useState<number>(() => initialGuestSession?.coins ?? GUEST_STARTING_COINS);
+    const [guestInventoryState, setGuestInventoryState] = useState<string[]>(() => initialGuestSession?.inventoryIds ?? []);
     const [viewportWidth, setViewportWidth] = useState<number>(() =>
         typeof window !== "undefined" ? window.innerWidth : MOBILE_MAX_WIDTH + 1
     );
+
+    // Guest atoms (only used when isGuest=true; provider scopes store)
+    const [guestRoomItems, setGuestRoomItems] = useAtom(guestRoomItemsAtom);
+    const guestCoins = useAtomValue(guestCoinsAtom);
+    const setGuestCoins = useSetAtom(guestCoinsAtom);
+    const guestInventory = useAtomValue(guestInventoryAtom);
+    const setGuestInventory = useSetAtom(guestInventoryAtom);
+    const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
+    const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
+    const guestMode = useAtomValue(guestModeAtom);
+    const setGuestMode = useSetAtom(guestModeAtom);
+    const guestDrawerOpen = useAtomValue(guestDrawerOpenAtom);
+    const setGuestDrawerOpen = useSetAtom(guestDrawerOpenAtom);
+    const guestSelectedId = useAtomValue(guestSelectedItemIdAtom);
+    const setGuestSelectedId = useSetAtom(guestSelectedItemIdAtom);
+    const guestDraggedItemId = useAtomValue(guestDraggedItemIdAtom);
+    const setGuestDraggedItemId = useSetAtom(guestDraggedItemIdAtom);
+    const guestComputerOpen = useAtomValue(guestComputerOpenAtom);
+    const setGuestComputerOpen = useSetAtom(guestComputerOpenAtom);
+    const guestShareModalOpen = useAtomValue(guestShareModalOpenAtom);
+    const setGuestShareModalOpen = useSetAtom(guestShareModalOpenAtom);
+    const guestMusicPlayerItemId = useAtomValue(guestMusicPlayerItemIdAtom);
+    const setGuestMusicPlayerItemId = useSetAtom(guestMusicPlayerItemIdAtom);
+    const guestDisplayName = useAtomValue(guestDisplayNameAtom);
+    const setGuestDisplayName = useSetAtom(guestDisplayNameAtom);
+    const guestOnboardingCompleted = useAtomValue(guestOnboardingCompletedAtom);
+    const setGuestOnboardingCompleted = useSetAtom(guestOnboardingCompletedAtom);
+
+    const mode = isGuest ? guestMode : authedMode;
+    const setMode = isGuest ? setGuestMode : setAuthedMode;
+    const localItems = isGuest ? guestRoomItems : authedItems;
+    const setLocalItems = isGuest ? setGuestRoomItems : setAuthedItems;
+    const selectedId = isGuest ? guestSelectedId : authedSelectedId;
+    const setSelectedId = isGuest ? setGuestSelectedId : setAuthedSelectedId;
+    const isDrawerOpen = isGuest ? guestDrawerOpen : authedDrawerOpen;
+    const setIsDrawerOpen = isGuest ? setGuestDrawerOpen : setAuthedDrawerOpen;
+    const draggedItemId = isGuest ? guestDraggedItemId : authedDraggedItemId;
+    const setDraggedItemId = isGuest ? setGuestDraggedItemId : setAuthedDraggedItemId;
+    const isComputerOpen = isGuest ? guestComputerOpen : authedComputerOpen;
+    const setIsComputerOpen = isGuest ? setGuestComputerOpen : setAuthedComputerOpen;
+    const isShareModalOpen = isGuest ? guestShareModalOpen : authedShareModalOpen;
+    const setIsShareModalOpen = isGuest ? setGuestShareModalOpen : setAuthedShareModalOpen;
+    const localShortcuts: ComputerShortcut[] = isGuest ? guestShortcuts : authedShortcuts;
+    const setLocalShortcuts = useCallback(
+        (next: ComputerShortcut[]) => {
+            if (isGuest) {
+                setGuestShortcuts(next);
+            } else {
+                setAuthedShortcuts(next);
+            }
+        },
+        [isGuest, setAuthedShortcuts, setGuestShortcuts]
+    );
+    const musicPlayerItemId = isGuest ? guestMusicPlayerItemId : authedMusicPlayerItemId;
+    const setMusicPlayerItemId = isGuest ? setGuestMusicPlayerItemId : setAuthedMusicPlayerItemId;
+    const guestOnboardingCompletedValue = isGuest ? guestOnboardingCompleted : guestOnboardingCompletedState;
+    const setGuestOnboardingCompletedValue = isGuest
+        ? setGuestOnboardingCompleted
+        : setGuestOnboardingCompletedState;
+    const guestCoinsValue = isGuest ? guestCoins : guestCoinsState;
+    const setGuestCoinsValue = isGuest ? setGuestCoins : setGuestCoinsState;
+    const guestInventoryValue = isGuest ? guestInventory : guestInventoryState;
+    const setGuestInventoryValue = isGuest ? setGuestInventory : setGuestInventoryState;
+    const displayNameValue = isGuest ? guestDisplayName : localDisplayName;
+    const setDisplayNameValue = isGuest ? setGuestDisplayName : setLocalDisplayName;
     const containerRef = useRef<HTMLDivElement>(null);
     const lastRoomPositionRef = useRef<{ x: number; y: number }>({
         x: ROOM_WIDTH / 2,
@@ -157,45 +207,43 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     useCozyCursor(true);
 
+    const computedDisplayName = useMemo(
+        () => displayNameValue ?? user?.displayName ?? user?.username ?? clerkUser?.username ?? "You",
+        [clerkUser?.username, displayNameValue, user?.displayName, user?.username]
+    );
+
+    const computedUsername = useMemo(
+        () => user?.username ?? clerkUser?.username ?? "you",
+        [clerkUser?.username, user?.username]
+    );
+
     const markGuestOnboardingComplete = useCallback(() => {
-        setGuestOnboardingCompleted(true);
-        saveGuestSession({ onboardingCompleted: true });
-    }, []);
+        setGuestOnboardingCompletedValue(true);
+    }, [setGuestOnboardingCompletedValue]);
 
     const updateGuestCoins = useCallback(
         (next: number | ((prev: number) => number)) => {
-            setGuestCoins((prev) => {
-                const value = typeof next === "function" ? (next as (p: number) => number)(prev) : next;
-                const session = saveGuestSession({ coins: value });
-                return session.coins;
-            });
+            setGuestCoinsValue(next);
         },
-        []
+        [setGuestCoinsValue]
     );
 
     const updateGuestInventory = useCallback((updater: (prev: string[]) => string[]) => {
-        setGuestInventory((prev) => {
-            const next = updater(prev);
-            saveGuestSession({ inventoryIds: next });
-            return next;
-        });
-    }, []);
+        setGuestInventoryValue(updater);
+    }, [setGuestInventoryValue]);
 
     const updateGuestShortcuts = useCallback(
         (next: ComputerShortcut[]) => {
             setLocalShortcuts(next);
-            if (isGuest) {
-                saveGuestSession({ shortcuts: next });
-            }
         },
-        [isGuest]
+        [setLocalShortcuts]
     );
 
     const handleMusicToggle = useCallback(
         (itemId: string, playing: boolean) => {
             const now = Date.now();
-            setLocalItems((prev) => {
-                const next = prev.map((item) =>
+            setLocalItems((prev: RoomItem[]) =>
+                prev.map((item: RoomItem) =>
                     item.id === itemId
                         ? {
                             ...item,
@@ -204,14 +252,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                             musicPositionAtStart: playing ? 0 : undefined,
                         }
                         : item
-                );
-
-                if (isGuest) {
-                    saveGuestSession({ roomItems: next });
-                }
-
-                return next;
-            });
+                )
+            );
 
             if (!isGuest && room) {
                 updateMusicState({
@@ -223,10 +265,9 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 });
             }
         },
-        [isGuest, room, updateMusicState]
+        [isGuest, room, setLocalItems, updateMusicState]
     );
 
-    /* eslint-disable react-hooks/set-state-in-effect */
     useEffect(() => {
         if (!isGuest || guestSessionLoaded) return;
 
@@ -243,19 +284,14 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             }
         }
 
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setGuestSessionLoaded(true);
-    }, [guestSessionLoaded, guestRoom, guestTemplate, initialGuestSession, isGuest]);
-    /* eslint-enable react-hooks/set-state-in-effect */
-
-    useEffect(() => {
-        if (!isGuest || !guestSessionLoaded) return;
-        saveGuestSession({ roomItems: localItems });
-    }, [isGuest, guestSessionLoaded, localItems]);
+    }, [guestSessionLoaded, guestRoom, guestTemplate, initialGuestSession, isGuest, setLocalItems]);
 
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
         const uniqueInventoryIds = Array.from(
-            new Set<string>([...guestInventory, STARTER_COMPUTER_NAME])
+            new Set<string>([...guestInventoryValue, STARTER_COMPUTER_NAME])
         );
 
         return uniqueInventoryIds
@@ -269,7 +305,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 category: item.category,
                 hidden: false,
             }));
-    }, [catalogItems, guestInventory]);
+    }, [catalogItems, guestInventoryValue]);
 
     const reconciledGuestOnboarding = useRef(false);
     useEffect(() => {
@@ -316,19 +352,18 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 createRoom({});
             } else if (room) {
                 if (mode === "view" || localItems.length === 0) {
-                    // eslint-disable-next-line react-hooks/set-state-in-effect
                     setLocalItems(room.items as RoomItem[]);
                 }
             }
         }
-    }, [room, createRoom, isGuest, mode, localItems.length]);
+    }, [room, createRoom, isGuest, mode, localItems.length, setLocalItems]);
 
     useEffect(() => {
         if (isGuest) return;
         if (!computerState) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalShortcuts(computerState.shortcuts as ComputerShortcut[]);
-    }, [computerState, isGuest]);
+    }, [computerState, isGuest, setLocalShortcuts]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -357,7 +392,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         user,
         isGuest,
         completeOnboarding,
-        guestOnboardingCompleted,
+        guestOnboardingCompleted: guestOnboardingCompletedValue,
         markGuestOnboardingComplete,
     });
 
@@ -385,11 +420,11 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 advanceOnboarding();
             }
         }
-    }, [advanceOnboarding, mode, onboardingStep]);
+    }, [advanceOnboarding, mode, onboardingStep, setIsDrawerOpen, setMode]);
 
     const handleDrawerToggle = useCallback(() => {
-        setIsDrawerOpen(!isDrawerOpen);
-    }, [isDrawerOpen]);
+        setIsDrawerOpen((prev) => !prev);
+    }, [setIsDrawerOpen]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -443,7 +478,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             flipped: false,
         };
 
-        setLocalItems((prev) => [...prev, newItem]);
+        setLocalItems((prev: RoomItem[]) => [...prev, newItem]);
 
         if (onboardingStep === "place-computer") {
             advanceOnboarding();
@@ -509,8 +544,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         setSelectedId(item.id);
                     }}
                     onChange={(newItem) => {
-                        setLocalItems((prev) =>
-                            prev.map((i) => (i.id === newItem.id ? newItem : i))
+                        setLocalItems((prev: RoomItem[]) =>
+                            prev.map((i: RoomItem) => (i.id === newItem.id ? newItem : i))
                         );
                     }}
                     onDragStart={() => setDraggedItemId(item.id)}
@@ -574,7 +609,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 onDrawerToggle={handleDrawerToggle}
                 draggedItemId={draggedItemId}
                 onDeleteItem={(itemId) => {
-                    setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+                    setLocalItems((prev: RoomItem[]) => prev.filter((item: RoomItem) => item.id !== itemId));
                     setSelectedId((current) => (current === itemId ? null : current));
                 }}
                 highlightComputer={onboardingStep === "place-computer"}
@@ -595,7 +630,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         saveComputer({ shortcuts });
                     }
                 }}
-                userCurrency={user?.currency ?? guestCoins ?? 0}
+                userCurrency={user?.currency ?? guestCoinsValue ?? 0}
                 lastDailyReward={user?.lastDailyReward}
                 onShopOpened={() => {
                     if (onboardingStep === "open-shop") {
@@ -609,12 +644,12 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 }}
                 isOnboardingShopStep={onboardingStep === "open-shop"}
                 onPointerMove={updateCursorFromClient}
-                guestCoins={guestCoins}
+                guestCoins={guestCoinsValue}
                 onGuestCoinsChange={(coins) => updateGuestCoins(coins)}
                 startingCoins={GUEST_STARTING_COINS}
-                guestInventory={guestInventory}
+                guestInventory={guestInventoryValue}
                 onGuestPurchase={(itemId) => {
-                    updateGuestInventory((prev) => {
+                    updateGuestInventory((prev: string[]) => {
                         if (prev.includes(itemId)) return prev;
                         return [...prev, itemId];
                     });
@@ -627,7 +662,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 highlightFirstMusicItem={shouldHighlightMusicPurchase}
                 displayName={isGuest ? undefined : computedDisplayName}
                 username={isGuest ? undefined : computedUsername}
-                onDisplayNameUpdated={(next) => setLocalDisplayName(next)}
+                onDisplayNameUpdated={(next) => setDisplayNameValue(next)}
             />
 
             {musicPlayerItemId && (() => {
@@ -639,9 +674,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         onSave={(updatedItem) => {
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             setLocalItems(updatedItems);
-                            if (isGuest) {
-                                saveGuestSession({ roomItems: updatedItems });
-                            } else if (room) {
+                            if (!isGuest && room) {
                                 saveRoom({ roomId: room._id, items: updatedItems });
                             }
                             setMusicPlayerItemId(null);

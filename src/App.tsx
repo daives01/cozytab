@@ -7,6 +7,7 @@ import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
 import { AdminPage } from "./admin/AdminPage";
 import { clearGuestSession, readGuestSession } from "./room/guestSession";
+import { createGuestStore, GuestStateProvider } from "./room/guestState";
 import {
   clearReferralCode,
   getReferralCode,
@@ -79,8 +80,20 @@ function HomeRoute() {
   }, [clerkUser, ensureUser, guestSession, isLoaded, isSignedIn, user]);
 
   const isGuestView = !isSignedIn || !user;
+  const guestStore = useMemo(() => {
+    if (!isGuestView) return null;
+    return createGuestStore(guestSession);
+  }, [guestSession, isGuestView]);
 
-  return <RoomPage isGuest={isGuestView} guestSession={guestSession} />;
+  if (isGuestView && guestStore) {
+    return (
+      <GuestStateProvider store={guestStore}>
+        <RoomPage isGuest guestSession={guestSession} />
+      </GuestStateProvider>
+    );
+  }
+
+  return <RoomPage isGuest={false} guestSession={guestSession} />;
 }
 
 export default App;
