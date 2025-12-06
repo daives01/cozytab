@@ -129,6 +129,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const [authedCursorColor, setAuthedCursorColor] = useState<string | null>(initialGuestSession?.cursorColor ?? null);
     const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
     const [authedMusicPlayerItemId, setAuthedMusicPlayerItemId] = useState<string | null>(null);
+    const [musicAutoplay, setMusicAutoplay] = useState<{ itemId: string; token: string } | null>(null);
     const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
     const [guestOnboardingCompletedState, setGuestOnboardingCompletedState] = useState<boolean>(
         () => initialGuestSession?.onboardingCompleted ?? false
@@ -622,6 +623,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                                 key={`music-${item.id}-${item.musicUrl ?? "none"}`}
                                 item={item}
                                 onToggle={(playing) => handleMusicToggle(item.id, playing)}
+                                autoPlayToken={musicAutoplay?.itemId === item.id ? musicAutoplay.token : null}
                             />
                         ) : null
                     }
@@ -727,8 +729,24 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         item={item}
                         onClose={() => setMusicPlayerItemId(null)}
                         onSave={(updatedItem) => {
+                            const startedAt = updatedItem.musicStartedAt ?? Date.now();
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             setLocalItems(updatedItems);
+
+                            if (updatedItem.musicUrl) {
+                                setMusicAutoplay({ itemId: updatedItem.id, token: `${updatedItem.id}-${Date.now()}` });
+                            }
+
+                            if (!isGuest && room && updatedItem.musicPlaying) {
+                                updateMusicState({
+                                    roomId: room._id,
+                                    itemId: updatedItem.id,
+                                    musicPlaying: true,
+                                    musicStartedAt: startedAt,
+                                    musicPositionAtStart: updatedItem.musicPositionAtStart ?? 0,
+                                });
+                            }
+
                             if (!isGuest && room) {
                                 saveRoom({ roomId: room._id, items: updatedItems });
                             }

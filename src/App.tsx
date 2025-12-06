@@ -44,6 +44,7 @@ function HomeRoute() {
   const ensureUser = useMutation(api.users.ensureUser);
   const user = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
+  const isUserLoading = isSignedIn && user === undefined;
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
@@ -75,11 +76,19 @@ function HomeRoute() {
       });
   }, [clerkUser, ensureUser, guestSession, isLoaded, isSignedIn, user]);
 
-  const isGuestView = !isSignedIn || !user;
+  const isGuestView = !isSignedIn || user === null;
   const guestStore = useMemo(() => {
     if (!isGuestView) return null;
     return createGuestStore(guestSession);
   }, [guestSession, isGuestView]);
+
+  if (isUserLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+        Loading your cozytab...
+      </div>
+    );
+  }
 
   if (isGuestView && guestStore) {
     return (

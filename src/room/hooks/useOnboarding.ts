@@ -25,22 +25,22 @@ export function useOnboarding({
 
     // Kick off onboarding once per session when eligible
     useEffect(() => {
-        if (!autoStart || onboardingInitialized.current) return;
+        if (onboardingInitialized.current || !autoStart) return;
 
         const alreadyCompleted = isGuest ? guestOnboardingCompleted : user?.onboardingCompleted === true;
-        if (alreadyCompleted) {
+        const shouldStart =
+            !alreadyCompleted &&
+            ((isGuest && !guestOnboardingCompleted) || (!isGuest && user?.onboardingCompleted === false));
+
+        if (shouldStart) {
             onboardingInitialized.current = true;
-            return;
+            startTransition(() => {
+                setOnboardingActive(true);
+                setOnboardingStep("welcome");
+            });
+        } else if (alreadyCompleted) {
+            onboardingInitialized.current = true;
         }
-
-        const shouldStart = (isGuest && !guestOnboardingCompleted) || (!isGuest && user && user.onboardingCompleted === false);
-        if (!shouldStart) return;
-
-        onboardingInitialized.current = true;
-        startTransition(() => {
-            setOnboardingActive(true);
-            setOnboardingStep("welcome");
-        });
     }, [autoStart, guestOnboardingCompleted, isGuest, user]);
 
     const handleOnboardingComplete = useCallback(async () => {

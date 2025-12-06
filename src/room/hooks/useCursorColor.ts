@@ -1,6 +1,9 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 type CursorKind = "default" | "click" | "drag" | "text";
+type CursorValueMap = Record<CursorKind, string>;
+
+const STORAGE_KEY = "cozy-cursor-cache-v1";
 
 const cursorSources: Record<CursorKind, { path: string; hotspot: string }> = {
     default: { path: "/cursor.svg", hotspot: "6 3, auto" },
@@ -10,8 +13,17 @@ const cursorSources: Record<CursorKind, { path: string; hotspot: string }> = {
 };
 
 const cursorKinds = Object.keys(cursorSources) as CursorKind[];
+const fallbackCursorValues: CursorValueMap = {
+    default: `url("/cursor.svg") ${cursorSources.default.hotspot}`,
+    click: `url("/cursor-click.svg") ${cursorSources.click.hotspot}`,
+    drag: `url("/cursor-drag.svg") ${cursorSources.drag.hotspot}`,
+    text: `url("/cursor-text.svg") ${cursorSources.text.hotspot}`,
+};
 const templateCache: Partial<Record<CursorKind, string>> = {};
 let fetchPromise: Promise<void> | null = null;
+
+// Kick off a prefetch as soon as the module loads so subsequent calls do not wait.
+void ensureTemplates();
 
 async function ensureTemplates() {
     if (fetchPromise) return fetchPromise;
@@ -49,35 +61,69 @@ function refreshCursorImmediately() {
     body.style.cursor = value;
 }
 
-function setCursorVariables(color: string) {
-    const root = document.documentElement;
-    const fallback = {
-        default: `url("/cursor.svg") ${cursorSources.default.hotspot}`,
-        click: `url("/cursor-click.svg") ${cursorSources.click.hotspot}`,
-        drag: `url("/cursor-drag.svg") ${cursorSources.drag.hotspot}`,
-        text: `url("/cursor-text.svg") ${cursorSources.text.hotspot}`,
-    };
+function buildCursorValues(color: string): CursorValueMap {
+    const values = { ...fallbackCursorValues };
 
     cursorKinds.forEach((kind) => {
         const template = templateCache[kind];
-        const value = template
-            ? toDataUri(template, color, cursorSources[kind].hotspot)
-            : fallback[kind];
-        root.style.setProperty(`--cozy-cursor-${kind}`, value);
+        if (template) {
+            values[kind] = toDataUri(template, color, cursorSources[kind].hotspot);
+        }
+    });
+
+    return values;
+}
+
+function applyCursorVariables(values: CursorValueMap) {
+    const root = document.documentElement;
+    cursorKinds.forEach((kind) => {
+        root.style.setProperty(`--cozy-cursor-${kind}`, values[kind]);
     });
 
     refreshCursorImmediately();
 }
 
+function readCachedValues(color: string): CursorValueMap | null {
+    if (typeof window === "undefined") return null;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw) as { color?: string; values?: CursorValueMap };
+        if (parsed.color !== color || !parsed.values) return null;
+        return parsed.values;
+    } catch {
+        return null;
+    }
+}
+
+function writeCachedValues(color: string, values: CursorValueMap) {
+    if (typeof window === "undefined") return;
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ color, values }));
+    } catch {
+        // Ignore storage failures (private mode / quota, etc.)
+    }
+}
+
 export function useCursorColor(color?: string) {
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!color) return;
 
         let mounted = true;
 
+        const cachedValues = readCachedValues(color);
+        if (cachedValues) {
+            applyCursorVariables(cachedValues);
+        }
+
         ensureTemplates().then(() => {
             if (mounted) {
-                setCursorVariables(color);
+                const values = buildCursorValues(color);
+                applyCursorVariables(values);
+                const hasTemplates = cursorKinds.every((kind) => Boolean(templateCache[kind]));
+                if (hasTemplates) {
+                    writeCachedValues(color, values);
+                }
             }
         });
 

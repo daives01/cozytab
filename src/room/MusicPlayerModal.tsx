@@ -45,13 +45,14 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             return;
         }
 
+        const startedAt = Date.now();
         const updatedItem: RoomItem = {
             ...item,
             musicUrl: musicUrl.trim(),
             musicType: "youtube",
-            musicPlaying: false,
-            musicStartedAt: undefined,
-            musicPositionAtStart: undefined,
+            musicPlaying: true,
+            musicStartedAt: startedAt,
+            musicPositionAtStart: 0,
         };
 
         onSave(updatedItem);
@@ -144,7 +145,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
                     <div className="bg-[var(--paper-header)] p-6 rounded-xl border-2 border-[var(--ink)] relative mt-8">
                         <div className="absolute -top-3 left-4 bg-[var(--warning)] text-white px-3 py-1 rounded-lg text-sm font-bold shadow-sm transform -rotate-2 border-2 border-[var(--ink)]">
-                            SIDE A: TRACK URL
+                            TRACK URL
                         </div>
 
                         <div className="mt-2 space-y-4">
@@ -181,7 +182,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                             className="flex-1 border-2 border-[var(--danger)] text-[var(--danger)] hover:bg-[var(--danger-light)] hover:text-[var(--danger-dark)] font-bold"
                         >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Eject Disc
+                            Eject
                         </Button>
                     )}
 
