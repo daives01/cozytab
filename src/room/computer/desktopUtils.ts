@@ -3,8 +3,8 @@ import type { ComputerShortcut } from "../../types";
 import type { ComputerWindowApp } from "./computerTypes";
 
 export const GRID_COLUMNS = 6;
-export const ROW_HEIGHT = 132; // px, matches grid-auto-rows for consistent hit testing
-export const DESKTOP_PADDING_Y = 32; // p-4 top + bottom on desktop area
+export const ROW_HEIGHT = 132;
+export const DESKTOP_PADDING_Y = 32;
 export const MIN_WINDOW_WIDTH = 360;
 export const MIN_WINDOW_HEIGHT = 280;
 
@@ -13,7 +13,7 @@ export const WINDOW_DEFAULTS: Record<ComputerWindowApp, { width: number; height:
     rooms: { width: 480, height: 440 },
     invite: { width: 420, height: 340 },
     about: { width: 520, height: 360 },
-    profile: { width: 420, height: 320 },
+    customize: { width: 520, height: 420 },
 };
 
 export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
@@ -21,7 +21,7 @@ export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
     rooms: "from-emerald-500 to-green-600",
     invite: "from-pink-400 to-rose-500",
     about: "from-indigo-400 to-sky-500",
-    profile: "from-blue-500 to-sky-500",
+    customize: "from-amber-500 to-amber-600",
 };
 
 export function deriveShortcutName(url: string) {

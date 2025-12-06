@@ -4,6 +4,7 @@ export const GUEST_ONBOARDING_STORAGE_KEY = "cozytab_guest_onboarding_complete";
 export const GUEST_COINS_STORAGE_KEY = "cozytab_guest_coins";
 export const GUEST_INVENTORY_STORAGE_KEY = "cozytab_guest_inventory";
 export const GUEST_SHORTCUTS_STORAGE_KEY = "cozytab_guest_shortcuts";
+export const GUEST_CURSOR_COLOR_STORAGE_KEY = "cozytab_guest_cursor_color";
 export const STARTER_COMPUTER_NAME = "cozy computer";
 
 export interface GuestRoomItem {
@@ -38,5 +39,6 @@ export interface GuestSessionState {
     roomItems: GuestRoomItem[];
     shortcuts: GuestShortcut[];
     onboardingCompleted: boolean;
+    cursorColor: string;
 }
 

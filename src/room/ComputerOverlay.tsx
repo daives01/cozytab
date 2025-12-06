@@ -30,6 +30,8 @@ interface ComputerOverlayProps {
     displayName?: string;
     username?: string;
     onDisplayNameUpdated?: (next: string) => void;
+    cursorColor?: string;
+    onCursorColorChange?: (next: string) => void;
 }
 
 export function ComputerOverlay({
@@ -54,6 +56,8 @@ export function ComputerOverlay({
     displayName,
     username,
     onDisplayNameUpdated,
+    cursorColor,
+    onCursorColorChange,
 }: ComputerOverlayProps) {
     const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
     const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
@@ -73,32 +77,32 @@ export function ComputerOverlay({
                   setGuestInventoryAtomValue((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
             : onGuestPurchase;
 
+    if (!isComputerOpen) return null;
+
     return (
-        <>
-            {isComputerOpen && (
-                <ComputerScreen
-                    shortcuts={effectiveShortcuts}
-                    onClose={onCloseComputer}
-                    onUpdateShortcuts={handleShortcutsUpdate}
-                    userCurrency={userCurrency}
-                    lastDailyReward={lastDailyReward}
-                    onShopOpened={onShopOpened}
-                    onOnboardingPurchase={onOnboardingPurchase}
-                    onOnboardingShortcutAdded={onOnboardingShortcutAdded}
-                    isOnboardingShopStep={isOnboardingShopStep}
-                    onPointerMove={onPointerMove}
-                    isGuest={isGuest}
-                    guestCoins={effectiveGuestCoins}
-                    onGuestCoinsChange={handleGuestCoinsChange}
-                    startingCoins={startingCoins}
-                    guestInventory={effectiveGuestInventory}
-                    onGuestPurchase={handleGuestPurchase}
-                    highlightFirstMusicItem={highlightFirstMusicItem}
-                    displayName={displayName}
-                    username={username}
-                    onDisplayNameUpdated={onDisplayNameUpdated}
-                />
-            )}
-        </>
+        <ComputerScreen
+            shortcuts={effectiveShortcuts}
+            onClose={onCloseComputer}
+            onUpdateShortcuts={handleShortcutsUpdate}
+            userCurrency={userCurrency}
+            lastDailyReward={lastDailyReward}
+            onShopOpened={onShopOpened}
+            onOnboardingPurchase={onOnboardingPurchase}
+            onOnboardingShortcutAdded={onOnboardingShortcutAdded}
+            isOnboardingShopStep={isOnboardingShopStep}
+            onPointerMove={onPointerMove}
+            isGuest={isGuest}
+            guestCoins={effectiveGuestCoins}
+            onGuestCoinsChange={handleGuestCoinsChange}
+            startingCoins={startingCoins}
+            guestInventory={effectiveGuestInventory}
+            onGuestPurchase={handleGuestPurchase}
+            highlightFirstMusicItem={highlightFirstMusicItem}
+            displayName={displayName}
+            username={username}
+            onDisplayNameUpdated={onDisplayNameUpdated}
+            cursorColor={cursorColor}
+            onCursorColorChange={onCursorColorChange}
+        />
     );
 }

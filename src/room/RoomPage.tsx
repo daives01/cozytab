@@ -22,6 +22,7 @@ import { RoomCanvas } from "./RoomCanvas";
 import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
+import { useCursorColor } from "./hooks/useCursorColor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
 import { canSave, canShare, canUseComputer } from "./utils/sessionGuards";
@@ -50,6 +51,7 @@ import {
     guestShareModalOpenAtom,
     guestNormalizedShortcutsAtom,
     normalizeGuestShortcuts,
+    guestCursorColorAtom,
 } from "./guestState";
 
 type Mode = "view" | "edit";
@@ -123,6 +125,9 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const [authedShortcuts, setAuthedShortcuts] = useState<ComputerShortcut[]>(() =>
         normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? [])
     );
+    const authedShortcutsRef = useRef<ComputerShortcut[]>(normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? []));
+    const [authedCursorColor, setAuthedCursorColor] = useState<string | null>(initialGuestSession?.cursorColor ?? null);
+    const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
     const [authedMusicPlayerItemId, setAuthedMusicPlayerItemId] = useState<string | null>(null);
     const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
     const [guestOnboardingCompletedState, setGuestOnboardingCompletedState] = useState<boolean>(
@@ -133,6 +138,10 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const [viewportWidth, setViewportWidth] = useState<number>(() =>
         typeof window !== "undefined" ? window.innerWidth : MOBILE_MAX_WIDTH + 1
     );
+
+    useEffect(() => {
+        authedShortcutsRef.current = authedShortcuts;
+    }, [authedShortcuts]);
 
     // Guest atoms (only used when isGuest=true; provider scopes store)
     const [guestRoomItems, setGuestRoomItems] = useAtom(guestRoomItemsAtom);
@@ -160,6 +169,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const setGuestDisplayName = useSetAtom(guestDisplayNameAtom);
     const guestOnboardingCompleted = useAtomValue(guestOnboardingCompletedAtom);
     const setGuestOnboardingCompleted = useSetAtom(guestOnboardingCompletedAtom);
+    const guestCursorColor = useAtomValue(guestCursorColorAtom);
+    const setGuestCursorColor = useSetAtom(guestCursorColorAtom);
 
     const mode = isGuest ? guestMode : authedMode;
     const setMode = isGuest ? setGuestMode : setAuthedMode;
@@ -206,6 +217,11 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const computerPrefetchedRef = useRef(false);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     useCozyCursor(true);
+    const cursorColor =
+        (isGuest
+            ? guestCursorColor
+            : authedCursorColor ?? computerState?.cursorColor ?? user?.cursorColor) ?? "#6366f1";
+    useCursorColor(cursorColor);
 
     const computedDisplayName = useMemo(
         () => displayNameValue ?? user?.displayName ?? user?.username ?? clerkUser?.username ?? "You",
@@ -266,6 +282,26 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             }
         },
         [isGuest, room, setLocalItems, updateMusicState]
+    );
+
+    useEffect(() => {
+        saveAuthedCursorColorRef.current = debounce((next: string) => {
+            saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor: next });
+        }, 500);
+    }, [saveComputer]);
+
+    const handleCursorColorChange = useCallback(
+        (next: string) => {
+            const color = next?.trim();
+            if (!color) return;
+            if (isGuest) {
+                setGuestCursorColor(color);
+            } else {
+                setAuthedCursorColor(color);
+                saveAuthedCursorColorRef.current?.(color);
+            }
+        },
+        [isGuest, setAuthedCursorColor, setGuestCursorColor]
     );
 
     useEffect(() => {
@@ -333,10 +369,21 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         !isGuest && room && visitorId && isRoomShared ? room._id : null,
         visitorId ?? "",
         ownerName,
-        true
+        true,
+        cursorColor
     );
     const visitorCount = visitors.filter((v) => !v.isOwner).length;
     const hasVisitors = visitorCount > 0;
+
+    useEffect(() => {
+        if (isGuest) return;
+        updateCursor(
+            lastRoomPositionRef.current.x,
+            lastRoomPositionRef.current.y,
+            screenCursor.x,
+            screenCursor.y
+        );
+    }, [cursorColor, isGuest, screenCursor.x, screenCursor.y, updateCursor]);
 
     const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
 
@@ -363,7 +410,12 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         if (!computerState) return;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setLocalShortcuts(computerState.shortcuts as ComputerShortcut[]);
-    }, [computerState, isGuest, setLocalShortcuts]);
+        if (computerState.cursorColor) {
+            setAuthedCursorColor(computerState.cursorColor);
+        } else if (user?.cursorColor) {
+            setAuthedCursorColor(user.cursorColor);
+        }
+    }, [computerState, isGuest, setAuthedCursorColor, setLocalShortcuts, user?.cursorColor]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -587,6 +639,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         y={visitor.y}
                         chatMessage={visitor.chatMessage}
                         scale={scale}
+                        cursorColor={visitor.cursorColor}
                     />
                 ))}
         </>
@@ -627,7 +680,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                         updateGuestShortcuts(shortcuts);
                     } else {
                         setLocalShortcuts(shortcuts);
-                        saveComputer({ shortcuts });
+                        saveComputer({ shortcuts, cursorColor });
                     }
                 }}
                 userCurrency={user?.currency ?? guestCoinsValue ?? 0}
@@ -663,6 +716,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 displayName={isGuest ? undefined : computedDisplayName}
                 username={isGuest ? undefined : computedUsername}
                 onDisplayNameUpdated={(next) => setDisplayNameValue(next)}
+                cursorColor={cursorColor}
+                onCursorColorChange={handleCursorColorChange}
             />
 
             {musicPlayerItemId && (() => {
@@ -720,6 +775,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 x={screenCursor.x}
                 y={screenCursor.y}
                 chatMessage={!isGuest && hasVisitors ? localChatMessage : null}
+                cursorColor={cursorColor}
             />
         </>
     );

@@ -1,10 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
-
-// Message types for presence
 export type PresenceMessage =
-    | { type: "join"; visitorId: string; displayName: string; isOwner: boolean }
+    | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
     | { type: "leave"; visitorId: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number }
+    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
 
@@ -15,9 +13,9 @@ export type VisitorState = {
     x: number;
     y: number;
     chatMessage: string | null;
+    cursorColor?: string;
 };
 
-// Tag type for WebSocket state
 type WebSocketAttachment = {
     visitorId: string;
     displayName: string;
@@ -59,24 +57,29 @@ export class PresenceRoom extends DurableObject {
     async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
         if (typeof message !== "string") return;
 
+        let data: PresenceMessage | null = null;
         try {
-            const data = JSON.parse(message) as PresenceMessage;
-            switch (data.type) {
-                case "join":
-                    this.handleJoin(ws, data);
-                    break;
-                case "cursor":
-                    this.handleCursor(data, ws);
-                    break;
-                case "chat":
-                    this.handleChat(data, ws);
-                    break;
-                case "leave":
-                    this.handleLeave(data.visitorId, ws);
-                    break;
-            }
+            data = JSON.parse(message) as PresenceMessage;
         } catch (e) {
             console.error("[DO] Error processing message:", e);
+            return;
+        }
+
+        switch (data.type) {
+            case "join":
+                this.handleJoin(ws, data);
+                break;
+            case "cursor":
+                this.handleCursor(data, ws);
+                break;
+            case "chat":
+                this.handleChat(data, ws);
+                break;
+            case "leave":
+                this.handleLeave(data.visitorId, ws);
+                break;
+            default:
+                console.warn("[DO] Unknown message type", (data as { type?: string })?.type);
         }
     }
 
@@ -106,6 +109,7 @@ export class PresenceRoom extends DurableObject {
             x: DEFAULT_POSITION.x,
             y: DEFAULT_POSITION.y,
             chatMessage: null,
+            cursorColor: data.cursorColor,
         });
 
         const stateMsg: PresenceMessage = {
@@ -122,6 +126,9 @@ export class PresenceRoom extends DurableObject {
         if (visitor) {
             visitor.x = data.x;
             visitor.y = data.y;
+            if (data.cursorColor) {
+                visitor.cursorColor = data.cursorColor;
+            }
         }
         this.broadcast(ws, data);
     }

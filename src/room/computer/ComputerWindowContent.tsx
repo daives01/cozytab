@@ -3,7 +3,7 @@ import { InvitePanel } from "./InvitePanel";
 import { RoomsPanel } from "./RoomsPanel";
 import { Shop } from "../Shop";
 import { AboutPanel } from "./AboutPanel";
-import { DisplayNamePanel } from "./DisplayNamePanel";
+import { CustomizePanel } from "./CustomizePanel";
 import type { ComputerWindowApp } from "./computerTypes";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 
@@ -27,16 +27,20 @@ interface ComputerWindowContentProps {
     shopProps: ShopWindowProps;
     roomsProps?: RoomsWindowProps;
     inviteProps?: InviteWindowProps;
-    profileProps?: {
-        currentDisplayName: string;
-        usernameFallback?: string;
-        isSaving: boolean;
-        error?: string | null;
-        onSave: (next: string) => void;
+    customizeProps?: {
+        displayNameProps?: {
+            currentDisplayName: string;
+            usernameFallback?: string;
+            isSaving: boolean;
+            error?: string | null;
+            onSave: (next: string) => void;
+        };
+        color: string;
+        onColorChange: (next: string) => void;
     };
 }
 
-export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps, profileProps }: ComputerWindowContentProps) {
+export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps, customizeProps }: ComputerWindowContentProps) {
     if (app === "shop") {
         return <Shop {...shopProps} />;
     }
@@ -62,16 +66,8 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps,
         );
     }
 
-    if (app === "profile" && profileProps) {
-        return (
-            <DisplayNamePanel
-                currentDisplayName={profileProps.currentDisplayName}
-                usernameFallback={profileProps.usernameFallback}
-                isSaving={profileProps.isSaving}
-                error={profileProps.error}
-                onSave={profileProps.onSave}
-            />
-        );
+    if (app === "customize" && customizeProps) {
+        return <CustomizePanel displayNameProps={customizeProps.displayNameProps} color={customizeProps.color} onColorChange={customizeProps.onColorChange} />;
     }
 
     return <AboutPanel />;

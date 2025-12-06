@@ -122,9 +122,8 @@ export const getReferralStats = query({
     },
 });
 
-// Generate a short, readable referral code
 function generateReferralCode(): string {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars like 0/O, 1/I
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
     for (let i = 0; i < 8; i++) {
         code += chars[Math.floor(Math.random() * chars.length)];
@@ -155,6 +154,43 @@ const MAX_GUEST_ITEMS = 100;
 function clampGuestCoins(value: unknown): number {
     if (typeof value !== "number" || Number.isNaN(value)) return GUEST_STARTING_COINS;
     return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
+}
+
+function randomBrightColor(): string {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 70 + Math.floor(Math.random() * 30);
+    const lightness = 55 + Math.floor(Math.random() * 15);
+    return hslToHex(hue, saturation, lightness);
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+    const sat = s / 100;
+    const light = l / 100;
+    const c = (1 - Math.abs(2 * light - 1)) * sat;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = light - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (h >= 0 && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+        r = x; g = 0; b = c;
+    } else {
+        r = c; g = 0; b = x;
+    }
+
+    const toHex = (value: number) => {
+        const hex = Math.round((value + m) * 255).toString(16).padStart(2, "0");
+        return hex;
+    };
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 async function ensureStarterComputer(
@@ -325,6 +361,7 @@ export const ensureUser = mutation({
         guestInventory: v.optional(v.array(v.string())),
         guestRoomItems: v.optional(v.array(guestRoomItemValidator)),
         guestShortcuts: v.optional(v.array(guestShortcutValidator)),
+        guestCursorColor: v.optional(v.string()),
         guestSession: v.optional(
             v.object({
                 coins: v.optional(v.number()),
@@ -332,6 +369,7 @@ export const ensureUser = mutation({
                 roomItems: v.optional(v.array(guestRoomItemValidator)),
                 shortcuts: v.optional(v.array(guestShortcutValidator)),
                 onboardingCompleted: v.optional(v.boolean()),
+                cursorColor: v.optional(v.string()),
             })
         ),
     },
@@ -355,12 +393,22 @@ export const ensureUser = mutation({
         const rawGuestRoomItems = (guestSession?.roomItems ?? args.guestRoomItems) as GuestRoomItem[] | undefined;
         const rawGuestShortcuts = (guestSession?.shortcuts ?? args.guestShortcuts) as GuestShortcut[] | undefined;
 
+        const guestCursorColor =
+            typeof guestSession?.cursorColor === "string"
+                ? guestSession.cursorColor
+                : typeof args.guestCursorColor === "string"
+                    ? args.guestCursorColor
+                    : undefined;
         const guestSessionState: GuestSessionState = {
             coins: reportedGuestCoins,
             inventoryIds: rawGuestInventory,
             roomItems: rawGuestRoomItems ?? [],
             shortcuts: rawGuestShortcuts ?? [],
             onboardingCompleted: Boolean(guestSession?.onboardingCompleted),
+            cursorColor:
+                typeof guestSession?.cursorColor === "string" && guestSession.cursorColor.trim().length > 0
+                    ? guestSession.cursorColor
+                    : guestCursorColor ?? randomBrightColor(),
         };
 
         const guestInventory = guestSessionState.inventoryIds;
@@ -393,14 +441,17 @@ export const ensureUser = mutation({
             const newReferralCode = await generateUniqueReferralCode(ctx);
 
             const computedCurrency = reportedGuestCoins;
+            const cursorColor = guestCursorColor ?? randomBrightColor();
 
             const id = await ctx.db.insert("users", {
                 externalId: identity.subject,
                 username: derivedUsername,
                 displayName: derivedDisplayName,
                 currency: computedCurrency,
+                cursorColor,
                 computer: {
                     shortcuts: normalizedGuestShortcuts,
+                    cursorColor,
                 },
                 onboardingCompleted: guestSessionState.onboardingCompleted === true,
                 referralCode: newReferralCode,
@@ -451,9 +502,22 @@ export const ensureUser = mutation({
             if (!user.displayName) {
                 updates.displayName = derivedDisplayName;
             }
+            if (!user.cursorColor && guestCursorColor) {
+                updates.cursorColor = guestCursorColor;
+            }
             if (Object.keys(updates).length > 0) {
                 await ctx.db.patch(user._id, updates);
                 user = { ...user, ...updates };
+            }
+
+            if (guestCursorColor) {
+                const normalized = normalizeShortcutsWithGrid(guestShortcuts ?? []);
+                await ctx.db.patch(user._id, {
+                    computer: {
+                        shortcuts: normalized,
+                        cursorColor: guestCursorColor,
+                    },
+                });
             }
 
             await ensureStarterComputer(ctx, user._id, catalogItemsCache ?? undefined);
@@ -619,13 +683,15 @@ export const getMyComputer = query({
                 typeof shortcut.col !== "number"
         );
 
+        const cursorColor = user.cursorColor ?? randomBrightColor();
+
         if (needsNormalization) {
             const normalized = normalizeShortcutsWithGrid(existingShortcuts);
-            return { shortcuts: normalized };
+            return { shortcuts: normalized, cursorColor };
         }
 
         if (existingShortcuts.length > 0) {
-            return { shortcuts: existingShortcuts };
+            return { shortcuts: existingShortcuts, cursorColor };
         }
 
         // Migrate from the active room shortcuts if present
@@ -641,7 +707,7 @@ export const getMyComputer = query({
                 ? normalizeShortcutsWithGrid(activeRoom.shortcuts)
                 : [];
 
-        const computerState = { shortcuts: migrated };
+        const computerState = { shortcuts: migrated, cursorColor };
 
         return computerState;
     },
@@ -658,6 +724,7 @@ export const saveMyComputer = mutation({
                 col: v.number(),
             })
         ),
+        cursorColor: v.optional(v.string()),
     },
     handler: async (ctx, args) => {
         const { user } = await requireUser(ctx);
@@ -665,9 +732,10 @@ export const saveMyComputer = mutation({
         const normalized = normalizeShortcutsWithGrid(args.shortcuts);
 
         await ctx.db.patch(user._id, {
-            computer: { shortcuts: normalized },
+            computer: { shortcuts: normalized, cursorColor: args.cursorColor ?? user.cursorColor },
+            cursorColor: args.cursorColor ?? user.cursorColor,
         });
 
-        return { success: true };
+        return { success: true, cursorColor: args.cursorColor ?? user.cursorColor };
     },
 });

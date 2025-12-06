@@ -26,6 +26,7 @@ const startFallback: GuestSessionState = {
     roomItems: [],
     shortcuts: [],
     onboardingCompleted: false,
+    cursorColor: "#f59e0b",
 };
 
 const baseSessionAtom = atom<GuestSessionState>(startFallback);
@@ -91,6 +92,16 @@ export const guestShortcutsAtom = atom(
     }
 );
 
+export const guestCursorColorAtom = atom(
+    (get) => get(baseSessionAtom).cursorColor,
+    (get, set, next: string | ((prev: string) => string)) => {
+        const current = get(baseSessionAtom);
+        const value = typeof next === "function" ? (next as (p: string) => string)(current.cursorColor) : next;
+        const persisted = saveGuestSession({ cursorColor: value });
+        set(baseSessionAtom, { ...current, cursorColor: persisted.cursorColor });
+    }
+);
+
 export const guestNormalizedShortcutsAtom = atom((get) =>
     normalizeGuestShortcuts(get(baseSessionAtom).shortcuts)
 );
@@ -123,6 +134,7 @@ export const guestSessionSnapshotAtom = atom((get): GuestSessionState => {
         roomItems: session.roomItems,
         shortcuts: session.shortcuts,
         onboardingCompleted: session.onboardingCompleted,
+        cursorColor: session.cursorColor,
     };
 });
 
@@ -147,4 +159,6 @@ export const useGuestInventory = () => useAtomValue(guestInventoryAtom);
 export const useGuestRoomItems = () => useAtomValue(guestRoomItemsAtom);
 export const useGuestShortcutsNormalized = () => useAtomValue(guestNormalizedShortcutsAtom);
 export const useSetGuestShortcuts = () => useSetAtom(guestShortcutsAtom);
+export const useGuestCursorColor = () => useAtomValue(guestCursorColorAtom);
+export const useSetGuestCursorColor = () => useSetAtom(guestCursorColorAtom);
 

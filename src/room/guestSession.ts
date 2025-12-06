@@ -6,6 +6,7 @@ import {
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
     STARTER_COMPUTER_NAME,
+    GUEST_CURSOR_COLOR_STORAGE_KEY,
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
@@ -13,12 +14,50 @@ import {
 
 export const GUEST_STARTER_ITEM_NAME = STARTER_COMPUTER_NAME;
 
+function randomBrightColor(): string {
+    const hue = Math.floor(Math.random() * 360);
+    const saturation = 70 + Math.floor(Math.random() * 30);
+    const lightness = 55 + Math.floor(Math.random() * 15);
+    return hslToHex(hue, saturation, lightness);
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+    const sat = s / 100;
+    const light = l / 100;
+    const c = (1 - Math.abs(2 * light - 1)) * sat;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = light - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (h >= 0 && h < 60) {
+        r = c; g = x; b = 0;
+    } else if (h >= 60 && h < 120) {
+        r = x; g = c; b = 0;
+    } else if (h >= 120 && h < 180) {
+        r = 0; g = c; b = x;
+    } else if (h >= 180 && h < 240) {
+        r = 0; g = x; b = c;
+    } else if (h >= 240 && h < 300) {
+        r = x; g = 0; b = c;
+    } else {
+        r = c; g = 0; b = x;
+    }
+
+    const toHex = (value: number) => {
+        const hex = Math.round((value + m) * 255).toString(16).padStart(2, "0");
+        return hex;
+    };
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 const defaultState: GuestSessionState = {
     coins: GUEST_STARTING_COINS,
     inventoryIds: [GUEST_STARTER_ITEM_NAME],
     roomItems: [],
     shortcuts: [],
     onboardingCompleted: false,
+    cursorColor: randomBrightColor(),
 };
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
@@ -149,11 +188,20 @@ export function readGuestSession(): GuestSessionState {
     const onboardingRaw = safeRead(GUEST_ONBOARDING_STORAGE_KEY);
     const roomRaw = safeRead(GUEST_ROOM_STORAGE_KEY);
     const shortcutsRaw = safeRead(GUEST_SHORTCUTS_STORAGE_KEY);
+    const cursorColorRaw = safeRead(GUEST_CURSOR_COLOR_STORAGE_KEY);
 
     const parsedRoom = parseJson<{ items?: GuestRoomItem[] }>(roomRaw, { items: [] });
     const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
 
     const parsedInventory = parseJson<string[]>(inventoryRaw, []);
+    const parsedCursorColor =
+        typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0
+            ? cursorColorRaw
+            : randomBrightColor();
+
+    if (!cursorColorRaw) {
+        safeWrite(GUEST_CURSOR_COLOR_STORAGE_KEY, parsedCursorColor);
+    }
 
     return {
         coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
@@ -161,6 +209,7 @@ export function readGuestSession(): GuestSessionState {
         roomItems: sanitizeRoomItems(parsedRoom.items ?? []),
         shortcuts: sanitizeShortcuts(parsedShortcuts),
         onboardingCompleted: onboardingRaw === "true",
+        cursorColor: parsedCursorColor,
     };
 }
 
@@ -180,6 +229,11 @@ export function saveGuestCoins(nextCoins: number): number {
 
 export function saveGuestShortcuts(shortcuts: GuestShortcut[]) {
     safeWrite(GUEST_SHORTCUTS_STORAGE_KEY, JSON.stringify(shortcuts));
+}
+
+export function saveGuestCursorColor(color: string) {
+    if (typeof color !== "string" || color.trim().length === 0) return;
+    safeWrite(GUEST_CURSOR_COLOR_STORAGE_KEY, color);
 }
 
 export function saveGuestOnboarding(completed: boolean) {
@@ -213,6 +267,7 @@ export function clearGuestSession() {
         GUEST_INVENTORY_STORAGE_KEY,
         GUEST_SHORTCUTS_STORAGE_KEY,
         GUEST_ONBOARDING_STORAGE_KEY,
+        GUEST_CURSOR_COLOR_STORAGE_KEY,
     ].forEach((key) => safeRemove(key));
 }
 
@@ -229,12 +284,17 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
         roomItems: partial.roomItems ? sanitizeRoomItems(partial.roomItems) : current.roomItems,
         shortcuts: partial.shortcuts ? sanitizeShortcuts(partial.shortcuts) : current.shortcuts,
         onboardingCompleted: partial.onboardingCompleted ?? current.onboardingCompleted,
+        cursorColor:
+            typeof partial.cursorColor === "string" && partial.cursorColor.trim().length > 0
+                ? partial.cursorColor
+                : current.cursorColor,
     };
 
     saveGuestCoins(next.coins);
     saveGuestInventory(next.inventoryIds);
     saveGuestRoomItems(next.roomItems);
     saveGuestShortcuts(next.shortcuts);
+    saveGuestCursorColor(next.cursorColor);
     if (next.onboardingCompleted) {
         saveGuestOnboarding(true);
     }

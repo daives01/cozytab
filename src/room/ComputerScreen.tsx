@@ -61,6 +61,8 @@ interface ComputerScreenProps {
     displayName?: string;
     username?: string;
     onDisplayNameUpdated?: (next: string) => void;
+    cursorColor?: string;
+    onCursorColorChange?: (next: string) => void;
 }
 
 export function ComputerScreen({
@@ -84,6 +86,8 @@ export function ComputerScreen({
     displayName,
     username,
     onDisplayNameUpdated,
+    cursorColor,
+    onCursorColorChange,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
@@ -330,7 +334,7 @@ export function ComputerScreen({
             rooms: "My Rooms",
             invite: "Invite Friends",
             about: "About Cozytab",
-            profile: "Update Display Name",
+            customize: "Customize",
         };
 
         const newWindow: ComputerWindow = {
@@ -833,17 +837,23 @@ export function ComputerScreen({
                                                 onCopyReferral: handleCopyReferral,
                                                 isGuest,
                                             }}
-                                        profileProps={
-                                            win.app === "profile"
-                                                ? {
-                                                    currentDisplayName: currentDisplayName ?? username ?? "You",
-                                                    usernameFallback: username,
-                                                    isSaving: isSavingDisplayName,
-                                                    error: displayNameError,
-                                                    onSave: handleSaveDisplayName,
-                                                }
-                                                : undefined
-                                        }
+                                            customizeProps={
+                                                win.app === "customize"
+                                                    ? {
+                                                        displayNameProps: isGuest
+                                                            ? undefined
+                                                            : {
+                                                                currentDisplayName: currentDisplayName ?? username ?? "You",
+                                                                usernameFallback: username,
+                                                                isSaving: isSavingDisplayName,
+                                                                error: displayNameError,
+                                                                onSave: handleSaveDisplayName,
+                                                            },
+                                                        color: cursorColor ?? "#f59e0b",
+                                                        onColorChange: onCursorColorChange ?? (() => {}),
+                                                    }
+                                                    : undefined
+                                            }
                                         />
                                     </WindowFrame>
                                 ))}
@@ -855,14 +865,13 @@ export function ComputerScreen({
                             isStartMenuOpen={isStartMenuOpen}
                             isOnboardingShopStep={isOnboardingShopStep}
                             isDevEnv={isDevEnv}
-                            canEditDisplayName={!isGuest}
                             onToggleStartMenu={toggleStartMenu}
                             onCloseStartMenu={closeStartMenu}
                             onOpenShop={() => openWindow("shop")}
                             onOpenRooms={() => openWindow("rooms")}
                             onOpenInvite={() => openWindow("invite")}
                             onOpenAbout={() => openWindow("about")}
-                            onOpenProfile={() => openWindow("profile")}
+                            onOpenCustomize={() => openWindow("customize")}
                             onLogout={() => {
                                 closeStartMenu();
                                 signOut();

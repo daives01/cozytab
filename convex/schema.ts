@@ -7,6 +7,7 @@ export default defineSchema({
         username: v.string(),
         displayName: v.optional(v.string()),
         currency: v.number(),
+        cursorColor: v.optional(v.string()),
         computer: v.optional(
             v.object({
                 shortcuts: v.array(
@@ -18,31 +19,32 @@ export default defineSchema({
                         col: v.number(),
                     })
                 ),
+                cursorColor: v.optional(v.string()),
             })
         ),
-        lastDailyReward: v.optional(v.number()), // timestamp of last reward
-        onboardingCompleted: v.optional(v.boolean()), // whether user has completed the tutorial
-        referralCode: v.string(), // unique code for sharing
-        referredBy: v.optional(v.id("users")), // who referred this user
-        admin: v.optional(v.boolean()), // admin access, defaults to false
+        lastDailyReward: v.optional(v.number()),
+        onboardingCompleted: v.optional(v.boolean()),
+        referralCode: v.string(),
+        referredBy: v.optional(v.id("users")),
+        admin: v.optional(v.boolean()),
     })
         .index("by_externalId", ["externalId"])
         .index("by_referralCode", ["referralCode"])
         .index("by_referredBy", ["referredBy"]),
 
     roomTemplates: defineTable({
-        name: v.string(),                    // "Cozy Cabin", "Beach House"
-        description: v.optional(v.string()), // Optional description
-        basePrice: v.number(),               // 0 for default, currency for others
-        backgroundUrl: v.string(),           // Background image (storage:id or URL)
-        isDefault: v.boolean(),              // True for the free starter room
+        name: v.string(),
+        description: v.optional(v.string()),
+        basePrice: v.number(),
+        backgroundUrl: v.string(),
+        isDefault: v.boolean(),
     }).index("by_default", ["isDefault"]),
 
     rooms: defineTable({
         userId: v.id("users"),
-        templateId: v.id("roomTemplates"),   // Which template this room uses
+        templateId: v.id("roomTemplates"),
         name: v.string(),
-        isActive: v.boolean(),               // Which room is currently displayed
+        isActive: v.boolean(),
         items: v.array(
             v.object({
                 id: v.string(),
@@ -84,8 +86,8 @@ export default defineSchema({
     inventory: defineTable({
         userId: v.id("users"),
         catalogItemId: v.id("catalogItems"),
-        purchasedAt: v.number(), // timestamp
-        hidden: v.optional(v.boolean()), // allow users to hide items in the drawer
+        purchasedAt: v.number(),
+        hidden: v.optional(v.boolean()),
     })
         .index("by_user", ["userId"])
         .index("by_user_and_item", ["userId", "catalogItemId"]),

@@ -1,1 +1,1 @@
-export type ComputerWindowApp = "shop" | "rooms" | "invite" | "about" | "profile";
+export type ComputerWindowApp = "shop" | "rooms" | "invite" | "about" | "customize";

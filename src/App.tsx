@@ -47,36 +47,32 @@ function HomeRoute() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return;
-    if (user === undefined) return;
-    if (user !== null) return;
+    if (user === undefined || user !== null) return;
 
     const username = clerkUser?.username ?? "User";
-    const referralCode = getReferralCode();
-    const session = guestSession;
+    const referralCode = getReferralCode() ?? undefined;
 
-    const run = async () => {
-      try {
-        await ensureUser({
-          username,
-          referralCode: referralCode ?? undefined,
-          guestSession: {
-            coins: session.coins,
-            inventoryIds: session.inventoryIds,
-            roomItems: session.roomItems,
-            shortcuts: session.shortcuts,
-            onboardingCompleted: session.onboardingCompleted,
-          },
-        });
+    void ensureUser({
+      username,
+      referralCode,
+      guestSession: {
+        coins: guestSession.coins,
+        inventoryIds: guestSession.inventoryIds,
+        roomItems: guestSession.roomItems,
+        shortcuts: guestSession.shortcuts,
+        onboardingCompleted: guestSession.onboardingCompleted,
+        cursorColor: guestSession.cursorColor,
+      },
+    })
+      .then(() => {
         if (referralCode) {
           clearReferralCode();
         }
         clearGuestSession();
-      } catch (error) {
+      })
+      .catch((error) => {
         console.error("Failed to ensure user", error);
-      }
-    };
-
-    void run();
+      });
   }, [clerkUser, ensureUser, guestSession, isLoaded, isSignedIn, user]);
 
   const isGuestView = !isSignedIn || !user;

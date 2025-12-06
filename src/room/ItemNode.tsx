@@ -103,10 +103,10 @@ export function ItemNode({
 
     const cursor =
         mode === "edit"
-            ? "url('/cursor-drag.svg') 15 14, move"
+            ? "var(--cozy-cursor-drag)"
             : isInteractable
-                ? "url('/cursor-click.svg') 6 3, pointer"
-                : "url('/cursor.svg') 6 3, auto";
+                ? "var(--cozy-cursor-click)"
+                : "var(--cozy-cursor-default)";
 
     return (
         <div

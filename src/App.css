@@ -78,6 +78,10 @@
 
 :root {
   --radius: 0.5rem;
+  --cozy-cursor-default: url("/cursor.svg") 6 3, auto;
+  --cozy-cursor-click: url("/cursor-click.svg") 6 3, pointer;
+  --cozy-cursor-drag: url("/cursor-drag.svg") 6 3, grab;
+  --cozy-cursor-text: url("/cursor-text.svg") 6 3, text;
   /* Paper palette from ShareModal */
   --paper: #f8f4ec;
   --paper-header: #fff7e6;
@@ -227,63 +231,96 @@
 }
 
 .cozy-cursor {
-  cursor: url("/cursor.svg") 6 3, auto;
+  cursor: var(--cozy-cursor-default);
 }
 
 html.cozy-cursor-root,
 body.cozy-cursor-root {
-  cursor: url("/cursor.svg") 6 3, auto;
+  cursor: var(--cozy-cursor-default);
 }
 
 html.cozy-cursor-click,
 body.cozy-cursor-click {
-  cursor: url("/cursor-click.svg") 6 3, pointer;
+  cursor: var(--cozy-cursor-click);
 }
 
 html.cozy-cursor-drag,
 body.cozy-cursor-drag {
-  cursor: url("/cursor-drag.svg") 15 14, grab;
+  cursor: var(--cozy-cursor-drag);
 }
 
 /* Ensure custom cursor persists on common cursor utility classes */
 html.cozy-cursor-root .cursor-pointer,
 body.cozy-cursor-root .cursor-pointer {
-  cursor: url("/cursor-click.svg") 6 3, pointer;
+  cursor: var(--cozy-cursor-click);
 }
 
 html.cozy-cursor-root .cursor-grab,
 body.cozy-cursor-root .cursor-grab,
 html.cozy-cursor-drag .cursor-grab,
 body.cozy-cursor-drag .cursor-grab {
-  cursor: url("/cursor-drag.svg") 15 14, grab;
+  cursor: var(--cozy-cursor-drag);
 }
 
 html.cozy-cursor-root .cursor-grabbing,
 body.cozy-cursor-root .cursor-grabbing,
 html.cozy-cursor-drag .cursor-grabbing,
 body.cozy-cursor-drag .cursor-grabbing {
-  cursor: url("/cursor-drag.svg") 15 14, grabbing;
+  cursor: var(--cozy-cursor-drag);
+}
+
+html.cozy-cursor-root input[type="text"],
+body.cozy-cursor-root input[type="text"],
+html.cozy-cursor-root input[type="search"],
+body.cozy-cursor-root input[type="search"],
+html.cozy-cursor-root input[type="email"],
+body.cozy-cursor-root input[type="email"],
+html.cozy-cursor-root input[type="url"],
+body.cozy-cursor-root input[type="url"],
+html.cozy-cursor-root input[type="password"],
+body.cozy-cursor-root input[type="password"],
+html.cozy-cursor-root input[type="number"],
+body.cozy-cursor-root input[type="number"],
+html.cozy-cursor-root input[type="tel"],
+body.cozy-cursor-root input[type="tel"],
+html.cozy-cursor-root textarea,
+body.cozy-cursor-root textarea,
+html.cozy-cursor-root [contenteditable="true"],
+body.cozy-cursor-root [contenteditable="true"],
+html.cozy-cursor-root input:not([type]),
+body.cozy-cursor-root input:not([type]) {
+  cursor: var(--cozy-cursor-text);
+}
+
+/* Text cursor for labels and helper text around inputs */
+html.cozy-cursor-root label,
+body.cozy-cursor-root label,
+html.cozy-cursor-root .input-hint,
+body.cozy-cursor-root .input-hint,
+html.cozy-cursor-root .input-helper,
+body.cozy-cursor-root .input-helper {
+  cursor: var(--cozy-cursor-text);
 }
 
 html.cozy-cursor-root .cursor-move,
 body.cozy-cursor-root .cursor-move {
-  cursor: url("/cursor-drag.svg") 15 14, move;
+  cursor: var(--cozy-cursor-drag);
 }
 
 html.cozy-cursor-root .cursor-se-resize,
 body.cozy-cursor-root .cursor-se-resize {
-  cursor: url("/cursor-drag.svg") 15 14, se-resize;
+  cursor: var(--cozy-cursor-drag);
 }
 
 /* Draggable items default to the drag cursor */
 html.cozy-cursor-root [draggable],
 body.cozy-cursor-root [draggable] {
-  cursor: url("/cursor-drag.svg") 15 14, grab;
+  cursor: var(--cozy-cursor-drag);
 }
 
 html.cozy-cursor-drag [draggable],
 body.cozy-cursor-drag [draggable] {
-  cursor: url("/cursor-drag.svg") 15 14, grabbing;
+  cursor: var(--cozy-cursor-drag);
 }
 
 /* Common interactive elements */
@@ -299,5 +336,5 @@ html.cozy-cursor-root a,
 body.cozy-cursor-root a,
 html.cozy-cursor-root [role="button"],
 body.cozy-cursor-root [role="button"] {
-  cursor: url("/cursor-click.svg") 6 3, pointer;
+  cursor: var(--cozy-cursor-click);
 }
