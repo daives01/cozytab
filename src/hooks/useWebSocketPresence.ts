@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
 
 type PresenceMessage =
     | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
     | { type: "leave"; visitorId: string }
+    | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
     | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -17,10 +18,30 @@ export type VisitorState = {
     cursorColor?: string;
 };
 
-const WS_URL = import.meta.env.VITE_PRESENCE_WS_URL || "ws://localhost:8787";
-
+const DEFAULT_WS_URL = "ws://localhost:8787";
 const THROTTLE_MS = 50;
 const DEFAULT_POSITION = { x: 960, y: 540 };
+const INITIAL_RETRY_DELAY_MS = 500;
+const MAX_RETRY_DELAY_MS = 5000;
+
+function resolveWsBaseUrl() {
+    const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
+    if (envUrl) {
+        return envUrl.replace(/^http(s?):/i, (_match: string, ssl?: string) => (ssl ? "wss:" : "ws:"));
+    }
+
+    if (typeof window !== "undefined") {
+        const { protocol, hostname, port } = window.location;
+        const isLocalhost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(hostname);
+        const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
+        const inferredPort =
+            isLocalhost && (!port || port === "5173" || port === "4173") ? "8787" : port;
+        const portPart = inferredPort ? `:${inferredPort}` : "";
+        return `${wsProtocol}//${hostname}${portPart}`;
+    }
+
+    return DEFAULT_WS_URL;
+}
 
 const getInitialCursor = () => {
     if (typeof window === "undefined") {
@@ -28,6 +49,12 @@ const getInitialCursor = () => {
     }
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 };
+
+function clearTimeoutRef(ref: MutableRefObject<ReturnType<typeof setTimeout> | null>) {
+    if (!ref.current) return;
+    clearTimeout(ref.current);
+    ref.current = null;
+}
 
 export function useWebSocketPresence(
     roomId: string | null,
@@ -37,6 +64,9 @@ export function useWebSocketPresence(
     cursorColor?: string
 ) {
     const wsRef = useRef<WebSocket | null>(null);
+    const latestDisplayNameRef = useRef(displayName);
+    const latestCursorColorRef = useRef<string | undefined>(cursorColor);
+    const previousDisplayNameRef = useRef(displayName);
     const [visitors, setVisitors] = useState<VisitorState[]>([]);
     const [screenCursor, setScreenCursor] = useState(getInitialCursor);
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
@@ -44,6 +74,7 @@ export function useWebSocketPresence(
     const lastSendTimeRef = useRef<number>(0);
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const sendMessage = useCallback((msg: PresenceMessage) => {
         const ws = wsRef.current;
@@ -58,7 +89,7 @@ export function useWebSocketPresence(
         try {
             data = JSON.parse(event.data) as PresenceMessage;
         } catch (error) {
-            console.error("Error parsing WebSocket message:", error);
+            console.error("[Presence] Error parsing message", error);
             return;
         }
 
@@ -101,6 +132,19 @@ export function useWebSocketPresence(
                     )
                 );
                 break;
+            case "rename":
+                setVisitors((prev) =>
+                    prev.map((v) =>
+                        v.visitorId === data.visitorId
+                            ? {
+                                ...v,
+                                displayName: data.displayName,
+                                cursorColor: data.cursorColor ?? v.cursorColor,
+                            }
+                            : v
+                    )
+                );
+                break;
             case "chat":
                 setVisitors((prev) =>
                     prev.map((v) =>
@@ -114,45 +158,86 @@ export function useWebSocketPresence(
     }, []);
 
     useEffect(() => {
-        if (!roomId || !visitorId) return;
+        latestCursorColorRef.current = cursorColor;
+    }, [cursorColor]);
 
-        const ws = new WebSocket(`${WS_URL}/ws/${roomId}`);
-        wsRef.current = ws;
+    useEffect(() => {
+        latestDisplayNameRef.current = displayName;
+    }, [displayName]);
 
-        ws.onopen = () => {
+    useEffect(() => {
+        if (displayName === previousDisplayNameRef.current) return;
+        previousDisplayNameRef.current = displayName;
+
+        const ws = wsRef.current;
+        if (ws?.readyState === WebSocket.OPEN) {
             sendMessage({
-                type: "join",
+                type: "rename",
                 visitorId,
                 displayName,
-                isOwner,
-                cursorColor,
+                cursorColor: latestCursorColorRef.current,
             });
+        }
+    }, [displayName, sendMessage, visitorId]);
+
+    useEffect(() => {
+        if (!roomId || !visitorId) return;
+
+        let cancelled = false;
+        let retryDelay = INITIAL_RETRY_DELAY_MS;
+        const baseUrl = resolveWsBaseUrl().replace(/\/$/, "");
+
+        const connect = () => {
+            if (cancelled) return;
+
+            const ws = new WebSocket(`${baseUrl}/ws/${roomId}`);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                retryDelay = INITIAL_RETRY_DELAY_MS;
+                sendMessage({
+                    type: "join",
+                    visitorId,
+                    displayName: latestDisplayNameRef.current,
+                    isOwner,
+                    cursorColor: latestCursorColorRef.current,
+                });
+            };
+
+            ws.onmessage = handleIncomingMessage;
+
+            ws.onerror = (error) => {
+                console.error("[Presence] WebSocket error:", error);
+                ws.close();
+            };
+
+            ws.onclose = () => {
+                wsRef.current = null;
+                setVisitors([]);
+
+                if (cancelled) return;
+
+                reconnectTimeoutRef.current = setTimeout(connect, retryDelay);
+
+                retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
+            };
         };
 
-        ws.onmessage = handleIncomingMessage;
-
-        ws.onerror = (error) => {
-            console.error("[Presence] WebSocket error:", error);
-        };
-
-        ws.onclose = () => {
-            wsRef.current = null;
-            setVisitors([]);
-        };
+        connect();
 
         return () => {
-            if (throttleTimeoutRef.current) {
-                clearTimeout(throttleTimeoutRef.current);
-            }
+            cancelled = true;
+            clearTimeoutRef(throttleTimeoutRef);
+            clearTimeoutRef(reconnectTimeoutRef);
 
-            if (ws.readyState === WebSocket.OPEN) {
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
                 sendMessage({ type: "leave", visitorId });
+                wsRef.current.close();
             }
-            ws.close();
             wsRef.current = null;
             setVisitors([]);
         };
-    }, [cursorColor, displayName, handleIncomingMessage, isOwner, roomId, sendMessage, visitorId]);
+    }, [handleIncomingMessage, isOwner, roomId, sendMessage, visitorId]);
 
     // Send cursor position with throttling
     const sendCursor = useCallback((x: number, y: number, color?: string) => {
@@ -161,12 +246,10 @@ export function useWebSocketPresence(
         const timeSinceLastSend = now - lastSendTimeRef.current;
 
         if (timeSinceLastSend >= THROTTLE_MS) {
-            // Send immediately
             lastSendTimeRef.current = now;
             sendMessage({ type: "cursor", visitorId, x, y, cursorColor: color });
             pendingCursorRef.current = null;
         } else {
-            // Queue for later
             pendingCursorRef.current = { x, y };
 
             if (!throttleTimeoutRef.current) {
@@ -192,9 +275,9 @@ export function useWebSocketPresence(
     const updateCursor = useCallback(
         (roomX: number, roomY: number, screenX: number, screenY: number) => {
             setScreenCursor({ x: screenX, y: screenY });
-            sendCursor(roomX, roomY, cursorColor);
+            sendCursor(roomX, roomY, latestCursorColorRef.current);
         },
-        [cursorColor, sendCursor]
+        [sendCursor]
     );
 
     // Update chat message

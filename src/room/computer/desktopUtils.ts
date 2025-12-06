@@ -13,7 +13,7 @@ export const WINDOW_DEFAULTS: Record<ComputerWindowApp, { width: number; height:
     rooms: { width: 480, height: 440 },
     invite: { width: 420, height: 340 },
     about: { width: 520, height: 360 },
-    customize: { width: 520, height: 420 },
+    customize: { width: 600, height: 460 },
 };
 
 export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {

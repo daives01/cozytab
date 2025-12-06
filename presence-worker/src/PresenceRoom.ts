@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 export type PresenceMessage =
     | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
     | { type: "leave"; visitorId: string }
+    | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
     | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -72,6 +73,9 @@ export class PresenceRoom extends DurableObject {
             case "cursor":
                 this.handleCursor(data, ws);
                 break;
+            case "rename":
+                this.handleRename(data, ws);
+                break;
             case "chat":
                 this.handleChat(data, ws);
                 break;
@@ -121,8 +125,26 @@ export class PresenceRoom extends DurableObject {
         this.broadcast(ws, data);
     }
 
+    private ensureVisitorFromAttachment(ws: WebSocket, visitorId: string): VisitorState | null {
+        const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+        if (!attachment || attachment.visitorId !== visitorId) return null;
+
+        const visitor: VisitorState = {
+            visitorId: attachment.visitorId,
+            displayName: attachment.displayName,
+            isOwner: attachment.isOwner,
+            x: DEFAULT_POSITION.x,
+            y: DEFAULT_POSITION.y,
+            chatMessage: null,
+            cursorColor: undefined,
+        };
+        this.visitors.set(visitorId, visitor);
+        return visitor;
+    }
+
     private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket) {
-        const visitor = this.visitors.get(data.visitorId);
+        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
+
         if (visitor) {
             visitor.x = data.x;
             visitor.y = data.y;
@@ -130,14 +152,30 @@ export class PresenceRoom extends DurableObject {
                 visitor.cursorColor = data.cursorColor;
             }
         }
+
         this.broadcast(ws, data);
     }
 
     private handleChat(data: Extract<PresenceMessage, { type: "chat" }>, ws: WebSocket) {
-        const visitor = this.visitors.get(data.visitorId);
+        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
+
         if (visitor) {
             visitor.chatMessage = data.text;
         }
+
+        this.broadcast(ws, data);
+    }
+
+    private handleRename(data: Extract<PresenceMessage, { type: "rename" }>, ws: WebSocket) {
+        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
+
+        if (visitor) {
+            visitor.displayName = data.displayName;
+            if (data.cursorColor) {
+                visitor.cursorColor = data.cursorColor;
+            }
+        }
+
         this.broadcast(ws, data);
     }
 

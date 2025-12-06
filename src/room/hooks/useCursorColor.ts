@@ -9,6 +9,7 @@ const cursorSources: Record<CursorKind, { path: string; hotspot: string }> = {
     text: { path: "/cursor-text.svg", hotspot: "6 3, text" },
 };
 
+const cursorKinds = Object.keys(cursorSources) as CursorKind[];
 const templateCache: Partial<Record<CursorKind, string>> = {};
 let fetchPromise: Promise<void> | null = null;
 
@@ -18,13 +19,15 @@ async function ensureTemplates() {
     fetchPromise = (async () => {
         try {
             await Promise.all(
-                (Object.keys(cursorSources) as CursorKind[]).map(async (kind) => {
+                cursorKinds.map(async (kind) => {
                     if (templateCache[kind]) return;
                     const res = await fetch(cursorSources[kind].path);
-                    const text = await res.text();
-                    templateCache[kind] = text;
+                    if (!res.ok) return;
+                    templateCache[kind] = await res.text();
                 })
             );
+        } catch (error) {
+            console.error("[cursor] Failed to load cursor templates", error);
         } finally {
             fetchPromise = null;
         }
@@ -34,8 +37,16 @@ async function ensureTemplates() {
 }
 
 function toDataUri(template: string, color: string, hotspot: string) {
-    const colored = template.replace(/currentColor/g, color);
+    const colored = template.replace(/currentColor/gi, color);
     return `url("data:image/svg+xml;utf8,${encodeURIComponent(colored)}") ${hotspot}`;
+}
+
+function refreshCursorImmediately() {
+    const root = document.documentElement;
+    const body = document.body;
+    const value = "var(--cozy-cursor-default, auto)";
+    root.style.cursor = value;
+    body.style.cursor = value;
 }
 
 function setCursorVariables(color: string) {
@@ -47,13 +58,15 @@ function setCursorVariables(color: string) {
         text: `url("/cursor-text.svg") ${cursorSources.text.hotspot}`,
     };
 
-    (Object.keys(cursorSources) as CursorKind[]).forEach((kind) => {
+    cursorKinds.forEach((kind) => {
         const template = templateCache[kind];
         const value = template
             ? toDataUri(template, color, cursorSources[kind].hotspot)
             : fallback[kind];
         root.style.setProperty(`--cozy-cursor-${kind}`, value);
     });
+
+    refreshCursorImmediately();
 }
 
 export function useCursorColor(color?: string) {
@@ -62,9 +75,10 @@ export function useCursorColor(color?: string) {
 
         let mounted = true;
 
-        ensureTemplates().finally(() => {
-            if (!mounted) return;
-            setCursorVariables(color);
+        ensureTemplates().then(() => {
+            if (mounted) {
+                setCursorVariables(color);
+            }
         });
 
         return () => {

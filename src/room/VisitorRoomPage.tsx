@@ -15,8 +15,10 @@ import { RoomCanvas } from "./RoomCanvas";
 import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
+import { useCursorColor } from "./hooks/useCursorColor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
+import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
 
 const nowTimestamp = () => Date.now();
@@ -32,14 +34,18 @@ export function VisitorRoomPage() {
     const [visitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
     const [visitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
 
+    const [visitorCursorColor] = useState(() => randomBrightColor());
+
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
         roomData?.room?._id ?? null,
         visitorId,
         visitorName,
-        false
+        false,
+        visitorCursorColor
     );
     const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
     useCozyCursor(true);
+    useCursorColor(visitorCursorColor);
 
     useEffect(() => {
         const ownerReferralCode = roomData?.ownerReferralCode;
@@ -148,6 +154,7 @@ export function VisitorRoomPage() {
                         y={visitor.y}
                         chatMessage={visitor.chatMessage}
                         scale={scale}
+                        cursorColor={visitor.cursorColor}
                     />
                 ))}
         </>
@@ -190,6 +197,7 @@ export function VisitorRoomPage() {
                 x={screenCursor.x}
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
+                cursorColor={visitorCursorColor}
             />
         </>
     );

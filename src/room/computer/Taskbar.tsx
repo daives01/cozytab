@@ -1,3 +1,4 @@
+import type { MouseEvent, ReactNode } from "react";
 import {
     Clock3,
     Home,
@@ -5,6 +6,7 @@ import {
     Monitor,
     ShoppingBag,
     User,
+    UserCircle,
     UserPlus,
     X,
 } from "lucide-react";
@@ -25,6 +27,49 @@ interface TaskbarProps {
     onShutdown: () => void;
     onResetStorage: () => void;
     onDeleteAccount: () => void;
+}
+
+function TaskbarTooltip({ label }: { label: string }) {
+    return (
+        <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-gradient-to-b from-stone-50 to-stone-200 text-stone-800 text-[11px] font-medium px-2.5 py-1 shadow-[0_4px_12px_rgba(0,0,0,0.14)] border border-stone-300 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 group-active:opacity-0 transition-opacity duration-75">
+            {label}
+        </span>
+    );
+}
+
+interface TaskbarIconButtonProps {
+    label: string;
+    onClick: () => void;
+    children: ReactNode;
+    className?: string;
+    dataOnboarding?: string;
+    ariaLabel?: string;
+}
+
+function TaskbarIconButton({
+    label,
+    onClick,
+    children,
+    className,
+    dataOnboarding,
+    ariaLabel,
+}: TaskbarIconButtonProps) {
+    return (
+        <div className="relative group h-full">
+            <button
+                data-onboarding={dataOnboarding}
+                onClick={(e: MouseEvent<HTMLButtonElement>) => {
+                    e.stopPropagation();
+                    onClick();
+                }}
+                aria-label={ariaLabel ?? label}
+                className={`flex items-center justify-center h-full aspect-square bg-white/80 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all ${className ?? ""}`}
+            >
+                {children}
+            </button>
+            <TaskbarTooltip label={label} />
+        </div>
+    );
 }
 
 export function Taskbar({
@@ -59,62 +104,66 @@ export function Taskbar({
                 </button>
 
                 <div className="flex items-center gap-2 h-8">
-                    <button
-                        data-onboarding="shop-icon"
-                        onClick={(e) => {
-                            e.stopPropagation();
+                    <TaskbarIconButton
+                        dataOnboarding="shop-icon"
+                        label="Shop"
+                        ariaLabel="Shop"
+                        onClick={() => {
                             onCloseStartMenu();
                             onOpenShop();
                         }}
-                        title="Shop"
-                        aria-label="Shop"
-                        className={`flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all ${
+                        className={
                             isOnboardingShopStep
                                 ? "ring-2 ring-amber-300 ring-offset-1 ring-offset-stone-200 animate-pulse"
                                 : ""
-                        }`}
+                        }
                     >
                         <ShoppingBag className="h-5 w-5 text-amber-600" />
-                    </button>
+                    </TaskbarIconButton>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
+                    <TaskbarIconButton
+                        label="Rooms"
+                        ariaLabel="Rooms"
+                        onClick={() => {
                             onCloseStartMenu();
                             onOpenRooms();
                         }}
-                        title="Rooms"
-                        aria-label="Rooms"
-                        className="flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all"
                     >
                         <Home className="h-5 w-5 text-emerald-600" />
-                    </button>
+                    </TaskbarIconButton>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
+                    <TaskbarIconButton
+                        label="Invite"
+                        ariaLabel="Invite"
+                        onClick={() => {
                             onCloseStartMenu();
                             onOpenInvite();
                         }}
-                        title="Invite"
-                        aria-label="Invite"
-                        className="flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all"
                     >
                         <UserPlus className="h-5 w-5 text-pink-600" />
-                    </button>
+                    </TaskbarIconButton>
 
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
+                    <TaskbarIconButton
+                        label="Customize"
+                        ariaLabel="Customize"
+                        onClick={() => {
+                            onCloseStartMenu();
+                            onOpenCustomize();
+                        }}
+                    >
+                        <UserCircle className="h-5 w-5 text-amber-700" />
+                    </TaskbarIconButton>
+
+                    <TaskbarIconButton
+                        label="About"
+                        ariaLabel="About"
+                        onClick={() => {
                             onCloseStartMenu();
                             onOpenAbout();
                         }}
-                        title="About"
-                        aria-label="About"
-                        className="flex items-center justify-center h-full aspect-square bg-white/70 hover:bg-white px-2 rounded border border-stone-300 shadow-sm active:translate-y-[1px] transition-all"
                     >
                         <Info className="h-5 w-5 text-indigo-600" />
-                    </button>
+                    </TaskbarIconButton>
                 </div>
 
                 <div className="flex-1" />
@@ -131,15 +180,6 @@ export function Taskbar({
                     onClick={(e) => e.stopPropagation()}
                 >
                     <div className="flex flex-col divide-y divide-stone-200">
-                        <button
-                            className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
-                            onClick={() => {
-                                onCloseStartMenu();
-                                onOpenCustomize();
-                            }}
-                        >
-                            Customize
-                        </button>
                         <button
                             className="text-left px-3 py-2 hover:bg-stone-100 text-sm text-stone-800"
                             onClick={onLogout}
