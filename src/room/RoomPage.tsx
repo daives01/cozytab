@@ -74,6 +74,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const updateMusicState = useMutation(api.rooms.updateMusicState);
+    const renewLease = useMutation(api.rooms.renewLease);
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
@@ -405,6 +406,31 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             }
         }
     }, [room, createRoom, isGuest, mode, localItems.length, setLocalItems]);
+
+    useEffect(() => {
+        if (isGuest) return;
+        if (!room) return;
+
+        let cancelled = false;
+
+        const sendHeartbeat = () => {
+            renewLease({ roomId: room._id }).catch((err) => {
+                console.error("[Room] renewLease failed", err);
+            });
+        };
+
+        sendHeartbeat();
+
+        const intervalId = setInterval(() => {
+            if (cancelled) return;
+            sendHeartbeat();
+        }, 60_000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
+    }, [isGuest, renewLease, room]);
 
     useEffect(() => {
         if (isGuest) return;

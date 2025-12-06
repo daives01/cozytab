@@ -3,7 +3,8 @@ import { api } from "../../convex/_generated/api";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Copy, Check, Link2, Trash2, Users, Share2 } from "lucide-react";
+import { X, Copy, Check, Share2, RefreshCw, Globe, Power } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ShareModalProps {
     onClose: () => void;
@@ -14,21 +15,33 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
     const activeInvites = useQuery(api.invites.getMyActiveInvites);
     const createInvite = useMutation(api.invites.createInvite);
     const revokeInvite = useMutation(api.invites.revokeInvite);
+    const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
 
     const [copied, setCopied] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
+    const [isRotating, setIsRotating] = useState(false);
+    const [recentToggle, setRecentToggle] = useState<"on" | "off" | null>(null);
 
     const activeInvite = activeInvites?.[0];
-    const shareUrl = activeInvite
-        ? `${window.location.origin}/visit/${activeInvite.token}`
-        : null;
+    const inviteCode = activeInvite?.code ?? activeInvite?.token ?? null;
+    const shareUrl = inviteCode ? `${window.location.origin}/visit/${inviteCode}` : null;
+    const isSharing = Boolean(shareUrl);
 
-    const handleCreateLink = async () => {
-        setIsCreating(true);
+    const markRecentToggle = (state: "on" | "off") => {
+        setRecentToggle(state);
+        setTimeout(() => setRecentToggle(null), 300);
+    };
+
+    const handleResetCode = async () => {
+        setIsRotating(true);
         try {
-            await createInvite();
+            if (activeInvite) {
+                await rotateInviteCode();
+            } else {
+                await createInvite();
+            }
+            setCopied(false);
         } finally {
-            setIsCreating(false);
+            setIsRotating(false);
         }
     };
 
@@ -39,22 +52,31 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const handleRevokeLink = async () => {
-        if (!activeInvite) return;
-        await revokeInvite({ inviteId: activeInvite._id });
+    const handleToggleAccess = async () => {
+        if (activeInvite) {
+            await revokeInvite({ inviteId: activeInvite._id });
+            setCopied(false);
+            markRecentToggle("off");
+            return;
+        }
+        await createInvite();
+        markRecentToggle("on");
     };
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-stone-900/25 backdrop-blur-sm px-4"
             onClick={onClose}
         >
             <div
-                className="w-full max-w-lg"
+                className="w-full max-w-xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="rounded-2xl border-2 border-neutral-900 bg-[#f8f4ec] shadow-[6px_6px_0px_0px_rgba(31,41,55,0.35)] overflow-hidden">
-                    <div className="flex items-center justify-between bg-[#fff7e6] px-6 py-4 border-b-2 border-neutral-900">
+                <div className="relative overflow-hidden rounded-3xl border-2 border-neutral-900 bg-[#f8f4ec] shadow-[8px_8px_0px_0px_rgba(31,41,55,0.35)]">
+                    <div className="absolute -top-16 -right-12 h-40 w-40 rounded-full bg-orange-100/40 blur-3xl" />
+                    <div className="absolute -bottom-10 -left-16 h-32 w-32 rounded-full bg-amber-100/50 blur-3xl" />
+
+                    <div className="relative flex items-center justify-between bg-[#fff7e6] px-6 py-4 border-b-2 border-neutral-900">
                         <div className="flex items-center gap-3">
                             <span className="rounded-full bg-white p-2 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.4)]">
                                 <Share2 className="h-5 w-5 text-neutral-800" />
@@ -76,115 +98,99 @@ export function ShareModal({ onClose, visitorCount }: ShareModalProps) {
                         </button>
                     </div>
 
-                    <div className="p-6 space-y-5">
-                        <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-neutral-800">
-                            <div className="flex items-center gap-2 rounded-xl border-2 border-neutral-900 bg-emerald-100 px-3 py-2 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
-                                <Users className="h-4 w-4 text-emerald-700" />
-                                <span>
-                                    {visitorCount > 0
-                                        ? `${visitorCount} ${visitorCount === 1 ? "visitor" : "visitors"} hanging out`
-                                        : "No visitors yet"}
-                                </span>
-                            </div>
-                        </div>
-
-                        {shareUrl ? (
-                            <div className="space-y-4">
-                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-4 py-3 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.3)]">
-                                    <div className="flex items-start gap-3">
-                                        <div className="mt-1 rounded-lg bg-amber-200 px-2 py-1 text-xs font-semibold uppercase text-neutral-900 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.3)]">
-                                            Ready
-                                        </div>
-                                        <div className="flex-1 space-y-3">
-                                            <p className="text-neutral-700 font-medium">
-                                                Share this link with friends:
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    value={shareUrl}
-                                                    readOnly
-                                                    className="bg-neutral-50 font-mono text-sm border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)]"
-                                                />
-                                                <Button
-                                                    onClick={handleCopyLink}
-                                                    className={`shrink-0 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)] ${
-                                                        copied
-                                                            ? "bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
-                                                            : "bg-neutral-900 hover:bg-neutral-800 text-white"
-                                                    }`}
-                                                >
-                                                    {copied ? (
-                                                        <>
-                                                            <Check className="h-4 w-4 mr-1" />
-                                                            Copied!
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Copy className="h-4 w-4 mr-1" />
-                                                            Copy
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                            <p className="text-xs text-neutral-600">
-                                                Visitors with this link can explore in view-only mode. If they create an account after visiting, you&apos;ll earn a referral cozy coin automatically. You can revoke it anytime.
-                                            </p>
-                                        </div>
-                                    </div>
+                    <div className="relative p-6">
+                        {!isSharing ? (
+                            <div
+                                className={cn(
+                                    "flex flex-col items-center justify-center gap-5 rounded-2xl border-2 border-neutral-900 bg-white px-6 py-10 text-center shadow-[6px_6px_0px_0px_rgba(31,41,55,0.3)]",
+                                    recentToggle === "off" && "animate-in fade-in slide-in-from-bottom-2 duration-300"
+                                )}
+                            >
+                                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border-2 border-neutral-900 bg-neutral-50 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)] text-neutral-500">
+                                    <Globe className="h-8 w-8" />
                                 </div>
-
-                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-4 py-3 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]">
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-neutral-700">
-                                        <div>
-                                            <p className="font-semibold text-neutral-900">Copy</p>
-                                            <p>Send it to friends.</p>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-neutral-900">Visit</p>
-                                            <p>They join instantly.</p>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-neutral-900">Revoke</p>
-                                            <p>End access anytime.</p>
-                                        </div>
-                                    </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-lg font-semibold text-neutral-900">Your room is private</h3>
+                                    <p className="text-sm text-neutral-700 max-w-sm">
+                                        Turn on sharing to get a unique link for friends to visit. You can switch it off anytime.
+                                    </p>
                                 </div>
-
                                 <Button
-                                    variant="outline"
-                                    onClick={handleRevokeLink}
-                                    className="w-full border-2 border-neutral-900 text-red-600 hover:bg-red-50 hover:text-red-700 shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]"
+                                    onClick={handleToggleAccess}
+                                    className="w-full rounded-xl border-2 border-neutral-900 bg-neutral-900 py-3 text-white shadow-[4px_4px_0px_0px_rgba(31,41,55,0.25)] transition active:translate-y-[1px]"
                                 >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Revoke link & disconnect visitors
+                                    Enable sharing
                                 </Button>
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="rounded-xl border-2 border-neutral-900 bg-white px-6 py-7 text-center shadow-[3px_3px_0px_0px_rgba(31,41,55,0.25)]">
-                                    <Link2 className="h-10 w-10 text-neutral-400 mx-auto mb-3" />
-                                    <p className="text-neutral-700 font-medium mb-1">
-                                        Generate an invite for your room
-                                    </p>
-                                    <p className="text-sm text-neutral-600">
-                                        Friends get a read-only peek. If they sign up, you get a cozy coin for the referral.
-                                    </p>
+                            <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-neutral-900 bg-white px-5 py-4 shadow-[4px_4px_0px_0px_rgba(31,41,55,0.3)]">
+                                    <div className="flex items-center gap-3">
+                                        <span className="inline-flex items-center gap-2 rounded-full border-2 border-neutral-900 bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.2)]">
+                                            <Globe className="h-4 w-4" />
+                                            Sharing on
+                                        </span>
+                                        <p className="text-sm font-semibold text-neutral-900">
+                                            Visitors can view with this link.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleToggleAccess}
+                                        className="inline-flex items-center gap-2 rounded-full border-2 border-neutral-900 bg-white px-3 py-2 text-xs font-semibold text-red-500 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.2)] transition hover:bg-red-50"
+                                    >
+                                        <Power className="h-4 w-4" />
+                                        Disable sharing
+                                    </button>
                                 </div>
 
-                                <Button
-                                    onClick={handleCreateLink}
-                                    disabled={isCreating}
-                                    className="w-full bg-neutral-900 hover:bg-neutral-800 text-white text-lg py-4 border-2 border-neutral-900 shadow-[4px_4px_0px_0px_rgba(31,41,55,0.35)]"
-                                >
-                                    {isCreating ? (
-                                        "Creating..."
-                                    ) : (
-                                        <>
-                                            <Link2 className="h-5 w-5 mr-2" />
-                                            Generate share link
-                                        </>
-                                    )}
-                                </Button>
+                                <div className="relative rounded-2xl border-2 border-neutral-900 bg-white p-4 shadow-[4px_4px_0px_0px_rgba(31,41,55,0.3)] space-y-3">
+                                    <span className="absolute -top-3 left-4 bg-[#f8f4ec] px-2 py-0.5 text-xs font-semibold text-neutral-900 rounded-lg border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.15)]">
+                                        Public link
+                                    </span>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Input
+                                            value={shareUrl ?? ""}
+                                            readOnly
+                                            tabIndex={-1}
+                                            aria-readonly
+                                            className="bg-neutral-50 font-mono text-sm border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)] flex-1 min-w-0"
+                                        />
+                                        <Button
+                                            onClick={handleCopyLink}
+                                            className={cn(
+                                                "shrink-0 border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.25)] px-4",
+                                                copied
+                                                    ? "bg-emerald-500 hover:bg-emerald-600 text-neutral-900"
+                                                    : "bg-neutral-900 hover:bg-neutral-800 text-white"
+                                            )}
+                                        >
+                                            {copied ? (
+                                                <>
+                                                    <Check className="h-4 w-4 mr-1" />
+                                                    Copied!
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Copy className="h-4 w-4 mr-1" />
+                                                    Copy link
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-neutral-600">
+                                        <button
+                                            onClick={handleResetCode}
+                                            disabled={isRotating}
+                                            className="inline-flex items-center gap-2 font-semibold text-neutral-700 hover:text-neutral-900 transition disabled:opacity-60"
+                                        >
+                                            <RefreshCw className={cn("h-4 w-4 stroke-[2.5]", isRotating && "animate-spin")} />
+                                            Generate new link
+                                        </button>
+                                        <div className="inline-flex items-center gap-1 rounded-full border-2 border-neutral-900 bg-neutral-50 px-2 py-1 font-semibold text-neutral-800 shadow-[2px_2px_0px_0px_rgba(31,41,55,0.15)]">
+                                            {visitorCount} current visitors
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

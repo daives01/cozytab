@@ -35,7 +35,8 @@ export function CursorDisplay({
     const pointerColor = cursorColor ?? (isOwner ? "#6366f1" : "#10b981");
     const chatBubbleBg = cursorColor ? "" : isOwner ? "bg-indigo-100 border-indigo-300" : "bg-emerald-100 border-emerald-300";
     const chatTextColor = cursorColor ? "" : isOwner ? "text-indigo-900" : "text-emerald-900";
-    const chatOffsetX = isLocal ? "ml-6" : "ml-4";
+    // Keep name badge + chat bubble aligned and nudged away from the cursor
+    const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
 
     return (
         <div
@@ -92,41 +93,43 @@ export function CursorDisplay({
                 </svg>
             )}
 
-            {showNameBadge && name && (
-                <div
-                    className="w-min text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md ml-5 -mt-1"
-                    style={{ fontFamily: "'Patrick Hand', cursive", backgroundColor: pointerColor }}
-                >
-                    {name}
-                    {isOwner && " ★"}
-                </div>
-            )}
-
-            {
-                chatMessage !== null && chatMessage !== undefined && (
+            <div className={`${textStackOffsetClasses} flex flex-col gap-1 items-start`}>
+                {showNameBadge && name && (
                     <div
-                        className={`${chatBubbleBg} ${chatTextColor} ${chatOffsetX} text-sm px-4 py-2 rounded-2xl border shadow-lg mt-1 max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]`}
-                        style={{
-                            fontFamily: "'Patrick Hand', cursive",
-                            backgroundColor: cursorColor ?? undefined,
-                            borderColor: cursorColor ?? undefined,
-                            color: cursorColor ? "#0f172a" : undefined,
-                            opacity: chatOpacity,
-                            transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
-                        }}
+                        className="w-min text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md"
+                        style={{ fontFamily: "'Patrick Hand', cursive", backgroundColor: pointerColor }}
                     >
-                        {chatMessage === "" ? (
-                            <div className="flex items-center justify-center h-full">
-                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce mx-0.5" style={{ animationDelay: "150ms" }} />
-                                <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                            </div>
-                        ) : (
-                            chatMessage
-                        )}
+                        {name}
+                        {isOwner && " ★"}
                     </div>
-                )
-            }
+                )}
+
+                {
+                    chatMessage !== null && chatMessage !== undefined && (
+                        <div
+                            className={`${chatBubbleBg} ${chatTextColor} text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]`}
+                            style={{
+                                fontFamily: "'Patrick Hand', cursive",
+                                backgroundColor: cursorColor ?? undefined,
+                                borderColor: cursorColor ?? undefined,
+                                color: cursorColor ? "#0f172a" : undefined,
+                                opacity: chatOpacity,
+                                transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
+                            }}
+                        >
+                            {chatMessage === "" ? (
+                                <div className="flex items-center justify-center h-full">
+                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce mx-0.5" style={{ animationDelay: "150ms" }} />
+                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                                </div>
+                            ) : (
+                                chatMessage
+                            )}
+                        </div>
+                    )
+                }
+            </div>
         </div >
     );
 }

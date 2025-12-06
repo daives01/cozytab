@@ -1,6 +1,4 @@
-
+[ ] make it 1 coin per day based on mountain time, not every 24 hours
+[ ] allow guests/visitors to open computers only to customize colors/name
 [ ] make onboarding add to homepage more specific
-[ ] balance coins/item cost
 [ ] add light tests
-[x] rename basic computer to cozy computer
-[x] rename coin to cozy coin

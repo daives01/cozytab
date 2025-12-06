@@ -1,6 +1,9 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+
+const LEASE_TTL_MS = 5 * 60 * 1000;
 
 const roomShortcutValidator = v.object({
     id: v.string(),
@@ -17,6 +20,13 @@ async function getUser(ctx: QueryCtx | MutationCtx) {
     return await ctx.db
         .query("users")
         .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
+        .unique();
+}
+
+async function getRoomLease(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
+    return await ctx.db
+        .query("roomLeases")
+        .withIndex("by_room", (q) => q.eq("roomId", roomId))
         .unique();
 }
 
@@ -314,6 +324,10 @@ export const getRoomByInvite = query({
         const room = await ctx.db.get(invite.roomId);
         if (!room) return null;
 
+        const lease = await getRoomLease(ctx, room._id);
+        const now = Date.now();
+        const isLeaseActive = lease ? lease.expiresAt > now : false;
+
         const owner = await ctx.db.get(room.userId);
         const template = await ctx.db.get(room.templateId);
 
@@ -322,6 +336,83 @@ export const getRoomByInvite = query({
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
             ownerId: owner?._id,
             ownerReferralCode: owner?.referralCode ?? null,
+            closed: !isLeaseActive,
         };
+    },
+});
+
+export const renewLease = mutation({
+    args: {
+        roomId: v.id("rooms"),
+    },
+    handler: async (ctx, args) => {
+        const user = await getUser(ctx);
+        if (!user) throw new Error("Not authenticated");
+
+        const room = await ctx.db.get(args.roomId);
+        if (!room) throw new Error("Room not found");
+        if (room.userId !== user._id) throw new Error("Forbidden");
+        if (!room.isActive) throw new Error("Room is inactive");
+
+        const now = Date.now();
+        const expiresAt = now + LEASE_TTL_MS;
+
+        const existingLease = await getRoomLease(ctx, args.roomId);
+
+        if (existingLease) {
+            await ctx.db.patch(existingLease._id, {
+                lastSeen: now,
+                expiresAt,
+            });
+        } else {
+            await ctx.db.insert("roomLeases", {
+                roomId: args.roomId,
+                hostId: user._id,
+                lastSeen: now,
+                expiresAt,
+            });
+        }
+
+        return { expiresAt };
+    },
+});
+
+export const getRoomStatus = query({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, args) => {
+        const room = await ctx.db.get(args.roomId);
+        if (!room) return { status: "missing" as const, closesAt: null, hostId: null as Id<"users"> | null };
+        if (!room.isActive) {
+            return { status: "inactive" as const, closesAt: null, hostId: room.userId };
+        }
+
+        const lease = await getRoomLease(ctx, args.roomId);
+        const now = Date.now();
+        const isLeaseActive = lease ? lease.expiresAt > now : false;
+
+        return {
+            status: isLeaseActive ? ("open" as const) : ("stale" as const),
+            closesAt: lease?.expiresAt ?? null,
+            hostId: room.userId,
+        };
+    },
+});
+
+export const cleanupRoomLease = mutation({
+    args: { roomId: v.id("rooms") },
+    handler: async (ctx, args) => {
+        const room = await ctx.db.get(args.roomId);
+        if (!room) return { cleaned: false, reason: "missing-room" as const };
+
+        const lease = await getRoomLease(ctx, args.roomId);
+        if (!lease) return { cleaned: false, reason: "no-lease" as const };
+
+        const now = Date.now();
+        if (lease.expiresAt > now) {
+            return { cleaned: false, reason: "lease-active" as const };
+        }
+
+        await ctx.db.delete(lease._id);
+        return { cleaned: true, reason: "expired" as const };
     },
 });

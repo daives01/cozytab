@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { RoomItem } from "../types";
 import { ItemNode } from "./ItemNode";
@@ -26,7 +26,13 @@ const nowTimestamp = () => Date.now();
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
     const roomData = useQuery(api.rooms.getRoomByInvite, token ? { token } : "skip");
+    const roomStatus = useQuery(
+        api.rooms.getRoomStatus,
+        roomData?.room?._id ? { roomId: roomData.room._id } : "skip"
+    );
     const updateMusicState = useMutation(api.rooms.updateMusicState);
+    const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
+    const navigate = useNavigate();
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -35,9 +41,14 @@ export function VisitorRoomPage() {
     const [visitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
 
     const [visitorCursorColor] = useState(() => randomBrightColor());
+    const [roomClosed, setRoomClosed] = useState(false);
+    const presenceRoomId =
+        roomStatus?.status === "open" && !roomData?.closed && !roomClosed
+            ? roomData?.room?._id ?? null
+            : null;
 
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
-        roomData?.room?._id ?? null,
+        presenceRoomId,
         visitorId,
         visitorName,
         false,
@@ -57,8 +68,54 @@ export function VisitorRoomPage() {
         }
     }, [roomData?.ownerReferralCode]);
 
+    useEffect(() => {
+        if (roomData?.closed) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setRoomClosed(true);
+        }
+    }, [roomData?.closed]);
+
+    useEffect(() => {
+        if (!roomData?.room?._id) return;
+        if (!roomStatus) return;
+        if (roomStatus.status === "open") return;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setRoomClosed(true);
+        cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
+        const timer = setTimeout(() => navigate("/"), 1500);
+        return () => clearTimeout(timer);
+    }, [cleanupRoomLease, navigate, roomData?.room?._id, roomStatus]);
+
+    useEffect(() => {
+        if (!roomData?.room?._id) return;
+        if (roomClosed) return;
+        if (roomStatus?.status !== "open") return;
+
+        const closesAt = roomStatus.closesAt;
+        if (!closesAt) return;
+
+        const delay = closesAt - Date.now();
+        if (delay <= 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setRoomClosed(true);
+            cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
+            navigate("/");
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setRoomClosed(true);
+            cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
+            navigate("/");
+        }, delay);
+
+        return () => clearTimeout(timer);
+    }, [cleanupRoomLease, navigate, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
+
     const handleMusicToggle = (itemId: string, playing: boolean) => {
         if (!roomData?.room?._id) return;
+        if (roomClosed || roomStatus?.status !== "open") return;
         updateMusicState({
             roomId: roomData.room._id,
             itemId,
@@ -103,6 +160,20 @@ export function VisitorRoomPage() {
         return (
             <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
                 <p>This invite link is invalid or has expired</p>
+                <Link to="/">
+                    <Button>
+                        <Home className="mr-2 h-4 w-4" />
+                        Go Home
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
+    if (roomClosed) {
+        return (
+            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
+                <p>The host stepped away. Redirecting...</p>
                 <Link to="/">
                     <Button>
                         <Home className="mr-2 h-4 w-4" />

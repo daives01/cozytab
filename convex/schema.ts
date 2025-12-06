@@ -75,6 +75,15 @@ export default defineSchema({
         .index("by_user", ["userId"])
         .index("by_user_active", ["userId", "isActive"]),
 
+    roomLeases: defineTable({
+        roomId: v.id("rooms"),
+        hostId: v.id("users"),
+        lastSeen: v.number(),
+        expiresAt: v.number(),
+    })
+        .index("by_room", ["roomId"])
+        .index("by_host", ["hostId"]),
+
     catalogItems: defineTable({
         name: v.string(),
         category: v.string(),
@@ -95,11 +104,13 @@ export default defineSchema({
     roomInvites: defineTable({
         roomId: v.id("rooms"),
         token: v.string(),
+        code: v.string(),
         createdAt: v.number(),
         expiresAt: v.optional(v.number()),
         isActive: v.boolean(),
         createdBy: v.id("users"),
     })
         .index("by_token", ["token"])
-        .index("by_room", ["roomId"]),
+        .index("by_room", ["roomId"])
+        .index("by_code", ["code"]),
 });
