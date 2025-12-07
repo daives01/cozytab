@@ -26,7 +26,7 @@ const startFallback: GuestSessionState = {
     roomItems: [],
     shortcuts: [],
     onboardingCompleted: false,
-    cursorColor: "#f59e0b",
+    cursorColor: "var(--warning)",
 };
 
 const baseSessionAtom = atom<GuestSessionState>(startFallback);

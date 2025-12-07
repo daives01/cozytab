@@ -74,7 +74,7 @@ export function RoomCanvas({
                         backgroundSize: "contain",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? "transparent" : "var(--paper, #f5f2e9)",
+                        backgroundColor: backgroundUrl ? "transparent" : "var(--paper)",
                         zIndex: 0,
                     }}
                     onClick={onBackgroundClick}

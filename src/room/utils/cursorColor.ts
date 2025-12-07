@@ -131,13 +131,29 @@ function relativeLuminance(hex: string): number | null {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+function resolveCssVariable(value: string): string {
+    if (!value.startsWith("var(")) return value;
+
+    const match = value.match(/var\((--[^),\s]+)/);
+    if (!match) return value;
+
+    const cssVarName = match[1];
+    if (typeof window === "undefined" || !document?.documentElement) return value;
+
+    const resolved = getComputedStyle(document.documentElement).getPropertyValue(cssVarName);
+    return resolved?.trim() || value;
+}
+
 export function getReadableTextColor(
     backgroundHex: string,
     lightText = "#ffffff",
-    darkText = "#0f172a",
+    darkText = "#111827",
     threshold = 0.55
 ) {
-    const luminance = relativeLuminance(backgroundHex);
-    if (luminance === null) return darkText;
-    return luminance < threshold ? lightText : darkText;
+    const resolvedBackground = resolveCssVariable(backgroundHex);
+    const resolvedLightText = resolveCssVariable(lightText);
+    const resolvedDarkText = resolveCssVariable(darkText);
+    const luminance = relativeLuminance(resolvedBackground);
+    if (luminance === null) return resolvedDarkText;
+    return luminance < threshold ? resolvedLightText : resolvedDarkText;
 }

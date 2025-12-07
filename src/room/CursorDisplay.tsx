@@ -33,14 +33,10 @@ export function CursorDisplay({
     scale = 1,
     cursorColor,
 }: CursorDisplayProps) {
-    const pointerColor = cursorColor ?? (isOwner ? "#6366f1" : "#10b981");
+    const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
     const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
-    const chatBubbleBg = cursorColor ? "" : isOwner ? "bg-indigo-100 border-indigo-300" : "bg-emerald-100 border-emerald-300";
-    const chatTextColor = cursorColor ? "" : isOwner ? "text-indigo-900" : "text-emerald-900";
-    const chatBubbleClasses =
-        `${chatBubbleBg} ${chatTextColor} text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] ` +
-        "break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
+    const chatBubbleClasses = "text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
 
@@ -68,7 +64,7 @@ export function CursorDisplay({
                     style={{
                         display: "block",
                         color: pointerColor,
-                        filter: "drop-shadow(1px 2px 2px rgba(0,0,0,0.3))",
+                        filter: `drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))`,
                     }}
                 >
                     <path
@@ -120,8 +116,12 @@ export function CursorDisplay({
                             className={chatBubbleClasses}
                             style={{
                                 fontFamily: "'Patrick Hand', cursive",
-                                backgroundColor: cursorColor ?? undefined,
-                                borderColor: cursorColor ?? undefined,
+                                backgroundColor:
+                                    cursorColor ??
+                                    (isOwner
+                                        ? "color-mix(in srgb, var(--chart-4) 15%, var(--primary-foreground))"
+                                        : "color-mix(in srgb, var(--success) 15%, var(--primary-foreground))"),
+                                borderColor: cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)"),
                                 color: chatTextOnCustomColor,
                                 opacity: chatOpacity,
                                 transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,

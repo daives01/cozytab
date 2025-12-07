@@ -225,7 +225,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const cursorColor =
         (isGuest
             ? guestCursorColor
-            : authedCursorColor ?? computerState?.cursorColor ?? user?.cursorColor) ?? "#6366f1";
+            : authedCursorColor ?? computerState?.cursorColor ?? user?.cursorColor) ?? "var(--chart-4)";
     useCursorColor(cursorColor);
 
     const computedDisplayName = useMemo(
@@ -590,8 +590,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
 
     if (isTooNarrow) {
         return (
-            <div className="min-h-screen min-w-screen bg-[var(--paper,#f5f2e9)] text-[var(--ink,#111827)] flex items-center justify-center p-6 font-['Patrick_Hand']">
-                <div className="max-w-md w-full bg-white border-4 border-[var(--ink,#111827)] rounded-2xl shadow-[4px_4px_0px_0px_rgba(31,41,55,0.65)] p-6 rotate-1 text-center space-y-3">
+            <div className="min-h-screen min-w-screen bg-[var(--paper)] text-[var(--ink)] flex items-center justify-center p-6 font-['Patrick_Hand']">
+                <div className="max-w-md w-full bg-[var(--card)] border-4 border-[var(--ink)] rounded-2xl shadow-[var(--shadow-ink-strong)] p-6 rotate-1 text-center space-y-3">
                     <div className="text-2xl">Desktop only (for now)</div>
                     <p className="text-lg leading-relaxed">
                         Cozytab needs a bit more room. Please visit on a desktop or widen your browser to continue.

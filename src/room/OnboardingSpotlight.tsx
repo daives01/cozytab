@@ -159,13 +159,13 @@ export function OnboardingSpotlight({
             {/* Pulse ring around spotlight target */}
             {spotlight && pulseTarget && (
                 <div
-                    className="absolute rounded-xl border-4 border-amber-400 animate-pulse"
+                    className="absolute rounded-xl border-4 border-[var(--warning)] animate-pulse"
                     style={{
                         top: spotlight.top,
                         left: spotlight.left,
                         width: spotlight.width,
                         height: spotlight.height,
-                        boxShadow: "0 0 20px 4px rgba(251, 191, 36, 0.5)",
+                        boxShadow: "var(--glow-amber)",
                         pointerEvents: "none",
                     }}
                 />
@@ -179,7 +179,7 @@ export function OnboardingSpotlight({
                 }}
                 className="animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
-                <div className="relative bg-[#fffef0] border-4 border-[#5c4d3c] rounded-2xl p-5 shadow-[6px_6px_0px_0px_rgba(92,77,60,0.8)] rotate-[-0.5deg]">
+                <div className="relative bg-[var(--spotlight-paper)] border-4 border-[var(--spotlight-ink)] rounded-2xl p-5 shadow-[var(--shadow-spotlight)] rotate-[-0.5deg]">
                     {/* Speech bubble tail */}
                     {spotlight && bubblePosition === "bottom" && (
                         <div
@@ -187,7 +187,7 @@ export function OnboardingSpotlight({
                             style={{
                                 borderLeft: "12px solid transparent",
                                 borderRight: "12px solid transparent",
-                                borderBottom: "16px solid #5c4d3c",
+                                borderBottom: "16px solid var(--spotlight-ink)",
                             }}
                         />
                     )}
@@ -197,13 +197,13 @@ export function OnboardingSpotlight({
                             style={{
                                 borderLeft: "10px solid transparent",
                                 borderRight: "10px solid transparent",
-                                borderBottom: "14px solid #fffef0",
+                                borderBottom: "14px solid var(--spotlight-paper)",
                             }}
                         />
                     )}
 
                     {/* Message content */}
-                    <p className="text-[#5c4d3c] text-lg leading-relaxed mb-3">
+                    <p className="text-[var(--spotlight-ink)] text-lg leading-relaxed mb-3">
                         {message}
                     </p>
 
@@ -212,7 +212,7 @@ export function OnboardingSpotlight({
                         {showNext && onNext && (
                             <button
                                 onClick={onNext}
-                                className="bg-[#5c4d3c] text-[#fffef0] px-4 py-2 rounded-lg font-semibold shadow-[3px_3px_0px_0px_rgba(92,77,60,0.8)] hover:shadow-[2px_2px_0px_0px_rgba(92,77,60,0.8)] transition-all active:translate-x-[2px] active:translate-y-[2px]"
+                                className="bg-[var(--spotlight-ink)] text-[var(--spotlight-paper)] px-4 py-2 rounded-lg font-semibold shadow-[var(--shadow-spotlight-compact)] hover:shadow-[var(--shadow-spotlight)] transition-all active:translate-x-[2px] active:translate-y-[2px]"
                             >
                                 Got it
                             </button>
@@ -220,7 +220,7 @@ export function OnboardingSpotlight({
                         {showSkip && (
                             <button
                                 onClick={onSkip}
-                                className="text-sm text-[#8b7355] hover:text-[#5c4d3c] underline underline-offset-2 transition-colors ml-auto"
+                                className="text-sm text-[var(--spotlight-ink-muted)] hover:text-[var(--spotlight-ink)] underline underline-offset-2 transition-colors ml-auto"
                             >
                                 Skip tutorial
                             </button>

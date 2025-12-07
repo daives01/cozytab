@@ -756,25 +756,41 @@ export function ComputerScreen({
             }}
         >
             <div
-                className="relative bg-stone-200 rounded-3xl p-4 shadow-2xl border-b-8 border-r-8 border-stone-300"
-                style={{ width: "min(1300px, 98vw)", height: "min(92vh, 880px)" }}
+                className="relative rounded-3xl p-4 shadow-2xl border-b-8 border-r-8"
+                style={{
+                    width: "min(1300px, 98vw)",
+                    height: "min(92vh, 880px)",
+                    background: "linear-gradient(180deg, var(--taskbar-to), var(--taskbar-from))",
+                    borderColor: "var(--taskbar-border)",
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-stone-300/80 px-4 py-1 rounded-t-lg">
-                    <span className="text-stone-500 font-bold text-[10px] uppercase tracking-[0.2em]">
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-[color-mix(in_srgb,var(--taskbar-from)_80%,transparent)] px-4 py-1 rounded-t-lg">
+                    <span className="text-[var(--ink-subtle)] font-bold text-[10px] uppercase tracking-[0.2em]">
                         COZYSYS 98
                     </span>
-                    <div className="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)] animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-[var(--success)] shadow-[var(--glow-success)] animate-pulse" />
                 </div>
 
-                <div className="bg-stone-800 rounded-xl p-1 overflow-hidden h-full shadow-inner relative border-2 border-stone-400/50">
-                    <div className="w-full h-full bg-[#006b96] flex flex-col relative overflow-hidden">
+                <div
+                    className="rounded-xl p-1 overflow-hidden h-full shadow-inner relative border-2"
+                    style={{
+                        backgroundColor: "color-mix(in srgb, var(--ink) 85%, black)",
+                        borderColor: "color-mix(in srgb, var(--ink) 40%, transparent)",
+                    }}
+                >
+                    <div className="w-full h-full bg-[var(--retro-screen)] flex flex-col relative overflow-hidden">
                         <WindowHeader onClose={onClose} />
 
                         <div
                             ref={desktopRef}
                             data-onboarding="shortcut-desktop"
-                            className="flex-1 relative bg-[linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[length:120px_120px] overflow-hidden p-4"
+                            className="flex-1 relative overflow-hidden p-4"
+                            style={{
+                                backgroundImage:
+                                    "linear-gradient(90deg, var(--grid-line) 1px, transparent 1px), linear-gradient(var(--grid-line) 1px, transparent 1px)",
+                                backgroundSize: "120px 120px",
+                            }}
                             onClick={handleDesktopClick}
                             onDragOver={(e) => {
                                 e.preventDefault();
@@ -852,7 +868,7 @@ export function ComputerScreen({
                                                                 error: displayNameError,
                                                                 onSave: handleSaveDisplayName,
                                                             },
-                                                        color: cursorColor ?? "#f59e0b",
+                                                        color: cursorColor ?? "var(--warning)",
                                                         onColorChange: onCursorColorChange ?? (() => {}),
                                                         allowColorChange: !isGuest && Boolean(onCursorColorChange),
                                                     }

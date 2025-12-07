@@ -82,7 +82,7 @@
   --cozy-cursor-click: url("/cursor-click.svg") 6 3, pointer;
   --cozy-cursor-drag: url("/cursor-drag.svg") 6 3, grab;
   --cozy-cursor-text: url("/cursor-text.svg") 6 3, text;
-  /* Paper palette from ShareModal */
+  /* Paper palette */
   --paper: #f8f4ec;
   --paper-header: #fff7e6;
   --ink: #111827;
@@ -153,6 +153,26 @@
   --shadow-lg: 6px 6px 0px 0px rgba(31, 41, 55, 0.35);
   --shadow-xl: 6px 6px 0px 0px rgba(31, 41, 55, 0.35);
   --shadow-2xl: 8px 8px 0px 0px rgba(31, 41, 55, 0.4);
+  --shadow-ink-strong: 4px 4px 0px 0px rgba(17, 24, 39, 0.85);
+  --shadow-ink-bold: 8px 8px 0px 0px rgba(17, 24, 39, 0.85);
+  --shadow-ink-soft: 4px 4px 0px 0px rgba(17, 24, 39, 0.2);
+  --shadow-spotlight: 6px 6px 0px 0px rgba(92, 77, 60, 0.8);
+  --shadow-spotlight-compact: 3px 3px 0px 0px rgba(92, 77, 60, 0.8);
+  --glow-amber: 0 0 20px 4px rgba(251, 191, 36, 0.5);
+  --glow-success: 0 0 8px rgba(74, 222, 128, 0.8);
+  --retro-screen: #006b96;
+  --vinyl-primary: #1a1a1a;
+  --vinyl-label: #e07a5f;
+  --grid-line: rgba(255, 255, 255, 0.06);
+  --spotlight-paper: #fffef0;
+  --spotlight-ink: #5c4d3c;
+  --spotlight-ink-muted: #8b7355;
+  --taskbar-from: #d6d3d1;
+  --taskbar-to: #e7e5e4;
+  --taskbar-border: #f5f5f4;
+  --tooltip-from: #fafaf9;
+  --tooltip-to: #e7e5e4;
+  --tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
   --tracking-normal: 0em;
 }
 
@@ -209,6 +229,26 @@
   --shadow-lg: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 4px 6px -1px hsl(28 13% 20% / 0.12);
   --shadow-xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.12), 2px 8px 10px -1px hsl(28 13% 20% / 0.12);
   --shadow-2xl: 2px 3px 5px 0px hsl(28 13% 20% / 0.30);
+  --shadow-ink-strong: 4px 4px 0px 0px hsl(28 13% 20% / 0.6);
+  --shadow-ink-bold: 8px 8px 0px 0px hsl(28 13% 20% / 0.6);
+  --shadow-ink-soft: 4px 4px 0px 0px hsl(28 13% 20% / 0.12);
+  --shadow-spotlight: 6px 6px 0px 0px hsl(28 13% 20% / 0.5);
+  --shadow-spotlight-compact: 3px 3px 0px 0px hsl(28 13% 20% / 0.5);
+  --glow-amber: 0 0 18px 3px color-mix(in srgb, oklch(0.7264 0.0581 66.6967) 70%, transparent);
+  --glow-success: 0 0 8px color-mix(in srgb, oklch(0.7264 0.0581 66.6967) 60%, transparent);
+  --retro-screen: oklch(0.45 0.08 238);
+  --vinyl-primary: oklch(0.2 0.02 256);
+  --vinyl-label: oklch(0.65 0.08 40);
+  --grid-line: color-mix(in srgb, #fff 5%, transparent);
+  --spotlight-paper: color-mix(in srgb, var(--background) 90%, #fff);
+  --spotlight-ink: color-mix(in srgb, var(--foreground) 80%, #2b211b);
+  --spotlight-ink-muted: color-mix(in srgb, var(--foreground) 60%, #4a3a2e);
+  --taskbar-from: color-mix(in srgb, var(--card) 70%, #d6d3d1);
+  --taskbar-to: color-mix(in srgb, var(--card) 80%, #e7e5e4);
+  --taskbar-border: color-mix(in srgb, var(--card) 80%, #f5f5f4);
+  --tooltip-from: color-mix(in srgb, var(--background) 70%, #fafaf9);
+  --tooltip-to: color-mix(in srgb, var(--background) 80%, #e7e5e4);
+  --tooltip-shadow: 0 4px 12px hsl(28 13% 20% / 0.25);
 }
 
 @layer base {

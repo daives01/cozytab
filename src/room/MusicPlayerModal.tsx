@@ -110,21 +110,21 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 ${previewUrl ? "translate-x-16 rotate-12" : "translate-x-0"}
                             `}
                         >
-                            <div className="w-44 h-44 bg-[#1a1a1a] rounded-full shadow-xl border-4 border-[#111] flex items-center justify-center animate-[spin_6s_linear_infinite]">
+                            <div className="w-44 h-44 bg-[var(--vinyl-primary)] rounded-full shadow-xl border-4 border-[var(--ink)] flex items-center justify-center animate-[spin_6s_linear_infinite]">
                                 <div className="absolute inset-1 border border-white/5 rounded-full" />
                                 <div className="absolute inset-3 border border-white/5 rounded-full" />
                                 <div className="absolute inset-6 border border-white/5 rounded-full" />
                                 <div className="absolute inset-10 border border-white/5 rounded-full" />
 
-                                <div className="w-16 h-16 bg-[#e07a5f] rounded-full border-2 border-white/20 flex items-center justify-center">
+                                <div className="w-16 h-16 bg-[var(--vinyl-label)] rounded-full border-2 border-white/20 flex items-center justify-center">
                                     <div className="w-2 h-2 bg-black rounded-full" />
                                 </div>
                             </div>
                         </div>
 
                         <div
-                            className={`relative z-10 w-48 h-48 bg-white border-2 border-[#2c2c2c]/20 shadow-2xl rounded-md overflow-hidden transition-transform duration-500
-                                ${previewUrl ? "-rotate-2" : "rotate-0 bg-[#e5e5e5] flex items-center justify-center"}
+                            className={`relative z-10 w-48 h-48 bg-[var(--card)] border-2 border-[color:color-mix(in_srgb,var(--ink)_20%,transparent)] shadow-2xl rounded-md overflow-hidden transition-transform duration-500
+                                ${previewUrl ? "-rotate-2" : "rotate-0 bg-[var(--muted)] flex items-center justify-center"}
                             `}
                         >
                             {previewUrl && !error ? (

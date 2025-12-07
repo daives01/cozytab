@@ -161,7 +161,7 @@ export function ItemNode({
                             alt="Room Item"
                             className="w-full h-auto object-contain select-none pointer-events-none drop-shadow-md"
                             style={{
-                                filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px #3b82f6)" : "none",
+                                filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px var(--chart-4))" : "none",
                             }}
                         />
                     ) : (

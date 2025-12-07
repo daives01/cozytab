@@ -77,7 +77,7 @@ export function CustomizePanel({
             <div className="h-full overflow-auto">
                 <div className="min-w-[560px] p-6 space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div className="bg-white border border-black/5 rounded-2xl p-4 shadow-md space-y-2 text-[var(--ink,#0f172a)]">
+                        <div className="bg-[var(--card)] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] rounded-2xl p-4 shadow-md space-y-2 text-[var(--ink)]">
                             <h3 className="text-lg font-semibold">Display name</h3>
                             <input
                                 value={hasTyped ? localName : displayNameProps?.currentDisplayName ?? ""}
@@ -88,24 +88,24 @@ export function CustomizePanel({
                                 placeholder={displayNameProps?.usernameFallback ?? "Your name"}
                                 disabled={!displayNameProps}
                                 maxLength={50}
-                                className="w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-base shadow-inner placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-300 focus:border-black/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                                className="w-full rounded-xl border border-[color-mix(in_srgb,var(--ink)_10%,transparent)] bg-[var(--card)] px-3 py-2.5 text-base shadow-inner placeholder:text-[color-mix(in_srgb,var(--ink-subtle)_70%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                             {displayNameProps?.error ? (
-                                <p className="text-xs text-rose-500">{displayNameProps.error}</p>
+                                <p className="text-xs text-[var(--danger-dark)]">{displayNameProps.error}</p>
                             ) : null}
-                            {!displayNameProps ? <p className="text-xs text-slate-600">Sign in to set a display name.</p> : null}
+                            {!displayNameProps ? <p className="text-xs text-[var(--ink-subtle)]">Sign in to set a display name.</p> : null}
                         </div>
 
-                        <div className="bg-white border border-black/5 rounded-2xl p-4 shadow-md space-y-3 text-[var(--ink,#0f172a)]">
+                        <div className="bg-[var(--card)] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] rounded-2xl p-4 shadow-md space-y-3 text-[var(--ink)]">
                             <h3 className="text-lg font-semibold">Cursor color</h3>
                             {!allowColorChange ? (
-                                <p className="text-xs text-slate-600">
+                                <p className="text-xs text-[var(--ink-subtle)]">
                                     Sign in to adjust your cursor color.
                                 </p>
                             ) : null}
 
                             <div className={`space-y-2 ${!allowColorChange ? "opacity-60" : ""}`}>
-                                <p className="text-xs text-slate-600">Hue</p>
+                                <p className="text-xs text-[var(--ink-subtle)]">Hue</p>
                                 <input
                                     aria-label="Hue"
                                     type="range"
@@ -123,7 +123,7 @@ export function CustomizePanel({
                             </div>
 
                             <div className={`space-y-2 ${!allowColorChange ? "opacity-60" : ""}`}>
-                                <p className="text-xs text-slate-600">Brightness</p>
+                                <p className="text-xs text-[var(--ink-subtle)]">Brightness</p>
                                 <input
                                     aria-label="Glow"
                                     type="range"
