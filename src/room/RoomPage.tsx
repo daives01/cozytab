@@ -289,6 +289,34 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         [isGuest, room, setLocalItems, updateMusicState]
     );
 
+    const bringItemToFront = useCallback(
+        (itemId: string) => {
+            setLocalItems((prev: RoomItem[]) => {
+                const index = prev.findIndex((item) => item.id === itemId);
+                if (index === -1 || index === prev.length - 1) return prev;
+                const next = [...prev];
+                const [item] = next.splice(index, 1);
+                next.push(item);
+                return next;
+            });
+        },
+        [setLocalItems]
+    );
+
+    const sendItemToBack = useCallback(
+        (itemId: string) => {
+            setLocalItems((prev: RoomItem[]) => {
+                const index = prev.findIndex((item) => item.id === itemId);
+                if (index <= 0) return prev;
+                const next = [...prev];
+                const [item] = next.splice(index, 1);
+                next.unshift(item);
+                return next;
+            });
+        },
+        [setLocalItems]
+    );
+
     useEffect(() => {
         saveAuthedCursorColorRef.current = debounce((next: string) => {
             saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor: next });
@@ -634,49 +662,58 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
 
     const roomContent = (
         <>
-            {localItems.map((item) => (
-                <ItemNode
-                    key={item.id}
-                    item={item}
-                    isSelected={item.id === selectedId}
-                    mode={mode}
-                    scale={scale}
-                    onSelect={() => {
-                        setSelectedId(item.id);
-                    }}
-                    onChange={(newItem) => {
-                        setLocalItems((prev: RoomItem[]) =>
-                            prev.map((i: RoomItem) => (i.id === newItem.id ? newItem : i))
-                        );
-                    }}
-                    onDragStart={() => setDraggedItemId(item.id)}
-                    onDragEnd={() => setDraggedItemId(null)}
-                    onComputerClick={() => {
-                        if (mode !== "view") return;
-                        if (!computerGuard.allowOpen) return;
-                        setIsComputerOpen(true);
-                        if (onboardingStep === "click-computer") {
-                            advanceOnboarding();
+            {localItems.map((item, index) => {
+                const isAtBack = index === 0;
+                const isAtFront = index === localItems.length - 1;
+
+                return (
+                    <ItemNode
+                        key={item.id}
+                        item={item}
+                        isSelected={item.id === selectedId}
+                        mode={mode}
+                        scale={scale}
+                        onSelect={() => {
+                            setSelectedId(item.id);
+                        }}
+                        onChange={(newItem) => {
+                            setLocalItems((prev: RoomItem[]) =>
+                                prev.map((i: RoomItem) => (i.id === newItem.id ? newItem : i))
+                            );
+                        }}
+                        onDragStart={() => setDraggedItemId(item.id)}
+                        onDragEnd={() => setDraggedItemId(null)}
+                        onComputerClick={() => {
+                            if (mode !== "view") return;
+                            if (!computerGuard.allowOpen) return;
+                            setIsComputerOpen(true);
+                            if (onboardingStep === "click-computer") {
+                                advanceOnboarding();
+                            }
+                        }}
+                        onMusicPlayerClick={() => {
+                            if (mode === "view") {
+                                setMusicPlayerItemId(item.id);
+                            }
+                        }}
+                        onBringToFront={() => bringItemToFront(item.id)}
+                        onSendToBack={() => sendItemToBack(item.id)}
+                        canBringToFront={!isAtFront}
+                        canSendToBack={!isAtBack}
+                        isOnboardingComputerTarget={onboardingStep === "click-computer"}
+                        overlay={
+                            isMusicItem(item) ? (
+                                <MusicPlayerButtons
+                                    key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                    item={item}
+                                    onToggle={(playing) => handleMusicToggle(item.id, playing)}
+                                    autoPlayToken={musicAutoplay?.itemId === item.id ? musicAutoplay.token : null}
+                                />
+                            ) : null
                         }
-                    }}
-                    onMusicPlayerClick={() => {
-                        if (mode === "view") {
-                            setMusicPlayerItemId(item.id);
-                        }
-                    }}
-                    isOnboardingComputerTarget={onboardingStep === "click-computer"}
-                    overlay={
-                        isMusicItem(item) ? (
-                            <MusicPlayerButtons
-                                key={`music-${item.id}-${item.musicUrl ?? "none"}`}
-                                item={item}
-                                onToggle={(playing) => handleMusicToggle(item.id, playing)}
-                                autoPlayToken={musicAutoplay?.itemId === item.id ? musicAutoplay.token : null}
-                            />
-                        ) : null
-                    }
-                />
-            ))}
+                    />
+                );
+            })}
 
             {!isGuest && visitorId && visitors
                 .filter((v) => v.visitorId !== visitorId)

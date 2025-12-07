@@ -5,7 +5,7 @@ import type { RoomItem } from "../types";
 import type { Doc } from "../../convex/_generated/dataModel";
 import type React from "react";
 import { AssetImage } from "../components/AssetImage";
-import { FlipHorizontal2 } from "lucide-react";
+import { ArrowDown, ArrowUp, FlipHorizontal2 } from "lucide-react";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -21,6 +21,10 @@ interface ItemNodeProps {
     isOnboardingComputerTarget?: boolean;
     isVisitor?: boolean;
     overlay?: React.ReactNode;
+    onBringToFront?: () => void;
+    onSendToBack?: () => void;
+    canBringToFront?: boolean;
+    canSendToBack?: boolean;
 }
 
 export function ItemNode({
@@ -37,6 +41,10 @@ export function ItemNode({
     isOnboardingComputerTarget,
     isVisitor = false,
     overlay,
+    onBringToFront,
+    onSendToBack,
+    canBringToFront = true,
+    canSendToBack = true,
 }: ItemNodeProps) {
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
@@ -174,16 +182,46 @@ export function ItemNode({
                 {isSelected && mode === "edit" && (
                     <>
                         <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onChange({ ...item, flipped: !item.flipped });
-                            }}
-                            className="absolute -top-8 left-1/2 -translate-x-1/2 bg-white border-2 border-[var(--ink)] rounded-full p-1.5 shadow-md hover:bg-[var(--muted)] transition-colors pointer-events-auto z-20"
-                            title="Flip horizontally"
-                        >
-                            <FlipHorizontal2 className="w-4 h-4 text-[var(--ink)]" />
-                        </button>
+                        <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-auto z-20">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onBringToFront?.();
+                                }}
+                                disabled={!canBringToFront}
+                                className="bg-white border-2 border-[var(--ink)] rounded-full p-1.5 shadow-md hover:bg-[var(--muted)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Bring to front"
+                                aria-label="Bring to front"
+                            >
+                                <ArrowUp className="w-4 h-4 text-[var(--ink)]" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onChange({ ...item, flipped: !item.flipped });
+                                }}
+                                className="bg-white border-2 border-[var(--ink)] rounded-full p-1.5 shadow-md hover:bg-[var(--muted)] transition-colors"
+                                title="Flip horizontally"
+                                aria-label="Flip horizontally"
+                            >
+                                <FlipHorizontal2 className="w-4 h-4 text-[var(--ink)]" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSendToBack?.();
+                                }}
+                                disabled={!canSendToBack}
+                                className="bg-white border-2 border-[var(--ink)] rounded-full p-1.5 shadow-md hover:bg-[var(--muted)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Send to back"
+                                aria-label="Send to back"
+                            >
+                                <ArrowDown className="w-4 h-4 text-[var(--ink)]" />
+                            </button>
+                        </div>
                     </>
                 )}
 
