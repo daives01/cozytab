@@ -22,6 +22,7 @@ const fallbackCursorValues: CursorValueMap = {
 const templateCache: Partial<Record<CursorKind, string>> = {};
 let fetchPromise: Promise<void> | null = null;
 const DEFAULT_CURSOR_COLOR = "#f59e0b";
+const isBrowser = typeof window !== "undefined";
 
 function resolveColor(color: string | undefined): string {
     if (!color) return DEFAULT_CURSOR_COLOR;
@@ -37,6 +38,7 @@ function resolveColor(color: string | undefined): string {
 void ensureTemplates();
 
 async function ensureTemplates() {
+    if (!isBrowser) return null;
     if (fetchPromise) return fetchPromise;
 
     fetchPromise = (async () => {
@@ -67,9 +69,11 @@ function toDataUri(template: string, color: string, hotspot: string) {
 function refreshCursorImmediately() {
     const root = document.documentElement;
     const body = document.body;
-    const value = "var(--cozy-cursor-default, auto)";
-    root.style.cursor = value;
-    body.style.cursor = value;
+    // Clear inline cursor styles so the updated CSS variables apply without
+    // forcing a temporary fallback cursor (which can cause flicker while
+    // sliding the color picker).
+    root.style.removeProperty("cursor");
+    body.style.removeProperty("cursor");
 }
 
 function buildCursorValues(color: string): CursorValueMap {
@@ -95,7 +99,7 @@ function applyCursorVariables(values: CursorValueMap) {
 }
 
 function readCachedValues(color: string): CursorValueMap | null {
-    if (typeof window === "undefined") return null;
+    if (!isBrowser) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     try {
@@ -108,7 +112,7 @@ function readCachedValues(color: string): CursorValueMap | null {
 }
 
 function writeCachedValues(color: string, values: CursorValueMap) {
-    if (typeof window === "undefined") return;
+    if (!isBrowser) return;
     try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ color, values }));
     } catch {
@@ -118,6 +122,8 @@ function writeCachedValues(color: string, values: CursorValueMap) {
 
 export function useCursorColor(color?: string) {
     useLayoutEffect(() => {
+        if (!isBrowser) return;
+
         const resolvedColor = resolveColor(color);
         if (!resolvedColor) return;
 

@@ -58,6 +58,16 @@ export class PresenceRoom extends DurableObject {
     async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
         if (typeof message !== "string") return;
 
+        // Some clients send keepalive pings as plain text; avoid JSON parse failures.
+        if (message === "ping") {
+            try {
+                ws.send("pong");
+            } catch (e) {
+                console.error("[DO] Error responding to ping:", e);
+            }
+            return;
+        }
+
         let data: PresenceMessage | null = null;
         try {
             data = JSON.parse(message) as PresenceMessage;

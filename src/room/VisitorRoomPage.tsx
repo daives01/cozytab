@@ -35,6 +35,7 @@ import { RoomShell } from "./RoomShell";
 import { ChatHint } from "./components/ChatHint";
 
 const nowTimestamp = () => Date.now();
+const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
@@ -46,7 +47,6 @@ export function VisitorRoomPage() {
     const { user: clerkUser, isSignedIn } = useUser();
     const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
-    const updateMusicState = useMutation(api.rooms.updateMusicState);
     const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
@@ -61,6 +61,45 @@ export function VisitorRoomPage() {
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
+    const items = roomData?.room?.items as RoomItem[] | undefined;
+
+    const [visitorMusicOverrides, setVisitorMusicOverrides] = useState<
+        Record<string, { urlKey: string; playing: boolean; startedAt: number; positionAtStart: number }>
+    >({});
+    const baseVisitorMusicState = useMemo(() => {
+        if (!items) return {};
+        const next: Record<string, { urlKey: string; playing: boolean; startedAt: number; positionAtStart: number }> =
+            {};
+        for (const item of items) {
+            if (!isMusicItem(item)) continue;
+            const key = musicUrlKey(item);
+            const playing = item.musicPlaying ?? false;
+            const startedAt = item.musicStartedAt ?? 0;
+            const positionAtStart = item.musicPositionAtStart ?? 0;
+
+            next[item.id] = {
+                urlKey: key,
+                // Mirror host state on entry so the user sees the "Listen in" prompt when host was already playing.
+                playing,
+                startedAt: playing ? startedAt : 0,
+                positionAtStart: playing ? positionAtStart : 0,
+            };
+        }
+        return next;
+    }, [items]);
+    const visitorMusicState = useMemo(() => {
+        const next: Record<string, { urlKey: string; playing: boolean; startedAt: number; positionAtStart: number }> =
+            {};
+        for (const [itemId, baseState] of Object.entries(baseVisitorMusicState)) {
+            const override = visitorMusicOverrides[itemId];
+            if (override && override.urlKey === baseState.urlKey) {
+                next[itemId] = override;
+            } else {
+                next[itemId] = baseState;
+            }
+        }
+        return next;
+    }, [baseVisitorMusicState, visitorMusicOverrides]);
 
     // Guest-local computer state
     const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
@@ -74,36 +113,20 @@ export function VisitorRoomPage() {
 
     const isGuestVisitor = !isSignedIn;
 
-    const visitorIdentity = useMemo(() => {
-        const id = isSignedIn && clerkUser?.id ? clerkUser.id : guestVisitorId;
-        const baseName =
+    const visitorIdentity = {
+        id: isSignedIn && clerkUser?.id ? clerkUser.id : guestVisitorId,
+        name:
+            visitorDisplayNameOverride ??
             authedUser?.displayName ??
             authedUser?.username ??
             clerkUser?.username ??
-            guestVisitorName;
-        const name = visitorDisplayNameOverride ?? baseName;
-        const baseCursorColor = isGuestVisitor
-            ? guestCursorColorValue ?? guestCursorColor
-            : computerState?.cursorColor ?? authedUser?.cursorColor ?? guestCursorColor;
-        const cursorColor = visitorCursorColorOverride ?? baseCursorColor;
-
-        return { id, name, cursorColor };
-    }, [
-        authedUser?.cursorColor,
-        authedUser?.displayName,
-        authedUser?.username,
-        clerkUser?.id,
-        clerkUser?.username,
-        computerState?.cursorColor,
-        guestCursorColor,
-        guestCursorColorValue,
-        guestVisitorId,
-        guestVisitorName,
-        isGuestVisitor,
-        isSignedIn,
-        visitorCursorColorOverride,
-        visitorDisplayNameOverride,
-    ]);
+            guestVisitorName,
+        cursorColor:
+            visitorCursorColorOverride ??
+            (isGuestVisitor
+                ? guestCursorColorValue ?? guestCursorColor
+                : computerState?.cursorColor ?? authedUser?.cursorColor ?? guestCursorColor),
+    };
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
     const roomClosed =
         roomClosedOverride || roomData?.closed === true || roomStatus?.status !== "open";
@@ -166,15 +189,19 @@ export function VisitorRoomPage() {
         return () => clearTimeout(timer);
     }, [cleanupRoomLease, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
-    const handleMusicToggle = (itemId: string, playing: boolean) => {
-        if (!roomData?.room?._id) return;
-        if (roomClosed || roomStatus?.status !== "open") return;
-        updateMusicState({
-            roomId: roomData.room._id,
-            itemId,
-            musicPlaying: playing,
-            musicStartedAt: playing ? nowTimestamp() : 0,
-            musicPositionAtStart: 0,
+    const handleMusicToggle = (itemId: string, playing: boolean, urlKey?: string) => {
+        setVisitorMusicOverrides((prev) => {
+            const existing = prev[itemId] ?? baseVisitorMusicState[itemId];
+            const key = urlKey ?? existing?.urlKey ?? "";
+            return {
+                ...prev,
+                [itemId]: {
+                    urlKey: key,
+                    playing,
+                    startedAt: playing ? nowTimestamp() : 0,
+                    positionAtStart: 0,
+                },
+            };
         });
     };
 
@@ -261,35 +288,50 @@ export function VisitorRoomPage() {
         );
     }
 
-    const items = roomData.room.items as RoomItem[];
-
     const roomContent = (
         <>
-            {items.map((item) => (
-                <ItemNode
-                    key={item.id}
-                    item={item}
-                    isSelected={false}
-                    mode="view"
-                    scale={scale}
-                    onSelect={() => {}}
-                    onChange={() => {}}
-                    onDragStart={() => {}}
-                    onDragEnd={() => {}}
-                    onComputerClick={handleOpenComputer}
-                    onMusicPlayerClick={() => {}}
-                    isVisitor={true}
-                    overlay={
-                        isMusicItem(item) ? (
-                            <MusicPlayerButtons
-                                key={`music-${item.id}-${item.musicUrl ?? "none"}`}
-                                item={item}
-                                onToggle={(playing) => handleMusicToggle(item.id, playing)}
-                            />
-                        ) : null
-                    }
-                />
-            ))}
+            {items?.map((item) => {
+                const musicState = visitorMusicState[item.id];
+                const localMusicItem = musicState
+                    ? {
+                          ...item,
+                          musicPlaying: musicState.playing,
+                          musicStartedAt: musicState.startedAt,
+                          musicPositionAtStart: musicState.positionAtStart,
+                      }
+                    : {
+                          ...item,
+                          musicPlaying: item.musicPlaying ?? false,
+                          musicStartedAt: item.musicStartedAt ?? 0,
+                          musicPositionAtStart: item.musicPositionAtStart ?? 0,
+                      };
+
+                return (
+                    <ItemNode
+                        key={item.id}
+                        item={localMusicItem}
+                        isSelected={false}
+                        mode="view"
+                        scale={scale}
+                        onSelect={() => {}}
+                        onChange={() => {}}
+                        onDragStart={() => {}}
+                        onDragEnd={() => {}}
+                        onComputerClick={handleOpenComputer}
+                        onMusicPlayerClick={() => {}}
+                        isVisitor={true}
+                        overlay={
+                            isMusicItem(item) ? (
+                                <MusicPlayerButtons
+                                    key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                    item={localMusicItem}
+                                    onToggle={(playing) => handleMusicToggle(item.id, playing, musicUrlKey(item))}
+                                />
+                            ) : null
+                        }
+                    />
+                );
+            })}
 
             <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} />
         </>

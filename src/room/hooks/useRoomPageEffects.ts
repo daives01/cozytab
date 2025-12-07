@@ -3,6 +3,7 @@ import type React from "react";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { RoomItem, ComputerShortcut } from "../../types";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
+import { debounce } from "../../lib/debounce";
 
 type RoomRecord = Pick<Doc<"rooms">, "_id" | "items">;
 
@@ -11,11 +12,31 @@ export function useCursorColorSaver(
     authedShortcutsRef: React.MutableRefObject<ComputerShortcut[]>,
     saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>
 ) {
+    const debouncedSaveRef = useRef<((next: string) => void) | null>(null);
+
     useEffect(() => {
-        saveAuthedCursorColorRef.current = (next: string) => {
+        const debounced = debounce((next: string) => {
             saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor: next });
+        }, 200);
+
+        debouncedSaveRef.current = debounced;
+
+        return () => {
+            if (typeof (debounced as { cancel?: () => void }).cancel === "function") {
+                (debounced as { cancel?: () => void }).cancel?.();
+            }
+            debouncedSaveRef.current = null;
         };
-    }, [authedShortcutsRef, saveAuthedCursorColorRef, saveComputer]);
+    }, [authedShortcutsRef, saveComputer]);
+
+    useEffect(() => {
+        saveAuthedCursorColorRef.current = (next) => {
+            debouncedSaveRef.current?.(next);
+        };
+        return () => {
+            saveAuthedCursorColorRef.current = null;
+        };
+    }, [saveAuthedCursorColorRef]);
 }
 
 export function useGuestBootstrap({

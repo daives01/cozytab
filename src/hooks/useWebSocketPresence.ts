@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type PresenceMessage =
     | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
@@ -50,9 +50,15 @@ const getInitialCursor = () => {
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 };
 
-function clearTimeoutRef(ref: MutableRefObject<ReturnType<typeof setTimeout> | null>) {
+function clearTimeoutRef(ref: { current: ReturnType<typeof setTimeout> | null }) {
     if (!ref.current) return;
     clearTimeout(ref.current);
+    ref.current = null;
+}
+
+function clearIntervalRef(ref: { current: ReturnType<typeof setInterval> | null }) {
+    if (!ref.current) return;
+    clearInterval(ref.current);
     ref.current = null;
 }
 
@@ -75,7 +81,37 @@ export function useWebSocketPresence(
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const heartbeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasSentCursorRef = useRef(false);
+
+    const resetHeartbeat = useCallback(() => {
+        clearTimeoutRef(heartbeatTimeoutRef);
+    }, []);
+
+    const startHeartbeat = useCallback(
+        (ws: WebSocket) => {
+            clearIntervalRef(heartbeatIntervalRef);
+            resetHeartbeat();
+
+            const sendPing = () => {
+                if (ws.readyState !== WebSocket.OPEN) return;
+
+                ws.send("ping");
+
+                resetHeartbeat();
+                heartbeatTimeoutRef.current = setTimeout(() => {
+                    // Close to trigger reconnect if the server stops replying
+                    ws.close();
+                }, 10000);
+            };
+
+            // Kick off immediately, then on interval
+            sendPing();
+            heartbeatIntervalRef.current = setInterval(sendPing, 20000);
+        },
+        [resetHeartbeat]
+    );
 
     const sendMessage = useCallback((msg: PresenceMessage) => {
         const ws = wsRef.current;
@@ -85,6 +121,11 @@ export function useWebSocketPresence(
 
     const handleIncomingMessage = useCallback((event: MessageEvent) => {
         if (typeof event.data !== "string") return;
+
+        if (event.data === "pong") {
+            resetHeartbeat();
+            return;
+        }
 
         let data: PresenceMessage | null = null;
         try {
@@ -156,7 +197,7 @@ export function useWebSocketPresence(
             default:
                 console.warn("[Presence] Unknown message type", (data as { type?: string })?.type);
         }
-    }, []);
+    }, [resetHeartbeat]);
 
     useEffect(() => {
         latestCursorColorRef.current = cursorColor;
@@ -197,6 +238,7 @@ export function useWebSocketPresence(
 
             ws.onopen = () => {
                 retryDelay = INITIAL_RETRY_DELAY_MS;
+                startHeartbeat(ws);
                 sendMessage({
                     type: "join",
                     visitorId,
@@ -216,6 +258,8 @@ export function useWebSocketPresence(
             ws.onclose = () => {
                 wsRef.current = null;
                 setVisitors([]);
+                clearIntervalRef(heartbeatIntervalRef);
+                resetHeartbeat();
 
                 if (cancelled) return;
 
@@ -231,6 +275,8 @@ export function useWebSocketPresence(
             cancelled = true;
             clearTimeoutRef(throttleTimeoutRef);
             clearTimeoutRef(reconnectTimeoutRef);
+            clearIntervalRef(heartbeatIntervalRef);
+            resetHeartbeat();
 
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 sendMessage({ type: "leave", visitorId });
@@ -239,7 +285,7 @@ export function useWebSocketPresence(
             wsRef.current = null;
             setVisitors([]);
         };
-    }, [handleIncomingMessage, isOwner, roomId, sendMessage, visitorId]);
+    }, [handleIncomingMessage, isOwner, resetHeartbeat, roomId, sendMessage, startHeartbeat, visitorId]);
 
     // Send cursor position with throttling
     const sendCursor = useCallback((x: number, y: number, color?: string) => {

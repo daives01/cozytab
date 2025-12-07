@@ -70,9 +70,6 @@ interface RoomOverlaysProps {
     localItems: RoomItem[];
     onMusicSave: (updatedItem: RoomItem, updatedItems: RoomItem[]) => void;
     onCloseMusic: () => void;
-    onUpdateMusicState: (itemId: string, startedAt: number, position: number) => void;
-    roomId: string | null;
-    isGuestMode: boolean;
 
     // Onboarding / reward
     onboardingActive: boolean;
@@ -136,9 +133,6 @@ export function RoomOverlays({
     localItems,
     onMusicSave,
     onCloseMusic,
-    onUpdateMusicState,
-    roomId,
-    isGuestMode,
     onboardingActive,
     onboardingStep,
     onAdvanceOnboarding,
@@ -208,12 +202,8 @@ export function RoomOverlays({
                         item={item}
                         onClose={onCloseMusic}
                         onSave={(updatedItem) => {
-                            const startedAt = updatedItem.musicStartedAt ?? Date.now();
                             const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
                             onMusicSave(updatedItem, updatedItems);
-                            if (!isGuestMode && roomId && updatedItem.musicPlaying) {
-                                onUpdateMusicState(updatedItem.id, startedAt, updatedItem.musicPositionAtStart ?? 0);
-                            }
                         }}
                     />
                 ) : null;

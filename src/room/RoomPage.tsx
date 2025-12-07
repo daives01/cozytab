@@ -410,25 +410,30 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onSetDevTimeOfDay={setOverrideTimeOfDay}
             musicPlayerItemId={musicPlayerItemId}
             localItems={localItems}
-            onMusicSave={(updatedItem, updatedItems) => {
+            onMusicSave={async (updatedItem, updatedItems) => {
                 setLocalItems(updatedItems);
+
+                const isPlaying = updatedItem.musicPlaying === true;
+                const startedAt = updatedItem.musicStartedAt ?? Date.now();
+                const positionAtStart = updatedItem.musicPositionAtStart ?? 0;
+
                 if (updatedItem.musicUrl) {
                     setMusicAutoplay({ itemId: updatedItem.id, token: `${updatedItem.id}-${Date.now()}` });
                 }
+
+                if (!isGuest && room) {
+                    await saveRoom({ roomId: room._id, items: updatedItems });
+
+                    await updateMusicState({
+                        roomId: room._id,
+                        itemId: updatedItem.id,
+                        musicPlaying: isPlaying,
+                        musicStartedAt: isPlaying ? startedAt : 0,
+                        musicPositionAtStart: isPlaying ? positionAtStart : 0,
+                    });
+                }
             }}
             onCloseMusic={() => setMusicPlayerItemId(null)}
-            onUpdateMusicState={(itemId, startedAt, position) => {
-                if (!room) return;
-                updateMusicState({
-                    roomId: room._id,
-                    itemId,
-                    musicPlaying: true,
-                    musicStartedAt: startedAt,
-                    musicPositionAtStart: position,
-                });
-            }}
-            roomId={room?._id ?? null}
-            isGuestMode={isGuest}
             onboardingActive={onboardingActive}
             onboardingStep={onboardingStep}
             onAdvanceOnboarding={advanceOnboarding}
