@@ -50,27 +50,65 @@ function normalizeString(value: unknown) {
     return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+function pickFirst<T>(...values: (T | undefined)[]): T | undefined {
+    return values.find((value) => value !== undefined);
+}
+
+function buildIdentityName(identity: Awaited<ReturnType<typeof getIdentity>>) {
+    const givenName =
+        normalizeString((identity as { firstName?: string }).firstName) ??
+        normalizeString((identity as { givenName?: string }).givenName);
+    const familyName =
+        normalizeString((identity as { lastName?: string }).lastName) ??
+        normalizeString((identity as { familyName?: string }).familyName);
+    const explicitName = normalizeString(identity?.name);
+
+    return (
+        explicitName ??
+        (givenName && familyName ? `${givenName} ${familyName}` : undefined) ??
+        givenName ??
+        familyName
+    );
+}
+
+function getEmailLocal(identity: Awaited<ReturnType<typeof getIdentity>>, tokenTail?: string) {
+    const rawEmail =
+        normalizeString((identity as { email?: string }).email) ??
+        normalizeString((identity as { emailAddress?: string }).emailAddress) ??
+        (tokenTail?.includes("@") ? tokenTail : undefined);
+    return rawEmail?.split("@")[0];
+}
+
 function deriveNames(identity: Awaited<ReturnType<typeof getIdentity>>, fallbackUsername: string): DerivedNames {
-    const identityName = normalizeString(identity?.name);
+    // Values the user chose should win over provider-derived values.
+    const providedUsername = normalizeString(fallbackUsername);
+
     const identityUsername = normalizeString(identity?.username);
     const tokenIdentifier =
         typeof identity?.tokenIdentifier === "string"
             ? identity.tokenIdentifier
             : undefined;
     const tokenTail = tokenIdentifier?.split(":").pop();
-    const rawEmail =
-        normalizeString((identity as { email?: string }).email) ??
-        normalizeString((identity as { emailAddress?: string }).emailAddress) ??
-        (tokenTail?.includes("@") ? tokenTail : undefined);
-    const emailLocal = rawEmail?.split("@")[0];
+    const identityName = buildIdentityName(identity);
+    const emailLocal = getEmailLocal(identity, tokenTail);
 
-    const username =
-        identityUsername ??
-        emailLocal ??
-        identityName ??
-        (tokenTail ? tokenTail : undefined) ??
-        fallbackUsername;
-    const displayName = identityName ?? emailLocal ?? username;
+    const username = pickFirst(
+        providedUsername,
+        identityUsername,
+        emailLocal,
+        identityName,
+        tokenTail,
+        "user"
+    )!;
+
+    const displayName = pickFirst(
+        providedUsername,
+        identityName,
+        identityUsername,
+        emailLocal,
+        tokenTail,
+        "Guest"
+    )!;
 
     return { username, displayName };
 }
