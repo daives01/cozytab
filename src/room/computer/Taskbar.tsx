@@ -10,12 +10,15 @@ import {
     UserPlus,
     X,
 } from "lucide-react";
+import type { TimeOfDay } from "../roomConstants";
 
 interface TaskbarProps {
     nowLabel: string;
     isStartMenuOpen: boolean;
     isOnboardingShopStep?: boolean;
     isDevEnv: boolean;
+    devTimeOfDay: TimeOfDay | null;
+    currentTimeOfDay: TimeOfDay;
     onToggleStartMenu: () => void;
     onCloseStartMenu: () => void;
     onOpenShop: () => void;
@@ -27,6 +30,7 @@ interface TaskbarProps {
     onShutdown: () => void;
     onResetStorage: () => void;
     onDeleteAccount: () => void;
+    onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
 }
 
 function TaskbarTooltip({ label }: { label: string }) {
@@ -77,6 +81,8 @@ export function Taskbar({
     isStartMenuOpen,
     isOnboardingShopStep,
     isDevEnv,
+    devTimeOfDay,
+    currentTimeOfDay,
     onToggleStartMenu,
     onCloseStartMenu,
     onOpenShop,
@@ -88,7 +94,15 @@ export function Taskbar({
     onShutdown,
     onResetStorage,
     onDeleteAccount,
+    onSetDevTimeOfDay,
 }: TaskbarProps) {
+    const devTimeOfDayOptions: Array<{ label: string; value: TimeOfDay | null }> = [
+        { label: "Auto", value: null },
+        { label: "Day", value: "day" },
+        { label: "Night", value: "night" },
+    ];
+    const visibleTimeOfDay = devTimeOfDay ?? currentTimeOfDay;
+
     return (
         <div className="bg-gradient-to-b from-[var(--taskbar-from)] to-[var(--taskbar-to)] border-t-2 border-[var(--taskbar-border)] p-1.5 px-2 shadow-[inset_0_1px_0_var(--tooltip-to)] text-[var(--ink)] relative">
             <div className="flex items-center gap-2">
@@ -202,18 +216,47 @@ export function Taskbar({
                         </button>
                         {isDevEnv && (
                             <div className="flex flex-col">
-                                <button
-                                    className="text-left px-3 py-2 hover:bg-[var(--warning-light)] text-sm text-[var(--warning-dark)]"
-                                    onClick={onResetStorage}
-                                >
-                                    Reset local storage
-                                </button>
-                                <button
-                                    className="text-left px-3 py-2 hover:bg-[var(--danger-light)] text-sm text-[var(--danger-dark)]"
-                                    onClick={onDeleteAccount}
-                                >
-                                    Delete account
-                                </button>
+                                <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--muted)_70%,transparent)] text-[11px] font-semibold tracking-wide text-[var(--ink-muted)] uppercase">
+                                    Dev helpers
+                                </div>
+                                <div className="px-3 py-2 flex flex-col gap-2">
+                                    <div className="flex items-center justify-between gap-2 text-sm text-[var(--ink)]">
+                                        <span>Time of day</span>
+                                        <div className="flex gap-1">
+                                            {devTimeOfDayOptions.map((opt) => {
+                                                const active = opt.value === devTimeOfDay;
+                                                return (
+                                                    <button
+                                                        key={opt.label}
+                                                        onClick={() => onSetDevTimeOfDay(opt.value)}
+                                                        className={`px-2 py-1 rounded border text-xs transition-colors ${
+                                                            active
+                                                                ? "bg-[var(--card)] text-[var(--ink)] border-[var(--taskbar-border)] shadow-sm"
+                                                                : "bg-[color-mix(in_srgb,var(--card)_80%,transparent)] text-[var(--ink-muted)] border-[color-mix(in_srgb,var(--taskbar-border)_60%,transparent)] hover:text-[var(--ink)]"
+                                                        }`}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="text-[11px] text-[var(--ink-muted)] px-1">
+                                        Currently: {visibleTimeOfDay === "day" ? "Day" : "Night"}
+                                    </div>
+                                    <button
+                                        className="text-left px-3 py-2 hover:bg-[var(--warning-light)] text-sm text-[var(--warning-dark)] rounded border border-transparent"
+                                        onClick={onResetStorage}
+                                    >
+                                        Reset local storage
+                                    </button>
+                                    <button
+                                        className="text-left px-3 py-2 hover:bg-[var(--danger-light)] text-sm text-[var(--danger-dark)] rounded border border-transparent"
+                                        onClick={onDeleteAccount}
+                                    >
+                                        Delete account
+                                    </button>
+                                </div>
                             </div>
                         )}
                     </div>

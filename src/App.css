@@ -176,6 +176,55 @@
   --tracking-normal: 0em;
 }
 
+.night-mode {
+  --paper: #f6edda;
+  --paper-header: #faefd9;
+  --ink: #1f2433;
+  --ink-light: #2c3243;
+  --ink-muted: #4e5669;
+  --ink-subtle: #6f778c;
+  --background: #f4e6d3;
+  --foreground: #1f2433;
+  --card: #f7ead6;
+  --card-foreground: #1f2433;
+  --card-header: #f9efd8;
+  --popover: #f7ead6;
+  --popover-foreground: #1f2433;
+  --primary: #3b4764;
+  --primary-foreground: #fff9f1;
+  --secondary: #eadbc6;
+  --secondary-foreground: #1f2433;
+  --muted: #e9ddcc;
+  --muted-foreground: #60687b;
+  --accent: #e2c9a7;
+  --accent-foreground: #1f2433;
+  --destructive: #e76f51;
+  --destructive-foreground: #fff8f2;
+  --border: #d2c1a9;
+  --input: #fbf1df;
+  --ring: #4f6080;
+  --chart-1: #869acd;
+  --chart-2: #e8bc7a;
+  --chart-3: #eb9585;
+  --chart-4: #a7b3e6;
+  --chart-5: #ceb3e8;
+  --sidebar: #f2e5d3;
+  --sidebar-foreground: #1f2433;
+  --sidebar-primary: #3b4764;
+  --sidebar-primary-foreground: #fff9f1;
+  --sidebar-accent: #e2c9a7;
+  --sidebar-accent-foreground: #1f2433;
+  --sidebar-border: #d2c1a9;
+  --sidebar-ring: #4f6080;
+  --shadow-color: rgba(44, 39, 32, 0.28);
+  --taskbar-from: color-mix(in srgb, #f6edda 88%, #dfcdb4);
+  --taskbar-to: color-mix(in srgb, #f1e5d2 88%, #d6c4ad);
+  --taskbar-border: #d7c7b0;
+  --tooltip-from: color-mix(in srgb, #fbf1de 92%, #e2c9a7);
+  --tooltip-to: color-mix(in srgb, #f4e8d5 88%, #d6c4ad);
+  --tooltip-shadow: 0 4px 12px rgba(44, 39, 32, 0.16);
+}
+
 .dark {
   --background: oklch(0.2747 0.0139 57.6523);
   --foreground: oklch(0.9239 0.0190 83.0636);

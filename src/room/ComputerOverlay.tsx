@@ -7,6 +7,7 @@ import {
     guestShortcutsAtom,
     guestNormalizedShortcutsAtom,
 } from "./guestState";
+import type { TimeOfDay } from "./roomConstants";
 
 export interface ComputerOverlayProps {
     isGuest: boolean;
@@ -33,6 +34,9 @@ export interface ComputerOverlayProps {
     onDisplayNameUpdated?: (next: string) => void;
     cursorColor?: string;
     onCursorColorChange?: (next: string) => void;
+    timeOfDay: TimeOfDay;
+    devTimeOfDay: TimeOfDay | null;
+    onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
 }
 
 export function ComputerOverlay({
@@ -60,6 +64,9 @@ export function ComputerOverlay({
     onDisplayNameUpdated,
     cursorColor,
     onCursorColorChange,
+    timeOfDay,
+    devTimeOfDay,
+    onSetDevTimeOfDay,
 }: ComputerOverlayProps) {
     const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
     const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
@@ -106,6 +113,9 @@ export function ComputerOverlay({
             onDisplayNameUpdated={onDisplayNameUpdated}
             cursorColor={cursorColor}
             onCursorColorChange={onCursorColorChange}
+            timeOfDay={timeOfDay}
+            devTimeOfDay={devTimeOfDay}
+            onSetDevTimeOfDay={onSetDevTimeOfDay}
         />
     );
 }

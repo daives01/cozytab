@@ -64,7 +64,7 @@ export function ItemsTab({
                                     <div
                                         key={item._id}
                                         data-onboarding={isHighlighted ? "first-music-player" : undefined}
-                                        className={`relative w-[130px] shrink-0 bg-white rounded-lg border-2 p-2.5 transition-all shadow-sm ${
+                                        className={`relative w-[130px] shrink-0 bg-[var(--paper)] rounded-lg border-2 p-2.5 transition-all shadow-sm ${
                                             isOwned
                                                 ? "border-[var(--success)] bg-[var(--success-light)]"
                                                 : "border-[var(--ink)] hover:border-[var(--warning)] hover:shadow-md hover:-translate-y-1"
@@ -81,7 +81,7 @@ export function ItemsTab({
                                             </div>
                                         )}
 
-                                        <div className="w-full h-[112px] bg-[var(--muted)] rounded-md mb-2 flex items-center justify-center overflow-hidden">
+                                        <div className="w-full h-[112px] bg-transparent rounded-md mb-2 flex items-center justify-center overflow-hidden">
                                             <AssetImage
                                                 assetUrl={item.assetUrl}
                                                 alt={item.name}

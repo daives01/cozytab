@@ -21,6 +21,17 @@ const fallbackCursorValues: CursorValueMap = {
 };
 const templateCache: Partial<Record<CursorKind, string>> = {};
 let fetchPromise: Promise<void> | null = null;
+const DEFAULT_CURSOR_COLOR = "#f59e0b";
+
+function resolveColor(color: string | undefined): string {
+    if (!color) return DEFAULT_CURSOR_COLOR;
+    if (!color.startsWith("var(")) return color;
+    const match = color.match(/var\((--[^),\s]+)/);
+    if (!match) return DEFAULT_CURSOR_COLOR;
+    if (typeof window === "undefined" || !document?.documentElement) return DEFAULT_CURSOR_COLOR;
+    const resolved = getComputedStyle(document.documentElement).getPropertyValue(match[1]);
+    return resolved?.trim() || DEFAULT_CURSOR_COLOR;
+}
 
 // Kick off a prefetch as soon as the module loads so subsequent calls do not wait.
 void ensureTemplates();
@@ -107,22 +118,23 @@ function writeCachedValues(color: string, values: CursorValueMap) {
 
 export function useCursorColor(color?: string) {
     useLayoutEffect(() => {
-        if (!color) return;
+        const resolvedColor = resolveColor(color);
+        if (!resolvedColor) return;
 
         let mounted = true;
 
-        const cachedValues = readCachedValues(color);
+        const cachedValues = readCachedValues(resolvedColor);
         if (cachedValues) {
             applyCursorVariables(cachedValues);
         }
 
         ensureTemplates().then(() => {
             if (mounted) {
-                const values = buildCursorValues(color);
+                const values = buildCursorValues(resolvedColor);
                 applyCursorVariables(values);
                 const hasTemplates = cursorKinds.every((kind) => Boolean(templateCache[kind]));
                 if (hasTemplates) {
-                    writeCachedValues(color, values);
+                    writeCachedValues(resolvedColor, values);
                 }
             }
         });

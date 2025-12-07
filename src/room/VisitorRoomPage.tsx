@@ -19,6 +19,7 @@ import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
+import { useTimeOfDay } from "./hooks/useTimeOfDay";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
@@ -58,6 +59,7 @@ export function VisitorRoomPage() {
     const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
+    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDay();
 
     // Guest-local computer state
     const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
@@ -116,7 +118,7 @@ export function VisitorRoomPage() {
         false,
         visitorIdentity.cursorColor
     );
-    const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl);
+    const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
     useCursorColor(visitorIdentity.cursorColor);
 
@@ -382,6 +384,9 @@ export function VisitorRoomPage() {
                         setGuestCursorColor(value);
                     }
                 }}
+                timeOfDay={timeOfDay}
+                devTimeOfDay={overrideTimeOfDay}
+                onSetDevTimeOfDay={setOverrideTimeOfDay}
             />
         </>
     );
@@ -390,6 +395,7 @@ export function VisitorRoomPage() {
         <RoomCanvas
             backgroundUrl={backgroundUrl}
             scale={scale}
+            timeOfDay={timeOfDay}
             containerRef={containerRef}
             onMouseMove={handleMouseEvent}
             onMouseEnter={handleMouseEvent}

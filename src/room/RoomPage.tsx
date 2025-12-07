@@ -55,6 +55,7 @@ import {
     normalizeGuestShortcuts,
     guestCursorColorAtom,
 } from "./guestState";
+import { useTimeOfDay } from "./hooks/useTimeOfDay";
 
 type Mode = "view" | "edit";
 
@@ -73,6 +74,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
     const { user: clerkUser } = useUser();
+    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDay();
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const updateMusicState = useMutation(api.rooms.updateMusicState);
@@ -86,7 +88,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
     }, [guestRoom?.template?.backgroundUrl, guestTemplate?.backgroundUrl, isGuest, room?.template?.backgroundUrl]);
 
-    const backgroundUrl = useResolvedBackgroundUrl(backgroundSource);
+    const backgroundUrl = useResolvedBackgroundUrl(backgroundSource, timeOfDay);
     const computerCatalogItem = useMemo(() => {
         if (!catalogItems) return null;
         return catalogItems.find((c) => c.name === STARTER_COMPUTER_NAME) ?? null;
@@ -116,7 +118,6 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     }, [guestSession, isGuest]);
 
     const [localDisplayName, setLocalDisplayName] = useState<string | null>(null);
-
     const [authedMode, setAuthedMode] = useState<Mode>("view");
     const [authedItems, setAuthedItems] = useState<RoomItem[]>(() => initialGuestSession?.roomItems ?? []);
     const [authedSelectedId, setAuthedSelectedId] = useState<string | null>(null);
@@ -806,6 +807,9 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 onDisplayNameUpdated={(next) => setDisplayNameValue(next)}
                 cursorColor={cursorColor}
                 onCursorColorChange={handleCursorColorChange}
+                timeOfDay={timeOfDay}
+                devTimeOfDay={overrideTimeOfDay}
+                onSetDevTimeOfDay={setOverrideTimeOfDay}
             />
 
             {musicPlayerItemId && (() => {
@@ -845,7 +849,6 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             {!isGuest && isShareModalOpen && (
                 <ShareModal
                     onClose={() => setIsShareModalOpen(false)}
-                    visitorCount={visitorCount}
                 />
             )}
 
@@ -890,6 +893,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         <RoomCanvas
             backgroundUrl={backgroundUrl}
             scale={scale}
+            timeOfDay={timeOfDay}
             containerRef={containerRef}
             onDragOver={handleDragOver}
             onDrop={handleDrop}

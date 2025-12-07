@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import type React from "react";
-import { ROOM_HEIGHT, ROOM_WIDTH, getLocalTimeOfDayBackground } from "./roomConstants";
+import { ROOM_HEIGHT, ROOM_WIDTH, BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT, type TimeOfDay } from "./roomConstants";
 
 interface RoomCanvasProps {
     backgroundUrl?: string;
     scale: number;
+    timeOfDay: TimeOfDay;
     containerRef?: React.Ref<HTMLDivElement>;
     onMouseMove?: React.MouseEventHandler<HTMLDivElement>;
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
@@ -19,6 +20,7 @@ interface RoomCanvasProps {
 export function RoomCanvas({
     backgroundUrl,
     scale,
+    timeOfDay,
     containerRef,
     onMouseMove,
     onMouseEnter,
@@ -30,13 +32,23 @@ export function RoomCanvas({
     overlays,
 }: RoomCanvasProps) {
     const outerClass = [
-        "relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] bg-black cozy-cursor flex items-center justify-center",
+        "relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
     ]
         .filter(Boolean)
         .join(" ");
 
-    const baseBackground = useMemo(() => getLocalTimeOfDayBackground(), []);
+    const isNight = timeOfDay === "night";
+
+    const baseBackground = useMemo(
+        () => (timeOfDay === "day" ? BASE_BACKGROUND_DAY : BASE_BACKGROUND_NIGHT),
+        [timeOfDay]
+    );
+
+    const baseFilter = "brightness(1) saturate(1)";
+    const candleTint =
+        "radial-gradient(circle at 18% 20%, rgba(255, 201, 150, 0.08), transparent 40%), radial-gradient(circle at 78% 12%, rgba(255, 186, 120, 0.08), transparent 36%), linear-gradient(180deg, rgba(26, 20, 12, 0.08), rgba(10, 6, 2, 0.14))";
+    const backgroundGradient = "linear-gradient(180deg, #f9f4ea 0%, #f5ede0 45%, #f2e9da 100%)";
 
     return (
         <div
@@ -45,6 +57,10 @@ export function RoomCanvas({
             onMouseEnter={onMouseEnter}
             onDragOver={onDragOver}
             onDrop={onDrop}
+            style={{
+                background: backgroundGradient,
+                transition: "background 400ms ease",
+            }}
         >
             <div
                 className="absolute inset-0 pointer-events-none"
@@ -54,10 +70,21 @@ export function RoomCanvas({
                     backgroundPosition: "center center",
                     backgroundRepeat: "no-repeat",
                     zIndex: 0,
-                    filter: "brightness(1) saturate(1)",
+                    filter: baseFilter,
                     transition: "filter 600ms ease, opacity 600ms ease",
                 }}
             />
+            {isNight && (
+                <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                        zIndex: 0,
+                        background: candleTint,
+                        mixBlendMode: "soft-light",
+                        transition: "opacity 600ms ease",
+                    }}
+                />
+            )}
             <div
                 ref={containerRef}
                 style={{

@@ -28,6 +28,7 @@ import {
     normalizeShortcuts,
     withProtocol,
 } from "./computer/desktopUtils";
+import type { TimeOfDay } from "./roomConstants";
 
 interface ComputerWindow {
     id: string;
@@ -64,6 +65,9 @@ interface ComputerScreenProps {
     onDisplayNameUpdated?: (next: string) => void;
     cursorColor?: string;
     onCursorColorChange?: (next: string) => void;
+    timeOfDay: TimeOfDay;
+    devTimeOfDay: TimeOfDay | null;
+    onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
 }
 
 const DISPLAY_NAME_MAX_LENGTH = 50;
@@ -92,6 +96,9 @@ export function ComputerScreen({
     onDisplayNameUpdated,
     cursorColor,
     onCursorColorChange,
+    timeOfDay,
+    devTimeOfDay,
+    onSetDevTimeOfDay,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [copied, setCopied] = useState(false);
@@ -888,6 +895,9 @@ export function ComputerScreen({
                             isStartMenuOpen={isStartMenuOpen}
                             isOnboardingShopStep={isOnboardingShopStep}
                             isDevEnv={isDevEnv}
+                            devTimeOfDay={devTimeOfDay}
+                            currentTimeOfDay={timeOfDay}
+                            onSetDevTimeOfDay={onSetDevTimeOfDay}
                             onToggleStartMenu={toggleStartMenu}
                             onCloseStartMenu={closeStartMenu}
                             onOpenShop={() => openWindow("shop")}

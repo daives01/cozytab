@@ -146,7 +146,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
             <Card
                 key={item.inventoryId}
                 data-onboarding={isComputer ? "storage-item-computer" : undefined}
-                className={`group relative cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform border-2 shadow-sm bg-white rotate-1 hover:rotate-0 select-none ${cardPadding} ${
+                className={`group relative cursor-grab active:cursor-grabbing hover:scale-[1.02] transition-transform border-2 shadow-sm bg-[var(--paper)] rotate-1 hover:rotate-0 select-none ${cardPadding} ${
                     highlightComputer && isComputer
                         ? "border-[var(--warning)] ring-2 ring-[var(--warning-light)]"
                         : "border-[var(--ink)]"
@@ -160,7 +160,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
                 role="button"
                 aria-label={`${item.name} item`}
             >
-                <div className="relative aspect-square flex items-center justify-center bg-[var(--muted)] overflow-hidden rounded-sm">
+                <div className="relative aspect-square flex items-center justify-center bg-transparent overflow-hidden rounded-sm">
                     <AssetImage
                         assetUrl={item.assetUrl}
                         alt={item.name}
