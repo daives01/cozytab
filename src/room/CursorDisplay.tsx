@@ -36,9 +36,16 @@ export function CursorDisplay({
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
     const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
-    const chatBubbleClasses = "text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
+    const chatBubbleClasses = "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
+    const handwritingFont = {
+        fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+        fontWeight: 400,
+        fontStyle: "normal",
+        fontSynthesis: "none" as const,
+        fontOpticalSizing: "none" as const,
+    };
 
     return (
         <div
@@ -98,9 +105,9 @@ export function CursorDisplay({
             <div className={`${textStackOffsetClasses} flex flex-col gap-1 items-start`}>
                 {showNameBadge && name && (
                     <div
-                        className="w-min text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md"
+                        className="w-min text-sm font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md"
                         style={{
-                            fontFamily: "'Patrick Hand', cursive",
+                            ...handwritingFont,
                             backgroundColor: pointerColor,
                             color: textOnPointerColor,
                         }}
@@ -115,7 +122,7 @@ export function CursorDisplay({
                         <div
                             className={chatBubbleClasses}
                             style={{
-                                fontFamily: "'Patrick Hand', cursive",
+                                ...handwritingFont,
                                 backgroundColor:
                                     cursorColor ??
                                     (isOwner

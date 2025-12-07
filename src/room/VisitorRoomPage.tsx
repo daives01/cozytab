@@ -334,7 +334,17 @@ export function VisitorRoomPage() {
             <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
                 <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
                     <span className="font-mono bg-[var(--ink-light)] px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
-                    <span style={{ fontFamily: "'Patrick Hand', cursive" }}>to chat</span>
+                    <span
+                        style={{
+                            fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+                            fontWeight: 400,
+                            fontStyle: "normal",
+                            fontSynthesis: "none",
+                            fontOpticalSizing: "none",
+                        }}
+                    >
+                        to chat
+                    </span>
                 </div>
             </div>
 
