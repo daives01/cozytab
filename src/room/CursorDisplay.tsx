@@ -45,6 +45,7 @@ export function CursorDisplay({
         fontStyle: "normal",
         fontSynthesis: "none" as const,
         fontOpticalSizing: "none" as const,
+        fontSize: "1.07em",
     };
 
     return (

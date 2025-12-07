@@ -99,12 +99,24 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
         onClose();
     };
 
+    const handwritingFont = {
+        fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+        fontWeight: 400,
+        fontStyle: "normal",
+        fontSynthesis: "none" as const,
+        fontOpticalSizing: "none" as const,
+    };
+
     return (
         <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
             onClick={onClose}
         >
-            <div className="relative w-full max-w-2xl font-sans group" onClick={(e) => e.stopPropagation()}>
+            <div
+                className="relative w-full max-w-2xl group"
+                style={handwritingFont}
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[8px_8px_0px_0px_var(--color-foreground)]">
                     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-8 py-6">
                         <div className="flex items-center gap-4">
@@ -203,7 +215,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                                     handleSave();
                                                 }
                                             }}
-                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 text-base font-medium shadow-[4px_4px_0px_0px_var(--color-muted)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_var(--color-foreground)]"
+                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 text-base font-medium font-mono placeholder:font-mono shadow-[4px_4px_0px_0px_var(--color-muted)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_var(--color-foreground)]"
                                         />
                                     </div>
                                 </div>

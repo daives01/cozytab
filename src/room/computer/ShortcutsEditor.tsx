@@ -34,7 +34,7 @@ export function ShortcutsEditor({
                     placeholder="https://..."
                     value={newShortcutUrl}
                     onChange={(e) => onNewShortcutUrlChange(e.target.value)}
-                    className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-[1.5]"
+                    className="h-8 text-sm bg-white border-stone-300 focus:border-blue-400 flex-[1.5] font-mono placeholder:font-mono"
                 />
                 <Button
                     size="sm"

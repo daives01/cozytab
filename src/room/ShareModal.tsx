@@ -47,13 +47,22 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
         await createInvite();
     };
 
+    const handwritingFont = {
+        fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+        fontWeight: 400,
+        fontStyle: "normal",
+        fontSynthesis: "none" as const,
+        fontOpticalSizing: "none" as const,
+    };
+
     return (
         <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4"
             onClick={onClose}
         >
             <div
-                className="relative w-full max-w-lg font-sans group"
+                className="relative w-full max-w-lg group"
+                style={handwritingFont}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[8px_8px_0px_0px_var(--color-foreground)]">

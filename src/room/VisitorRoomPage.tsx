@@ -337,6 +337,7 @@ export function VisitorRoomPage() {
                     <span
                         style={{
                             fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+                            fontSize: "1.07em",
                             fontWeight: 400,
                             fontStyle: "normal",
                             fontSynthesis: "none",

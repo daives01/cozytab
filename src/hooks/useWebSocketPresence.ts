@@ -75,6 +75,7 @@ export function useWebSocketPresence(
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const hasSentCursorRef = useRef(false);
 
     const sendMessage = useCallback((msg: PresenceMessage) => {
         const ws = wsRef.current;
@@ -96,6 +97,16 @@ export function useWebSocketPresence(
         switch (data.type) {
             case "state":
                 setVisitors(data.visitors);
+                // console.info("[Presence] state", {
+                //     count: data.visitors.length,
+                //     visitors: data.visitors.map((v) => ({
+                //         id: v.visitorId,
+                //         name: v.displayName,
+                //         isOwner: v.isOwner,
+                //         x: v.x,
+                //         y: v.y,
+                //     })),
+                // });
                 break;
             case "join":
                 setVisitors((prev) => {
@@ -131,6 +142,12 @@ export function useWebSocketPresence(
                             : v
                     )
                 );
+                console.info("[Presence] cursor", {
+                    id: data.visitorId,
+                    x: data.x,
+                    y: data.y,
+                    color: data.cursorColor,
+                });
                 break;
             case "rename":
                 setVisitors((prev) =>
@@ -189,6 +206,7 @@ export function useWebSocketPresence(
 
         const connect = () => {
             if (cancelled) return;
+            hasSentCursorRef.current = false;
 
             const ws = new WebSocket(`${baseUrl}/ws/${roomId}`);
             wsRef.current = ws;
@@ -284,9 +302,11 @@ export function useWebSocketPresence(
             shouldBroadcast: boolean = true
         ) => {
             setScreenCursor({ x: screenX, y: screenY });
-            if (shouldBroadcast) {
-                sendCursor(roomX, roomY, latestCursorColorRef.current);
-            }
+            const shouldSend = shouldBroadcast || !hasSentCursorRef.current;
+            if (!shouldSend) return;
+
+            sendCursor(roomX, roomY, latestCursorColorRef.current);
+            hasSentCursorRef.current = true;
         },
         [sendCursor]
     );
