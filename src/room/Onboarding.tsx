@@ -1,4 +1,5 @@
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
+import { getHomepageInstruction } from "./onboardingUtils";
 
 export type OnboardingStep =
     | "welcome"
@@ -113,6 +114,8 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
         }
     };
 
+    const message = currentStep === "set-homepage" ? getHomepageInstruction() : stepConfigs[currentStep].message;
+
     if (currentStep === "complete") {
         const completeMessage = isGuest
             ? "You're all set! Log in to save and share your cozytab."
@@ -133,7 +136,7 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
     return (
         <OnboardingSpotlight
             targetSelector={config.targetSelector}
-            message={config.message}
+            message={message}
             bubblePosition={config.bubblePosition}
             fixedBubblePosition={config.fixedBubblePosition}
             onSkip={handleSkip}
