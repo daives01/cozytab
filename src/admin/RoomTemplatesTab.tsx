@@ -15,7 +15,7 @@ export function RoomTemplatesTab() {
     const generateUploadUrl = useMutation(api.roomTemplates.generateUploadUrl);
 
     const [showAddForm, setShowAddForm] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | undefined>(undefined);
 
     const [newTemplate, setNewTemplate] = useState({
         name: "",
@@ -44,7 +44,7 @@ export function RoomTemplatesTab() {
         },
     });
 
-    const currentError = error || uploadError;
+    const currentError = error ?? uploadError;
 
     const handleAddTemplate = async () => {
         if (!newTemplate.name || !newTemplate.backgroundUrl) {
@@ -103,7 +103,7 @@ export function RoomTemplatesTab() {
             {currentError && (
                 <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
-                    <button onClick={() => { setError(null); setUploadError(null); }} className="ml-4 underline">
+                    <button onClick={() => { setError(undefined); setUploadError(undefined); }} className="ml-4 underline">
                         Dismiss
                     </button>
                 </div>

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, startTransition, useCallback } from "react";
 import type React from "react";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { RoomItem, ComputerShortcut } from "../../types";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
 
-type RoomRecord = { _id: Id<"rooms">; items: RoomItem[] };
+type RoomRecord = Pick<Doc<"rooms">, "_id" | "items">;
 
 export function useCursorColorSaver(
     saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void,
@@ -62,8 +62,8 @@ export function useReconcileGuestOnboarding({
 }: {
     isGuest: boolean;
     reconciledGuestOnboardingRef: React.MutableRefObject<boolean>;
-    user: { displayName?: string | null } | null | undefined;
-    initialGuestSession: { onboardingCompleted?: boolean | null } | null;
+    user: Doc<"users"> | null | undefined;
+    initialGuestSession: { onboardingCompleted?: boolean } | null;
     completeOnboarding: () => Promise<unknown>;
     clearGuestSession: () => void;
 }) {
@@ -260,20 +260,19 @@ export function useSyncComputerState({
     userCursorColor,
 }: {
     isGuest: boolean;
-    computerState: { shortcuts?: ComputerShortcut[]; cursorColor?: string } | null | undefined;
+    computerState: { shortcuts: ComputerShortcut[]; cursorColor?: string } | null | undefined;
     setLocalShortcuts: (shortcuts: ComputerShortcut[]) => void;
     setAuthedCursorColor: (color: string) => void;
-    userCursorColor?: string | null;
+    userCursorColor?: string;
 }) {
     useEffect(() => {
         if (isGuest) return;
         if (!computerState) return;
         startTransition(() => {
-            setLocalShortcuts((computerState.shortcuts as ComputerShortcut[]) ?? []);
-            if (computerState.cursorColor) {
-                setAuthedCursorColor(computerState.cursorColor);
-            } else if (userCursorColor) {
-                setAuthedCursorColor(userCursorColor);
+            setLocalShortcuts(computerState.shortcuts);
+            const color = computerState.cursorColor || userCursorColor;
+            if (color) {
+                setAuthedCursorColor(color);
             }
         });
     }, [computerState, isGuest, setAuthedCursorColor, setLocalShortcuts, userCursorColor]);

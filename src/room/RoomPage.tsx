@@ -238,10 +238,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         },
     });
 
-    const effectiveLoginStreak =
-        dailyRewardInfo.loginStreak ?? (user as { loginStreak?: number } | null | undefined)?.loginStreak ?? null;
-    const effectiveNextRewardAt =
-        dailyRewardInfo.nextRewardAt ?? (user as { nextRewardAt?: number | null } | null | undefined)?.nextRewardAt ?? null;
+    const effectiveLoginStreak = dailyRewardInfo.loginStreak ?? user?.loginStreak;
+    const effectiveNextRewardAt = dailyRewardInfo.nextRewardAt;
 
     useDailyRewardToastTimer(dailyRewardToast, setDailyRewardToast);
 

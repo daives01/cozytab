@@ -7,12 +7,12 @@ interface UseImageUploadOptions<T extends TableNames> {
 }
 
 export function useImageUpload<T extends TableNames>({ generateUploadUrl, onUploadComplete }: UseImageUploadOptions<T>) {
-    const [uploading, setUploading] = useState<Id<T> | "new" | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState<Id<T> | "new" | undefined>(undefined);
+    const [error, setError] = useState<string | undefined>(undefined);
 
     const handleImageUpload = async (itemId: Id<T> | "new", file: File) => {
         setUploading(itemId);
-        setError(null);
+        setError(undefined);
 
         try {
             const uploadUrl = await generateUploadUrl();
@@ -32,7 +32,7 @@ export function useImageUpload<T extends TableNames>({ generateUploadUrl, onUplo
         } catch (err) {
             setError(err instanceof Error ? err.message : "Upload failed");
         } finally {
-            setUploading(null);
+            setUploading(undefined);
         }
     };
 

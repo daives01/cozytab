@@ -1,15 +1,15 @@
 export interface RewardPayload {
-    nextRewardAt: number | null;
-    loginStreak: number | null;
-    lastDailyRewardDay: string | null;
+    nextRewardAt?: number;
+    loginStreak?: number;
+    lastDailyRewardDay?: string;
 }
 
 export interface DailyRewardToastPayload {
     awardedAt: number;
-    loginStreak: number | null;
+    loginStreak?: number;
 }
 
 export interface DailyRewardState extends RewardPayload {
-    awardedAt: number | null;
+    awardedAt?: number;
     wasAttempted: boolean;
 }

@@ -14,7 +14,7 @@ export function CatalogItemsTab() {
     const generateUploadUrl = useMutation(api.catalog.generateUploadUrl);
 
     const [showAddForm, setShowAddForm] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | undefined>(undefined);
 
     const [newItem, setNewItem] = useState({
         name: "",
@@ -43,7 +43,7 @@ export function CatalogItemsTab() {
         },
     });
 
-    const currentError = error || uploadError;
+    const currentError = error ?? uploadError;
 
     const handleAddItem = async () => {
         if (!newItem.name || !newItem.assetUrl) {
@@ -81,7 +81,7 @@ export function CatalogItemsTab() {
             {currentError && (
                 <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
-                    <button onClick={() => { setError(null); setUploadError(null); }} className="ml-4 underline">
+                    <button onClick={() => { setError(undefined); setUploadError(undefined); }} className="ml-4 underline">
                         Dismiss
                     </button>
                 </div>

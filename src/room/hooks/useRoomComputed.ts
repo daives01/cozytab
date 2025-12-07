@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { STARTER_COMPUTER_NAME } from "../../../shared/guestTypes";
 import { canShare, canUseComputer } from "../utils/sessionGuards";
+import type { OnboardingStep } from "../Onboarding";
 
 type UseRoomComputedArgs = {
     catalogItems: { _id?: string; name?: string; assetUrl: string; category: string }[] | undefined;
@@ -9,7 +10,7 @@ type UseRoomComputedArgs = {
     userUsername?: string | null;
     clerkUsername?: string | null;
     displayNameValue: string | null;
-    onboardingStep: string | null;
+    onboardingStep: OnboardingStep | null;
     timeOfDay: "day" | "night";
     overrideTimeOfDay: "day" | "night" | null;
     isGuest: boolean;

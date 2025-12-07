@@ -7,7 +7,7 @@ interface UseEditableFieldOptions<T extends TableNames> {
 }
 
 export function useEditableField<T extends TableNames>({ onSave, onError }: UseEditableFieldOptions<T>) {
-    const [editing, setEditing] = useState<{ id: Id<T>; field: string } | null>(null);
+    const [editing, setEditing] = useState<{ id: Id<T>; field: string } | undefined>(undefined);
     const [editValue, setEditValue] = useState("");
 
     const startEdit = (id: Id<T>, field: string, currentValue: string | number | boolean) => {
@@ -32,12 +32,12 @@ export function useEditableField<T extends TableNames>({ onSave, onError }: UseE
                 onError(message);
             }
         }
-        setEditing(null);
+        setEditing(undefined);
         setEditValue("");
     };
 
     const cancelEdit = () => {
-        setEditing(null);
+        setEditing(undefined);
         setEditValue("");
     };
 

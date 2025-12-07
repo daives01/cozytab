@@ -1,65 +1,59 @@
 import { useState, useEffect } from "react";
+import type { Doc } from "../../../convex/_generated/dataModel";
 import type { DailyRewardState, DailyRewardToastPayload } from "../types/dailyReward";
 
 interface UseDailyRewardOptions {
-    user: { _id: string; loginStreak?: number | null; nextRewardAt?: number | null } | null | undefined;
+    user: Doc<"users"> | null | undefined;
     isGuest: boolean;
     claimDailyReward: () => Promise<{
         success: boolean;
-        nextRewardAt?: number | null;
-        loginStreak?: number | null;
-        lastDailyRewardDay?: string | null;
+        nextRewardAt?: number;
+        loginStreak?: number;
+        lastDailyRewardDay?: string;
         newBalance?: number;
         message?: string;
     }>;
-    onReward?: (info: DailyRewardToastPayload & { nextRewardAt: number | null }) => void;
+    onReward?: (info: DailyRewardToastPayload & { nextRewardAt?: number }) => void;
 }
 
 export function useDailyReward({ user, isGuest, claimDailyReward, onReward }: UseDailyRewardOptions) {
-    const userLoginStreak = (user as { loginStreak?: number } | undefined)?.loginStreak ?? null;
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
     const [rewardInfo, setRewardInfo] = useState<DailyRewardState>({
-        awardedAt: null,
-        nextRewardAt: (user as { nextRewardAt?: number | null } | undefined)?.nextRewardAt ?? null,
-        loginStreak: userLoginStreak,
+        awardedAt: undefined,
+        nextRewardAt: undefined,
+        loginStreak: user?.loginStreak,
         wasAttempted: false,
-        lastDailyRewardDay: null,
+        lastDailyRewardDay: user?.lastDailyRewardDay,
     });
 
     useEffect(() => {
-        if (!isGuest && user && !dailyRewardClaimed) {
-            claimDailyReward()
-                .then((result) => {
-                    const awardedAt = result.success ? Date.now() : null;
-                    setRewardInfo((prev) => ({
-                        ...prev,
-                        awardedAt: awardedAt ?? prev.awardedAt,
-                        nextRewardAt: result.nextRewardAt ?? prev.nextRewardAt,
-                        loginStreak:
-                            (result.loginStreak as number | null | undefined) ??
-                            (user as { loginStreak?: number } | undefined)?.loginStreak ??
-                            prev.loginStreak,
-                        lastDailyRewardDay: result.lastDailyRewardDay ?? prev.lastDailyRewardDay,
-                        wasAttempted: true,
-                    }));
-                    if (result.success) {
-                        onReward?.({
-                            awardedAt: awardedAt ?? Date.now(),
-                            loginStreak:
-                                (result.loginStreak as number | null | undefined) ??
-                                (user as { loginStreak?: number } | undefined)?.loginStreak ??
-                                null,
-                            nextRewardAt: result.nextRewardAt ?? null,
-                        });
-                    }
-                    setDailyRewardClaimed(true);
-                })
-                .catch(() => {
-                    setRewardInfo((prev) => ({ ...prev, wasAttempted: true }));
-                    setDailyRewardClaimed(true);
-                });
-        }
-    }, [user, isGuest, dailyRewardClaimed, claimDailyReward, onReward, userLoginStreak]);
+        if (isGuest || !user || dailyRewardClaimed) return;
+
+        claimDailyReward()
+            .then((result) => {
+                const awardedAt = result.success ? Date.now() : undefined;
+                setRewardInfo((prev) => ({
+                    ...prev,
+                    awardedAt: awardedAt ?? prev.awardedAt,
+                    nextRewardAt: result.nextRewardAt ?? prev.nextRewardAt,
+                    loginStreak: result.loginStreak ?? user.loginStreak ?? prev.loginStreak,
+                    lastDailyRewardDay: result.lastDailyRewardDay ?? prev.lastDailyRewardDay,
+                    wasAttempted: true,
+                }));
+                if (result.success) {
+                    onReward?.({
+                        awardedAt: awardedAt ?? Date.now(),
+                        loginStreak: result.loginStreak ?? user.loginStreak ?? undefined,
+                        nextRewardAt: result.nextRewardAt,
+                    });
+                }
+                setDailyRewardClaimed(true);
+            })
+            .catch(() => {
+                setRewardInfo((prev) => ({ ...prev, wasAttempted: true }));
+                setDailyRewardClaimed(true);
+            });
+    }, [user, isGuest, dailyRewardClaimed, claimDailyReward, onReward]);
 
     return rewardInfo;
 }
