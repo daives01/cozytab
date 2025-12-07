@@ -50,6 +50,7 @@ export function ItemNode({
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
     const catalogItems = useQuery(api.catalog.list);
+    const isCatalogLoading = catalogItems === undefined;
     const catalogItem = catalogItems?.find((ci: Doc<"catalogItems">) => ci._id === item.catalogItemId || ci.name === item.catalogItemId);
     const imageUrl = catalogItem?.assetUrl || "";
     const resolvedWidth = catalogItem?.defaultWidth ?? 150;
@@ -171,6 +172,8 @@ export function ItemNode({
                                 filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px var(--chart-4))" : "none",
                             }}
                         />
+                    ) : isCatalogLoading ? (
+                        <div className="w-full h-24" aria-hidden />
                     ) : (
                         <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-sm">
                             No Image

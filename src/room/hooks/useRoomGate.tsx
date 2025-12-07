@@ -23,12 +23,11 @@ export function useRoomGate({ isGuest, viewportWidth, mobileMaxWidth, initialGue
         return <DesktopOnlyNotice />;
     }
 
-    if (!isGuest && !room && !showGuestFallback) {
+    if (
+        (!isGuest && !room && !showGuestFallback) ||
+        (isGuest && (guestTemplate === undefined || guestRoom === undefined))
+    ) {
         return <LoadingScreen message="Loading your cozytab..." />;
-    }
-
-    if (isGuest && guestTemplate === undefined && guestRoom === undefined) {
-        return <LoadingScreen message="Loading cozytab..." />;
     }
 
     if (isGuest && guestTemplate === null && guestRoom === null) {

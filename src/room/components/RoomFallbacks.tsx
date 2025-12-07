@@ -22,7 +22,7 @@ export function LoadingScreen({ message }: { message: string }) {
 export function NoDemoRoom() {
     return (
         <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-            No demo room found.
+            Uh oh! Something went wrong. Please try again later.
         </div>
     );
 }
