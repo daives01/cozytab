@@ -15,6 +15,7 @@
 - `/convex` Convex schema, queries/mutations, and auth config.
 - `/presence-worker` Cloudflare Worker for presence.
 - `public/` static assets.
+- Feature folders (e.g., `src/room/AssetDrawer`) keep shared `constants.ts` and `types.ts` at the folder root, with leaf UI in `components/` (and `hooks/` when needed); `index.tsx` should export only the primary component to keep React fast-refresh happy—re-export shared values (like `ASSET_DRAWER_WIDTH`) from `constants.ts`.
 
 ## Data Model (Convex)
 - `users`: externalId, username, displayName?, currency, cursorColor?, computer?{shortcuts[id,name,url,row,col], cursorColor?}, lastDailyRewardDay?, loginStreak?, onboardingCompleted?, referralCode, referredBy?, admin?; indexes `by_externalId`, `by_referralCode`, `by_referredBy`.

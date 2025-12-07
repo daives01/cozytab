@@ -181,7 +181,7 @@ export function ItemNode({
 
                 {isSelected && mode === "edit" && (
                     <>
-                        <div className="absolute inset-0 border-2 border-primary rounded-md pointer-events-none" />
+                        <div className="absolute inset-0 pointer-events-none rounded-md outline outline-2 outline-dotted outline-[var(--color-foreground)]/80 outline-offset-4" />
                         <div className="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-auto z-20">
                             <button
                                 type="button"

@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type React from "react";
-import { AssetDrawer, ASSET_DRAWER_WIDTH } from "./AssetDrawer";
+import { AssetDrawer } from "./AssetDrawer";
+import { ASSET_DRAWER_WIDTH } from "./AssetDrawer/constants";
 import { TrashCan } from "./TrashCan";
 
 type Mode = "view" | "edit";
@@ -37,7 +38,7 @@ export function EditDrawer({
                 <button
                     data-onboarding="drawer-toggle"
                     onClick={onDrawerToggle}
-                    className="bg-[var(--paper-header)] hover:bg-[var(--secondary)] text-[var(--ink)] h-16 w-8 rounded-l-lg border-y-2 border-l-2 border-[var(--ink)] shadow-md flex items-center justify-center transition-colors outline-none active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
+                    className="flex h-16 w-8 items-center justify-center rounded-l-xl border-2 border-r-0 border-[var(--color-foreground)] bg-[var(--color-secondary)] text-[var(--color-foreground)] shadow-none transition-all outline-none hover:-translate-x-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px]"
                 >
                     {isDrawerOpen ? <ChevronRight className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
                 </button>
