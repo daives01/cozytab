@@ -24,6 +24,7 @@ export function ShareModal({ onClose }: ShareModalProps) {
         ? ((activeInvite as { token: string; code?: string }).code ?? activeInvite.token)
         : null;
     const shareUrl = inviteCode ? `${window.location.origin}/visit/${inviteCode}` : null;
+    const stateBlockHeight = "h-[150px]";
 
     const handleResetCode = async () => {
         setIsRotating(true);
@@ -116,7 +117,7 @@ export function ShareModal({ onClose }: ShareModalProps) {
 
                         {shareUrl ? (
                             /* Active State */
-                            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                            <div className={`space-y-4 animate-in fade-in slide-in-from-bottom-2 ${stateBlockHeight}`}>
                                 {/* Link Input */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
@@ -163,7 +164,7 @@ export function ShareModal({ onClose }: ShareModalProps) {
                             </div>
                         ) : (
                             /* Empty State */
-                            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--muted-foreground)] bg-[color-mix(in_srgb,var(--muted)_60%,transparent)] py-8 text-center">
+                            <div className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-[var(--muted-foreground)] bg-[color-mix(in_srgb,var(--muted)_60%,transparent)] py-8 text-center ${stateBlockHeight}`}>
                                 <div className="mb-2 rounded-full bg-[var(--muted)] p-3">
                                     <Power className="h-6 w-6 text-[var(--ink-subtle)]" />
                                 </div>

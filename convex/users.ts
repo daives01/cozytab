@@ -577,12 +577,10 @@ export const updateDisplayName = mutation({
     args: { displayName: v.string() },
     handler: async (ctx, args) => {
         const { user } = await requireUser(ctx);
-        const next = args.displayName.trim();
+        const trimmed = args.displayName.trim();
+        const next = trimmed.slice(0, 50);
         if (next.length < 2) {
             throw new Error("Display name must be at least 2 characters");
-        }
-        if (next.length > 50) {
-            throw new Error("Display name must be at most 50 characters");
         }
 
         await ctx.db.patch(user._id, { displayName: next });

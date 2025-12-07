@@ -66,6 +66,8 @@ interface ComputerScreenProps {
     onCursorColorChange?: (next: string) => void;
 }
 
+const DISPLAY_NAME_MAX_LENGTH = 50;
+
 export function ComputerScreen({
     shortcuts,
     onClose,
@@ -237,15 +239,16 @@ export function ComputerScreen({
 
     const handleSaveDisplayName = useCallback(
         async (next: string) => {
-            const value = next.trim();
-            if (value.length === 0) {
+            const trimmed = next.trim();
+            if (trimmed.length === 0) {
                 setDisplayNameError("Display name cannot be empty");
                 return;
             }
+            const safeValue = trimmed.slice(0, DISPLAY_NAME_MAX_LENGTH);
             setIsSavingDisplayName(true);
             setDisplayNameError(null);
             try {
-                const result = await updateDisplayNameMutation({ displayName: value });
+                const result = await updateDisplayNameMutation({ displayName: safeValue });
                 setCurrentDisplayName(result.displayName);
                 onDisplayNameUpdated?.(result.displayName);
             } catch (error) {

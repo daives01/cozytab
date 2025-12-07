@@ -1,5 +1,6 @@
+import { useMemo } from "react";
 import type React from "react";
-import { BASE_TIME_OF_DAY_BACKGROUND, ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
+import { ROOM_HEIGHT, ROOM_WIDTH, getLocalTimeOfDayBackground } from "./roomConstants";
 
 interface RoomCanvasProps {
     backgroundUrl?: string;
@@ -35,6 +36,8 @@ export function RoomCanvas({
         .filter(Boolean)
         .join(" ");
 
+    const baseBackground = useMemo(() => getLocalTimeOfDayBackground(), []);
+
     return (
         <div
             className={outerClass}
@@ -46,7 +49,7 @@ export function RoomCanvas({
             <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                    backgroundImage: `url('${BASE_TIME_OF_DAY_BACKGROUND}')`,
+                    backgroundImage: `url('${baseBackground}')`,
                     backgroundSize: "cover",
                     backgroundPosition: "center center",
                     backgroundRepeat: "no-repeat",
