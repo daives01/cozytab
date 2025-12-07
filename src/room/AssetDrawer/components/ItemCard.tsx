@@ -22,6 +22,15 @@ export function ItemCard({
             ? "outline outline-2 outline-dotted outline-[var(--color-accent)] outline-offset-4"
             : "";
     const shouldShowToggle = !isGuest && showHideControls;
+    const imageWrapperClass = compact
+        ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15 cursor-grab active:cursor-grabbing"
+        : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20 cursor-grab active:cursor-grabbing";
+    const toggleVisibilityClass = isPending ? "opacity-60" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
+    const togglePositionClass = compact ? "right-1.5 top-1.5 h-8 w-8 shadow-[var(--shadow-3)]" : "";
+    const titleClass = compact
+        ? "line-clamp-2 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--color-foreground)] leading-snug"
+        : "line-clamp-2 text-sm font-black uppercase tracking-[0.12em] text-[var(--color-foreground)] leading-tight";
+    const titleRowClass = compact ? "flex items-start justify-between gap-1.5" : "flex items-start justify-between gap-2";
 
     return (
         <Card
@@ -39,16 +48,12 @@ export function ItemCard({
             role="button"
             aria-label={`${item.name} item`}
         >
-            <div
-                className="relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20 cursor-grab active:cursor-grabbing"
-            >
+            <div className={imageWrapperClass}>
                 <AssetImage assetUrl={item.assetUrl} alt={item.name} className="h-full w-full object-contain" draggable={false} />
                 {shouldShowToggle && (
                     <button
                         type="button"
-                        className={`${iconButtonClass} ${
-                            isPending ? "opacity-60" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-                        }`}
+                        className={`${iconButtonClass} ${toggleVisibilityClass} ${togglePositionClass}`}
                         onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -62,8 +67,8 @@ export function ItemCard({
                     </button>
                 )}
             </div>
-            <div className="flex items-start justify-between gap-2">
-                <div className="line-clamp-2 text-sm font-black uppercase tracking-[0.12em] text-[var(--color-foreground)] leading-tight" title={item.name}>
+            <div className={titleRowClass}>
+                <div className={titleClass} title={item.name}>
                     {item.name}
                 </div>
                 {item.hidden && (

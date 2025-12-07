@@ -21,12 +21,12 @@ createRoot(document.getElementById('root')!).render(
           colorInputBackground: "#ffffff",
           colorInputText: "#111827",
           colorShimmer: "#fff7e6",
-          borderRadius: "24px",
+          borderRadius: "12px",
         },
         elements: {
           rootBox: "bg-[var(--paper)] text-[var(--ink)] rounded-[24px] overflow-hidden",
           card: "shadow-[8px_8px_0px_0px_var(--color-foreground)] border-2 border-[var(--color-foreground)] rounded-[24px] overflow-hidden bg-[var(--paper)]",
-          modalContent: "rounded-[24px] overflow-hidden",
+          modalContent: "rounded-[12px] overflow-hidden",
           headerTitle: "text-2xl font-bold text-[var(--ink)]",
           headerSubtitle: "text-sm uppercase tracking-[0.12em] text-[var(--ink-muted)]",
           formButtonPrimary:

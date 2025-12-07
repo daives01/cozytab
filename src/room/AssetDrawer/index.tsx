@@ -94,11 +94,12 @@ export function AssetDrawer({
     const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
     const isBottom = orientation === "bottom";
     const gridClass = isBottom
-        ? "grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] auto-rows-min gap-3"
+        ? "grid grid-cols-[repeat(auto-fit,minmax(120px,150px))] auto-rows-min justify-center gap-3"
         : "grid grid-cols-2 gap-3";
 
     return (
         <div
+            data-asset-drawer="true"
             style={drawerSizeStyle}
             className={`absolute ${positionClass} z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${translateClass}`}
         >

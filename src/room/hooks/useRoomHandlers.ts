@@ -106,6 +106,10 @@ export function useRoomHandlers({
             e.preventDefault();
             if (mode !== "edit") return;
 
+            if (e.target instanceof HTMLElement && e.target.closest("[data-asset-drawer]")) {
+                return;
+            }
+
             const catalogItemId = e.dataTransfer.getData("catalogItemId");
             if (!catalogItemId) return;
             if (!containerRef.current) return;
@@ -113,6 +117,11 @@ export function useRoomHandlers({
             const rect = containerRef.current.getBoundingClientRect();
             const relativeX = e.clientX - rect.left;
             const relativeY = e.clientY - rect.top;
+            const isInsideRoom =
+                relativeX >= 0 && relativeX <= rect.width && relativeY >= 0 && relativeY <= rect.height;
+
+            if (!isInsideRoom) return;
+
             const x = relativeX / scale;
             const y = relativeY / scale;
 
