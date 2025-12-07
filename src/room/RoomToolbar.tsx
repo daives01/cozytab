@@ -1,4 +1,4 @@
-import { SignInButton } from "@clerk/clerk-react";
+import { SignInButton, SignUpButton } from "@clerk/clerk-react";
 import { Lock, LockOpen, Share2, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,12 +36,12 @@ export function RoomToolbar({
             style={{ zIndex: 50, left: `${leftSpacing}px`, top: `${topSpacing}px` }}
         >
             {isGuest && (
-                <SignInButton mode="modal">
+                <SignUpButton mode="modal">
                     <Button size="lg" className="font-bold text-lg shadow-lg">
                         <LogIn className="mr-2 h-5 w-5" />
-                        Log in to save
+                        Sign up to save
                     </Button>
-                </SignInButton>
+                </SignUpButton>
             )}
 
             <div className="relative group">

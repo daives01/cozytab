@@ -38,7 +38,7 @@ export function ItemNode({
     onDragEnd,
     onComputerClick,
     onMusicPlayerClick,
-    isOnboardingComputerTarget,
+    isOnboardingComputerTarget: _isOnboardingComputerTarget,
     isVisitor = false,
     overlay,
     onBringToFront,
@@ -122,7 +122,6 @@ export function ItemNode({
     return (
         <div
             className="absolute select-none"
-            data-onboarding={isComputerCategory && isOnboardingComputerTarget ? "placed-computer" : undefined}
             data-cozy-clickable={isInteractable ? "true" : undefined}
             style={{
                 left: item.x,

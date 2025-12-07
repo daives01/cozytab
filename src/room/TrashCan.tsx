@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
 
 interface TrashCanProps {
@@ -8,142 +8,130 @@ interface TrashCanProps {
     offsetBottom?: number;
 }
 
-const LONG_PRESS_DELAY_MS = 100;
-const BASE_LEFT = 24;
-const BASE_BOTTOM = 24;
-
 export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom = 0 }: TrashCanProps) {
     const [isHovered, setIsHovered] = useState(false);
-    const [isVisible, setIsVisible] = useState(false);
+    const [shouldShow, setShouldShow] = useState(false);
     const trashRef = useRef<HTMLDivElement>(null);
     const draggedItemIdRef = useRef<string | null>(null);
-    const showTimerRef = useRef<number | null>(null);
-
-    const clearShowTimer = () => {
-        if (showTimerRef.current !== null) {
-            window.clearTimeout(showTimerRef.current);
-            showTimerRef.current = null;
-        }
-    };
-
-    const isPointerInside = (e: MouseEvent) => {
-        const rect = trashRef.current?.getBoundingClientRect();
-        if (!rect) return false;
-
-        return (
-            e.clientX >= rect.left &&
-            e.clientX <= rect.right &&
-            e.clientY >= rect.top &&
-            e.clientY <= rect.bottom
-        );
-    };
+    const showTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const baseLeft = 24;
+    const leftPosition = baseLeft + offsetLeft;
+    const baseBottom = 24;
+    const bottomPosition = baseBottom + offsetBottom;
 
     useEffect(() => {
         draggedItemIdRef.current = draggedItemId;
     }, [draggedItemId]);
 
     useEffect(() => {
-        clearShowTimer();
-        if (!draggedItemId) {
-            return () => {
-                setIsVisible(false);
-                setIsHovered(false);
-            };
-        }
+        if (!draggedItemId) return;
 
-        showTimerRef.current = window.setTimeout(() => {
-            if (draggedItemIdRef.current) {
-                setIsVisible(true);
-            }
-        }, LONG_PRESS_DELAY_MS);
+        const timeoutId = setTimeout(() => setShouldShow(true), 100);
+        showTimeoutRef.current = timeoutId;
 
         return () => {
-            clearShowTimer();
-            setIsVisible(false);
+            if (showTimeoutRef.current) {
+                clearTimeout(showTimeoutRef.current);
+                showTimeoutRef.current = null;
+            }
+            setShouldShow(false);
             setIsHovered(false);
         };
     }, [draggedItemId]);
 
     useEffect(() => {
-        if (!draggedItemId) return;
-
-        const hideNow = () => {
-            clearShowTimer();
-            setIsVisible(false);
-            setIsHovered(false);
-        };
+        if (!draggedItemId) {
+            return;
+        }
 
         const handleMouseMove = (e: MouseEvent) => {
-            setIsHovered(isPointerInside(e));
+            if (!trashRef.current) return;
+
+            const rect = trashRef.current.getBoundingClientRect();
+            const isOver = (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            );
+
+            setIsHovered(isOver);
         };
 
         const handleMouseUp = (e: MouseEvent) => {
+            // Use ref to get the current value, even if prop was cleared
             const currentItemId = draggedItemIdRef.current;
-            if (!currentItemId) {
-                hideNow();
-                return;
-            }
+            if (!currentItemId || !trashRef.current) return;
 
-            if (isPointerInside(e)) {
+            const rect = trashRef.current.getBoundingClientRect();
+            const isOver = (
+                e.clientX >= rect.left &&
+                e.clientX <= rect.right &&
+                e.clientY >= rect.top &&
+                e.clientY <= rect.bottom
+            );
+
+            if (isOver) {
                 onDelete(currentItemId);
             }
+            setIsHovered(false);
+            setShouldShow(false);
 
-            hideNow();
+            if (showTimeoutRef.current) {
+                clearTimeout(showTimeoutRef.current);
+                showTimeoutRef.current = null;
+            }
         };
 
         window.addEventListener("mousemove", handleMouseMove);
-        window.addEventListener("mouseup", handleMouseUp, true);
+        window.addEventListener("mouseup", handleMouseUp, true); // Use capture phase to run before ItemNode
 
         return () => {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp, true);
-            hideNow();
         };
     }, [draggedItemId, onDelete]);
 
-    const isActive = !!draggedItemId && isVisible;
-
+    const isActive = shouldShow;
+    
     return (
         <div
             ref={trashRef}
             className={`
-                absolute z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
-                ${isActive ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-20 opacity-0 pointer-events-none"}
+                absolute z-50 pointer-events-auto transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                ${isActive ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}
             `}
             style={{
-                transitionDelay: isActive ? "120ms" : "0ms",
-                left: `${BASE_LEFT + offsetLeft}px`,
-                bottom: `${BASE_BOTTOM + offsetBottom}px`,
+                left: `${leftPosition}px`,
+                bottom: `${bottomPosition}px`,
             }}
         >
-            <div
+            <div 
                 className={`
-                    relative flex items-center justify-center
-                    transition-transform duration-200 ease-out
-                    ${isHovered ? "scale-125 rotate-6" : "scale-100"}
+                   relative flex items-center justify-center
+                   transition-transform duration-200 ease-out
+                   ${isHovered ? "scale-125 rotate-6" : "scale-100"}
                 `}
             >
-                <div
-                    className={`
-                        w-16 h-16 rounded-full border-2 shadow-md flex items-center justify-center bg-white
-                        ${isHovered ? "border-[var(--danger)] bg-[var(--danger-light)]" : "border-[var(--ink)]"}
-                    `}
-                >
-                    <Trash2
-                        className={`
-                            w-8 h-8 transition-colors
-                            ${isHovered ? "text-[var(--danger)]" : "text-[var(--ink)]"}
-                        `}
-                    />
+                {/* Visual Circle Background */}
+                <div className={`
+                    w-16 h-16 rounded-full border-2 shadow-md flex items-center justify-center bg-white
+                    ${isHovered ? "border-[var(--danger)] bg-[var(--danger-light)]" : "border-[var(--ink)]"}
+                `}>
+                   <Trash2 
+                       className={`
+                           w-8 h-8 transition-colors
+                           ${isHovered ? "text-[var(--danger)]" : "text-[var(--ink)]"}
+                       `} 
+                   />
                 </div>
 
-                <div
-                    className={`
-                        absolute -top-8 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap
-                        transition-opacity duration-200
-                        ${isHovered ? "opacity-100" : "opacity-0"}
-                    `}
-                >
+                {/* Text Label styling */}
+                <div className={`
+                    absolute -top-8 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap
+                    transition-opacity duration-200
+                    ${isHovered ? "opacity-100" : "opacity-0"}
+                `}>
                     Release to delete
                 </div>
             </div>

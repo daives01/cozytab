@@ -47,24 +47,25 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "place-computer": {
-        message: "You have a cozy computer in your storage! Drag it onto your room to place it.",
+        message: "You have a cozy computer in your storage! Drag it into your room to place it.",
         targetSelector: "[data-onboarding='storage-item-computer']",
-        bubblePosition: "left",
+        bubblePosition: "right",
+        fixedBubblePosition: { top: 92, left: 224 },
         showSkip: true,
         pulseTarget: true,
     },
     "switch-to-view": {
         message: "Nice! Now lock your room to interact with your items. Click the lock button again.",
         targetSelector: "[data-onboarding='mode-toggle']",
+        fixedBubblePosition: { top: 92, left: 224 },
         bubblePosition: "right",
         showSkip: true,
         pulseTarget: true,
     },
     "click-computer": {
         message: "Click on your computer to open it!",
-        targetSelector: "[data-onboarding='placed-computer']",
+        bubblePosition: "right",
         fixedBubblePosition: { top: 92, left: 24 },
-        bubblePosition: "top",
         showSkip: true,
         pulseTarget: true,
     },
@@ -118,7 +119,7 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
 
     if (currentStep === "complete") {
         const completeMessage = isGuest
-            ? "You're all set! Log in to save and share your cozytab."
+            ? "You're all set! Sign up to save and share your cozytab."
             : stepConfigs.complete.message;
         return (
             <OnboardingSpotlight
