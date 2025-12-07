@@ -14,6 +14,7 @@ interface CursorDisplayProps {
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
+import { getReadableTextColor } from "./utils/cursorColor";
 
 const POINTER_HOTSPOT = { x: 6, y: 3 };
 const POINTER_SIZE = { width: 38, height: 48 };
@@ -33,8 +34,13 @@ export function CursorDisplay({
     cursorColor,
 }: CursorDisplayProps) {
     const pointerColor = cursorColor ?? (isOwner ? "#6366f1" : "#10b981");
+    const textOnPointerColor = getReadableTextColor(pointerColor);
+    const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
     const chatBubbleBg = cursorColor ? "" : isOwner ? "bg-indigo-100 border-indigo-300" : "bg-emerald-100 border-emerald-300";
     const chatTextColor = cursorColor ? "" : isOwner ? "text-indigo-900" : "text-emerald-900";
+    const chatBubbleClasses =
+        `${chatBubbleBg} ${chatTextColor} text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] ` +
+        "break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
 
@@ -96,8 +102,12 @@ export function CursorDisplay({
             <div className={`${textStackOffsetClasses} flex flex-col gap-1 items-start`}>
                 {showNameBadge && name && (
                     <div
-                        className="w-min text-white text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md"
-                        style={{ fontFamily: "'Patrick Hand', cursive", backgroundColor: pointerColor }}
+                        className="w-min text-xs font-bold px-2 py-0.5 rounded-full whitespace-nowrap shadow-md"
+                        style={{
+                            fontFamily: "'Patrick Hand', cursive",
+                            backgroundColor: pointerColor,
+                            color: textOnPointerColor,
+                        }}
                     >
                         {name}
                         {isOwner && " ★"}
@@ -107,12 +117,12 @@ export function CursorDisplay({
                 {
                     chatMessage !== null && chatMessage !== undefined && (
                         <div
-                            className={`${chatBubbleBg} ${chatTextColor} text-sm px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words flex items-center justify-center min-w-[40px] min-h-[32px]`}
+                            className={chatBubbleClasses}
                             style={{
                                 fontFamily: "'Patrick Hand', cursive",
                                 backgroundColor: cursorColor ?? undefined,
                                 borderColor: cursorColor ?? undefined,
-                                color: cursorColor ? "#0f172a" : undefined,
+                                color: chatTextOnCustomColor,
                                 opacity: chatOpacity,
                                 transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
                             }}

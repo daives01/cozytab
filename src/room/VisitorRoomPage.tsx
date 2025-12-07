@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAtomValue, useSetAtom } from "jotai";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
 import { PresenceCursor } from "./PresenceCursor";
@@ -11,7 +12,7 @@ import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
 import { RoomCanvas } from "./RoomCanvas";
-import type { RoomItem } from "../types";
+import type { ComputerShortcut, RoomItem } from "../types";
 import { api } from "../../convex/_generated/api";
 import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
@@ -21,6 +22,15 @@ import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
+import { ComputerOverlay } from "./ComputerOverlay";
+import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import {
+    guestCoinsAtom,
+    guestCursorColorAtom,
+    guestInventoryAtom,
+    guestNormalizedShortcutsAtom,
+    guestShortcutsAtom,
+} from "./guestState";
 
 const nowTimestamp = () => Date.now();
 
@@ -33,8 +43,10 @@ export function VisitorRoomPage() {
     );
     const { user: clerkUser, isSignedIn } = useUser();
     const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
+    const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
     const updateMusicState = useMutation(api.rooms.updateMusicState);
     const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
+    const saveComputer = useMutation(api.users.saveMyComputer);
     const navigate = useNavigate();
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
@@ -43,31 +55,52 @@ export function VisitorRoomPage() {
     const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
     const [guestCursorColor] = useState(() => randomBrightColor());
+    const [isComputerOpen, setIsComputerOpen] = useState(false);
+    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
+    const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
+    const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
+
+    // Guest-local computer state
+    const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
+    const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
+    const guestCoins = useAtomValue(guestCoinsAtom);
+    const setGuestCoins = useSetAtom(guestCoinsAtom);
+    const guestInventory = useAtomValue(guestInventoryAtom);
+    const setGuestInventory = useSetAtom(guestInventoryAtom);
+    const setGuestCursorColor = useSetAtom(guestCursorColorAtom);
+    const guestCursorColorValue = useAtomValue(guestCursorColorAtom);
+
+    const isGuestVisitor = !isSignedIn;
 
     const visitorIdentity = useMemo(() => {
         const id = isSignedIn && clerkUser?.id ? clerkUser.id : guestVisitorId;
-        const name =
+        const baseName =
             authedUser?.displayName ??
             authedUser?.username ??
             clerkUser?.username ??
             guestVisitorName;
-        const cursorColor =
-            authedUser?.cursorColor ??
-            authedUser?.computer?.cursorColor ??
-            guestCursorColor;
+        const name = visitorDisplayNameOverride ?? baseName;
+        const baseCursorColor = isGuestVisitor
+            ? guestCursorColorValue ?? guestCursorColor
+            : computerState?.cursorColor ?? authedUser?.cursorColor ?? guestCursorColor;
+        const cursorColor = visitorCursorColorOverride ?? baseCursorColor;
 
         return { id, name, cursorColor };
     }, [
-        authedUser?.computer?.cursorColor,
         authedUser?.cursorColor,
         authedUser?.displayName,
         authedUser?.username,
         clerkUser?.id,
         clerkUser?.username,
+        computerState?.cursorColor,
         guestCursorColor,
+        guestCursorColorValue,
         guestVisitorId,
         guestVisitorName,
+        isGuestVisitor,
         isSignedIn,
+        visitorCursorColorOverride,
+        visitorDisplayNameOverride,
     ]);
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
     const roomClosed =
@@ -145,14 +178,38 @@ export function VisitorRoomPage() {
         });
     };
 
-    const handleMouseEvent = (e: React.MouseEvent) => {
-        if (!containerRef.current) return;
+    const updateCursorFromClient = useCallback(
+        (clientX: number, clientY: number) => {
+            if (!containerRef.current) return;
 
-        const rect = containerRef.current.getBoundingClientRect();
-        const roomX = (e.clientX - rect.left) / scale;
-        const roomY = (e.clientY - rect.top) / scale;
-        updateCursor(roomX, roomY, e.clientX, e.clientY);
+            const rect = containerRef.current.getBoundingClientRect();
+            const roomX = (clientX - rect.left) / scale;
+            const roomY = (clientY - rect.top) / scale;
+            updateCursor(roomX, roomY, clientX, clientY);
+        },
+        [scale, updateCursor]
+    );
+
+    const handleMouseEvent = (e: React.MouseEvent) => {
+        updateCursorFromClient(e.clientX, e.clientY);
     };
+
+    const handleOpenComputer = useCallback(() => {
+        setIsComputerOpen(true);
+    }, []);
+
+    const overlayShortcuts = useMemo(() => {
+        if (!isSignedIn) return guestShortcutsNormalized;
+        if (visitorShortcutsOverride) return visitorShortcutsOverride;
+        return (computerState?.shortcuts as ComputerShortcut[] | undefined) ?? [];
+    }, [computerState?.shortcuts, guestShortcutsNormalized, isSignedIn, visitorShortcutsOverride]);
+
+    const overlayCurrency = isSignedIn ? authedUser?.currency ?? 0 : guestCoins;
+    const overlayNextReward = isSignedIn ? authedUser?.nextRewardAt ?? undefined : undefined;
+    const overlayLoginStreak = isSignedIn ? authedUser?.loginStreak ?? undefined : undefined;
+    const overlayDisplayName = isSignedIn ? visitorIdentity.name : undefined;
+    const overlayUsername = isSignedIn ? clerkUser?.username ?? "you" : undefined;
+    const overlayCursorColor = visitorIdentity.cursorColor;
 
     if (!token) {
         return (
@@ -219,7 +276,7 @@ export function VisitorRoomPage() {
                     onChange={() => {}}
                     onDragStart={() => {}}
                     onDragEnd={() => {}}
-                    onComputerClick={() => {}}
+                    onComputerClick={handleOpenComputer}
                     onMusicPlayerClick={() => {}}
                     isVisitor={true}
                     overlay={
@@ -289,6 +346,47 @@ export function VisitorRoomPage() {
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
+            />
+
+            <ComputerOverlay
+                isGuest={isGuestVisitor}
+                isComputerOpen={isComputerOpen}
+                onCloseComputer={() => setIsComputerOpen(false)}
+                shortcuts={overlayShortcuts}
+                onUpdateShortcuts={(next) => {
+                    if (isSignedIn) {
+                        setVisitorShortcutsOverride(next);
+                        saveComputer({ shortcuts: next, cursorColor: overlayCursorColor });
+                    } else {
+                        setGuestShortcuts(next);
+                    }
+                }}
+                userCurrency={overlayCurrency}
+                nextRewardAt={overlayNextReward}
+                loginStreak={overlayLoginStreak}
+                onPointerMove={updateCursorFromClient}
+                guestCoins={guestCoins}
+                onGuestCoinsChange={(coins) => setGuestCoins(coins)}
+                startingCoins={GUEST_STARTING_COINS}
+                guestInventory={guestInventory}
+                onGuestPurchase={(itemId) =>
+                    setGuestInventory((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
+                }
+                isOnboardingShopStep={false}
+                displayName={overlayDisplayName}
+                username={overlayUsername}
+                onDisplayNameUpdated={(next) => setVisitorDisplayNameOverride(next)}
+                cursorColor={overlayCursorColor}
+                onCursorColorChange={(next) => {
+                    const value = next?.trim();
+                    if (!value) return;
+                    setVisitorCursorColorOverride(value);
+                    if (isSignedIn) {
+                        saveComputer({ shortcuts: overlayShortcuts, cursorColor: value });
+                    } else {
+                        setGuestCursorColor(value);
+                    }
+                }}
             />
         </>
     );

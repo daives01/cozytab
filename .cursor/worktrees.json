@@ -1,0 +1,7 @@
+{
+  "setup-worktree": [
+    "bun install",
+    "cp $ROOT_WORKTREE_PATH/.env.local .env.local",
+    "bun run web"
+  ]
+}

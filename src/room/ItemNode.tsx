@@ -94,7 +94,10 @@ export function ItemNode({
     const isInteractable =
         mode === "view" &&
         (isVisitor
-            ? hasUrl
+            ? Boolean(
+                hasUrl ||
+                (isComputerCategory && onComputerClick)
+            )
             : Boolean(
                 (isComputerCategory && onComputerClick) ||
                 (isMusicCategory && onMusicPlayerClick) ||

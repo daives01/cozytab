@@ -6,7 +6,7 @@ export function clampHue(value: number) {
     return wrapped < 0 ? wrapped + 360 : wrapped;
 }
 
-export function hexToHsl(hex: string): HslColor {
+function normalizeHex(hex: string): string | null {
     const sanitized = hex.replace("#", "");
     const fullHex =
         sanitized.length === 3
@@ -16,7 +16,12 @@ export function hexToHsl(hex: string): HslColor {
                   .join("")
             : sanitized;
 
-    if (fullHex.length !== 6) {
+    return fullHex.length === 6 ? fullHex : null;
+}
+
+export function hexToHsl(hex: string): HslColor {
+    const fullHex = normalizeHex(hex);
+    if (!fullHex) {
         return { h: 36, s: 90, l: 55 };
     }
 
@@ -97,4 +102,42 @@ export function randomBrightColor(): string {
     const saturation = 70 + Math.floor(Math.random() * 30);
     const lightness = 55 + Math.floor(Math.random() * 15);
     return hslToHex(hue, saturation, lightness);
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+    const fullHex = normalizeHex(hex);
+    if (!fullHex) return null;
+
+    const r = parseInt(fullHex.substring(0, 2), 16);
+    const g = parseInt(fullHex.substring(2, 4), 16);
+    const b = parseInt(fullHex.substring(4, 6), 16);
+
+    return { r, g, b };
+}
+
+function relativeLuminance(hex: string): number | null {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+
+    const toLinear = (value: number) => {
+        const channel = value / 255;
+        return channel <= 0.03928 ? channel / 12.92 : Math.pow((channel + 0.055) / 1.055, 2.4);
+    };
+
+    const r = toLinear(rgb.r);
+    const g = toLinear(rgb.g);
+    const b = toLinear(rgb.b);
+
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function getReadableTextColor(
+    backgroundHex: string,
+    lightText = "#ffffff",
+    darkText = "#0f172a",
+    threshold = 0.55
+) {
+    const luminance = relativeLuminance(backgroundHex);
+    if (luminance === null) return darkText;
+    return luminance < threshold ? lightText : darkText;
 }
