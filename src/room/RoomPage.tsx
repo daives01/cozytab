@@ -117,10 +117,13 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
-
-    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
-    const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
     const { width: viewportWidth, height: viewportHeight } = useViewportSize();
+    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT, {
+        viewportWidth,
+        viewportHeight,
+        maxScale: 1.25,
+    });
+    const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const lastRoomPositionRef = useRef({ x: ROOM_WIDTH / 2, y: ROOM_HEIGHT / 2 });
     const computerPrefetchedRef = useRef(false);

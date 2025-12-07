@@ -1,5 +1,6 @@
+// 4:3 stage to reduce lateral guttering while keeping existing coordinates
 export const ROOM_WIDTH = 1920;
-export const ROOM_HEIGHT = 1080;
+export const ROOM_HEIGHT = 1440;
 
 export const BASE_BACKGROUND_DAY = "/backgrounds/snow-background-day.svg";
 export const BASE_BACKGROUND_NIGHT = "/backgrounds/snow-background-night.svg";

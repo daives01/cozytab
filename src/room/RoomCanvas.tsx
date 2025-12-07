@@ -34,7 +34,7 @@ export function RoomCanvas({
     overlays,
 }: RoomCanvasProps) {
     const outerClass = [
-        "relative w-full h-full overflow-hidden font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
+        "relative w-full h-full font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
     ]
         .filter(Boolean)
@@ -62,6 +62,7 @@ export function RoomCanvas({
             style={{
                 background: backgroundGradient,
                 transition: "background 400ms ease",
+                overflow: "hidden",
                 ...outerStyle,
             }}
         >

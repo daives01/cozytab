@@ -33,6 +33,7 @@ import { usePresenceAndChat } from "./hooks/usePresenceChat";
 import { PresenceLayer } from "./components/PresenceLayer";
 import { RoomShell } from "./RoomShell";
 import { ChatHint } from "./components/ChatHint";
+import { useViewportSize } from "./hooks/useRoomPageEffects";
 
 const nowTimestamp = () => Date.now();
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
@@ -50,7 +51,12 @@ export function VisitorRoomPage() {
     const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
-    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
+    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
+    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT, {
+        viewportWidth,
+        viewportHeight,
+        maxScale: 1.25,
+    });
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
