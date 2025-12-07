@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
@@ -47,7 +47,6 @@ export function VisitorRoomPage() {
     const updateMusicState = useMutation(api.rooms.updateMusicState);
     const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
     const saveComputer = useMutation(api.users.saveMyComputer);
-    const navigate = useNavigate();
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -137,9 +136,7 @@ export function VisitorRoomPage() {
         if (roomStatus.status === "open") return;
 
         cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
-        const timer = setTimeout(() => navigate("/"), 1500);
-        return () => clearTimeout(timer);
-    }, [cleanupRoomLease, navigate, roomData?.room?._id, roomStatus]);
+    }, [cleanupRoomLease, roomData?.room?._id, roomStatus]);
 
     useEffect(() => {
         if (!roomData?.room?._id) return;
@@ -153,18 +150,16 @@ export function VisitorRoomPage() {
         if (delay <= 0) {
             setTimeout(() => setRoomClosedOverride(true), 0);
             cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
-            navigate("/");
             return;
         }
 
         const timer = setTimeout(() => {
             setRoomClosedOverride(true);
             cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
-            navigate("/");
         }, delay);
 
         return () => clearTimeout(timer);
-    }, [cleanupRoomLease, navigate, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
+    }, [cleanupRoomLease, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
     const handleMusicToggle = (itemId: string, playing: boolean) => {
         if (!roomData?.room?._id) return;
@@ -250,7 +245,7 @@ export function VisitorRoomPage() {
     if (roomClosed) {
         return (
             <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>The host stepped away. Redirecting...</p>
+                <p>The host stepped away.</p>
                 <Link to="/">
                     <Button>
                         <Home className="mr-2 h-4 w-4" />
