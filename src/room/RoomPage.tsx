@@ -35,7 +35,7 @@ import {
     useEnsureRoomLoaded,
     useLeaseHeartbeat,
     useSyncComputerState,
-    useViewportWidth,
+    useViewportSize,
     useDailyRewardToastTimer,
     useOnboardingAssetPrefetch,
 } from "./hooks/useRoomPageEffects";
@@ -120,7 +120,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
     const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
-    const viewportWidth = useViewportWidth();
+    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const lastRoomPositionRef = useRef({ x: ROOM_WIDTH / 2, y: ROOM_HEIGHT / 2 });
     const computerPrefetchedRef = useRef(false);
@@ -136,7 +136,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     const { orientation: drawerOrientation, drawerInsetLeft, drawerInsetBottom, toolbarOffset } = useDrawerLayout(
         isDrawerOpen,
-        viewportWidth
+        viewportWidth,
+        viewportHeight
     );
 
     const markGuestOnboardingComplete = useCallback(() => {

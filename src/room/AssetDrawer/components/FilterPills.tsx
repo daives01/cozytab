@@ -17,8 +17,8 @@ export function FilterPills({ categories, selectedFilter, onChange }: FilterPill
                         onClick={() => onChange(category)}
                         className={`${pillClass} ${
                             isActive
-                                ? "bg-[var(--color-foreground)] text-[var(--color-background)]"
-                                : "bg-[var(--color-background)] text-[var(--color-foreground)] hover:-translate-y-[1px]"
+                                ? "bg-[var(--color-foreground)] text-[var(--color-background)] hover:bg-[var(--color-foreground)] hover:text-[var(--color-background)] hover:-translate-y-[1px] hover:shadow-[var(--shadow-4)]"
+                                : "bg-[var(--color-background)] text-[var(--color-foreground)] hover:-translate-y-[1px] hover:bg-[var(--color-secondary)] hover:shadow-[var(--shadow-4)]"
                         } ${category !== "all" ? "capitalize" : ""}`}
                         aria-pressed={isActive}
                     >

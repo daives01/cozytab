@@ -1,5 +1,4 @@
-[x] fix clerk username field not working
-[x] make it 1 coin per day based on mountain time, not every 24 hours
-[ ] allow guests/visitors to open computers only to customize colors/name
-[ ] make onboarding add to homepage more specific
-[ ] add light tests
+[ ] flickering cursor on color change
+[ ] stop chatting if user backspaces all the way
+[ ] what bubble needlessly tall, font related? just remove padding
+[ ] delete item not quite working - item flashes when closing edit mode

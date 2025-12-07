@@ -279,14 +279,18 @@ export function useSyncComputerState({
     }, [computerState, isGuest, setAuthedCursorColor, setLocalShortcuts, userCursorColor]);
 }
 
-export function useViewportWidth() {
-    const [viewportWidth, setViewportWidth] = useState<number>(() =>
-        typeof window !== "undefined" ? window.innerWidth : 1280
-    );
+export function useViewportSize() {
+    const [viewportSize, setViewportSize] = useState<{ width: number; height: number }>(() => ({
+        width: typeof window !== "undefined" ? window.innerWidth : 1280,
+        height: typeof window !== "undefined" ? window.innerHeight : 720,
+    }));
 
     useEffect(() => {
         const handleResize = () => {
-            setViewportWidth(window.innerWidth);
+            setViewportSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
         };
 
         handleResize();
@@ -294,7 +298,7 @@ export function useViewportWidth() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    return viewportWidth;
+    return viewportSize;
 }
 
 export function useDailyRewardToastTimer(

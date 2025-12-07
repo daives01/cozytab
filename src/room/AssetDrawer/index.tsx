@@ -93,7 +93,9 @@ export function AssetDrawer({
     const containerRadii = isLeft ? "rounded-r-3xl" : "rounded-t-3xl";
     const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
     const isBottom = orientation === "bottom";
-    const gridClass = isBottom ? "grid grid-cols-4 gap-2" : "grid grid-cols-2 gap-3";
+    const gridClass = isBottom
+        ? "grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] auto-rows-min gap-3"
+        : "grid grid-cols-2 gap-3";
 
     return (
         <div

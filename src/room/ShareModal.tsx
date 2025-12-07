@@ -68,7 +68,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                 <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-8)]">
                     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-8 py-6">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-share-accent)] shadow-[var(--shadow-2)]">
                                 <Share2 className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
@@ -94,7 +94,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                 <div className="text-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
                                     Public Access
                                     {shareUrl && (
-                                        <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-accent)] px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider">
+                                        <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-share-accent)] px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider">
                                             Live
                                         </span>
                                     )}
@@ -107,7 +107,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                             <button
                                 onClick={handleToggleAccess}
                                 className={`relative h-9 w-16 rounded-full border-2 border-[var(--color-foreground)] transition-all duration-300 ${
-                                    shareUrl ? "bg-[var(--color-accent)]" : "bg-[var(--color-muted)]"
+                                    shareUrl ? "bg-[var(--color-share-accent)]" : "bg-[var(--color-muted)]"
                                 }`}
                             >
                                 <span
@@ -143,7 +143,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         <Input
                                             readOnly
                                             value={shareUrl}
-                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-accent)]"
+                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-share-accent)]"
                                         />
                                     </div>
 
@@ -151,7 +151,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         onClick={handleCopyLink}
                                         className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
                                             copied 
-                                            ? "bg-[var(--color-accent)] text-[var(--color-foreground)]" 
+                                            ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" 
                                             : "bg-[var(--color-foreground)] text-[var(--color-background)]"
                                         }`}
                                     >

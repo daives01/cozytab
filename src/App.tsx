@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
@@ -13,6 +13,8 @@ import {
   getReferralCode,
   saveReferralCode,
 } from "./referralStorage";
+import { TouchWarningToast } from "./components/TouchWarningToast";
+import { useTouchCapability } from "./hooks/useTouchCapability";
 
 function ReferralCapture() {
   const { code } = useParams<{ code: string }>();
@@ -29,6 +31,7 @@ function ReferralCapture() {
 function App() {
   return (
     <BrowserRouter>
+      <TouchWarningGate />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/visit/:token" element={<VisitorRoomPage />} />
@@ -99,6 +102,25 @@ function HomeRoute() {
   }
 
   return <RoomPage isGuest={false} guestSession={guestSession} />;
+}
+
+function TouchWarningGate() {
+  const isTouchCapable = useTouchCapability();
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("nook_touch_warning_dismissed") === "true";
+  });
+
+  if (!isTouchCapable || dismissed) return null;
+
+  const handleDismiss = (dontShowAgain: boolean) => {
+    if (typeof window !== "undefined" && dontShowAgain) {
+      window.localStorage.setItem("nook_touch_warning_dismissed", "true");
+    }
+    setDismissed(true);
+  };
+
+  return <TouchWarningToast onDismiss={handleDismiss} />;
 }
 
 export default App;
