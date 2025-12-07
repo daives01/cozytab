@@ -65,10 +65,10 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                 style={handwritingFont}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[8px_8px_0px_0px_var(--color-foreground)]">
+                <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-8)]">
                     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-8 py-6">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[2px_2px_0px_0px_var(--color-foreground)]">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
                                 <Share2 className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
@@ -82,14 +82,14 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                         </div>
                         <button
                             onClick={onClose}
-                            className="group/btn flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-[2px_2px_0px_0px_var(--color-foreground)]"
+                            className="group/btn flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-[var(--shadow-2)]"
                         >
                             <X className="h-5 w-5 text-[var(--color-foreground)]" />
                         </button>
                     </div>
 
                     <div className="flex flex-col gap-8 p-8">
-                        <div className="flex items-center justify-between rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center justify-between rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-4-soft)]">
                             <div className="space-y-1">
                                 <div className="text-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
                                     Public Access
@@ -143,13 +143,13 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         <Input
                                             readOnly
                                             value={shareUrl}
-                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-sm text-[var(--color-foreground)] shadow-[4px_4px_0px_0px_var(--color-muted)] focus-visible:ring-0 focus-visible:border-[var(--color-accent)]"
+                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-accent)]"
                                         />
                                     </div>
 
                                     <Button
                                         onClick={handleCopyLink}
-                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-lg font-black uppercase tracking-wide transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
+                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
                                             copied 
                                             ? "bg-[var(--color-accent)] text-[var(--color-foreground)]" 
                                             : "bg-[var(--color-foreground)] text-[var(--color-background)]"

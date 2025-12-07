@@ -15,7 +15,7 @@ export function SectionHeader({
         <button
             type="button"
             onClick={onToggle}
-            className="flex w-full items-center justify-between rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-4 py-3 text-left shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all hover:-translate-y-[1px] hover:shadow-[6px_6px_0px_0px_var(--color-foreground)]"
+            className="flex w-full items-center justify-between rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-4 py-3 text-left shadow-[var(--shadow-4)] transition-all hover:-translate-y-[1px] hover:shadow-[var(--shadow-6)]"
         >
             <span className="flex items-center gap-2 text-[var(--color-foreground)]">
                 <span className="text-xs font-black uppercase tracking-[0.15em]">{title}</span>

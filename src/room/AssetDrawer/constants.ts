@@ -10,10 +10,10 @@ export const handwritingFont = {
 };
 
 export const pillClass =
-    "h-9 rounded-full border-2 border-[var(--color-foreground)] px-4 text-[11px] font-black uppercase tracking-widest shadow-[2px_2px_0px_0px_var(--color-foreground)] transition-all";
+    "h-9 rounded-full border-2 border-[var(--color-foreground)] px-4 text-[11px] font-black uppercase tracking-widest shadow-[var(--shadow-2)] transition-all";
 
 export const cardClass =
-    "group relative flex cursor-grab select-none flex-col gap-2 rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-3 shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_var(--color-foreground)]";
+    "group relative flex cursor-grab select-none flex-col gap-2 rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-4)] transition-all active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-[var(--shadow-6)]";
 
 export const iconButtonClass =
-    "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-[var(--color-foreground)] shadow-[2px_2px_0px_0px_var(--color-foreground)] transition-all hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_0px_var(--color-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]";
+    "absolute right-2 top-2 inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-[var(--color-foreground)] shadow-[var(--shadow-2)] transition-all hover:-translate-y-[1px] hover:shadow-[var(--shadow-4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)]";

@@ -117,10 +117,10 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                 style={handwritingFont}
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[8px_8px_0px_0px_var(--color-foreground)]">
+                <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-8)]">
                     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-8 py-6">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[2px_2px_0px_0px_var(--color-foreground)]">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
                                 <Music className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
@@ -130,7 +130,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                         </div>
                         <button
                             onClick={onClose}
-                            className="group/btn flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-[2px_2px_0px_0px_var(--color-foreground)]"
+                            className="group/btn flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none shadow-[var(--shadow-2)]"
                             aria-label="Close music modal"
                         >
                             <X className="h-5 w-5 text-[var(--color-foreground)]" />
@@ -164,7 +164,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 </div>
 
                                 <div
-                                    className={`relative z-20 flex h-48 w-48 overflow-hidden rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[6px_6px_0px_0px_rgba(0,0,0,0.15)] transition-transform duration-500 ${previewUrl ? "-rotate-3" : "rotate-0"}`}
+                                    className={`relative z-20 flex h-48 w-48 overflow-hidden rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${previewUrl ? "-rotate-3" : "rotate-0"}`}
                                 >
                                     {previewUrl && !error ? (
                                         <img
@@ -215,7 +215,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                                     handleSave();
                                                 }
                                             }}
-                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 text-base font-medium font-mono placeholder:font-mono shadow-[4px_4px_0px_0px_var(--color-muted)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[4px_4px_0px_0px_var(--color-foreground)]"
+                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 text-base font-medium font-mono placeholder:font-mono shadow-[var(--shadow-4-soft)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[var(--shadow-4)]"
                                         />
                                     </div>
                                 </div>
@@ -241,7 +241,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 <Button
                                     onClick={handleSave}
                                     disabled={!musicUrl.trim() || !!error}
-                                    className="h-14 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-lg uppercase tracking-wide shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+                                    className="h-14 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-lg uppercase tracking-wide shadow-[var(--shadow-4-strong)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     <Save className="mr-2 h-5 w-5" />
                                     Play Track

@@ -137,22 +137,34 @@
   --font-serif: Lora, serif;
   --font-mono: IBM Plex Mono, monospace;
   /* Hand-drawn shadows */
-  --shadow-color: rgba(31, 41, 55, 0.35);
-  --shadow-opacity: 0.35;
+  --shadow-edge: rgba(17, 24, 39, 0.28);
+  --shadow-edge-strong: rgba(17, 24, 39, 0.34);
+  --shadow-edge-soft: rgba(17, 24, 39, 0.18);
+  --shadow-color: var(--shadow-edge);
+  --shadow-opacity: 0.28;
   --shadow-blur: 0px;
   --shadow-spread: 0px;
   --shadow-offset-x: 4px;
   --shadow-offset-y: 4px;
   --letter-spacing: 0em;
   --spacing: 0.25rem;
-  --shadow-2xs: 2px 2px 0px 0px rgba(31, 41, 55, 0.25);
-  --shadow-xs: 2px 2px 0px 0px rgba(31, 41, 55, 0.3);
-  --shadow-sm: 3px 3px 0px 0px rgba(31, 41, 55, 0.3);
-  --shadow: 4px 4px 0px 0px rgba(31, 41, 55, 0.35);
-  --shadow-md: 4px 4px 0px 0px rgba(31, 41, 55, 0.35);
-  --shadow-lg: 6px 6px 0px 0px rgba(31, 41, 55, 0.35);
-  --shadow-xl: 6px 6px 0px 0px rgba(31, 41, 55, 0.35);
-  --shadow-2xl: 8px 8px 0px 0px rgba(31, 41, 55, 0.4);
+  --shadow-2xs: 2px 2px 0px 0px var(--shadow-edge-soft);
+  --shadow-xs: 2px 2px 0px 0px var(--shadow-edge);
+  --shadow-sm: 3px 3px 0px 0px var(--shadow-edge);
+  --shadow: 4px 4px 0px 0px var(--shadow-edge);
+  --shadow-md: 4px 4px 0px 0px var(--shadow-edge);
+  --shadow-lg: 6px 6px 0px 0px var(--shadow-edge);
+  --shadow-xl: 6px 6px 0px 0px var(--shadow-edge);
+  --shadow-2xl: 8px 8px 0px 0px var(--shadow-edge-strong);
+  --shadow-left-6: -6px 0px 0px 0px var(--shadow-edge);
+  --shadow-2: 2px 2px 0px 0px var(--shadow-edge-soft);
+  --shadow-4: 4px 4px 0px 0px var(--shadow-edge);
+  --shadow-4-soft: 4px 4px 0px 0px var(--shadow-edge-soft);
+  --shadow-4-strong: 4px 4px 0px 0px var(--shadow-edge-strong);
+  --shadow-6: 6px 6px 0px 0px var(--shadow-edge);
+  --shadow-6-soft: 6px 6px 0px 0px var(--shadow-edge-soft);
+  --shadow-8: 8px 8px 0px 0px var(--shadow-edge-strong);
+  --shadow-inset-1: inset 0 1px 0 var(--shadow-edge-soft);
   --shadow-ink-strong: 4px 4px 0px 0px rgba(17, 24, 39, 0.85);
   --shadow-ink-bold: 8px 8px 0px 0px rgba(17, 24, 39, 0.85);
   --shadow-ink-soft: 4px 4px 0px 0px rgba(17, 24, 39, 0.2);
@@ -174,6 +186,59 @@
   --tooltip-to: #e7e5e4;
   --tooltip-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
   --tracking-normal: 0em;
+}
+
+@layer utilities {
+  /* Map default shadow utilities to design tokens */
+  .shadow-2xs {
+    box-shadow: var(--shadow-2xs);
+  }
+
+  .shadow-xs {
+    box-shadow: var(--shadow-xs);
+  }
+
+  .shadow-sm {
+    box-shadow: var(--shadow-2);
+  }
+
+  .shadow-md {
+    box-shadow: var(--shadow-4);
+  }
+
+  .shadow-lg {
+    box-shadow: var(--shadow-6);
+  }
+
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: var(--shadow-8);
+  }
+
+  .shadow {
+    box-shadow: var(--shadow-4);
+  }
+
+  .shadow-left-6 {
+    box-shadow: var(--shadow-left-6);
+  }
+
+  .shadow-inset-1 {
+    box-shadow: var(--shadow-inset-1);
+  }
+
+  .drop-shadow-sm {
+    filter: drop-shadow(2px 2px 0 var(--shadow-edge-soft));
+  }
+
+  .drop-shadow-md {
+    filter: drop-shadow(3px 3px 0 var(--shadow-edge));
+  }
+
+  .drop-shadow-lg,
+  .drop-shadow-xl {
+    filter: drop-shadow(4px 4px 0 var(--shadow-edge-strong));
+  }
 }
 
 .night-mode {

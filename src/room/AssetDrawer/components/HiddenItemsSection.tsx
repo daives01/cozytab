@@ -20,7 +20,7 @@ export function HiddenItemsSection({
         <div className="space-y-3">
             <SectionHeader title="Hidden Items" count={items.length} collapsed={collapsed} onToggle={onToggleSection} />
             {!collapsed && (
-                <div className="rounded-2xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/10 p-3 shadow-[4px_4px_0px_0px_var(--color-foreground)]">
+                <div className="rounded-2xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/10 p-3 shadow-[var(--shadow-4)]">
                     {items.length > 0 ? (
                         <div className="space-y-3">
                             <div className="grid grid-cols-2 gap-3">
@@ -42,7 +42,7 @@ export function HiddenItemsSection({
                                 variant="secondary"
                                 onClick={onUnhideAll}
                                 disabled={isBulkUnhiding}
-                                className="w-full rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-foreground)] text-[var(--color-background)] font-black uppercase tracking-[0.18em] shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
+                                className="w-full rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-foreground)] text-[var(--color-background)] font-black uppercase tracking-[0.18em] shadow-[var(--shadow-4)] transition-all hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-none"
                             >
                                 {isBulkUnhiding ? "Unhiding..." : "Unhide all"}
                             </Button>

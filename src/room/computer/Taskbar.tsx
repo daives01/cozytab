@@ -104,7 +104,7 @@ export function Taskbar({
     const visibleTimeOfDay = devTimeOfDay ?? currentTimeOfDay;
 
     return (
-        <div className="bg-gradient-to-b from-[var(--taskbar-from)] to-[var(--taskbar-to)] border-t-2 border-[var(--taskbar-border)] p-1.5 px-2 shadow-[inset_0_1px_0_var(--tooltip-to)] text-[var(--ink)] relative">
+        <div className="bg-gradient-to-b from-[var(--taskbar-from)] to-[var(--taskbar-to)] border-t-2 border-[var(--taskbar-border)] p-1.5 px-2 shadow-[var(--shadow-inset-1)] text-[var(--ink)] relative">
             <div className="flex items-center gap-2">
                 <button
                     onClick={(e) => {

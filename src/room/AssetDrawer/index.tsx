@@ -78,12 +78,12 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
             className={`absolute right-0 top-0 bottom-0 z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isOpen ? "translate-x-0" : "translate-x-full"}`}
         >
             <div
-                className="relative flex h-full flex-col overflow-hidden rounded-l-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[-6px_0_0_0_var(--color-foreground)]"
+                className="relative flex h-full flex-col overflow-hidden rounded-l-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-left-6)]"
                 style={handwritingFont}
             >
                 <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-5 py-4">
                     <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[2px_2px_0px_0px_var(--color-foreground)]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
                             <Package className="h-6 w-6 text-[var(--color-foreground)]" />
                         </div>
                         <div>
@@ -91,7 +91,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
                             <h2 className="text-xl font-bold leading-none text-[var(--color-foreground)]">Storage</h2>
                         </div>
                     </div>
-                    <span className="hidden sm:inline-flex items-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] px-3 py-1 text-[11px] font-black uppercase tracking-wide shadow-[2px_2px_0px_0px_var(--color-foreground)]">
+                    <span className="hidden sm:inline-flex items-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] px-3 py-1 text-[11px] font-black uppercase tracking-wide shadow-[var(--shadow-2)]">
                         Drag to place
                     </span>
                 </div>

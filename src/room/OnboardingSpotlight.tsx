@@ -1,6 +1,6 @@
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { House } from "lucide-react";
 
 interface SpotlightPosition {
     top: number;
@@ -64,13 +64,10 @@ const BubbleTail = ({ shouldRender }: { shouldRender: boolean }) => {
 const BubbleHeader = () => (
     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-5 py-3">
         <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[2px_2px_0px_0px_var(--color-foreground)]">
-                <Sparkles className="h-5 w-5 text-[var(--color-foreground)]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
+                <House className="h-5 w-5 text-[var(--color-foreground)]" />
             </div>
-            <div className="leading-tight">
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--color-muted-foreground)]">Tutorial</p>
-                <p className="text-base font-bold text-[var(--color-foreground)]">Getting cozy</p>
-            </div>
+            <p className="text-base font-bold text-[var(--color-foreground)]">Tutorial</p>
         </div>
     </div>
 );
@@ -80,7 +77,7 @@ const BubbleActions = ({ showNext, onNext, showSkip, onSkip }: Pick<OnboardingSp
         {showNext && onNext && (
             <button
                 onClick={onNext}
-                className="h-11 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-foreground)] px-4 text-sm font-black uppercase tracking-wide text-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
+                className="h-11 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-foreground)] px-4 text-sm font-black uppercase tracking-wide text-[var(--color-background)] shadow-[var(--shadow-4)] transition-all hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-none active:translate-x-[4px] active:translate-y-[4px]"
             >
                 Got it
             </button>
@@ -232,7 +229,7 @@ export function OnboardingSpotlight({
                 className="animate-in fade-in slide-in-from-bottom-2 duration-300"
             >
                 <div
-                    className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[6px_6px_0px_0px_var(--color-foreground)]"
+                    className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6)]"
                     style={handwritingFont}
                 >
                     <BubbleTail shouldRender={shouldShowTail} />
