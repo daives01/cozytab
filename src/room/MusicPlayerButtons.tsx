@@ -107,7 +107,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
             ) : (
                 <div className="pointer-events-none absolute left-1/2 top-[calc(100%+8px)] -translate-x-1/2 z-20 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                     <button
-                        className="pointer-events-auto font-['Patrick_Hand'] h-12 w-12 md:h-11 md:w-11 rounded-full border-2 border-[var(--ink)] bg-black text-white shadow-md hover:scale-105 active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px] transition-all -rotate-1 flex items-center justify-center"
+                        className="pointer-events-auto font-['Patrick_Hand'] h-[56px] w-[56px] md:h-[52px] md:w-[52px] rounded-full border-2 border-[var(--ink)] bg-black text-white shadow-md hover:scale-105 active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px] transition-all -rotate-1 flex items-center justify-center"
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -117,7 +117,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
                         title={playing ? "Pause" : "Play"}
                         disabled={!isReady}
                     >
-                        {playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+                        {playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
                     </button>
                 </div>
             )}

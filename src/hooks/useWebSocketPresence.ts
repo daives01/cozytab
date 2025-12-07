@@ -242,40 +242,51 @@ export function useWebSocketPresence(
     // Send cursor position with throttling
     const sendCursor = useCallback((x: number, y: number, color?: string) => {
         if (!visitorId) return;
+
         const now = Date.now();
         const timeSinceLastSend = now - lastSendTimeRef.current;
+        const cursorColorToSend = color ?? latestCursorColorRef.current;
 
         if (timeSinceLastSend >= THROTTLE_MS) {
             lastSendTimeRef.current = now;
-            sendMessage({ type: "cursor", visitorId, x, y, cursorColor: color });
+            sendMessage({ type: "cursor", visitorId, x, y, cursorColor: cursorColorToSend });
             pendingCursorRef.current = null;
-        } else {
-            pendingCursorRef.current = { x, y };
+            return;
+        }
 
-            if (!throttleTimeoutRef.current) {
-                throttleTimeoutRef.current = setTimeout(() => {
-                    throttleTimeoutRef.current = null;
-                    if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
-                        lastSendTimeRef.current = Date.now();
-                        sendMessage({
-                            type: "cursor",
-                            visitorId,
-                            x: pendingCursorRef.current.x,
-                            y: pendingCursorRef.current.y,
-                            cursorColor: color,
-                        });
-                        pendingCursorRef.current = null;
-                    }
-                }, THROTTLE_MS - timeSinceLastSend);
-            }
+        pendingCursorRef.current = { x, y };
+
+        if (!throttleTimeoutRef.current) {
+            throttleTimeoutRef.current = setTimeout(() => {
+                throttleTimeoutRef.current = null;
+                if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+                    lastSendTimeRef.current = Date.now();
+                    sendMessage({
+                        type: "cursor",
+                        visitorId,
+                        x: pendingCursorRef.current.x,
+                        y: pendingCursorRef.current.y,
+                        cursorColor: latestCursorColorRef.current,
+                    });
+                    pendingCursorRef.current = null;
+                }
+            }, THROTTLE_MS - timeSinceLastSend);
         }
     }, [sendMessage, visitorId]);
 
     // Update cursor position (matches usePresence API)
     const updateCursor = useCallback(
-        (roomX: number, roomY: number, screenX: number, screenY: number) => {
+        (
+            roomX: number,
+            roomY: number,
+            screenX: number,
+            screenY: number,
+            shouldBroadcast: boolean = true
+        ) => {
             setScreenCursor({ x: screenX, y: screenY });
-            sendCursor(roomX, roomY, latestCursorColorRef.current);
+            if (shouldBroadcast) {
+                sendCursor(roomX, roomY, latestCursorColorRef.current);
+            }
         },
         [sendCursor]
     );

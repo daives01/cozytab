@@ -71,7 +71,6 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
     const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip");
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
-    const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
     const { user: clerkUser } = useUser();
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDay();
@@ -107,9 +106,6 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         if (assetUrl.startsWith("storage:")) return computerResolvedUrl ?? null;
         return assetUrl;
     }, [computerCatalogItem?.assetUrl, computerResolvedUrl]);
-
-    // Only enable presence when room is shared (has active invite)
-    const isRoomShared = useMemo(() => (activeInvites?.length ?? 0) > 0, [activeInvites]);
 
     const initialGuestSession = useMemo(() => {
         if (guestSession) return guestSession;
@@ -398,9 +394,9 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
 
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
-    // Only track presence when room is shared (has active invite)
+    // Track presence whenever the owner is viewing the room so visitors always see the host
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
-        !isGuest && room && visitorId && isRoomShared ? room._id : null,
+        !isGuest && room && visitorId ? room._id : null,
         visitorId ?? "",
         ownerName,
         true,
@@ -415,9 +411,10 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             lastRoomPositionRef.current.x,
             lastRoomPositionRef.current.y,
             screenCursor.x,
-            screenCursor.y
+            screenCursor.y,
+            hasVisitors
         );
-    }, [cursorColor, isGuest, screenCursor.x, screenCursor.y, updateCursor]);
+    }, [cursorColor, hasVisitors, isGuest, screenCursor.x, screenCursor.y, updateCursor]);
 
     const debouncedSaveRef = useRef<((roomId: Id<"rooms">, items: RoomItem[]) => void) | null>(null);
 
@@ -570,13 +567,13 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                 const clampedX = Math.max(0, Math.min(ROOM_WIDTH, roomX));
                 const clampedY = Math.max(0, Math.min(ROOM_HEIGHT, roomY));
                 lastRoomPositionRef.current = { x: clampedX, y: clampedY };
-                updateCursor(clampedX, clampedY, clientX, clientY);
+                updateCursor(clampedX, clampedY, clientX, clientY, hasVisitors);
             } else {
                 const { x, y } = lastRoomPositionRef.current;
-                updateCursor(x, y, clientX, clientY);
+                updateCursor(x, y, clientX, clientY, hasVisitors);
             }
         },
-        [scale, updateCursor]
+        [hasVisitors, scale, updateCursor]
     );
 
     const handleMouseEvent = (e: React.MouseEvent) => {
