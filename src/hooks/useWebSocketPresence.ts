@@ -97,16 +97,6 @@ export function useWebSocketPresence(
         switch (data.type) {
             case "state":
                 setVisitors(data.visitors);
-                // console.info("[Presence] state", {
-                //     count: data.visitors.length,
-                //     visitors: data.visitors.map((v) => ({
-                //         id: v.visitorId,
-                //         name: v.displayName,
-                //         isOwner: v.isOwner,
-                //         x: v.x,
-                //         y: v.y,
-                //     })),
-                // });
                 break;
             case "join":
                 setVisitors((prev) => {
@@ -142,12 +132,6 @@ export function useWebSocketPresence(
                             : v
                     )
                 );
-                console.info("[Presence] cursor", {
-                    id: data.visitorId,
-                    x: data.x,
-                    y: data.y,
-                    color: data.cursorColor,
-                });
                 break;
             case "rename":
                 setVisitors((prev) =>

@@ -1,0 +1,325 @@
+import { useEffect, useRef, useState, startTransition, useCallback } from "react";
+import type React from "react";
+import type { Id } from "../../../convex/_generated/dataModel";
+import type { RoomItem, ComputerShortcut } from "../../types";
+import type { DailyRewardToastPayload } from "../types/dailyReward";
+
+type RoomRecord = { _id: Id<"rooms">; items: RoomItem[] };
+
+export function useCursorColorSaver(
+    saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void,
+    authedShortcutsRef: React.MutableRefObject<ComputerShortcut[]>,
+    saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>
+) {
+    useEffect(() => {
+        saveAuthedCursorColorRef.current = (next: string) => {
+            saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor: next });
+        };
+    }, [authedShortcutsRef, saveAuthedCursorColorRef, saveComputer]);
+}
+
+export function useGuestBootstrap({
+    isGuest,
+    guestSessionLoadedRef,
+    initialGuestSession,
+    guestRoomItems,
+    guestTemplateItems,
+    setLocalItems,
+}: {
+    isGuest: boolean;
+    guestSessionLoadedRef: React.MutableRefObject<boolean>;
+    initialGuestSession: { roomItems: RoomItem[] } | null;
+    guestRoomItems: RoomItem[] | undefined;
+    guestTemplateItems: RoomItem[] | undefined;
+    setLocalItems: (updater: (prev: RoomItem[]) => RoomItem[]) => void;
+}) {
+    useEffect(() => {
+        if (!isGuest || guestSessionLoadedRef.current) return;
+
+        const session = initialGuestSession ?? { roomItems: [] };
+
+        if (session.roomItems.length > 0) {
+            setLocalItems(() => session.roomItems as RoomItem[]);
+        } else if (guestRoomItems?.length) {
+            setLocalItems(() => guestRoomItems as RoomItem[]);
+        } else {
+            if (guestTemplateItems && guestTemplateItems.length > 0) {
+                setLocalItems(() => guestTemplateItems as RoomItem[]);
+            }
+        }
+
+        guestSessionLoadedRef.current = true;
+    }, [guestRoomItems, guestTemplateItems, guestSessionLoadedRef, initialGuestSession, isGuest, setLocalItems]);
+}
+
+export function useReconcileGuestOnboarding({
+    isGuest,
+    reconciledGuestOnboardingRef,
+    user,
+    initialGuestSession,
+    completeOnboarding,
+    clearGuestSession,
+}: {
+    isGuest: boolean;
+    reconciledGuestOnboardingRef: React.MutableRefObject<boolean>;
+    user: { displayName?: string | null } | null | undefined;
+    initialGuestSession: { onboardingCompleted?: boolean | null } | null;
+    completeOnboarding: () => Promise<unknown>;
+    clearGuestSession: () => void;
+}) {
+    useEffect(() => {
+        if (isGuest || reconciledGuestOnboardingRef.current || !user) return;
+
+        const guestCompleted = initialGuestSession?.onboardingCompleted ?? false;
+
+        if (guestCompleted) {
+            reconciledGuestOnboardingRef.current = true;
+            completeOnboarding()
+                .catch(() => {})
+                .finally(() => {
+                    clearGuestSession();
+                });
+        } else {
+            clearGuestSession();
+        }
+    }, [clearGuestSession, completeOnboarding, initialGuestSession?.onboardingCompleted, isGuest, reconciledGuestOnboardingRef, user]);
+}
+
+export function useOwnerPresenceCursorSync({
+    isGuest,
+    updateCursor,
+    screenCursor,
+    hasVisitors,
+    lastRoomPositionRef,
+}: {
+    isGuest: boolean;
+    updateCursor: (x: number, y: number, clientX: number, clientY: number, hasVisitors: boolean) => void;
+    screenCursor: { x: number; y: number };
+    hasVisitors: boolean;
+    lastRoomPositionRef: React.MutableRefObject<{ x: number; y: number }>;
+}) {
+    useEffect(() => {
+        if (isGuest) return;
+        updateCursor(
+            lastRoomPositionRef.current.x,
+            lastRoomPositionRef.current.y,
+            screenCursor.x,
+            screenCursor.y,
+            hasVisitors
+        );
+    }, [hasVisitors, isGuest, screenCursor.x, screenCursor.y, updateCursor, lastRoomPositionRef]);
+}
+
+export function useDebouncedRoomSave({
+    isGuest,
+    mode,
+    room,
+    localItems,
+    saveRoom,
+}: {
+    isGuest: boolean;
+    mode: "view" | "edit";
+    room: RoomRecord | null | undefined;
+    localItems: RoomItem[];
+    saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
+}) {
+    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastSavedSerializedRef = useRef<string>("");
+    const prevModeRef = useRef<typeof mode>(mode);
+
+    const saveNow = useCallback(
+        (roomId: Id<"rooms">, items: RoomItem[]) => {
+            const serialized = JSON.stringify(items);
+            if (serialized === lastSavedSerializedRef.current) return;
+            saveRoom({ roomId, items });
+            lastSavedSerializedRef.current = serialized;
+        },
+        [saveRoom]
+    );
+
+    useEffect(() => {
+        if (!canSave(isGuest)) return;
+        if (!room || mode !== "edit") {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = null;
+            }
+            return;
+        }
+
+        const roomId = room._id;
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+        }
+
+        saveTimeoutRef.current = setTimeout(() => {
+            saveNow(roomId, localItems);
+            saveTimeoutRef.current = null;
+        }, 400);
+
+        return () => {
+            if (saveTimeoutRef.current) {
+                clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = null;
+            }
+        };
+    }, [isGuest, localItems, mode, room, saveNow]);
+
+    useEffect(() => {
+        if (!canSave(isGuest)) {
+            prevModeRef.current = mode;
+            return;
+        }
+        if (!room) {
+            prevModeRef.current = mode;
+            return;
+        }
+
+        const prevMode = prevModeRef.current;
+        if (prevMode === "edit" && mode === "view") {
+            saveNow(room._id, localItems);
+        }
+        prevModeRef.current = mode;
+    }, [isGuest, localItems, mode, room, saveNow]);
+}
+
+function canSave(isGuest: boolean) {
+    return !isGuest;
+}
+
+export function useEnsureRoomLoaded({
+    room,
+    isGuest,
+    setLocalItems,
+    createRoom,
+}: {
+    room: RoomRecord | null | undefined;
+    isGuest: boolean;
+    setLocalItems: (items: RoomItem[]) => void;
+    createRoom: () => void;
+}) {
+    const hasHydratedRef = useRef(false);
+    const lastRoomIdRef = useRef<Id<"rooms"> | null>(null);
+
+    useEffect(() => {
+        if (!isGuest) {
+            if (room === null) {
+                createRoom();
+            } else if (room) {
+                const roomId = room._id;
+                const isNewRoom = roomId !== lastRoomIdRef.current;
+                if (!hasHydratedRef.current || isNewRoom) {
+                    setLocalItems(room.items as RoomItem[]);
+                    hasHydratedRef.current = true;
+                    lastRoomIdRef.current = roomId;
+                }
+            }
+        }
+    }, [room, createRoom, isGuest, setLocalItems]);
+}
+
+export function useLeaseHeartbeat({
+    isGuest,
+    room,
+    renewLease,
+}: {
+    isGuest: boolean;
+    room: RoomRecord | null | undefined;
+    renewLease: (args: { roomId: Id<"rooms"> }) => Promise<unknown>;
+}) {
+    useEffect(() => {
+        if (isGuest) return;
+        if (!room) return;
+
+        let cancelled = false;
+
+        const sendHeartbeat = () => {
+            renewLease({ roomId: room._id }).catch((err) => {
+                console.error("[Room] renewLease failed", err);
+            });
+        };
+
+        sendHeartbeat();
+        const intervalId = setInterval(() => {
+            if (cancelled) return;
+            sendHeartbeat();
+        }, 60_000);
+
+        return () => {
+            cancelled = true;
+            clearInterval(intervalId);
+        };
+    }, [isGuest, renewLease, room]);
+}
+
+export function useSyncComputerState({
+    isGuest,
+    computerState,
+    setLocalShortcuts,
+    setAuthedCursorColor,
+    userCursorColor,
+}: {
+    isGuest: boolean;
+    computerState: { shortcuts?: ComputerShortcut[]; cursorColor?: string } | null | undefined;
+    setLocalShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    setAuthedCursorColor: (color: string) => void;
+    userCursorColor?: string | null;
+}) {
+    useEffect(() => {
+        if (isGuest) return;
+        if (!computerState) return;
+        startTransition(() => {
+            setLocalShortcuts((computerState.shortcuts as ComputerShortcut[]) ?? []);
+            if (computerState.cursorColor) {
+                setAuthedCursorColor(computerState.cursorColor);
+            } else if (userCursorColor) {
+                setAuthedCursorColor(userCursorColor);
+            }
+        });
+    }, [computerState, isGuest, setAuthedCursorColor, setLocalShortcuts, userCursorColor]);
+}
+
+export function useViewportWidth() {
+    const [viewportWidth, setViewportWidth] = useState<number>(() =>
+        typeof window !== "undefined" ? window.innerWidth : 1280
+    );
+
+    useEffect(() => {
+        const handleResize = () => {
+            setViewportWidth(window.innerWidth);
+        };
+
+        handleResize();
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    return viewportWidth;
+}
+
+export function useDailyRewardToastTimer(
+    dailyRewardToast: DailyRewardToastPayload | null,
+    setDailyRewardToast: (next: DailyRewardToastPayload | null) => void
+) {
+    useEffect(() => {
+        if (!dailyRewardToast) return;
+        const timer = window.setTimeout(() => setDailyRewardToast(null), 4500);
+        return () => window.clearTimeout(timer);
+    }, [dailyRewardToast, setDailyRewardToast]);
+}
+
+export function useOnboardingAssetPrefetch(
+    onboardingActive: boolean,
+    resolvedComputerAssetUrl: string | null,
+    computerPrefetchedRef: React.MutableRefObject<boolean>
+) {
+    useEffect(() => {
+        if (!onboardingActive) return;
+        if (computerPrefetchedRef.current) return;
+        if (!resolvedComputerAssetUrl) return;
+
+        const img = new Image();
+        img.src = resolvedComputerAssetUrl;
+        computerPrefetchedRef.current = true;
+    }, [resolvedComputerAssetUrl, onboardingActive, computerPrefetchedRef]);
+}

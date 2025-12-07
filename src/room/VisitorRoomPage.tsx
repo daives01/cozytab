@@ -5,13 +5,10 @@ import { Link, useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
-import { PresenceCursor } from "./PresenceCursor";
 import { LocalCursor } from "./LocalCursor";
-import { useWebSocketPresence } from "../hooks/useWebSocketPresence";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import { RoomCanvas } from "./RoomCanvas";
 import type { ComputerShortcut, RoomItem } from "../types";
 import { api } from "../../convex/_generated/api";
 import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
@@ -19,7 +16,7 @@ import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
-import { useTimeOfDay } from "./hooks/useTimeOfDay";
+import { useTimeOfDayControls } from "./hooks/useTimeOfDayControls";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
@@ -32,6 +29,10 @@ import {
     guestNormalizedShortcutsAtom,
     guestShortcutsAtom,
 } from "./guestState";
+import { usePresenceAndChat } from "./hooks/usePresenceChat";
+import { PresenceLayer } from "./components/PresenceLayer";
+import { RoomShell } from "./RoomShell";
+import { ChatHint } from "./components/ChatHint";
 
 const nowTimestamp = () => Date.now();
 
@@ -50,7 +51,7 @@ export function VisitorRoomPage() {
     const saveComputer = useMutation(api.users.saveMyComputer);
 
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
@@ -59,7 +60,7 @@ export function VisitorRoomPage() {
     const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
-    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDay();
+    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
 
     // Guest-local computer state
     const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
@@ -111,13 +112,15 @@ export function VisitorRoomPage() {
             ? roomData?.room?._id ?? null
             : null;
 
-    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = useWebSocketPresence(
-        presenceRoomId,
-        visitorIdentity.id,
-        visitorIdentity.name,
-        false,
-        visitorIdentity.cursorColor
-    );
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresenceAndChat({
+        roomId: presenceRoomId,
+        identity: {
+            id: visitorIdentity.id,
+            name: visitorIdentity.name,
+            cursorColor: visitorIdentity.cursorColor,
+        },
+        isOwner: false,
+    });
     const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
     useCursorColor(visitorIdentity.cursorColor);
@@ -288,20 +291,7 @@ export function VisitorRoomPage() {
                 />
             ))}
 
-            {visitors
-                .filter((v) => v.visitorId !== visitorIdentity.id)
-                .map((visitor) => (
-                    <PresenceCursor
-                        key={visitor.visitorId}
-                        name={visitor.displayName}
-                        isOwner={visitor.isOwner}
-                        x={visitor.x}
-                        y={visitor.y}
-                        chatMessage={visitor.chatMessage}
-                        scale={scale}
-                        cursorColor={visitor.cursorColor}
-                    />
-                ))}
+            <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} />
         </>
     );
 
@@ -330,24 +320,7 @@ export function VisitorRoomPage() {
             </div>
 
             <ChatInput onMessageChange={updateChatMessage} />
-
-            <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
-                <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
-                    <span className="font-mono bg-[var(--ink-light)] px-1.5 py-0.5 rounded text-xs mr-1.5">/</span>
-                    <span
-                        style={{
-                            fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-                            fontSize: "1.07em",
-                            fontWeight: 400,
-                            fontStyle: "normal",
-                            fontSynthesis: "none",
-                            fontOpticalSizing: "none",
-                        }}
-                    >
-                        to chat
-                    </span>
-                </div>
-            </div>
+            <ChatHint />
 
             <LocalCursor
                 x={screenCursor.x}
@@ -403,8 +376,8 @@ export function VisitorRoomPage() {
     );
 
     return (
-        <RoomCanvas
-            backgroundUrl={backgroundUrl}
+        <RoomShell
+            backgroundUrl={backgroundUrl ?? null}
             scale={scale}
             timeOfDay={timeOfDay}
             containerRef={containerRef}
