@@ -22,7 +22,8 @@ export default defineSchema({
                 cursorColor: v.optional(v.string()),
             })
         ),
-        lastDailyReward: v.optional(v.number()),
+        lastDailyRewardDay: v.optional(v.string()),
+        loginStreak: v.optional(v.number()),
         onboardingCompleted: v.optional(v.boolean()),
         referralCode: v.string(),
         referredBy: v.optional(v.id("users")),

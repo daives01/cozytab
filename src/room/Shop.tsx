@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { Coins, Home, Package } from "lucide-react";
+import { Clock, Coins, Flame, Home, Package, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
 import { ItemsTab } from "./shop/ItemsTab";
@@ -33,7 +33,8 @@ function normalizeCategory(category: string) {
 
 interface ShopProps {
     userCurrency: number;
-    lastDailyReward?: number;
+    nextRewardAt?: number;
+    loginStreak?: number;
     onOnboardingPurchase?: () => void;
     isGuest?: boolean;
     guestCoins?: number;
@@ -86,7 +87,8 @@ function sortCategories(categories: string[]) {
 
 export function Shop({
     userCurrency,
-    lastDailyReward,
+    nextRewardAt,
+    loginStreak,
     onOnboardingPurchase,
     isGuest = false,
     guestCoins,
@@ -208,28 +210,18 @@ export function Shop({
 
     const nextRewardText = useMemo(() => {
         if (isGuest) return "";
-        if (!lastDailyReward) {
-            return "(next cozy coin ready)";
-        }
-        const nextAvailableAt = lastDailyReward + 24 * 60 * 60 * 1000;
-        const diff = nextAvailableAt - now;
-        if (diff <= 0) {
-            return "(next cozy coin ready)";
-        }
+        const target = nextRewardAt;
+        if (target == null) return "Ready now";
+        const diff = target - now;
+        if (diff <= 0) return "Ready now";
         const oneHourMs = 60 * 60 * 1000;
         if (diff < oneHourMs) {
             const minutes = Math.ceil(diff / (60 * 1000));
-            return `(next cozy coin in ${minutes} min${minutes === 1 ? "" : "s"})`;
+            return `${minutes} min`;
         }
         const hours = Math.ceil(diff / oneHourMs);
-        return `(next cozy coin in ${hours} hr${hours === 1 ? "" : "s"})`;
-    }, [lastDailyReward, now, isGuest]);
-
-    const referralText = useMemo(() => {
-        if (isGuest) return "";
-        const count = referralStats?.referralCoins ?? referralStats?.referralCount ?? 0;
-        return `(${count} cozy coins from referrals so far)`;
-    }, [referralStats, isGuest]);
+        return `${hours} hr`;
+    }, [nextRewardAt, now, isGuest]);
 
     const containerClasses =
         "relative bg-[var(--paper)] rounded-xl shadow-lg w-full h-full border-2 border-[var(--ink)] overflow-hidden flex flex-col";
@@ -286,12 +278,31 @@ export function Shop({
                         </button>
                     </div>
                     <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-end leading-tight">
-                            <span className="text-xs font-bold text-[var(--ink)]">{nextRewardText}</span>
-                            <span className="text-[10px] font-semibold text-[var(--ink-subtle)]">
-                                {referralText}
-                            </span>
-                        </div>
+                        {!isGuest && (
+                            <div className="flex items-center gap-3 text-xs font-bold text-neutral-500">
+                                <div className="flex items-center gap-1.5" title="Login Streak">
+                                    <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500" />
+                                    <span>{loginStreak ?? 0}d streak</span>
+                                </div>
+                                <div className="h-1 w-1 rounded-full bg-neutral-300" />
+                                <div className="flex items-center gap-1.5" title="Next Reward">
+                                    <Clock className="h-3.5 w-3.5 text-neutral-400" />
+                                    <span>{nextRewardText}</span>
+                                </div>
+                                {(referralStats?.referralCoins ?? 0) > 0 && (
+                                    <>
+                                        <div className="h-1 w-1 rounded-full bg-neutral-300" />
+                                        <div className="flex items-center gap-1.5" title="Referral Earnings">
+                                            <Users className="h-3.5 w-3.5 text-blue-500" />
+                                            <span>
+                                                {referralStats?.referralCoins} referral
+                                                {referralStats?.referralCoins === 1 ? "" : "s"}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                         <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-3 py-1 border-2 border-[var(--ink)] shadow-sm">
                             <Coins className="h-4 w-4 text-[var(--warning)]" />
                             <span className="font-bold text-sm text-[var(--ink)]">{effectiveCoins}</span>

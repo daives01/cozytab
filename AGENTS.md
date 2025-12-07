@@ -17,7 +17,7 @@
 - `public/` static assets.
 
 ## Data Model (Convex)
-- `users`: externalId, username, displayName?, currency, computer.shortcuts[], lastDailyReward?, onboardingCompleted?, referralCode, referredBy?, admin?; indexes `by_externalId`, `by_referralCode`, `by_referredBy`.
+- `users`: externalId, username, displayName?, currency, computer.shortcuts[], lastDailyRewardDay?, loginStreak?, onboardingCompleted?, referralCode, referredBy?, admin?; indexes `by_externalId`, `by_referralCode`, `by_referredBy`.
 - `roomTemplates`: name, description?, basePrice, backgroundUrl, isDefault; index `by_default`.
 - `rooms`: userId, templateId, name, isActive, items[], shortcuts?; indexes `by_user`, `by_user_active`.
   - Item fields: id, catalogItemId, x, y, url?, flipped?, musicUrl?, musicType? ("youtube"), musicPlaying?, musicStartedAt?, musicPositionAtStart?.

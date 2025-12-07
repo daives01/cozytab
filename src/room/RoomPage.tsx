@@ -15,6 +15,8 @@ import { ChatInput } from "./ChatInput";
 import { Onboarding } from "./Onboarding";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
+import { DailyRewardToast } from "./components/DailyRewardToast";
+import type { DailyRewardToastPayload } from "./types/dailyReward";
 import { useUser } from "@clerk/clerk-react";
 import { debounce } from "@/lib/debounce";
 import type React from "react";
@@ -131,6 +133,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
     const [authedMusicPlayerItemId, setAuthedMusicPlayerItemId] = useState<string | null>(null);
     const [musicAutoplay, setMusicAutoplay] = useState<{ itemId: string; token: string } | null>(null);
+    const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
     const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
     const [guestOnboardingCompletedState, setGuestOnboardingCompletedState] = useState<boolean>(
         () => initialGuestSession?.onboardingCompleted ?? false
@@ -461,11 +464,30 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
         }
     }, [isGuest, localItems, mode, room]);
 
-    useDailyReward({
+    const dailyRewardInfo = useDailyReward({
         user,
         isGuest,
         claimDailyReward,
+        onReward: ({ awardedAt, loginStreak }) => {
+            setDailyRewardToast({
+                awardedAt,
+                loginStreak,
+            });
+        },
     });
+
+    const effectiveLoginStreak =
+        dailyRewardInfo.loginStreak ?? (user as { loginStreak?: number } | null | undefined)?.loginStreak ?? null;
+    const effectiveNextRewardAt =
+        dailyRewardInfo.nextRewardAt ??
+        (user as { nextRewardAt?: number | null } | null | undefined)?.nextRewardAt ??
+        null;
+
+    useEffect(() => {
+        if (!dailyRewardToast) return;
+        const timer = window.setTimeout(() => setDailyRewardToast(null), 4500);
+        return () => window.clearTimeout(timer);
+    }, [dailyRewardToast]);
 
     const { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete } = useOnboarding({
         user,
@@ -712,7 +734,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                     }
                 }}
                 userCurrency={user?.currency ?? guestCoinsValue ?? 0}
-                lastDailyReward={user?.lastDailyReward}
+                nextRewardAt={effectiveNextRewardAt ?? undefined}
+                loginStreak={effectiveLoginStreak ?? undefined}
                 onShopOpened={() => {
                     if (onboardingStep === "open-shop") {
                         advanceOnboarding();
@@ -798,6 +821,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
                     isGuest={isGuest}
                 />
             )}
+
+            {!isGuest && dailyRewardToast && <DailyRewardToast toast={dailyRewardToast} />}
 
             {!isGuest && hasVisitors && (
                 <ChatInput

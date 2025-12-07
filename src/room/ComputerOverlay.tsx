@@ -8,14 +8,15 @@ import {
     guestNormalizedShortcutsAtom,
 } from "./guestState";
 
-interface ComputerOverlayProps {
+export interface ComputerOverlayProps {
     isGuest: boolean;
     isComputerOpen: boolean;
     onCloseComputer: () => void;
     shortcuts: ComputerShortcut[];
     onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
     userCurrency: number;
-    lastDailyReward?: number;
+    nextRewardAt?: number;
+    loginStreak?: number;
     onShopOpened?: () => void;
     onOnboardingPurchase?: () => void;
     onOnboardingShortcutAdded?: () => void;
@@ -41,7 +42,8 @@ export function ComputerOverlay({
     shortcuts,
     onUpdateShortcuts,
     userCurrency,
-    lastDailyReward,
+    nextRewardAt,
+    loginStreak,
     onShopOpened,
     onOnboardingPurchase,
     onOnboardingShortcutAdded,
@@ -85,7 +87,8 @@ export function ComputerOverlay({
             onClose={onCloseComputer}
             onUpdateShortcuts={handleShortcutsUpdate}
             userCurrency={userCurrency}
-            lastDailyReward={lastDailyReward}
+            nextRewardAt={nextRewardAt}
+            loginStreak={loginStreak}
             onShopOpened={onShopOpened}
             onOnboardingPurchase={onOnboardingPurchase}
             onOnboardingShortcutAdded={onOnboardingShortcutAdded}

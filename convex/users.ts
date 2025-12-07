@@ -9,6 +9,7 @@ import {
     type GuestSessionState,
     type GuestShortcut,
 } from "../shared/guestTypes";
+import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
 
 type AnyCtx = QueryCtx | MutationCtx;
 
@@ -78,7 +79,13 @@ export const getMe = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
-        return user;
+        if (!user) return null;
+
+        const now = Date.now();
+        return {
+            ...user,
+            nextRewardAt: getNextMountainMidnightUtc(now),
+        };
     },
 });
 
@@ -453,6 +460,7 @@ export const ensureUser = mutation({
                     shortcuts: normalizedGuestShortcuts,
                     cursorColor,
                 },
+                loginStreak: 0,
                 onboardingCompleted: guestSessionState.onboardingCompleted === true,
                 referralCode: newReferralCode,
                 referredBy: referrerId,
@@ -563,19 +571,36 @@ export const claimDailyReward = mutation({
         const { user } = await requireUser(ctx);
 
         const now = Date.now();
-        const lastReward = user.lastDailyReward ?? 0;
-        const oneDayMs = 24 * 60 * 60 * 1000;
+        const todayKey = getMountainDayKey(now);
+        const nextRewardAt = getNextMountainMidnightUtc(now);
 
-        if (now - lastReward < oneDayMs) {
-            return { success: false, message: "Daily reward already claimed" };
+        if (user.lastDailyRewardDay === todayKey) {
+            return {
+                success: false,
+                message: "Daily reward already claimed",
+                nextRewardAt,
+                loginStreak: user.loginStreak ?? 0,
+                lastDailyRewardDay: user.lastDailyRewardDay,
+            };
         }
+
+        const dayDelta = getDayDelta(user.lastDailyRewardDay, todayKey);
+        const previousStreak = user.loginStreak ?? 0;
+        const nextStreak = dayDelta === 1 ? previousStreak + 1 : 1;
 
         await ctx.db.patch(user._id, {
             currency: user.currency + 1,
-            lastDailyReward: now,
+            lastDailyRewardDay: todayKey,
+            loginStreak: nextStreak,
         });
 
-        return { success: true, newBalance: user.currency + 1 };
+        return {
+            success: true,
+            newBalance: user.currency + 1,
+            lastDailyRewardDay: todayKey,
+            loginStreak: nextStreak,
+            nextRewardAt,
+        };
     },
 });
 

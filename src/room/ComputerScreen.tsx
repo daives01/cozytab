@@ -45,7 +45,8 @@ interface ComputerScreenProps {
     onClose: () => void;
     onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
     userCurrency: number;
-    lastDailyReward?: number;
+    nextRewardAt?: number;
+    loginStreak?: number;
     onShopOpened?: () => void;
     onOnboardingPurchase?: () => void;
     onOnboardingShortcutAdded?: () => void;
@@ -70,7 +71,8 @@ export function ComputerScreen({
     onClose,
     onUpdateShortcuts,
     userCurrency,
-    lastDailyReward,
+    nextRewardAt,
+    loginStreak,
     onShopOpened,
     onOnboardingPurchase,
     onOnboardingShortcutAdded,
@@ -732,7 +734,8 @@ export function ComputerScreen({
 
     const shopWindowProps = {
         userCurrency,
-        lastDailyReward,
+        nextRewardAt,
+        loginStreak,
         onOnboardingPurchase,
         isGuest,
         guestCoins,
