@@ -13,6 +13,7 @@ interface RoomCanvasProps {
     onDrop?: React.DragEventHandler<HTMLDivElement>;
     onBackgroundClick?: () => void;
     outerClassName?: string;
+    outerStyle?: React.CSSProperties;
     roomContent: React.ReactNode;
     overlays?: React.ReactNode;
 }
@@ -28,11 +29,12 @@ export function RoomCanvas({
     onDrop,
     onBackgroundClick,
     outerClassName,
+    outerStyle,
     roomContent,
     overlays,
 }: RoomCanvasProps) {
     const outerClass = [
-        "relative w-screen h-screen overflow-hidden font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
+        "relative w-full h-full overflow-hidden font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
     ]
         .filter(Boolean)
@@ -60,6 +62,7 @@ export function RoomCanvas({
             style={{
                 background: backgroundGradient,
                 transition: "background 400ms ease",
+                ...outerStyle,
             }}
         >
             <div

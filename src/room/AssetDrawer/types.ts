@@ -16,6 +16,7 @@ export interface AssetDrawerProps {
     highlightComputer?: boolean;
     isGuest?: boolean;
     guestItems?: GuestDrawerItem[] | undefined;
+    orientation?: "left" | "bottom";
 }
 
 export interface FilterPillsProps {
@@ -32,6 +33,7 @@ export interface ItemCardProps {
     showHideControls?: boolean;
     onDragStart: (e: React.DragEvent, id: string) => void;
     onToggleHidden: (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => void;
+    compact?: boolean;
 }
 
 export interface HiddenItemsSectionProps {

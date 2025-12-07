@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, type DragEvent, useRef, useCallback, startTransition } from "react";
 import { useAtomValue, useSetAtom, useAtom } from "jotai";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { ItemNode } from "./ItemNode";
@@ -28,9 +28,9 @@ import { useCursorColor } from "./hooks/useCursorColor";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
 import { isMusicItem } from "./roomUtils";
 import { canSave, canShare, canUseComputer } from "./utils/sessionGuards";
-import { RoomToolbar } from "./RoomToolbar";
-import { EditDrawer } from "./EditDrawer";
+import { ToolbarWithDrawer } from "./components/ToolbarWithDrawer";
 import { ComputerOverlay } from "./ComputerOverlay";
+import { useDrawerLayout } from "./hooks/useDrawerLayout";
 import {
     clearGuestSession,
     readGuestSession,
@@ -131,7 +131,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     const [authedMusicPlayerItemId, setAuthedMusicPlayerItemId] = useState<string | null>(null);
     const [musicAutoplay, setMusicAutoplay] = useState<{ itemId: string; token: string } | null>(null);
     const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
-    const [guestSessionLoaded, setGuestSessionLoaded] = useState(false);
+    const guestSessionLoadedRef = useRef(false);
     const [guestOnboardingCompletedState, setGuestOnboardingCompletedState] = useState<boolean>(
         () => initialGuestSession?.onboardingCompleted ?? false
     );
@@ -224,6 +224,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             ? guestCursorColor
             : authedCursorColor ?? computerState?.cursorColor ?? user?.cursorColor) ?? "var(--chart-4)";
     useCursorColor(cursorColor);
+
+    const { orientation: drawerOrientation, drawerInsetLeft, drawerInsetBottom, toolbarOffset } = useDrawerLayout(isDrawerOpen, viewportWidth);
 
     const computedDisplayName = useMemo(
         () => displayNameValue ?? user?.displayName ?? user?.username ?? clerkUser?.username ?? "You",
@@ -335,7 +337,7 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     );
 
     useEffect(() => {
-        if (!isGuest || guestSessionLoaded) return;
+        if (!isGuest || guestSessionLoadedRef.current) return;
 
         const session = initialGuestSession ?? readGuestSession();
 
@@ -350,9 +352,8 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
             }
         }
 
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setGuestSessionLoaded(true);
-    }, [guestSessionLoaded, guestRoom, guestTemplate, initialGuestSession, isGuest, setLocalItems]);
+        guestSessionLoadedRef.current = true;
+    }, [guestRoom, guestTemplate, initialGuestSession, isGuest, setLocalItems]);
 
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
@@ -464,13 +465,14 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     useEffect(() => {
         if (isGuest) return;
         if (!computerState) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLocalShortcuts(computerState.shortcuts as ComputerShortcut[]);
-        if (computerState.cursorColor) {
-            setAuthedCursorColor(computerState.cursorColor);
-        } else if (user?.cursorColor) {
-            setAuthedCursorColor(user.cursorColor);
-        }
+        startTransition(() => {
+            setLocalShortcuts(computerState.shortcuts as ComputerShortcut[]);
+            if (computerState.cursorColor) {
+                setAuthedCursorColor(computerState.cursorColor);
+            } else if (user?.cursorColor) {
+                setAuthedCursorColor(user.cursorColor);
+            }
+        });
     }, [computerState, isGuest, setAuthedCursorColor, setLocalShortcuts, user?.cursorColor]);
 
     useEffect(() => {
@@ -732,27 +734,24 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
 
     const overlays = (
         <>
-            <RoomToolbar
+            <ToolbarWithDrawer
                 isGuest={isGuest}
                 mode={mode}
-                onToggleMode={handleModeToggle}
                 shareAllowed={shareAllowed}
                 visitorCount={visitorCount}
-                onShareClick={() => setIsShareModalOpen(true)}
-            />
-
-            <EditDrawer
-                mode={mode}
+                drawerOffset={toolbarOffset}
+                drawerOrientation={drawerOrientation}
                 isDrawerOpen={isDrawerOpen}
-                onDrawerToggle={handleDrawerToggle}
                 draggedItemId={draggedItemId}
+                highlightComputer={onboardingStep === "place-computer"}
+                guestItems={guestDrawerItems}
+                onToggleMode={handleModeToggle}
+                onShareClick={() => setIsShareModalOpen(true)}
+                onDrawerToggle={handleDrawerToggle}
                 onDeleteItem={(itemId) => {
                     setLocalItems((prev: RoomItem[]) => prev.filter((item: RoomItem) => item.id !== itemId));
                     setSelectedId((current) => (current === itemId ? null : current));
                 }}
-                highlightComputer={onboardingStep === "place-computer"}
-                isGuest={isGuest}
-                guestItems={guestDrawerItems}
             />
 
             <ComputerOverlay
@@ -898,19 +897,26 @@ export function RoomPage({ isGuest = false, guestSession }: RoomPageProps) {
     );
 
     return (
-        <RoomCanvas
-            backgroundUrl={backgroundUrl}
-            scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            onBackgroundClick={() => setSelectedId(null)}
-            outerClassName={draggedItemId ? "select-none" : ""}
-            roomContent={roomContent}
-            overlays={overlays}
-        />
+        <div className="h-screen w-screen">
+            <RoomCanvas
+                backgroundUrl={backgroundUrl}
+                scale={scale}
+                timeOfDay={timeOfDay}
+                containerRef={containerRef}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onMouseMove={handleMouseEvent}
+                onMouseEnter={handleMouseEvent}
+                onBackgroundClick={() => setSelectedId(null)}
+                outerClassName={draggedItemId ? "select-none" : ""}
+                outerStyle={{
+                    paddingLeft: drawerInsetLeft,
+                    paddingBottom: drawerInsetBottom,
+                    transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                roomContent={roomContent}
+                overlays={overlays}
+            />
+        </div>
     );
 }

@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { AssetImage } from "../../../components/AssetImage";
-import { cardClass, iconButtonClass } from "../constants";
+import { cardClass, compactCardClass, iconButtonClass } from "../constants";
+import { setDragImageFromElement } from "../../utils/dragPreview";
 import type { ItemCardProps } from "../types";
 
 export function ItemCard({
@@ -12,6 +13,7 @@ export function ItemCard({
     showHideControls,
     onDragStart,
     onToggleHidden,
+    compact = false,
 }: ItemCardProps) {
     const categoryKey = item.category.toLowerCase();
     const isComputer = categoryKey.includes("computer");
@@ -25,17 +27,21 @@ export function ItemCard({
         <Card
             key={item.inventoryId}
             data-onboarding={isComputer ? "storage-item-computer" : undefined}
-            className={`${cardClass} ${highlightClass}`}
+            className={`${compact ? compactCardClass : cardClass} ${highlightClass}`}
             draggable
             onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = "move";
+                const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
+                setDragImageFromElement(e, img);
                 onDragStart(e, item.catalogItemId);
             }}
             tabIndex={0}
             role="button"
             aria-label={`${item.name} item`}
         >
-            <div className="relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20">
+            <div
+                className="relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20 cursor-grab active:cursor-grabbing"
+            >
                 <AssetImage assetUrl={item.assetUrl} alt={item.name} className="h-full w-full object-contain" draggable={false} />
                 {shouldShowToggle && (
                     <button

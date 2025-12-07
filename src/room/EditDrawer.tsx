@@ -1,7 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import type React from "react";
 import { AssetDrawer } from "./AssetDrawer";
-import { ASSET_DRAWER_WIDTH } from "./AssetDrawer/constants";
+import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT } from "./AssetDrawer/constants";
 import { TrashCan } from "./TrashCan";
 
 type Mode = "view" | "edit";
@@ -15,6 +15,7 @@ interface EditDrawerProps {
     highlightComputer: boolean;
     isGuest: boolean;
     guestItems?: React.ComponentProps<typeof AssetDrawer>["guestItems"];
+    orientation?: "left" | "bottom";
 }
 
 export function EditDrawer({
@@ -26,21 +27,47 @@ export function EditDrawer({
     highlightComputer,
     isGuest,
     guestItems,
+    orientation = "left",
 }: EditDrawerProps) {
-    if (mode !== "edit") return null;
+    const isLeft = orientation === "left";
+    const drawerOffset = isLeft && isDrawerOpen ? ASSET_DRAWER_WIDTH + 12 : 0;
+    const drawerBottomOffset = !isLeft && isDrawerOpen ? ASSET_DRAWER_BOTTOM_HEIGHT + 12 : 0;
+    const togglePositionStyle = isLeft
+        ? { left: isDrawerOpen ? `${ASSET_DRAWER_WIDTH}px` : "0px", top: "50%", transform: "translateY(-50%)" }
+        : {
+              bottom: isDrawerOpen ? `${ASSET_DRAWER_BOTTOM_HEIGHT}px` : "0px",
+              left: "50%",
+              transform: "translate(-50%)",
+          };
+    const isInteractive = mode === "edit";
+    const isVisible = isInteractive || isDrawerOpen;
 
     return (
-        <>
+        <div
+            className={`${!isVisible ? "pointer-events-none" : "pointer-events-auto"} transition-opacity duration-200`}
+            aria-hidden={!isInteractive}
+        >
             <div
-                className="absolute top-1/2 transform -translate-y-1/2 z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
-                style={{ right: isDrawerOpen ? `${ASSET_DRAWER_WIDTH}px` : "0px" }}
+                className={`absolute z-50 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isInteractive ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                style={togglePositionStyle}
             >
                 <button
                     data-onboarding="drawer-toggle"
-                    onClick={onDrawerToggle}
-                    className="flex h-16 w-8 items-center justify-center rounded-l-xl border-2 border-r-0 border-[var(--color-foreground)] bg-[var(--color-secondary)] text-[var(--color-foreground)] shadow-none transition-all outline-none hover:-translate-x-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px]"
+                    onClick={isInteractive ? onDrawerToggle : undefined}
+                    disabled={!isInteractive}
+                    className={`flex items-center justify-center border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] text-[var(--color-foreground)] shadow-none transition-all outline-none ${
+                        isLeft
+                            ? "h-16 w-8 rounded-r-xl border-l-0 hover:translate-x-[1px] hover:shadow-none active:translate-x-[1px] active:translate-y-[1px]"
+                            : "h-10 w-16 rounded-t-xl border-b-0 hover:-translate-y-[1px] hover:shadow-none active:translate-y-[1px]"
+                    }`}
                 >
-                    {isDrawerOpen ? <ChevronRight className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
+                    {isLeft
+                        ? isDrawerOpen
+                            ? <ChevronLeft className="h-6 w-6" />
+                            : <ChevronRight className="h-6 w-6" />
+                        : isDrawerOpen
+                            ? <ChevronDown className="h-5 w-5" />
+                            : <ChevronUp className="h-5 w-5" />}
                 </button>
             </div>
 
@@ -52,14 +79,19 @@ export function EditDrawer({
                 highlightComputer={highlightComputer}
                 isGuest={isGuest}
                 guestItems={guestItems}
+                orientation={orientation}
             />
 
-            <TrashCan
-                draggedItemId={draggedItemId}
-                onDelete={(itemId) => {
-                    onDeleteItem(itemId);
-                }}
-            />
-        </>
+            {isInteractive && draggedItemId && (
+                <TrashCan
+                    draggedItemId={draggedItemId}
+                    onDelete={(itemId) => {
+                        onDeleteItem(itemId);
+                    }}
+                    offsetLeft={drawerOffset}
+                    offsetBottom={drawerBottomOffset}
+                />
+            )}
+        </div>
     );
 }

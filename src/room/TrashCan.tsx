@@ -4,12 +4,18 @@ import { Trash2 } from "lucide-react";
 interface TrashCanProps {
     draggedItemId: string | null;
     onDelete: (itemId: string) => void;
+    offsetLeft?: number;
+    offsetBottom?: number;
 }
 
-export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
+export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom = 0 }: TrashCanProps) {
     const [isHovered, setIsHovered] = useState(false);
     const trashRef = useRef<HTMLDivElement>(null);
     const draggedItemIdRef = useRef<string | null>(null);
+    const baseLeft = 24;
+    const leftPosition = baseLeft + offsetLeft;
+    const baseBottom = 24;
+    const bottomPosition = baseBottom + offsetBottom;
 
     // Keep ref in sync with prop
     useEffect(() => {
@@ -71,10 +77,14 @@ export function TrashCan({ draggedItemId, onDelete }: TrashCanProps) {
         <div
             ref={trashRef}
             className={`
-                absolute bottom-6 left-6 z-50 pointer-events-auto transition-all duration-300
+                absolute z-50 pointer-events-auto transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
                 ${isActive ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0"}
             `}
-            style={{ transitionDelay: draggedItemId ? "120ms" : "0ms" }}
+            style={{
+                transitionDelay: draggedItemId ? "120ms" : "0ms",
+                left: `${leftPosition}px`,
+                bottom: `${bottomPosition}px`,
+            }}
         >
             <div 
                 className={`

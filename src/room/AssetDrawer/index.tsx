@@ -1,18 +1,24 @@
 import { useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
-import { Package } from "lucide-react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { FilterPills } from "./components/FilterPills";
+import { AssetDrawerHeader } from "./components/Header";
 import { HiddenItemsSection } from "./components/HiddenItemsSection";
 import { EmptyState } from "./components/EmptyState";
 import { LoadingState } from "./components/LoadingState";
 import { ItemCard } from "./components/ItemCard";
-import { ASSET_DRAWER_WIDTH, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
+import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
 import type { AssetDrawerProps, GuestDrawerItem } from "./types";
 
-export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = false, guestItems }: AssetDrawerProps) {
+export function AssetDrawer({
+    isOpen,
+    onDragStart,
+    highlightComputer,
+    isGuest = false,
+    guestItems,
+    orientation = "left",
+}: AssetDrawerProps) {
     const inventoryItems = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : undefined);
     const setHiddenMutation = useMutation(api.inventory.setHidden);
     const isLoading = isGuest ? guestItems === undefined : inventoryItems === undefined;
@@ -72,42 +78,47 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
         }
     }, [hiddenItems, isGuest, setHiddenMutation]);
 
+    const isLeft = orientation === "left";
+    const drawerSizeStyle = isLeft
+        ? { width: ASSET_DRAWER_WIDTH, height: "100%" }
+        : { width: "100%", height: ASSET_DRAWER_BOTTOM_HEIGHT };
+    const translateClass = isLeft
+        ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        : isOpen
+            ? "translate-y-0"
+            : "translate-y-full";
+    const positionClass = isLeft ? "left-0 top-0 bottom-0" : "left-0 right-0 bottom-0";
+    const containerRadii = isLeft ? "rounded-r-3xl" : "rounded-t-3xl";
+    const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
+    const isBottom = orientation === "bottom";
+    const gridClass = isBottom ? "grid grid-cols-4 gap-2" : "grid grid-cols-2 gap-3";
+
     return (
         <div
-            style={{ width: ASSET_DRAWER_WIDTH }}
-            className={`absolute right-0 top-0 bottom-0 z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+            style={drawerSizeStyle}
+            className={`absolute ${positionClass} z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${translateClass}`}
         >
             <div
-                className="relative flex h-full flex-col overflow-hidden rounded-l-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-left-6)]"
+                className={`relative flex h-full flex-col overflow-hidden border-2 border-[var(--color-foreground)] bg-[var(--color-background)] ${containerRadii} ${shadowClass}`}
                 style={handwritingFont}
             >
-                <div className="flex items-center justify-between gap-3 border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-5 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
-                            <Package className="h-6 w-6 text-[var(--color-foreground)]" />
-                        </div>
-                        <div>
-                            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-foreground)]">Inventory</p>
-                            <h2 className="text-xl font-bold leading-none text-[var(--color-foreground)]">Storage</h2>
-                        </div>
-                    </div>
-                    <span className="hidden sm:inline-flex items-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] px-3 py-1 text-[11px] font-black uppercase tracking-wide shadow-[var(--shadow-2)]">
-                        Drag to place
-                    </span>
-                </div>
+                <AssetDrawerHeader
+                    isCompact={isBottom}
+                    categories={categories}
+                    selectedFilter={selectedFilter}
+                    onFilterChange={setSelectedFilter}
+                />
 
-                <div className="border-b-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-4 py-3">
-                    <FilterPills categories={categories} selectedFilter={selectedFilter} onChange={setSelectedFilter} />
-                </div>
-
-                <ScrollArea className="flex-1 bg-[var(--color-background)]">
+                <ScrollArea className="flex-1 bg-[var(--color-background)] min-h-0">
                     <div className="space-y-6 p-4 pb-6">
                         {isLoading ? (
                             <LoadingState />
                         ) : items.length > 0 ? (
                             <>
                                 {visibleItems.length > 0 ? (
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className={gridClass}>
                                         {visibleItems.map((item) => (
                                             <ItemCard
                                                 key={item.inventoryId}
@@ -118,6 +129,7 @@ export function AssetDrawer({ isOpen, onDragStart, highlightComputer, isGuest = 
                                                 showHideControls={showHideControls}
                                                 onDragStart={onDragStart}
                                                 onToggleHidden={handleToggleHidden}
+                                                compact={isBottom}
                                             />
                                         ))}
                                     </div>

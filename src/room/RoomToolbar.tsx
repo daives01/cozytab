@@ -11,6 +11,8 @@ interface RoomToolbarProps {
     shareAllowed: boolean;
     visitorCount: number;
     onShareClick: () => void;
+    drawerOffset?: number;
+    drawerOrientation?: "left" | "bottom";
 }
 
 export function RoomToolbar({
@@ -20,12 +22,19 @@ export function RoomToolbar({
     shareAllowed,
     visitorCount,
     onShareClick,
+    drawerOffset = 0,
+    drawerOrientation = "left",
 }: RoomToolbarProps) {
     const circleBaseStyles =
         "relative h-14 w-14 rounded-full border-2 border-[var(--ink)] shadow-[var(--shadow-6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all flex items-center justify-center text-[var(--ink)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--ink)]/10";
+    const leftSpacing = drawerOrientation === "left" ? 16 + drawerOffset : 16;
+    const topSpacing = 16 + (drawerOrientation === "bottom" && drawerOffset > 0 ? 0 : 0);
 
     return (
-        <div className="absolute top-4 left-4 flex gap-3 pointer-events-auto items-center" style={{ zIndex: 50 }}>
+        <div
+            className="absolute top-4 flex gap-3 pointer-events-auto items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
+            style={{ zIndex: 50, left: `${leftSpacing}px`, top: `${topSpacing}px` }}
+        >
             {isGuest && (
                 <SignInButton mode="modal">
                     <Button size="lg" className="font-bold text-lg shadow-lg">
