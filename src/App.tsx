@@ -15,10 +15,6 @@ import {
 } from "./referralStorage";
 import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
-import { usePostHog } from "posthog-js/react";
-import { captureError, trackSignUp } from "./lib/analytics";
-import { usePosthogUser } from "./hooks/usePosthogUser";
-import { AnalyticsErrorListener } from "./components/AnalyticsErrorListener";
 
 function ReferralCapture() {
   const { code } = useParams<{ code: string }>();
@@ -35,7 +31,6 @@ function ReferralCapture() {
 function App() {
   return (
     <BrowserRouter>
-      <AnalyticsErrorListener />
       <TouchWarningGate />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
@@ -54,7 +49,6 @@ function HomeRoute() {
   const user = useQuery(api.users.getMe, shouldFetchAuthedUser ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
   const isUserLoading = shouldFetchAuthedUser && user === undefined;
-  const posthog = usePostHog();
 
   useEffect(() => {
     if (!shouldFetchAuthedUser) return;
@@ -75,32 +69,16 @@ function HomeRoute() {
         cursorColor: guestSession.cursorColor,
       },
     })
-      .then((createdUser) => {
+      .then(() => {
         if (referralCode) {
           clearReferralCode();
         }
         clearGuestSession();
-
-        if (user === null && createdUser && posthog) {
-          trackSignUp(posthog, {
-            referralCodeProvided: Boolean(referralCode),
-            importedInventoryCount: guestSession.inventoryIds.length,
-            hadRoomItems: guestSession.roomItems.length > 0,
-            username: createdUser.username ?? username,
-            distinctId: (createdUser._id as string) ?? clerkUser?.id ?? undefined,
-          });
-        }
       })
       .catch((error) => {
         console.error("Failed to ensure user", error);
-        captureError(posthog, error, { stage: "ensureUser" });
       });
-  }, [clerkUser, ensureUser, guestSession, posthog, shouldFetchAuthedUser, user]);
-
-  usePosthogUser(user, {
-    enabled: shouldFetchAuthedUser,
-    distinctIdFallback: clerkUser?.id,
-  });
+  }, [clerkUser, ensureUser, guestSession, shouldFetchAuthedUser, user]);
 
   const isGuestView = isClerkLoaded ? !isSignedIn || user === null : false;
   const guestStore = useMemo(() => {
