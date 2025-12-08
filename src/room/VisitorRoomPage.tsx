@@ -131,7 +131,7 @@ export function VisitorRoomPage() {
             visitorCursorColorOverride ??
             (isGuestVisitor
                 ? guestCursorColorValue ?? guestCursorColor
-                : computerState?.cursorColor ?? authedUser?.cursorColor ?? guestCursorColor),
+                : authedUser?.cursorColor ?? computerState?.cursorColor ?? guestCursorColor),
     };
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
     const isStatusOpen = roomStatus?.status === "open";

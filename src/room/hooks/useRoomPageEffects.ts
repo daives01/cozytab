@@ -328,7 +328,7 @@ export function useSyncComputerState({
         if (!computerState) return;
         startTransition(() => {
             setLocalShortcuts(computerState.shortcuts);
-            const color = computerState.cursorColor || userCursorColor;
+            const color = userCursorColor ?? computerState.cursorColor;
             if (color) {
                 setAuthedCursorColor(color);
             }

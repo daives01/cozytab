@@ -131,7 +131,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     useCozyCursor(true);
     const cursorColor =
-        (isGuest ? guestCursorColor : authedCursorColor ?? computerState?.cursorColor ?? user?.cursorColor) ??
+        (isGuest ? guestCursorColor : authedCursorColor ?? user?.cursorColor ?? computerState?.cursorColor) ??
         "var(--chart-4)";
     useCursorColor(cursorColor);
 
