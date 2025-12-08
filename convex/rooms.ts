@@ -478,26 +478,3 @@ export const closeStaleRooms = internalMutation({
     },
 });
 
-// One-off: remove legacy room.shortcuts now that shortcuts are stored on users.
-export const clearRoomShortcuts = internalMutation({
-    args: {
-        cursor: v.optional(v.string()),
-    },
-    handler: async (ctx, args) => {
-        const PAGE_SIZE = 100;
-        const page = await ctx.db
-            .query("rooms")
-            .paginate({ cursor: args.cursor ?? null, numItems: PAGE_SIZE });
-
-        let updated = 0;
-
-        for (const room of page.page) {
-            if (room.shortcuts === undefined) continue;
-
-            await ctx.db.patch(room._id, { shortcuts: undefined });
-            updated++;
-        }
-
-        return { updated, continueCursor: page.continueCursor };
-    },
-});

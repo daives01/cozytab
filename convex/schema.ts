@@ -60,17 +60,6 @@ export default defineSchema({
                 musicPositionAtStart: v.optional(v.number()),
             })
         ),
-        shortcuts: v.optional(
-            v.array(
-                v.object({
-                    id: v.string(),
-                    name: v.string(),
-                    url: v.string(),
-                    row: v.optional(v.number()),
-                    col: v.optional(v.number()),
-                })
-            )
-        ),
     })
         .index("by_user", ["userId"])
         .index("by_user_template", ["userId", "templateId"])
