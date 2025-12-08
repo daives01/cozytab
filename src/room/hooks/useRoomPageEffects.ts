@@ -5,7 +5,7 @@ import type { RoomItem, ComputerShortcut } from "../../types";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
 import { debounce } from "../../lib/debounce";
 
-type RoomRecord = Pick<Doc<"rooms">, "_id" | "items">;
+type RoomRecord = Pick<Doc<"rooms">, "_id" | "items" | "userId">;
 
 export function useCursorColorSaver(
     saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void,
@@ -249,15 +249,19 @@ export function useLeaseHeartbeat({
     room,
     renewLease,
     hasVisitors = false,
+    currentUserId,
 }: {
     isGuest: boolean;
     room: RoomRecord | null | undefined;
     renewLease: (args: { roomId: Id<"rooms">; hasGuests?: boolean }) => Promise<unknown>;
     hasVisitors?: boolean;
+    currentUserId?: Id<"users"> | null;
 }) {
     useEffect(() => {
         if (isGuest) return;
         if (!room) return;
+        if (!currentUserId) return;
+        if (room.userId !== currentUserId) return;
 
         let intervalId: ReturnType<typeof setInterval> | null = null;
 
@@ -303,7 +307,7 @@ export function useLeaseHeartbeat({
         return () => {
             stopHeartbeats();
         };
-    }, [hasVisitors, isGuest, renewLease, room]);
+    }, [currentUserId, hasVisitors, isGuest, renewLease, room]);
 }
 
 export function useSyncComputerState({

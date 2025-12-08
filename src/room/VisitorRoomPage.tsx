@@ -134,12 +134,11 @@ export function VisitorRoomPage() {
                 : computerState?.cursorColor ?? authedUser?.cursorColor ?? guestCursorColor),
     };
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
-    const roomClosed =
-        roomClosedOverride || roomData?.closed === true || roomStatus?.status !== "open";
+    const isStatusOpen = roomStatus?.status === "open";
+    const roomUnavailable = roomStatus ? roomStatus.status !== "open" : true;
+    const roomClosed = roomClosedOverride || roomData?.closed === true || roomUnavailable;
     const presenceRoomId =
-        roomStatus?.status === "open" && !roomData?.closed && !roomClosed
-            ? roomData?.room?._id ?? null
-            : null;
+        isStatusOpen && !roomData?.closed && !roomClosed ? roomData?.room?._id ?? null : null;
 
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresenceAndChat({
         roomId: presenceRoomId,

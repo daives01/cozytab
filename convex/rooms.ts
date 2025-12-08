@@ -397,6 +397,14 @@ export const renewLease = mutation({
         const hasGuests = args.hasGuests ?? false;
 
         const existingLease = await getRoomLease(ctx, args.roomId);
+        if (existingLease && existingLease.hostId !== user._id) {
+            console.warn("[rooms.renewLease] host mismatch", {
+                leaseHostId: existingLease.hostId,
+                callerId: user._id,
+                roomId: args.roomId,
+            });
+            throw new Error("Forbidden: lease owned by different host");
+        }
         const hostOnlySince = computeHostOnlySince(hasGuests, existingLease?.hostOnlySince, now);
 
         if (hasHostOnlyExpired(hostOnlySince, now)) {
