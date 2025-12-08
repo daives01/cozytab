@@ -8,14 +8,6 @@ const LEASE_TTL_MS = 7 * 60 * 1000;
 const HOST_ONLY_TIMEOUT_MS = 10 * 60 * 1000;
 const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
 
-const roomShortcutValidator = v.object({
-    id: v.string(),
-    name: v.string(),
-    url: v.string(),
-    row: v.optional(v.number()),
-    col: v.optional(v.number()),
-});
-
 async function getUser(ctx: QueryCtx | MutationCtx) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -31,6 +23,26 @@ async function getRoomLease(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
         .query("roomLeases")
         .withIndex("by_room", (q) => q.eq("roomId", roomId))
         .unique();
+}
+
+async function requireAuth(ctx: QueryCtx | MutationCtx) {
+    const user = await getUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    return user;
+}
+
+async function getRoomOrThrow(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
+    const room = await ctx.db.get(roomId);
+    if (!room) throw new Error("Room not found");
+    return room;
+}
+
+function assertRoomOwner(room: { userId: Id<"users"> }, user: { _id: Id<"users"> }) {
+    if (room.userId !== user._id) throw new Error("Forbidden");
+}
+
+function assertRoomActive(room: { isActive: boolean }) {
+    if (!room.isActive) throw new Error("Room is inactive");
 }
 
 function computeHostOnlySince(hasGuests: boolean, existingHostOnlySince: number | undefined, now: number) {
@@ -76,27 +88,18 @@ export const getMyActiveRoom = query({
 export const getDefaultRoom = query({
     args: {},
     handler: async (ctx) => {
-        const defaultTemplates = await ctx.db
+        const defaultTemplate = await ctx.db
             .query("roomTemplates")
             .withIndex("by_default", (q) => q.eq("isDefault", true))
-            .collect();
+            .unique();
 
-        const defaultTemplate = defaultTemplates[0];
-        if (!defaultTemplate) return null;
-
-        const rooms = await ctx.db.query("rooms").collect();
-
-        // Prefer an active room that uses the default template
-        const matchingRoom =
-            rooms.find((room) => room.templateId === defaultTemplate._id && room.isActive) ||
-            rooms.find((room) => room.templateId === defaultTemplate._id) ||
-            null;
-
-        if (!matchingRoom) return null;
+        if (!defaultTemplate) {
+            throw new Error("Default room template not found");
+        }
 
         return {
-            ...matchingRoom,
             template: defaultTemplate,
+            items: [],
         };
     },
 });
@@ -170,7 +173,6 @@ export const createRoom = mutation({
             name: template.name,
             isActive: allRoomsForUser.length === 0,
             items: [],
-            shortcuts: [],
         });
         return id;
     },
@@ -179,12 +181,9 @@ export const createRoom = mutation({
 export const setActiveRoom = mutation({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, args) => {
-        const user = await getUser(ctx);
-        if (!user) throw new Error("Not authenticated");
-
-        const targetRoom = await ctx.db.get(args.roomId);
-        if (!targetRoom) throw new Error("Room not found");
-        if (targetRoom.userId !== user._id) throw new Error("Forbidden");
+        const user = await requireAuth(ctx);
+        const targetRoom = await getRoomOrThrow(ctx, args.roomId);
+        assertRoomOwner(targetRoom, user);
 
         const allRooms = await ctx.db
             .query("rooms")
@@ -218,12 +217,9 @@ export const setActiveRoom = mutation({
 export const deleteRoom = mutation({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, args) => {
-        const user = await getUser(ctx);
-        if (!user) throw new Error("Not authenticated");
-
-        const targetRoom = await ctx.db.get(args.roomId);
-        if (!targetRoom) throw new Error("Room not found");
-        if (targetRoom.userId !== user._id) throw new Error("Forbidden");
+        const user = await requireAuth(ctx);
+        const targetRoom = await getRoomOrThrow(ctx, args.roomId);
+        assertRoomOwner(targetRoom, user);
 
         const allRooms = await ctx.db
             .query("rooms")
@@ -237,6 +233,11 @@ export const deleteRoom = mutation({
         const wasActive = targetRoom.isActive;
 
         await ctx.db.delete(args.roomId);
+
+        const lease = await getRoomLease(ctx, args.roomId);
+        if (lease) {
+            await closeRoomAndDeleteLease(ctx, lease._id);
+        }
 
         if (wasActive) {
             const remainingRooms = allRooms.filter(r => r._id !== args.roomId);
@@ -255,12 +256,9 @@ export const renameRoom = mutation({
         name: v.string(),
     },
     handler: async (ctx, args) => {
-        const user = await getUser(ctx);
-        if (!user) throw new Error("Not authenticated");
-
-        const room = await ctx.db.get(args.roomId);
-        if (!room) throw new Error("Room not found");
-        if (room.userId !== user._id) throw new Error("Forbidden");
+        const user = await requireAuth(ctx);
+        const room = await getRoomOrThrow(ctx, args.roomId);
+        assertRoomOwner(room, user);
 
         await ctx.db.patch(args.roomId, { name: args.name });
         return { success: true };
@@ -287,37 +285,15 @@ export const saveMyRoom = mutation({
         ),
     },
     handler: async (ctx, args) => {
-        const room = await ctx.db.get(args.roomId);
-        if (!room) throw new Error("Room not found");
-
-        const user = await getUser(ctx);
-        if (!user || room.userId !== user._id) {
-            throw new Error("Forbidden");
-        }
+        const room = await getRoomOrThrow(ctx, args.roomId);
+        const user = await requireAuth(ctx);
+        assertRoomOwner(room, user);
+        assertRoomActive(room);
 
         await ctx.db.patch(args.roomId, { items: args.items });
     },
 });
 
-export const saveShortcuts = mutation({
-    args: {
-        roomId: v.id("rooms"),
-        shortcuts: v.array(roomShortcutValidator),
-    },
-    handler: async (ctx, args) => {
-        const room = await ctx.db.get(args.roomId);
-        if (!room) throw new Error("Room not found");
-
-        const user = await getUser(ctx);
-        if (!user || room.userId !== user._id) {
-            throw new Error("Forbidden");
-        }
-
-        await ctx.db.patch(args.roomId, { shortcuts: args.shortcuts });
-    },
-});
-
-// Lightweight mutation for music state updates - allows anyone with room access to update
 export const updateMusicState = mutation({
     args: {
         roomId: v.id("rooms"),
@@ -327,8 +303,10 @@ export const updateMusicState = mutation({
         musicPositionAtStart: v.number(),
     },
     handler: async (ctx, args) => {
-        const room = await ctx.db.get(args.roomId);
-        if (!room) throw new Error("Room not found");
+        const user = await requireAuth(ctx);
+        const room = await getRoomOrThrow(ctx, args.roomId);
+        assertRoomOwner(room, user);
+        assertRoomActive(room);
 
         const updatedItems = room.items.map((item) => {
             if (item.id === args.itemId) {
@@ -371,7 +349,6 @@ export const getRoomByInvite = query({
         return {
             room: { ...room, template },
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
-            ownerId: owner?._id,
             ownerReferralCode: owner?.referralCode ?? null,
             closed: !isLeaseActive,
         };
@@ -384,13 +361,10 @@ export const renewLease = mutation({
         hasGuests: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
-        const user = await getUser(ctx);
-        if (!user) throw new Error("Not authenticated");
-
-        const room = await ctx.db.get(args.roomId);
-        if (!room) throw new Error("Room not found");
-        if (room.userId !== user._id) throw new Error("Forbidden");
-        if (!room.isActive) throw new Error("Room is inactive");
+        const user = await requireAuth(ctx);
+        const room = await getRoomOrThrow(ctx, args.roomId);
+        assertRoomOwner(room, user);
+        assertRoomActive(room);
 
         const now = Date.now();
         const expiresAt = now + LEASE_TTL_MS;

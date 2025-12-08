@@ -5,6 +5,8 @@ import { api } from "../../../convex/_generated/api";
 import { STARTER_COMPUTER_NAME } from "../../../shared/guestTypes";
 import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
 import type { TimeOfDay } from "../roomConstants";
+import type { RoomItem } from "../../types";
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 interface RoomDataArgs {
     isGuest: boolean;
@@ -14,7 +16,10 @@ interface RoomDataArgs {
 export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
-    const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip");
+    const guestRoom = useQuery(
+        api.rooms.getDefaultRoom,
+        isGuest ? {} : "skip"
+    ) as { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});

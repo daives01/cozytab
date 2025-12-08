@@ -1,8 +1,10 @@
 import { DesktopOnlyNotice, LoadingScreen, NoDemoRoom } from "../components/RoomFallbacks";
 import type { Doc } from "../../../convex/_generated/dataModel";
+import type { RoomItem } from "../../types";
 import type { GuestSessionState } from "../../../shared/guestTypes";
 
 type HydratedRoom = (Doc<"rooms"> & { template?: Doc<"roomTemplates"> | null }) | null | undefined;
+type GuestDefaultRoom = { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;
 type DefaultTemplate = Doc<"roomTemplates"> | null | undefined;
 
 type GateArgs = {
@@ -12,7 +14,7 @@ type GateArgs = {
     initialGuestSession: GuestSessionState | null;
     room: HydratedRoom;
     guestTemplate: DefaultTemplate;
-    guestRoom: HydratedRoom;
+    guestRoom: GuestDefaultRoom;
 };
 
 export function useRoomGate({ isGuest, viewportWidth, mobileMaxWidth, initialGuestSession, room, guestTemplate, guestRoom }: GateArgs) {

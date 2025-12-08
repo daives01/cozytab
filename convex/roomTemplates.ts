@@ -215,7 +215,6 @@ export const purchaseRoom = mutation({
             name: template.name,
             isActive: true,
             items: [],
-            shortcuts: [],
         });
 
         return {

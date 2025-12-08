@@ -32,7 +32,7 @@
 ## Frontend Types & Flows
 - Types: `RoomItem` aligns with stored item fields; `CatalogItemCategory` = "Furniture" | "Decor" | "Computers" | "Music"; guest types add optional scale/rotation/zIndex for client-only transforms.
 - Routing (`src/App.tsx`): `/` renders `RoomPage` (guest store when signed out), `/visit/:token` for invites, `/ref/:code` captures referral, `/admin` admin panel. Sign-in triggers `users.ensureUser` (imports guest session + referral, then clears guest data).
-- Rooms: active room via `rooms.getMyActiveRoom` (or `rooms.getDefaultRoom` for guests); save items with `rooms.saveMyRoom`, shortcuts with `rooms.saveShortcuts`, music state with `rooms.updateMusicState`; invites resolved with `rooms.getRoomByInvite` (honors leases from `roomLeases`).
+- Rooms: active room via `rooms.getMyActiveRoom`; guests load the default template via `rooms.getDefaultRoom` (returns `{ template, items: [] }` and throws if no default template is configured). Save items with `rooms.saveMyRoom`; music state with `rooms.updateMusicState`; invites resolved with `rooms.getRoomByInvite` (honors leases from `roomLeases`). Shortcuts live on the user (`users.getMyComputer`/`users.saveMyComputer`) and apply to all rooms.
 - Catalog/shop: `catalog.list` for drawer/shop; inventory persisted in `inventory`; admin-only catalog mutations and storage upload helpers live in `convex/catalog.ts`.
 
 ## Design System: Cozy Neo-Brutalism
