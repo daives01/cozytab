@@ -351,11 +351,9 @@ async function seedRoomFromGuest(
     templateId: Id<"roomTemplates">,
     templateName: string,
     guestItems: GuestRoomItem[] | undefined,
-    guestShortcuts: GuestShortcut[] | undefined,
     catalogNames: Set<string>
 ) {
     const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogNames);
-    const sanitizedShortcuts = sanitizeGuestShortcuts(guestShortcuts);
 
     await ctx.db.insert("rooms", {
         userId,
@@ -363,7 +361,6 @@ async function seedRoomFromGuest(
         name: templateName,
         isActive: true,
         items: sanitizedItems,
-        shortcuts: sanitizedShortcuts,
     });
 }
 
@@ -524,7 +521,6 @@ export const ensureUser = mutation({
                         template._id,
                         template.name,
                         guestRoomItems,
-                        normalizedGuestShortcuts,
                         catalogNames
                     );
                 }
