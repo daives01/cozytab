@@ -144,22 +144,6 @@ function sanitizeRoomItems(items: unknown): GuestRoomItem[] {
                 typeof (item as GuestRoomItem).musicPositionAtStart === "number"
                     ? (item as GuestRoomItem).musicPositionAtStart
                     : undefined,
-            scaleX:
-                typeof (item as GuestRoomItem).scaleX === "number"
-                    ? (item as GuestRoomItem).scaleX
-                    : undefined,
-            scaleY:
-                typeof (item as GuestRoomItem).scaleY === "number"
-                    ? (item as GuestRoomItem).scaleY
-                    : undefined,
-            rotation:
-                typeof (item as GuestRoomItem).rotation === "number"
-                    ? (item as GuestRoomItem).rotation
-                    : undefined,
-            zIndex:
-                typeof (item as GuestRoomItem).zIndex === "number"
-                    ? (item as GuestRoomItem).zIndex
-                    : undefined,
         }))
         .filter((item) => item.catalogItemId);
 }

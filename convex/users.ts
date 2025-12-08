@@ -331,10 +331,6 @@ function sanitizeGuestRoomItems(
             musicPlaying: item.musicPlaying,
             musicStartedAt: item.musicStartedAt,
             musicPositionAtStart: item.musicPositionAtStart,
-            scaleX: Number.isFinite(item.scaleX ?? 1) ? item.scaleX : 1,
-            scaleY: Number.isFinite(item.scaleY ?? 1) ? item.scaleY : 1,
-            rotation: Number.isFinite(item.rotation ?? 0) ? item.rotation : 0,
-            zIndex: Number.isFinite(item.zIndex ?? Date.now()) ? item.zIndex : Date.now(),
         }));
 }
 
@@ -383,10 +379,6 @@ const guestRoomItemValidator = v.object({
     musicPlaying: v.optional(v.boolean()),
     musicStartedAt: v.optional(v.number()),
     musicPositionAtStart: v.optional(v.number()),
-    scaleX: v.optional(v.number()),
-    scaleY: v.optional(v.number()),
-    rotation: v.optional(v.number()),
-    zIndex: v.optional(v.number()),
 });
 
 const guestShortcutValidator = v.object({

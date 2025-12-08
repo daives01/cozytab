@@ -19,10 +19,6 @@ export interface GuestRoomItem {
     musicPlaying?: boolean;
     musicStartedAt?: number;
     musicPositionAtStart?: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    zIndex?: number;
 }
 
 export interface GuestShortcut {
