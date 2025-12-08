@@ -48,15 +48,16 @@ function App() {
 }
 
 function HomeRoute() {
-  const { user: clerkUser, isLoaded, isSignedIn } = useUser();
+  const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
   const ensureUser = useMutation(api.users.ensureUser);
-  const user = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
+  const shouldFetchAuthedUser = isClerkLoaded && isSignedIn;
+  const user = useQuery(api.users.getMe, shouldFetchAuthedUser ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
-  const isUserLoading = isSignedIn && user === undefined;
+  const isUserLoading = shouldFetchAuthedUser && user === undefined;
   const posthog = usePostHog();
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!shouldFetchAuthedUser) return;
     if (user === undefined || user !== null) return;
 
     const username = clerkUser?.username ?? "User";
@@ -94,20 +95,20 @@ function HomeRoute() {
         console.error("Failed to ensure user", error);
         captureError(posthog, error, { stage: "ensureUser" });
       });
-  }, [clerkUser, ensureUser, guestSession, isLoaded, isSignedIn, posthog, user]);
+  }, [clerkUser, ensureUser, guestSession, posthog, shouldFetchAuthedUser, user]);
 
   usePosthogUser(user, {
-    enabled: isLoaded && isSignedIn,
+    enabled: shouldFetchAuthedUser,
     distinctIdFallback: clerkUser?.id,
   });
 
-  const isGuestView = !isSignedIn || user === null;
+  const isGuestView = isClerkLoaded ? !isSignedIn || user === null : false;
   const guestStore = useMemo(() => {
     if (!isGuestView) return null;
     return createGuestStore(guestSession);
   }, [guestSession, isGuestView]);
 
-  if (isUserLoading) {
+  if (!isClerkLoaded || isUserLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
         Loading your cozytab...
