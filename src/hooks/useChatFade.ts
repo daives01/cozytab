@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 
-export const CHAT_DISPLAY_DURATION_MS = 1000;
+export const CHAT_DISPLAY_DURATION_MS = 700;
 export const CHAT_FADE_DURATION_MS = 1000;
 
 export function useChatFade(chatMessage: string | null) {

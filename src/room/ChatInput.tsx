@@ -38,7 +38,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                 return;
             }
 
-            if (e.key === "/" && !isActive) {
+            if (e.key === "Enter" && !isActive) {
                 e.preventDefault();
                 setIsActive(true);
                 messageRef.current = "";
@@ -56,8 +56,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
 
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    setIsActive(false);
-                    resetTimeout();
+                    clearChat();
                     return;
                 }
 
