@@ -13,7 +13,7 @@ export function DesktopOnlyNotice() {
 
 export function LoadingScreen({ message }: { message: string }) {
     return (
-        <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+        <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
             {message}
         </div>
     );
@@ -21,7 +21,7 @@ export function LoadingScreen({ message }: { message: string }) {
 
 export function NoDemoRoom() {
     return (
-        <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+        <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
             Uh oh! Something went wrong. Please try again later.
         </div>
     );

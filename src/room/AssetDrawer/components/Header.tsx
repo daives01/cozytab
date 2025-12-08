@@ -36,8 +36,7 @@ export function AssetDrawerHeader({ isCompact, categories, selectedFilter, onFil
                         <Package className="h-6 w-6 text-[var(--color-foreground)]" />
                     </div>
                     <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--color-foreground)]">Inventory</p>
-                        <h2 className="text-xl font-bold leading-none text-[var(--color-foreground)]">Storage</h2>
+                        <h2 className="text-size-xl font-bold leading-none text-[var(--color-foreground)]">Storage</h2>
                     </div>
                 </div>
                 <span className="hidden sm:inline-flex items-center rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] px-3 py-1 text-[11px] font-black uppercase tracking-wide shadow-[var(--shadow-2)]">

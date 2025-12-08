@@ -90,19 +90,19 @@ export function ItemsTab({
                                             />
                                         </div>
 
-                                        <h4 className="font-bold text-[var(--ink)] text-center truncate mb-1.5 text-sm">
+                                        <h4 className="font-bold text-[var(--ink)] text-center truncate mb-1.5 text-size-lg">
                                             {item.name}
                                         </h4>
 
                                         {isOwned ? (
-                                            <div className="text-center text-[var(--success-dark)] font-bold text-xs">
+                                            <div className="text-center text-[var(--success-dark)] font-bold text-size-base">
                                                 Owned
                                             </div>
                                         ) : (
                                             <button
                                                 onClick={() => onPurchase(item._id)}
                                                 disabled={!canAfford || isPurchasing}
-                                                className={`w-full py-1 px-2.5 rounded-md font-bold text-xs transition-all flex items-center justify-center gap-1.5 border-2 ${
+                                                className={`w-full py-1 px-2.5 rounded-md font-bold text-size-base transition-all flex items-center justify-center gap-1.5 border-2 ${
                                                     isPurchasing
                                                         ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                         : canAfford
@@ -117,7 +117,7 @@ export function ItemsTab({
 
                                         {resultForItem && (
                                             <div
-                                                className={`mt-1.5 text-[11px] leading-tight text-center ${
+                                                className={`mt-1.5 text-size-sm leading-tight text-center ${
                                                     resultForItem.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
                                                 }`}
                                             >

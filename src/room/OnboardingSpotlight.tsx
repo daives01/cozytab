@@ -236,7 +236,7 @@ export function OnboardingSpotlight({
                     <BubbleHeader />
 
                     <div className="space-y-4 px-6 py-5">
-                        <p className="text-base font-medium leading-relaxed text-[var(--color-foreground)]">{message}</p>
+                        <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">{message}</p>
                         <BubbleActions showNext={showNext} onNext={onNext} showSkip={showSkip} onSkip={onSkip} />
                     </div>
                 </div>

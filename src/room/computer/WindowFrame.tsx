@@ -54,7 +54,7 @@ export function WindowFrame({
             onClick={(e) => e.stopPropagation()}
         >
             <div
-                className={`flex items-center justify-between px-3 py-2 text-white text-sm font-bold select-none bg-gradient-to-r ${accent} shadow-sm cursor-grab active:cursor-grabbing`}
+                className={`flex items-center justify-between px-3 py-2 text-white text-size-lg font-bold select-none bg-gradient-to-r ${accent} shadow-sm cursor-grab active:cursor-grabbing`}
                 onPointerDown={onStartDrag}
             >
                 <span className="truncate">{title}</span>

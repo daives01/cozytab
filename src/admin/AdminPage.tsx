@@ -31,7 +31,7 @@ function AdminContent() {
         return (
             <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col items-center justify-center gap-6">
                 <h1 className="text-6xl font-bold text-[var(--ink-subtle)]">404</h1>
-                <p className="text-[var(--ink-subtle)] text-lg">Page not found</p>
+                <p className="text-[var(--ink-subtle)] text-size-lg">Page not found</p>
                 <a
                     href="/"
                     className="px-6 py-3 bg-[var(--warning)] text-[var(--ink)] font-medium rounded-lg border-2 border-[var(--ink)] shadow-md hover:shadow-lg active:shadow-sm active:translate-x-[2px] active:translate-y-[2px] transition-all"
@@ -47,7 +47,7 @@ function AdminContent() {
             <div className="max-w-6xl mx-auto p-8">
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-[var(--ink)]">Admin Dashboard</h1>
+                        <h1 className="text-size-3xl font-bold text-[var(--ink)]">Admin Dashboard</h1>
                         <p className="text-[var(--ink-subtle)] mt-1">Manage catalog items and room templates</p>
                     </div>
                     <a

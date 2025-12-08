@@ -72,10 +72,10 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                 <Share2 className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold leading-none text-[var(--color-foreground)]">
+                                <h2 className="text-size-2xl font-bold leading-none text-[var(--color-foreground)]">
                                     Invite Friends
                                 </h2>
-                                <p className="mt-1 text-sm font-medium text-[var(--color-muted-foreground)]">
+                                <p className="mt-1 text-size-sm font-medium text-[var(--color-muted-foreground)]">
                                     Show off your cozy room
                                 </p>
                             </div>
@@ -91,7 +91,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                     <div className="flex flex-col gap-8 p-8">
                         <div className="flex items-center justify-between rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-5 shadow-[var(--shadow-4-soft)]">
                             <div className="space-y-1">
-                                <div className="text-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
+                                <div className="text-size-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
                                     Public Access
                                     {shareUrl && (
                                         <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-share-accent)] px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider">
@@ -99,7 +99,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         </span>
                                     )}
                                 </div>
-                                <div className="text-sm font-medium text-[var(--color-muted-foreground)]">
+                                <div className="text-size-sm font-medium text-[var(--color-muted-foreground)]">
                                     {shareUrl ? "Room is visible to visitors" : "Room is currently hidden"}
                                 </div>
                             </div>
@@ -143,13 +143,13 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         <Input
                                             readOnly
                                             value={shareUrl}
-                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-share-accent)]"
+                                            className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-size-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-share-accent)]"
                                         />
                                     </div>
 
                                     <Button
                                         onClick={handleCopyLink}
-                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
+                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-size-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
                                             copied 
                                             ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" 
                                             : "bg-[var(--color-foreground)] text-[var(--color-background)]"
@@ -173,10 +173,10 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]/20 text-[var(--color-muted-foreground)]">
                                         <Lock className="h-8 w-8" />
                                     </div>
-                                    <h4 className="text-lg font-bold text-[var(--color-foreground)]">
+                                    <h4 className="text-size-lg font-bold text-[var(--color-foreground)]">
                                         Sharing is disabled
                                     </h4>
-                                    <p className="max-w-[240px] text-center text-sm font-medium text-[var(--color-muted-foreground)] mt-1">
+                                    <p className="max-w-[240px] text-center text-size-sm font-medium text-[var(--color-muted-foreground)] mt-1">
                                         Toggle access above to generate a unique link for your friends.
                                     </p>
                                 </div>

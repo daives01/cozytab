@@ -87,7 +87,7 @@ function HomeRoute() {
 
   if (isUserLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+      <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
         Loading your cozytab...
       </div>
     );

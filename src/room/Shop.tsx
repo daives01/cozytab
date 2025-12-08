@@ -234,7 +234,7 @@ export function Shop({
                     <div className="flex gap-1">
                         <button
                             onClick={() => setActiveTab("items")}
-                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-base transition-all border-2 ${
+                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-size-xl transition-all border-2 ${
                                 activeTab === "items"
                                     ? "bg-[var(--paper)] text-[var(--ink)] border-[var(--ink)] border-b-[var(--paper)] -mb-[2px] z-10 rounded-b-none shadow-none"
                                     : "bg-transparent text-[var(--ink-subtle)] hover:text-[var(--ink)] border-transparent"
@@ -256,7 +256,7 @@ export function Shop({
                         </button>
                         <button
                             onClick={() => setActiveTab("rooms")}
-                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-base transition-all border-2 ${
+                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-size-xl transition-all border-2 ${
                                 activeTab === "rooms"
                                     ? "bg-[var(--paper)] text-[var(--ink)] border-[var(--ink)] border-b-[var(--paper)] -mb-[2px] z-10 rounded-b-none shadow-none"
                                     : "bg-transparent text-[var(--ink-subtle)] hover:text-[var(--ink)] border-transparent"
