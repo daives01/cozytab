@@ -1,4 +1,5 @@
 import type { RoomItem } from "../../types";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export function bringItemToFront(items: RoomItem[], itemId: string) {
     const index = items.findIndex((item) => item.id === itemId);
@@ -31,10 +32,16 @@ export function updateItemsForMusicToggle(items: RoomItem[], itemId: string, pla
     );
 }
 
-export function addDroppedItem(items: RoomItem[], catalogItemId: string, x: number, y: number): RoomItem[] {
+export function addDroppedItem(
+    items: RoomItem[],
+    catalogItemId: string,
+    x: number,
+    y: number
+): RoomItem[] {
+    const catalogId = catalogItemId as Id<"catalogItems">;
     const newItem: RoomItem = {
         id: crypto.randomUUID(),
-        catalogItemId,
+        catalogItemId: catalogId,
         x,
         y,
         flipped: false,

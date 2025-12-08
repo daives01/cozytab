@@ -1,7 +1,7 @@
 import { useMutation } from "convex/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { useState, useRef, useCallback, type DragEvent } from "react";
+import { useState, useRef, useCallback, useMemo, type DragEvent } from "react";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
@@ -24,7 +24,7 @@ import { useRoomGate } from "./hooks/useRoomGate";
 import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
-import { GUEST_STARTING_COINS, type GuestSessionState } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestSessionState, type GuestRoomItem } from "../../shared/guestTypes";
 import { RoomStateProvider } from "./state/roomAtoms";
 import {
     useCursorColorSaver,
@@ -110,6 +110,72 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         guestCursorColor,
         setGuestCursorColor,
     } = useRoomState({ isGuest, guestSession });
+
+    const catalogIdLookup = useMemo(() => {
+        const map = new Map<string, Id<"catalogItems">>();
+        (catalogItems ?? []).forEach((item) => {
+            map.set(item._id as unknown as string, item._id);
+            map.set(item.name, item._id);
+        });
+        return map;
+    }, [catalogItems]);
+
+    const normalizeGuestItems = useCallback(
+        (items: GuestRoomItem[] | undefined): RoomItem[] => {
+            if (!items) return [];
+            return items
+                .map((item) => {
+                    const catalogId = catalogIdLookup.get(item.catalogItemId);
+                    if (!catalogId) return null;
+                    return { ...item, catalogItemId: catalogId } as RoomItem;
+                })
+                .filter((item): item is RoomItem => item !== null);
+        },
+        [catalogIdLookup]
+    );
+
+    const denormalizeRoomItems = useCallback((items: RoomItem[]): GuestRoomItem[] => {
+        return items.map((item) => ({
+            ...item,
+            catalogItemId: item.catalogItemId as unknown as string,
+        }));
+    }, []);
+
+    const normalizedInitialGuestSession = useMemo(() => {
+        if (!initialGuestSession) return null;
+        return {
+            ...initialGuestSession,
+            roomItems: normalizeGuestItems(initialGuestSession.roomItems as GuestRoomItem[]),
+        };
+    }, [initialGuestSession, normalizeGuestItems]);
+
+    const normalizedLocalItems: RoomItem[] = isGuest
+        ? normalizeGuestItems(localItems as GuestRoomItem[])
+        : (localItems as RoomItem[]);
+
+    const setNormalizedItems = useCallback(
+        (updaterOrItems: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => {
+            const applyUpdate = (prev: RoomItem[]) =>
+                typeof updaterOrItems === "function" ? updaterOrItems(prev) : updaterOrItems;
+
+            type SetOwnerItems = (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
+            type SetGuestItems = (updater: GuestRoomItem[] | ((prev: GuestRoomItem[]) => GuestRoomItem[])) => void;
+
+            const setOwnerItems = setLocalItems as unknown as SetOwnerItems;
+            const setGuestItems = setLocalItems as unknown as SetGuestItems;
+
+            if (!isGuest) {
+                setOwnerItems(applyUpdate);
+                return;
+            }
+
+            setGuestItems((prev: GuestRoomItem[]) => {
+                const nextRoomItems = applyUpdate(normalizeGuestItems(prev));
+                return denormalizeRoomItems(nextRoomItems);
+            });
+        },
+        [denormalizeRoomItems, isGuest, normalizeGuestItems, setLocalItems]
+    );
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const updateMusicState = useMutation(api.rooms.updateMusicState);
@@ -179,10 +245,10 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     useGuestBootstrap({
         isGuest,
         guestSessionLoadedRef,
-        initialGuestSession,
+        initialGuestSession: normalizedInitialGuestSession,
         guestRoomItems: guestRoom?.items as RoomItem[] | undefined,
         guestTemplateItems: (guestTemplate as { items?: RoomItem[] } | null | undefined)?.items,
-        setLocalItems,
+        setLocalItems: setNormalizedItems,
     });
 
     useReconcileGuestOnboarding({
@@ -213,12 +279,12 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
-    useDebouncedRoomSave({ isGuest, mode, room, localItems, saveRoom });
+    useDebouncedRoomSave({ isGuest, mode, room, localItems: normalizedLocalItems, saveRoom });
 
     useEnsureRoomLoaded({
         room,
         isGuest,
-        setLocalItems: (items) => setLocalItems(items),
+        setLocalItems: (items) => setNormalizedItems(items),
         createRoom: () => createRoom({}),
     });
 
@@ -297,7 +363,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         onboardingStep,
         advanceOnboarding,
         computerGuardAllowOpen: computed.computerGuard.allowOpen,
-        setLocalItems,
+        setLocalItems: setNormalizedItems,
         setSelectedId,
         setDraggedItemId,
         setIsComputerOpen,
@@ -323,7 +389,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         isGuest,
         viewportWidth,
         mobileMaxWidth: MOBILE_MAX_WIDTH,
-        initialGuestSession,
+        initialGuestSession: normalizedInitialGuestSession ?? initialGuestSession,
         room,
         guestTemplate,
         guestRoom,
@@ -333,7 +399,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     const roomContent = (
         <RoomItemsLayer
-            items={localItems}
+            items={normalizedLocalItems}
             selectedId={selectedId}
             mode={mode}
             scale={scale}
@@ -371,7 +437,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onShareClick={() => setIsShareModalOpen(true)}
             onDrawerToggle={handlers.handleDrawerToggle}
             onDeleteItem={(itemId) => {
-                setLocalItems((prev: RoomItem[]) => prev.filter((item: RoomItem) => item.id !== itemId));
+                setNormalizedItems((prev: RoomItem[]) => prev.filter((item: RoomItem) => item.id !== itemId));
                 setSelectedId((current) => (current === itemId ? null : current));
             }}
             isComputerOpen={isComputerOpen}
@@ -418,9 +484,9 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             devTimeOfDay={computed.overrideTimeOfDay}
             onSetDevTimeOfDay={setOverrideTimeOfDay}
             musicPlayerItemId={musicPlayerItemId}
-            localItems={localItems}
+            localItems={normalizedLocalItems}
             onMusicSave={async (updatedItem, updatedItems) => {
-                setLocalItems(updatedItems);
+                setNormalizedItems(() => updatedItems);
 
                 const isPlaying = updatedItem.musicPlaying === true;
                 const startedAt = updatedItem.musicStartedAt ?? Date.now();
