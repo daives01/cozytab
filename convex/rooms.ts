@@ -390,7 +390,7 @@ export const renewLease = mutation({
 
         if (hasHostOnlyExpired(hostOnlySince, now)) {
             await closeRoomAndDeleteLease(ctx, existingLease?._id ?? null, room._id);
-            throw new Error(HOST_ONLY_INACTIVE_ERROR);
+            return { expiresAt: null, closed: true, reason: HOST_ONLY_INACTIVE_ERROR };
         }
 
         if (existingLease) {
@@ -409,7 +409,7 @@ export const renewLease = mutation({
             });
         }
 
-        return { expiresAt };
+        return { expiresAt, closed: false as const };
     },
 });
 

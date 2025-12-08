@@ -264,18 +264,30 @@ export function useLeaseHeartbeat({
         };
 
         const sendHeartbeat = () => {
-            renewLease({ roomId: room._id, hasGuests: hasVisitors }).catch((err) => {
-                console.error("[Room] renewLease failed", err);
-                const message = err instanceof Error ? err.message : String(err);
-                if (
-                    message.includes("host-only-timeout") ||
-                    message.includes("inactive") ||
-                    message.includes("Not authenticated") ||
-                    message.includes("Forbidden")
-                ) {
-                    stopHeartbeats();
-                }
-            });
+            renewLease({ roomId: room._id, hasGuests: hasVisitors })
+                .then((result: { closed?: boolean; reason?: string } | unknown) => {
+                    const closed = typeof result === "object" && result !== null && "closed" in result
+                        ? (result as { closed?: boolean }).closed
+                        : false;
+                    const reason = typeof result === "object" && result !== null && "reason" in result
+                        ? (result as { reason?: string }).reason
+                        : undefined;
+                    if (closed || reason === "host-only-timeout") {
+                        stopHeartbeats();
+                    }
+                })
+                .catch((err) => {
+                    console.error("[Room] renewLease failed", err);
+                    const message = err instanceof Error ? err.message : String(err);
+                    if (
+                        message.includes("host-only-timeout") ||
+                        message.includes("inactive") ||
+                        message.includes("Not authenticated") ||
+                        message.includes("Forbidden")
+                    ) {
+                        stopHeartbeats();
+                    }
+                });
         };
 
         sendHeartbeat();

@@ -31,6 +31,7 @@
     "convex": "^1.30.0",
     "jotai": "^2.15.2",
     "lucide-react": "^0.555.0",
+    "posthog-js": "^1.302.2",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-router-dom": "^7.10.0",
