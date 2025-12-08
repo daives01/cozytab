@@ -69,7 +69,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         user,
         catalogItems,
         computerState,
-        backgroundUrl,
+        roomBackgroundImageUrl,
         resolvedComputerAssetUrl,
     } = useRoomData({ isGuest, timeOfDay });
     const {
@@ -454,7 +454,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     return (
         <RoomShell
-            backgroundUrl={backgroundUrl ?? null}
+            roomBackgroundImageUrl={roomBackgroundImageUrl ?? null}
             scale={scale}
             timeOfDay={timeOfDay}
             containerRef={containerRef}

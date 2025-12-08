@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
 import { STARTER_COMPUTER_NAME } from "../../../shared/guestTypes";
-import { useResolvedBackgroundUrl } from "./useResolvedBackgroundUrl";
+import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
 import type { TimeOfDay } from "../roomConstants";
 
 interface RoomDataArgs {
@@ -19,13 +19,13 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
 
-    const backgroundSource = useMemo(() => {
+    const roomTemplateBackgroundUrl = useMemo(() => {
         if (isGuest) return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
         if (room?.template?.backgroundUrl) return room.template.backgroundUrl;
         return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
     }, [guestRoom?.template?.backgroundUrl, guestTemplate?.backgroundUrl, isGuest, room?.template?.backgroundUrl]);
 
-    const backgroundUrl = useResolvedBackgroundUrl(backgroundSource, timeOfDay);
+    const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomTemplateBackgroundUrl, timeOfDay);
 
     const computerCatalogItem = useMemo(() => {
         if (!catalogItems) return null;
@@ -56,7 +56,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
         user,
         catalogItems,
         computerState,
-        backgroundUrl,
+        roomBackgroundImageUrl,
         resolvedComputerAssetUrl,
         computerCatalogItem,
     };

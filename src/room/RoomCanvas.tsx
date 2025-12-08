@@ -3,7 +3,7 @@ import type React from "react";
 import { ROOM_HEIGHT, ROOM_WIDTH, BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT, type TimeOfDay } from "./roomConstants";
 
 interface RoomCanvasProps {
-    backgroundUrl?: string;
+    roomBackgroundImageUrl?: string;
     scale: number;
     timeOfDay: TimeOfDay;
     containerRef?: React.Ref<HTMLDivElement>;
@@ -19,7 +19,7 @@ interface RoomCanvasProps {
 }
 
 export function RoomCanvas({
-    backgroundUrl,
+    roomBackgroundImageUrl,
     scale,
     timeOfDay,
     containerRef,
@@ -104,11 +104,11 @@ export function RoomCanvas({
                 <div
                     className="absolute inset-0"
                     style={{
-                        backgroundImage: backgroundUrl ? `url('${backgroundUrl}')` : undefined,
+                        backgroundImage: roomBackgroundImageUrl ? `url('${roomBackgroundImageUrl}')` : undefined,
                         backgroundSize: "contain",
                         backgroundPosition: "center",
                         backgroundRepeat: "no-repeat",
-                        backgroundColor: backgroundUrl ? "transparent" : "var(--paper)",
+                        backgroundColor: roomBackgroundImageUrl ? "transparent" : "var(--paper)",
                         zIndex: 0,
                     }}
                     onClick={onBackgroundClick}

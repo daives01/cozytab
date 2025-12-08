@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
 import type { ComputerShortcut, RoomItem } from "../types";
 import { api } from "../../convex/_generated/api";
-import { useResolvedBackgroundUrl } from "./hooks/useResolvedBackgroundUrl";
+import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
@@ -150,7 +150,7 @@ export function VisitorRoomPage() {
         },
         isOwner: false,
     });
-    const backgroundUrl = useResolvedBackgroundUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
+    const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
     useCursorColor(visitorIdentity.cursorColor);
 
@@ -425,7 +425,7 @@ export function VisitorRoomPage() {
 
     return (
         <RoomShell
-            backgroundUrl={backgroundUrl ?? null}
+            roomBackgroundImageUrl={roomBackgroundImageUrl ?? null}
             scale={scale}
             timeOfDay={timeOfDay}
             containerRef={containerRef}

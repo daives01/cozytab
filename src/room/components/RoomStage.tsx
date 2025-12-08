@@ -4,7 +4,7 @@ import { RoomCanvas } from "../RoomCanvas";
 import type { TimeOfDay } from "../roomConstants";
 
 interface RoomStageProps {
-    backgroundUrl: string | null | undefined;
+    roomBackgroundImageUrl: string | null | undefined;
     scale: number;
     timeOfDay: TimeOfDay;
     containerRef: React.RefObject<HTMLDivElement | null>;
@@ -20,7 +20,7 @@ interface RoomStageProps {
 }
 
 export function RoomStage({
-    backgroundUrl,
+    roomBackgroundImageUrl,
     scale,
     timeOfDay,
     containerRef,
@@ -36,7 +36,7 @@ export function RoomStage({
 }: RoomStageProps) {
     return (
         <RoomCanvas
-            backgroundUrl={backgroundUrl ?? undefined}
+            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
             scale={scale}
             timeOfDay={timeOfDay}
             containerRef={containerRef}

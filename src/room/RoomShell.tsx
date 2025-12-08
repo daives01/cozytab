@@ -3,7 +3,7 @@ import type { CSSProperties, DragEvent } from "react";
 import { RoomStage } from "./components/RoomStage";
 
 interface RoomShellProps {
-    backgroundUrl: string | null | undefined;
+    roomBackgroundImageUrl: string | null | undefined;
     scale: number;
     timeOfDay: "day" | "night";
     containerRef: React.RefObject<HTMLDivElement | null>;
@@ -19,7 +19,7 @@ interface RoomShellProps {
 }
 
 export function RoomShell({
-    backgroundUrl,
+    roomBackgroundImageUrl,
     scale,
     timeOfDay,
     containerRef,
@@ -36,7 +36,7 @@ export function RoomShell({
     return (
         <div className="h-screen w-screen">
             <RoomStage
-                backgroundUrl={backgroundUrl}
+                roomBackgroundImageUrl={roomBackgroundImageUrl}
                 scale={scale}
                 timeOfDay={timeOfDay}
                 containerRef={containerRef}
