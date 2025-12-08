@@ -20,7 +20,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
 
     const backgroundSource = useMemo(() => {
-        if (isGuest) return guestTemplate?.backgroundUrl;
+        if (isGuest) return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
         if (room?.template?.backgroundUrl) return room.template.backgroundUrl;
         return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
     }, [guestRoom?.template?.backgroundUrl, guestTemplate?.backgroundUrl, isGuest, room?.template?.backgroundUrl]);

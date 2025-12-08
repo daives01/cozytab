@@ -74,6 +74,7 @@ export default defineSchema({
         ),
     })
         .index("by_user", ["userId"])
+        .index("by_user_template", ["userId", "templateId"])
         .index("by_user_active", ["userId", "isActive"]),
 
     roomLeases: defineTable({

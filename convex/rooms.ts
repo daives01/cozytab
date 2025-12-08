@@ -155,21 +155,28 @@ export const createRoom = mutation({
         const template = await ctx.db.get(templateId);
         if (!template) throw new Error("Template not found");
 
-        const existingRooms = await ctx.db
+        const roomsForTemplate = await ctx.db
+            .query("rooms")
+            .withIndex("by_user_template", (q) =>
+                q.eq("userId", user._id).eq("templateId", templateId)
+            )
+            .collect();
+
+        if (roomsForTemplate.length > 0) {
+            const activeRoom = roomsForTemplate.find((room) => room.isActive);
+            return activeRoom?._id ?? roomsForTemplate[0]._id;
+        }
+
+        const allRoomsForUser = await ctx.db
             .query("rooms")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
-
-        if (existingRooms.length > 0) {
-            const activeRoom = existingRooms.find(r => r.isActive);
-            return activeRoom?._id ?? existingRooms[0]._id;
-        }
 
         const id = await ctx.db.insert("rooms", {
             userId: user._id,
             templateId,
             name: template.name,
-            isActive: true,
+            isActive: allRoomsForUser.length === 0,
             items: [],
             shortcuts: [],
         });

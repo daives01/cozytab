@@ -4,8 +4,10 @@ import { getDaylightWindow } from "./timeOfDay";
 export const ROOM_WIDTH = 1920;
 export const ROOM_HEIGHT = 1440;
 
-export const BASE_BACKGROUND_DAY = "/backgrounds/snow-background-day.svg";
-export const BASE_BACKGROUND_NIGHT = "/backgrounds/snow-background-night.svg";
+// Single unified fallback room illustration
+export const ROOM_FALLBACK_BACKGROUND = "/assets/brown-room.svg";
+export const BASE_BACKGROUND_DAY = ROOM_FALLBACK_BACKGROUND;
+export const BASE_BACKGROUND_NIGHT = ROOM_FALLBACK_BACKGROUND;
 
 export type TimeOfDay = "day" | "night";
 

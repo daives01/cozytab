@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Id } from "../../../convex/_generated/dataModel";
-import { BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT, getLocalTimeOfDayBackground, type TimeOfDay } from "../roomConstants";
+import { BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT, ROOM_FALLBACK_BACKGROUND, type TimeOfDay } from "../roomConstants";
 
 export function useResolvedBackgroundUrl(backgroundUrl: string | undefined, overrideTimeOfDay?: TimeOfDay) {
     const isStorageUrl = backgroundUrl?.startsWith("storage:");
@@ -16,8 +16,8 @@ export function useResolvedBackgroundUrl(backgroundUrl: string | undefined, over
         if (overrideTimeOfDay) {
             return overrideTimeOfDay === "day" ? BASE_BACKGROUND_DAY : BASE_BACKGROUND_NIGHT;
         }
-        return getLocalTimeOfDayBackground();
+        return ROOM_FALLBACK_BACKGROUND;
     }
-    if (isStorageUrl) return resolvedUrl ?? undefined;
+    if (isStorageUrl) return resolvedUrl ?? ROOM_FALLBACK_BACKGROUND;
     return backgroundUrl;
 }

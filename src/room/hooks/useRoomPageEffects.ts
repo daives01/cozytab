@@ -221,11 +221,15 @@ export function useEnsureRoomLoaded({
 }) {
     const hasHydratedRef = useRef(false);
     const lastRoomIdRef = useRef<Id<"rooms"> | null>(null);
+    const createRoomRequestedRef = useRef(false);
 
     useEffect(() => {
         if (!isGuest) {
             if (room === null) {
-                createRoom();
+                if (!createRoomRequestedRef.current) {
+                    createRoomRequestedRef.current = true;
+                    createRoom();
+                }
             } else if (room) {
                 const roomId = room._id;
                 const isNewRoom = roomId !== lastRoomIdRef.current;
@@ -234,6 +238,7 @@ export function useEnsureRoomLoaded({
                     hasHydratedRef.current = true;
                     lastRoomIdRef.current = roomId;
                 }
+                createRoomRequestedRef.current = false;
             }
         }
     }, [room, createRoom, isGuest, setLocalItems]);
