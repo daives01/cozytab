@@ -18,8 +18,7 @@ export default defineSchema({
                         row: v.number(),
                         col: v.number(),
                     })
-                ),
-                cursorColor: v.optional(v.string()),
+                )
             })
         ),
         lastDailyRewardDay: v.optional(v.string()),

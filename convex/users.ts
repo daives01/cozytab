@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
@@ -793,50 +793,3 @@ export const saveMyComputer = mutation({
     },
 });
 
-// One-off: remove legacy cursorColor stored on computer objects now that it lives on the user.
-export const clearComputerCursorColor = internalMutation({
-    args: {
-        cursor: v.optional(v.string()),
-    },
-    handler: async (ctx, args) => {
-        const PAGE_SIZE = 100;
-        const page = await ctx.db
-            .query("users")
-            .paginate({ cursor: args.cursor ?? null, numItems: PAGE_SIZE });
-
-        let updated = 0;
-
-        for (const user of page.page) {
-            const computer = user.computer as { cursorColor?: string; shortcuts?: unknown[] } | undefined;
-            if (!computer?.cursorColor) continue;
-
-            const shortcuts =
-                Array.isArray(computer.shortcuts) && computer.shortcuts.every(
-                    (s) =>
-                        s &&
-                        typeof s === "object" &&
-                        "id" in s &&
-                        "name" in s &&
-                        "url" in s &&
-                        "row" in s &&
-                        "col" in s
-                )
-                    ? (computer.shortcuts as {
-                          id: string;
-                          name: string;
-                          url: string;
-                          row: number;
-                          col: number;
-                      }[])
-                    : [];
-
-            await ctx.db.patch(user._id, {
-                cursorColor: user.cursorColor ?? computer.cursorColor,
-                computer: { shortcuts },
-            });
-            updated++;
-        }
-
-        return { updated, continueCursor: page.continueCursor };
-    },
-});
