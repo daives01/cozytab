@@ -626,6 +626,9 @@ export function ComputerScreen({
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;
+        if (!myRooms || myRooms.length <= 1) return;
+        const targetRoom = myRooms.find((room) => room._id === roomId);
+        if (!targetRoom || targetRoom.isActive) return;
         setSwitchingRoom(roomId);
         try {
             await setActiveRoom({ roomId });

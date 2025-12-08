@@ -25,6 +25,8 @@ export function RoomsPanel({
 }: RoomsPanelProps) {
     const baseContainerClass = "bg-stone-50 w-full h-full overflow-hidden flex flex-col";
 
+    const isSingleRoom = (myRooms?.length ?? 0) === 1;
+
     const container = (
         <div className={baseContainerClass}>
             <div className="p-3 space-y-2 overflow-y-auto flex-1">
@@ -38,13 +40,13 @@ export function RoomsPanel({
                     </div>
                 ) : (
                     myRooms.map((room) => {
-                        const isActive = room.isActive;
+                        const isActive = room.isActive || isSingleRoom;
                         const isSwitching = switchingRoom === room._id;
 
                         return (
                             <button
                                 key={room._id}
-                                onClick={() => !isActive && onSwitchRoom(room._id)}
+                                onClick={() => !isActive && !isSingleRoom && onSwitchRoom(room._id)}
                                 disabled={isActive || isSwitching}
                                 className={`w-full flex items-center gap-3 p-2 rounded-lg border-2 transition-all text-left ${
                                     isActive

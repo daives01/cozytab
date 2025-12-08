@@ -27,6 +27,7 @@
 - `catalogItems`: name, category (string), basePrice, assetUrl, defaultWidth; index `by_name`.
 - `inventory`: userId, catalogItemId, purchasedAt, hidden?; indexes `by_user`, `by_user_and_item`.
 - `roomInvites`: roomId, token, code, createdAt, expiresAt?, isActive, createdBy; indexes `by_token`, `by_room`, `by_code`.
+- Flags/semantics: `rooms.isActive` marks the user’s selected room (set via `setActiveRoom` / first room creation). `roomInvites.isActive` marks invite validity. Leases (`roomLeases`) represent presence/open state and can expire; lease cleanup must not flip `rooms.isActive` (we now only delete leases on cleanup).
 
 ## Frontend Types & Flows
 - Types: `RoomItem` aligns with stored item fields; `CatalogItemCategory` = "Furniture" | "Decor" | "Computers" | "Music"; guest types add optional scale/rotation/zIndex for client-only transforms.

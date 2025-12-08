@@ -42,15 +42,7 @@ function hasHostOnlyExpired(hostOnlySince: number | undefined, now: number) {
     return now - hostOnlySince >= HOST_ONLY_TIMEOUT_MS;
 }
 
-async function closeRoomAndDeleteLease(
-    ctx: MutationCtx,
-    leaseId: Id<"roomLeases"> | null,
-    roomId: Id<"rooms">
-) {
-    const room = await ctx.db.get(roomId);
-    if (room?.isActive) {
-        await ctx.db.patch(roomId, { isActive: false });
-    }
+async function closeRoomAndDeleteLease(ctx: MutationCtx, leaseId: Id<"roomLeases"> | null) {
     if (leaseId) {
         await ctx.db.delete(leaseId);
     }
@@ -198,6 +190,18 @@ export const setActiveRoom = mutation({
             .query("rooms")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
+
+        const hasSingleRoom = allRooms.length <= 1;
+        if (hasSingleRoom) {
+            if (!targetRoom.isActive) {
+                await ctx.db.patch(args.roomId, { isActive: true });
+            }
+            return { success: true };
+        }
+
+        if (targetRoom.isActive) {
+            return { success: true };
+        }
 
         for (const room of allRooms) {
             if (room._id !== args.roomId && room.isActive) {
@@ -396,7 +400,7 @@ export const renewLease = mutation({
         const hostOnlySince = computeHostOnlySince(hasGuests, existingLease?.hostOnlySince, now);
 
         if (hasHostOnlyExpired(hostOnlySince, now)) {
-            await closeRoomAndDeleteLease(ctx, existingLease?._id ?? null, room._id);
+            await closeRoomAndDeleteLease(ctx, existingLease?._id ?? null);
             return { expiresAt: null, closed: true, reason: HOST_ONLY_INACTIVE_ERROR };
         }
 
@@ -471,7 +475,7 @@ export const closeHostOnlyRooms = internalMutation({
             const hostOnlyDuration = now - lease.hostOnlySince;
             if (hostOnlyDuration < HOST_ONLY_TIMEOUT_MS) continue;
 
-            await closeRoomAndDeleteLease(ctx, lease._id, lease.roomId);
+            await closeRoomAndDeleteLease(ctx, lease._id);
         }
 
         return { closed: true };
@@ -486,7 +490,7 @@ export const closeStaleRooms = internalMutation({
         for (const lease of leases) {
             if (lease.expiresAt > now) continue;
 
-            await closeRoomAndDeleteLease(ctx, lease._id, lease.roomId);
+            await closeRoomAndDeleteLease(ctx, lease._id);
         }
         return { closed: true };
     },
