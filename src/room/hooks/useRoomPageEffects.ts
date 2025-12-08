@@ -243,34 +243,50 @@ export function useLeaseHeartbeat({
     isGuest,
     room,
     renewLease,
+    hasVisitors = false,
 }: {
     isGuest: boolean;
     room: RoomRecord | null | undefined;
-    renewLease: (args: { roomId: Id<"rooms"> }) => Promise<unknown>;
+    renewLease: (args: { roomId: Id<"rooms">; hasGuests?: boolean }) => Promise<unknown>;
+    hasVisitors?: boolean;
 }) {
     useEffect(() => {
         if (isGuest) return;
         if (!room) return;
 
-        let cancelled = false;
+        let intervalId: ReturnType<typeof setInterval> | null = null;
+
+        const stopHeartbeats = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
 
         const sendHeartbeat = () => {
-            renewLease({ roomId: room._id }).catch((err) => {
+            renewLease({ roomId: room._id, hasGuests: hasVisitors }).catch((err) => {
                 console.error("[Room] renewLease failed", err);
+                const message = err instanceof Error ? err.message : String(err);
+                if (
+                    message.includes("host-only-timeout") ||
+                    message.includes("inactive") ||
+                    message.includes("Not authenticated") ||
+                    message.includes("Forbidden")
+                ) {
+                    stopHeartbeats();
+                }
             });
         };
 
         sendHeartbeat();
-        const intervalId = setInterval(() => {
-            if (cancelled) return;
+        intervalId = setInterval(() => {
             sendHeartbeat();
-        }, 60_000);
+        }, 120_000);
 
         return () => {
-            cancelled = true;
-            clearInterval(intervalId);
+            stopHeartbeats();
         };
-    }, [isGuest, renewLease, room]);
+    }, [hasVisitors, isGuest, renewLease, room]);
 }
 
 export function useSyncComputerState({

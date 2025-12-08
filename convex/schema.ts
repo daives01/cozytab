@@ -81,6 +81,7 @@ export default defineSchema({
         hostId: v.id("users"),
         lastSeen: v.number(),
         expiresAt: v.number(),
+        hostOnlySince: v.optional(v.number()),
     })
         .index("by_room", ["roomId"])
         .index("by_host", ["hostId"]),

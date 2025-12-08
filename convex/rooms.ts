@@ -1,9 +1,12 @@
-import { query, mutation } from "./_generated/server";
-import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
-const LEASE_TTL_MS = 5 * 60 * 1000;
+// Lease TTL slightly larger than heartbeat interval buffer.
+const LEASE_TTL_MS = 7 * 60 * 1000;
+const HOST_ONLY_TIMEOUT_MS = 10 * 60 * 1000;
+const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
 
 const roomShortcutValidator = v.object({
     id: v.string(),
@@ -28,6 +31,29 @@ async function getRoomLease(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
         .query("roomLeases")
         .withIndex("by_room", (q) => q.eq("roomId", roomId))
         .unique();
+}
+
+function computeHostOnlySince(hasGuests: boolean, existingHostOnlySince: number | undefined, now: number) {
+    return hasGuests ? undefined : existingHostOnlySince ?? now;
+}
+
+function hasHostOnlyExpired(hostOnlySince: number | undefined, now: number) {
+    if (!hostOnlySince) return false;
+    return now - hostOnlySince >= HOST_ONLY_TIMEOUT_MS;
+}
+
+async function closeRoomAndDeleteLease(
+    ctx: MutationCtx,
+    leaseId: Id<"roomLeases"> | null,
+    roomId: Id<"rooms">
+) {
+    const room = await ctx.db.get(roomId);
+    if (room?.isActive) {
+        await ctx.db.patch(roomId, { isActive: false });
+    }
+    if (leaseId) {
+        await ctx.db.delete(leaseId);
+    }
 }
 
 export const getMyActiveRoom = query({
@@ -344,6 +370,7 @@ export const getRoomByInvite = query({
 export const renewLease = mutation({
     args: {
         roomId: v.id("rooms"),
+        hasGuests: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         const user = await getUser(ctx);
@@ -356,13 +383,21 @@ export const renewLease = mutation({
 
         const now = Date.now();
         const expiresAt = now + LEASE_TTL_MS;
+        const hasGuests = args.hasGuests ?? false;
 
         const existingLease = await getRoomLease(ctx, args.roomId);
+        const hostOnlySince = computeHostOnlySince(hasGuests, existingLease?.hostOnlySince, now);
+
+        if (hasHostOnlyExpired(hostOnlySince, now)) {
+            await closeRoomAndDeleteLease(ctx, existingLease?._id ?? null, room._id);
+            throw new Error(HOST_ONLY_INACTIVE_ERROR);
+        }
 
         if (existingLease) {
             await ctx.db.patch(existingLease._id, {
                 lastSeen: now,
                 expiresAt,
+                hostOnlySince,
             });
         } else {
             await ctx.db.insert("roomLeases", {
@@ -370,6 +405,7 @@ export const renewLease = mutation({
                 hostId: user._id,
                 lastSeen: now,
                 expiresAt,
+                hostOnlySince,
             });
         }
 
@@ -414,5 +450,37 @@ export const cleanupRoomLease = mutation({
 
         await ctx.db.delete(lease._id);
         return { cleaned: true, reason: "expired" as const };
+    },
+});
+
+export const closeHostOnlyRooms = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const leases = await ctx.db.query("roomLeases").collect();
+
+        for (const lease of leases) {
+            if (!lease.hostOnlySince) continue;
+            const hostOnlyDuration = now - lease.hostOnlySince;
+            if (hostOnlyDuration < HOST_ONLY_TIMEOUT_MS) continue;
+
+            await closeRoomAndDeleteLease(ctx, lease._id, lease.roomId);
+        }
+
+        return { closed: true };
+    },
+});
+
+export const closeStaleRooms = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const now = Date.now();
+        const leases = await ctx.db.query("roomLeases").collect();
+        for (const lease of leases) {
+            if (lease.expiresAt > now) continue;
+
+            await closeRoomAndDeleteLease(ctx, lease._id, lease.roomId);
+        }
+        return { closed: true };
     },
 });

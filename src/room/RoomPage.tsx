@@ -222,7 +222,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         createRoom: () => createRoom({}),
     });
 
-    useLeaseHeartbeat({ isGuest, room, renewLease });
+    useLeaseHeartbeat({ isGuest, room, renewLease, hasVisitors });
 
     useSyncComputerState({
         isGuest,
