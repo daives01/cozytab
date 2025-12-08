@@ -65,7 +65,7 @@ export function RoomsPanel({
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-stone-700 truncate text-sm">
+                                    <div className="font-bold text-stone-700 truncate text-size-lg">
                                         {room.name}
                                     </div>
                                     <div className="text-xs text-stone-500">
@@ -90,7 +90,7 @@ export function RoomsPanel({
                 )}
             </div>
 
-            <div className="bg-stone-200 border-t border-stone-300 px-3 py-2 text-xs text-stone-500 text-center shrink-0">
+            <div className="bg-stone-200 border-t border-stone-300 px-3 py-2 text-size-md text-stone-500 text-center shrink-0">
                 Buy more rooms from the Item Shop!
             </div>
         </div>

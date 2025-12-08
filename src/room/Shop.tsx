@@ -279,7 +279,7 @@ export function Shop({
                     </div>
                     <div className="flex items-center gap-3">
                         {!isGuest && (
-                            <div className="flex items-center gap-3 text-xs font-bold text-neutral-500">
+                            <div className="flex items-center gap-3 text-size-md font-bold text-neutral-500">
                                 <div className="flex items-center gap-1.5" title="Login Streak">
                                     <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500" />
                                     <span>{loginStreak ?? 0}d streak</span>
@@ -305,7 +305,7 @@ export function Shop({
                         )}
                         <div className="flex items-center gap-2 bg-[var(--warning-light)] rounded-full px-3 py-1 border-2 border-[var(--ink)] shadow-sm">
                             <Coins className="h-4 w-4 text-[var(--warning)]" />
-                            <span className="font-bold text-sm text-[var(--ink)]">{effectiveCoins}</span>
+                            <span className="font-bold text-size-lg text-[var(--ink)]">{effectiveCoins}</span>
                         </div>
                     </div>
                 </div>

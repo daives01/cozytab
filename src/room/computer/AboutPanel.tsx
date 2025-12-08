@@ -1,7 +1,7 @@
 export function AboutPanel() {
     return (
         <div className="h-full flex flex-col gap-3 p-3 text-stone-800">
-            <p className="text-sm text-stone-700 leading-relaxed">
+            <p className="text-size-lg text-stone-700 leading-relaxed">
                 cozytab is created by {inlineLink("https://daniel-ives.com", "Daniel Ives")}.
                 but it wouldn't exist without the incredible design, product ideas, and artwork
                 by his wife, Quincy Ives.

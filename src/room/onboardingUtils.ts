@@ -50,19 +50,23 @@ function detectPlatform(): { os: DetectedOS; browser: DetectedBrowser } {
 export function getHomepageInstruction(): string {
     const { os, browser } = detectPlatform();
 
-    const instructions = "Set cozytab as your homepage!"
-    let specificInstructions = ""
+    const instructions =
+        "Set cozytab as your homepage in settings! Log in daily to earn a new coin!";
+    let specificInstructions = "";
 
     if (os === "mac") {
         switch (browser) {
             case "chrome":
-                specificInstructions = "Press '⌘ + ,' then On startup > Open a specific page > add https://cozytab.club.";
+                specificInstructions =
+                    "Chrome: Settings (⌘ ,) → On startup → Open a specific page → https://cozytab.club.";
                 break;
             case "edge":
-                specificInstructions = "Press '⌘ + ,' then Start, home, and new tabs > Home > custom page https://cozytab.club.";
+                specificInstructions =
+                    "Edge: Settings (⌘ ,) → Start, home, and new tabs → Home → custom page https://cozytab.club.";
                 break;
             case "firefox":
-                specificInstructions = "Press '⌘ + ,' then Home > Homepage and new windows > Custom URL https://cozytab.club.";
+                specificInstructions =
+                    "Firefox: Settings (⌘ ,) → Home → Homepage and new windows → Custom URL https://cozytab.club.";
                 break;
             default:
                 break;
@@ -72,19 +76,23 @@ export function getHomepageInstruction(): string {
     if (os === "windows") {
         switch (browser) {
             case "chrome":
-                specificInstructions = "Press 'Ctrl + ,' then On startup > Open a specific page > add https://cozytab.club.";
+                specificInstructions =
+                    "Chrome: Settings (Ctrl ,) → On startup → Open a specific page → https://cozytab.club.";
                 break;
             case "edge":
-                specificInstructions = "Press 'Ctrl + ,' then Start, home, and new tabs > Home > custom page https://cozytab.club.";
+                specificInstructions =
+                    "Edge: Settings (Ctrl ,) → Start, home, and new tabs → Home → custom page https://cozytab.club.";
                 break;
             case "firefox":
-                specificInstructions = "Open Settings ('Ctrl + ,'), go to Home, set Custom URL to https://cozytab.club.";
+                specificInstructions =
+                    "Firefox: Settings (Ctrl ,) → Home → Homepage and new windows → Custom URL https://cozytab.club.";
                 break;
             default:
                 break;
         }
     }
 
-    return `${instructions} ${specificInstructions}`;
+    // Keep the friendly headline on its own line, then show browser-specific steps.
+    return specificInstructions ? `${instructions}\n${specificInstructions}` : instructions;
 }
 
