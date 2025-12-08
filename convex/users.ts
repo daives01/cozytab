@@ -313,15 +313,19 @@ async function importInventoryWithinBudget(
 
 function sanitizeGuestRoomItems(
     items: GuestRoomItem[] | undefined,
-    catalogNames: Set<string>
-): GuestRoomItem[] {
+    catalogByName: Map<string, Id<"catalogItems">>,
+    catalogIds: Set<Id<"catalogItems">>
+): Array<GuestRoomItem & { catalogItemId: Id<"catalogItems"> }> {
     if (!items) return [];
-    return items
-        .slice(0, MAX_GUEST_ITEMS)
-        .filter((item) => catalogNames.has(item.catalogItemId))
-        .map((item) => ({
+    const sanitized: Array<GuestRoomItem & { catalogItemId: Id<"catalogItems"> }> = [];
+    for (const item of items.slice(0, MAX_GUEST_ITEMS)) {
+        const asId = item.catalogItemId as Id<"catalogItems">;
+        const catalogId = catalogIds.has(asId) ? asId : catalogByName.get(item.catalogItemId);
+        if (!catalogId) continue;
+
+        sanitized.push({
             id: item.id,
-            catalogItemId: item.catalogItemId,
+            catalogItemId: catalogId,
             x: Number.isFinite(item.x) ? item.x : 0,
             y: Number.isFinite(item.y) ? item.y : 0,
             url: item.url,
@@ -331,7 +335,9 @@ function sanitizeGuestRoomItems(
             musicPlaying: item.musicPlaying,
             musicStartedAt: item.musicStartedAt,
             musicPositionAtStart: item.musicPositionAtStart,
-        }));
+        });
+    }
+    return sanitized;
 }
 
 function sanitizeGuestShortcuts(shortcuts: GuestShortcut[] | undefined) {
@@ -351,9 +357,10 @@ async function seedRoomFromGuest(
     templateId: Id<"roomTemplates">,
     templateName: string,
     guestItems: GuestRoomItem[] | undefined,
-    catalogNames: Set<string>
+    catalogByName: Map<string, Id<"catalogItems">>,
+    catalogIds: Set<Id<"catalogItems">>
 ) {
-    const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogNames);
+    const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogByName, catalogIds);
 
     await ctx.db.insert("rooms", {
         userId,
@@ -513,7 +520,10 @@ export const ensureUser = mutation({
                 const template = defaultTemplates[0];
 
                 if (template) {
-                    const catalogNames = new Set(catalogItems.map((c) => c.name));
+                    const catalogByName = new Map<string, Id<"catalogItems">>(
+                        catalogItems.map((c) => [c.name, c._id])
+                    );
+                    const catalogIds = new Set<Id<"catalogItems">>(catalogItems.map((c) => c._id));
 
                     await seedRoomFromGuest(
                         ctx,
@@ -521,7 +531,8 @@ export const ensureUser = mutation({
                         template._id,
                         template.name,
                         guestRoomItems,
-                        catalogNames
+                        catalogByName,
+                        catalogIds
                     );
                 }
             }
@@ -742,20 +753,7 @@ export const getMyComputer = query({
             return { shortcuts: existingShortcuts, cursorColor };
         }
 
-        // Migrate from the active room shortcuts if present
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) =>
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-        const activeRoom = rooms[0];
-        const migrated =
-            activeRoom?.shortcuts && activeRoom.shortcuts.length > 0
-                ? normalizeShortcutsWithGrid(activeRoom.shortcuts)
-                : [];
-
-        const computerState = { shortcuts: migrated, cursorColor };
+        const computerState = { shortcuts: [], cursorColor };
 
         return computerState;
     },

@@ -48,7 +48,7 @@ export default defineSchema({
         items: v.array(
             v.object({
                 id: v.string(),
-                catalogItemId: v.string(),
+                catalogItemId: v.id("catalogItems"),
                 x: v.number(),
                 y: v.number(),
                 url: v.optional(v.string()),

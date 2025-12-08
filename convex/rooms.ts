@@ -8,6 +8,78 @@ const LEASE_TTL_MS = 7 * 60 * 1000;
 const HOST_ONLY_TIMEOUT_MS = 10 * 60 * 1000;
 const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
 
+const MAX_ROOM_ITEMS = 50;
+const MIN_POSITION = 0;
+const MAX_POSITION = 2000;
+const MAX_URL_LENGTH = 2048;
+
+type RoomItem = {
+    id: string;
+    catalogItemId: Id<"catalogItems">;
+    x: number;
+    y: number;
+    url?: string;
+    flipped?: boolean;
+    musicUrl?: string;
+    musicType?: "youtube";
+    musicPlaying?: boolean;
+    musicStartedAt?: number;
+    musicPositionAtStart?: number;
+};
+
+function clampNumber(value: number, min: number, max: number) {
+    if (!Number.isFinite(value)) return min;
+    return Math.min(max, Math.max(min, value));
+}
+
+function clampStringLength(value: string, maxLength: number) {
+    if (value.length <= maxLength) return value;
+    return value.slice(0, maxLength);
+}
+
+function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogItems">>): RoomItem[] {
+    if (items.length > MAX_ROOM_ITEMS) {
+        throw new Error("Too many items");
+    }
+
+    return items.map((item, index) => {
+        if (!validCatalogIds.has(item.catalogItemId)) {
+            throw new Error(`Invalid catalog item: ${item.catalogItemId} at index ${index}`);
+        }
+
+        const normalized: RoomItem = {
+            id: item.id,
+            catalogItemId: item.catalogItemId,
+            x: clampNumber(item.x, MIN_POSITION, MAX_POSITION),
+            y: clampNumber(item.y, MIN_POSITION, MAX_POSITION),
+        };
+
+        if (item.url !== undefined) {
+            normalized.url = clampStringLength(item.url, MAX_URL_LENGTH);
+        }
+        if (item.flipped !== undefined) {
+            normalized.flipped = item.flipped;
+        }
+        if (item.musicUrl !== undefined) {
+            normalized.musicUrl = clampStringLength(item.musicUrl, MAX_URL_LENGTH);
+        }
+        if (item.musicType === "youtube") {
+            normalized.musicType = "youtube";
+        }
+        if (item.musicPlaying !== undefined) {
+            normalized.musicPlaying = item.musicPlaying;
+        }
+        if (item.musicStartedAt !== undefined) {
+            normalized.musicStartedAt = item.musicStartedAt;
+        }
+        if (item.musicPositionAtStart !== undefined) {
+            normalized.musicPositionAtStart = item.musicPositionAtStart;
+        }
+
+        return normalized;
+    });
+}
+
 async function getUser(ctx: QueryCtx | MutationCtx) {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
@@ -271,7 +343,7 @@ export const saveMyRoom = mutation({
         items: v.array(
             v.object({
                 id: v.string(),
-                catalogItemId: v.string(),
+                catalogItemId: v.id("catalogItems"),
                 x: v.number(),
                 y: v.number(),
                 url: v.optional(v.string()),
@@ -290,7 +362,12 @@ export const saveMyRoom = mutation({
         assertRoomOwner(room, user);
         assertRoomActive(room);
 
-        await ctx.db.patch(args.roomId, { items: args.items });
+        const catalogItems = await ctx.db.query("catalogItems").collect();
+        const validCatalogIds = new Set<Id<"catalogItems">>(catalogItems.map((item) => item._id));
+
+        const normalizedItems = normalizeRoomItems(args.items as RoomItem[], validCatalogIds);
+
+        await ctx.db.patch(args.roomId, { items: normalizedItems });
     },
 });
 
