@@ -15,30 +15,30 @@ createRoot(document.getElementById('root')!).render(
       appearance={{
         variables: {
           fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-          colorPrimary: "#111827",
-          colorText: "#111827",
-          colorBackground: "#f8f4ec",
-          colorInputBackground: "#ffffff",
-          colorInputText: "#111827",
-          colorShimmer: "#fff7e6",
+          colorPrimary: "var(--color-foreground)",
+          colorText: "var(--color-foreground)",
+          colorBackground: "var(--color-background)",
+          colorInputBackground: "var(--color-input)",
+          colorInputText: "var(--color-foreground)",
+          colorShimmer: "var(--color-secondary)",
           borderRadius: "12px",
         },
         elements: {
-          rootBox: "bg-[var(--paper)] text-[var(--ink)] rounded-[24px] overflow-hidden",
-          card: "shadow-[8px_8px_0px_0px_var(--color-foreground)] border-2 border-[var(--color-foreground)] rounded-[24px] overflow-hidden bg-[var(--paper)]",
+          rootBox: "bg-[var(--color-background)] text-[var(--color-foreground)] rounded-[24px] overflow-hidden",
+          card: "shadow-[8px_8px_0px_0px_var(--color-foreground)] border-2 border-[var(--color-foreground)] rounded-[24px] overflow-hidden bg-[var(--color-background)]",
           modalContent: "rounded-[12px] overflow-hidden",
-          headerTitle: "text-2xl font-bold text-[var(--ink)]",
-          headerSubtitle: "text-sm uppercase tracking-[0.12em] text-[var(--ink-muted)]",
+          headerTitle: "text-2xl font-bold text-[var(--color-foreground)]",
+          headerSubtitle: "text-sm uppercase tracking-[0.12em] text-[var(--color-muted-foreground)]",
           formButtonPrimary:
-            "bg-[var(--foreground)] text-white rounded-2xl border-2 border-[var(--color-foreground)] shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+            "bg-[var(--color-foreground)] text-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
           formButtonSecondary:
-            "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--paper)] shadow-[3px_3px_0px_0px_var(--color-foreground)] text-[var(--ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+            "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[3px_3px_0px_0px_var(--color-foreground)] text-[var(--color-foreground)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
           formFieldInput:
-            "border-2 border-[var(--color-foreground)] rounded-2xl bg-white shadow-[2px_2px_0px_0px_var(--color-foreground)] focus:border-[var(--color-foreground)] focus:ring-0 text-[var(--ink)]",
-          formFieldLabel: "text-[var(--ink)] font-semibold tracking-[0.04em]",
+            "border-2 border-[var(--color-foreground)] rounded-2xl bg-[var(--color-input)] shadow-[2px_2px_0px_0px_var(--color-foreground)] focus:border-[var(--color-foreground)] focus:ring-0 text-[var(--color-foreground)]",
+          formFieldLabel: "text-[var(--color-foreground)] font-semibold tracking-[0.04em]",
           socialButtonsBlockButton:
-            "border-2 border-[var(--color-foreground)] rounded-2xl bg-[var(--paper)] shadow-[4px_4px_0px_0px_var(--color-foreground)] text-[var(--ink)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
-          footerAction__link: "text-[var(--ink)] underline decoration-2",
+            "border-2 border-[var(--color-foreground)] rounded-2xl bg-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] text-[var(--color-foreground)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+          footerAction__link: "text-[var(--color-foreground)] underline decoration-2",
         },
       }}
     >

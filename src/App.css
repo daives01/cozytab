@@ -315,8 +315,8 @@
   --card-header: #f9efd8;
   --popover: #f7ead6;
   --popover-foreground: #1f2433;
-  --primary: #3b4764;
-  --primary-foreground: #fff9f1;
+  --primary: var(--foreground);
+  --primary-foreground: var(--background);
   --secondary: #eadbc6;
   --secondary-foreground: #1f2433;
   --muted: #e9ddcc;
