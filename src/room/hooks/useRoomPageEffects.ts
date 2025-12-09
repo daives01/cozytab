@@ -262,16 +262,18 @@ export function useLeaseHeartbeat({
     currentUserId?: Id<"users"> | null;
 }) {
     const hasVisitorsRef = useRef(hasVisitors);
-    const wasSharingActiveRef = useRef(false);
     const roomId = room?._id ?? null;
+    const latestRoomIdRef = useRef<Id<"rooms"> | null>(roomId);
+    const sharingActiveRef = useRef(isSharingActive);
 
     useEffect(() => {
         hasVisitorsRef.current = hasVisitors;
     }, [hasVisitors]);
 
     useEffect(() => {
-        wasSharingActiveRef.current = isSharingActive;
-    }, [isSharingActive]);
+        latestRoomIdRef.current = roomId;
+        sharingActiveRef.current = isSharingActive;
+    }, [isSharingActive, roomId]);
 
     useEffect(() => {
         if (isGuest) return;
@@ -327,12 +329,18 @@ export function useLeaseHeartbeat({
         return () => {
             stopped = true;
             stopHeartbeats();
-            // Only close if we previously had sharing active for this room.
-            if (wasSharingActiveRef.current && roomId) {
-                closeInviteSession({ roomId }).catch(() => {});
+        };
+    }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, room, roomId]);
+
+    // Close invite on unmount (e.g., tab close/navigation) if sharing was active for the latest room.
+    useEffect(() => {
+        return () => {
+            const latestRoomId = latestRoomIdRef.current;
+            if (sharingActiveRef.current && latestRoomId) {
+                closeInviteSession({ roomId: latestRoomId }).catch(() => {});
             }
         };
-    }, [closeInviteSession, currentUserId, heartbeatInvite, isGuest, isSharingActive, roomId, room]);
+    }, [closeInviteSession]);
 }
 
 export function useSyncComputerState({
