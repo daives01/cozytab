@@ -247,23 +247,35 @@ export function useEnsureRoomLoaded({
 export function useLeaseHeartbeat({
     isGuest,
     room,
-    renewLease,
+    heartbeatInvite,
+    closeInviteSession,
+    isSharingActive,
     hasVisitors = false,
     currentUserId,
 }: {
     isGuest: boolean;
     room: RoomRecord | null | undefined;
-    renewLease: (args: { roomId: Id<"rooms">; hasGuests?: boolean }) => Promise<unknown>;
+    heartbeatInvite: (args: { roomId: Id<"rooms">; hasGuests?: boolean }) => Promise<unknown>;
+    closeInviteSession: (args: { roomId: Id<"rooms"> }) => Promise<unknown>;
+    isSharingActive: boolean;
     hasVisitors?: boolean;
     currentUserId?: Id<"users"> | null;
 }) {
+    const hasVisitorsRef = useRef(hasVisitors);
+
+    useEffect(() => {
+        hasVisitorsRef.current = hasVisitors;
+    }, [hasVisitors]);
+
     useEffect(() => {
         if (isGuest) return;
         if (!room) return;
         if (!currentUserId) return;
         if (room.userId !== currentUserId) return;
+        if (!isSharingActive) return;
 
         let intervalId: ReturnType<typeof setInterval> | null = null;
+        let stopped = false;
 
         const stopHeartbeats = () => {
             if (intervalId) {
@@ -273,7 +285,8 @@ export function useLeaseHeartbeat({
         };
 
         const sendHeartbeat = () => {
-            renewLease({ roomId: room._id, hasGuests: hasVisitors })
+            if (stopped) return;
+            heartbeatInvite({ roomId: room._id, hasGuests: hasVisitorsRef.current })
                 .then((result: { closed?: boolean; reason?: string } | unknown) => {
                     const closed = typeof result === "object" && result !== null && "closed" in result
                         ? (result as { closed?: boolean }).closed
@@ -286,10 +299,11 @@ export function useLeaseHeartbeat({
                     }
                 })
                 .catch((err) => {
-                    console.error("[Room] renewLease failed", err);
+                    console.error("[Room] heartbeatInvite failed", err);
                     const message = err instanceof Error ? err.message : String(err);
                     if (
                         message.includes("host-only-timeout") ||
+                        message.includes("invite-missing") ||
                         message.includes("inactive") ||
                         message.includes("Not authenticated") ||
                         message.includes("Forbidden")
@@ -305,9 +319,21 @@ export function useLeaseHeartbeat({
         }, 120_000);
 
         return () => {
+            stopped = true;
             stopHeartbeats();
         };
-    }, [currentUserId, hasVisitors, isGuest, renewLease, room]);
+    }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, room]);
+
+    useEffect(() => {
+        if (isGuest) return;
+        if (!room) return;
+        if (!currentUserId) return;
+        if (room.userId !== currentUserId) return;
+
+        return () => {
+            closeInviteSession({ roomId: room._id }).catch(() => {});
+        };
+    }, [closeInviteSession, currentUserId, isGuest, room]);
 }
 
 export function useSyncComputerState({

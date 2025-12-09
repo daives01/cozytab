@@ -5,6 +5,7 @@ import { v } from "convex/values";
 const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const INVITE_CODE_LENGTH = 6;
 const MAX_CODE_ATTEMPTS = 5;
+const INVITE_TTL_MS = 7 * 60 * 1000;
 
 function generateInviteCode() {
     let code = "";
@@ -28,7 +29,7 @@ async function generateUniqueCode(ctx: MutationCtx) {
     return code;
 }
 
-export const createInvite = mutation({
+export const enableInvite = mutation({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -63,11 +64,15 @@ export const createInvite = mutation({
 
         if (primary) {
             // Reactivate newest invite; remove extras.
-            await ctx.db.patch(primary._id, { isActive: true, createdAt: now });
+            await ctx.db.patch(primary._id, {
+                createdAt: now,
+                expiresAt: now + INVITE_TTL_MS,
+                hostOnlySince: undefined,
+            });
             for (const invite of sorted.slice(1)) {
                 await ctx.db.delete(invite._id);
             }
-            const code = primary.code ?? primary.token;
+            const code = primary.code;
             return { inviteId: primary._id, token: code, code };
         }
 
@@ -75,10 +80,10 @@ export const createInvite = mutation({
 
         const inviteId = await ctx.db.insert("roomInvites", {
             roomId: room._id,
-            token: code,
             code,
             createdAt: now,
-            isActive: true,
+            expiresAt: now + INVITE_TTL_MS,
+            hostOnlySince: undefined,
             createdBy: user._id,
         });
 
@@ -107,7 +112,10 @@ export const revokeInvite = mutation({
             throw new Error("Forbidden");
         }
 
-        await ctx.db.patch(args.inviteId, { isActive: false });
+        await ctx.db.patch(args.inviteId, {
+            expiresAt: Date.now(),
+            hostOnlySince: undefined,
+        });
         return { success: true };
     },
 });
@@ -153,9 +161,9 @@ export const rotateInviteCode = mutation({
         if (primary) {
             await ctx.db.patch(primary._id, {
                 code,
-                token: code,
                 createdAt: now,
-                isActive: true,
+                expiresAt: now + INVITE_TTL_MS,
+                hostOnlySince: undefined,
                 createdBy: user._id,
             });
             return { inviteId: primary._id, token: code, code };
@@ -163,10 +171,10 @@ export const rotateInviteCode = mutation({
 
         const inviteId = await ctx.db.insert("roomInvites", {
             roomId: room._id,
-            token: code,
             code,
             createdAt: now,
-            isActive: true,
+            expiresAt: now + INVITE_TTL_MS,
+            hostOnlySince: undefined,
             createdBy: user._id,
         });
 
@@ -204,12 +212,13 @@ export const revokeAllInvites = mutation({
             .collect();
 
         for (const invite of invites) {
-            if (invite.isActive) {
-                await ctx.db.patch(invite._id, { isActive: false });
-            }
+            await ctx.db.patch(invite._id, {
+                expiresAt: Date.now(),
+                hostOnlySince: undefined,
+            });
         }
 
-        return { success: true, count: invites.filter((i) => i.isActive).length };
+        return { success: true, count: invites.length };
     },
 });
 
@@ -221,15 +230,10 @@ export const getInviteByToken = query({
             (await ctx.db
                 .query("roomInvites")
                 .withIndex("by_code", (q) => q.eq("code", args.token))
-                .unique()) ??
-            (await ctx.db
-                .query("roomInvites")
-                .withIndex("by_token", (q) => q.eq("token", args.token))
                 .unique());
 
         if (!invite) return null;
-        if (!invite.isActive) return null;
-        if (invite.expiresAt && invite.expiresAt < now) return null;
+        if (!invite.expiresAt || invite.expiresAt < now) return null;
 
         const room = await ctx.db.get(invite.roomId);
         if (!room) return null;
@@ -275,7 +279,7 @@ export const getMyActiveInvites = query({
 
         const now = Date.now();
         const active = invites
-            .filter((invite) => invite.isActive && (!invite.expiresAt || invite.expiresAt > now))
+            .filter((invite) => invite.expiresAt > now)
             .sort((a, b) => b.createdAt - a.createdAt);
 
         const primary = active[0];

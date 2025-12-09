@@ -1,30 +1,42 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Copy, Check, Share2, RefreshCw, Lock, Globe, Link as LinkIcon } from "lucide-react";
 
 export function ShareModal({ onClose }: { onClose: () => void }) {
     const activeInvites = useQuery(api.invites.getMyActiveInvites);
-    const createInvite = useMutation(api.invites.createInvite);
+    const enableInvite = useMutation(api.invites.enableInvite);
     const revokeInvite = useMutation(api.invites.revokeInvite);
     const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
 
     const [copied, setCopied] = useState(false);
     const [isRotating, setIsRotating] = useState(false);
+    const [now, setNow] = useState(() => Date.now());
 
     const activeInvite = activeInvites?.[0];
-    const inviteCode = activeInvite
-        ? ((activeInvite as { token: string; code?: string }).code ?? activeInvite.token)
-        : null;
+    const expiresAt = activeInvite?.expiresAt ?? 0;
+    const inviteIsLive = !!activeInvite && expiresAt > now;
+    const inviteCode = inviteIsLive ? activeInvite.code : null;
     const shareUrl = inviteCode ? `${window.location.origin}/visit/${inviteCode}` : null;
+
+    useEffect(() => {
+        if (!expiresAt) {
+            setNow(Date.now());
+            return;
+        }
+
+        // Keep a lightweight ticking clock only while an invite is active.
+        const id = setInterval(() => setNow(Date.now()), 1_000);
+        return () => clearInterval(id);
+    }, [expiresAt]);
 
     const handleResetCode = async () => {
         setIsRotating(true);
         try {
             if (activeInvite) await rotateInviteCode();
-            else await createInvite();
+            else await enableInvite();
             setCopied(false);
         } finally {
             setIsRotating(false);
@@ -39,12 +51,12 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
     };
 
     const handleToggleAccess = async () => {
-        if (activeInvite) {
+        if (inviteIsLive && activeInvite) {
             await revokeInvite({ inviteId: activeInvite._id });
             setCopied(false);
             return;
         }
-        await createInvite();
+        await enableInvite();
     };
 
     const handwritingFont = {
@@ -94,7 +106,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                 <div className="text-size-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
                                     Public Access
                                     {shareUrl && (
-                                        <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-share-accent)] px-2 py-0.5 text-[10px] uppercase font-bold tracking-wider">
+                                        <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-share-accent)] px-2 py-0.5 text-size-sm uppercase font-bold tracking-wider">
                                             Live
                                         </span>
                                     )}

@@ -9,7 +9,6 @@
  */
 
 import type * as catalog from "../catalog.js";
-import type * as cron from "../cron.js";
 import type * as inventory from "../inventory.js";
 import type * as invites from "../invites.js";
 import type * as lib_time from "../lib/time.js";
@@ -25,7 +24,6 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
-  cron: typeof cron;
   inventory: typeof inventory;
   invites: typeof invites;
   "lib/time": typeof lib_time;

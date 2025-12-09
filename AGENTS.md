@@ -23,16 +23,16 @@
 - `rooms`: userId, templateId, name, isActive, items[], shortcuts?; indexes `by_user`, `by_user_active`.
   - Items: id, catalogItemId, x, y, url?, flipped?, musicUrl?, musicType?("youtube"), musicPlaying?, musicStartedAt?, musicPositionAtStart?.
   - Shortcuts: id, name, url, row?, col?.
-- `roomLeases`: roomId, hostId, lastSeen, expiresAt; indexes `by_room`, `by_host`.
+- (removed) `roomLeases`: room openness now tracked via invites.
 - `catalogItems`: name, category (string), basePrice, assetUrl, defaultWidth; index `by_name`.
 - `inventory`: userId, catalogItemId, purchasedAt, hidden?; indexes `by_user`, `by_user_and_item`.
-- `roomInvites`: roomId, token, code, createdAt, expiresAt?, isActive, createdBy; indexes `by_token`, `by_room`, `by_code`.
-- Flags/semantics: `rooms.isActive` marks the user’s selected room (set via `setActiveRoom` / first room creation). `roomInvites.isActive` marks invite validity. Leases (`roomLeases`) represent presence/open state and can expire; lease cleanup must not flip `rooms.isActive` (we now only delete leases on cleanup).
+- `roomInvites`: roomId, code (6 chars), createdAt, expiresAt, hostOnlySince?, createdBy; indexes `by_room`, `by_code`.
+- Flags/semantics: `rooms.isActive` marks the user’s selected room (set via `setActiveRoom` / first room creation). Invite `expiresAt` is the source of truth for room openness; host heartbeat extends it while the room is open, and closing the room sets it to `now`. `hostOnlySince` is used to time out empty rooms after a grace period.
 
 ## Frontend Types & Flows
 - Types: `RoomItem` aligns with stored item fields; `CatalogItemCategory` = "Furniture" | "Decor" | "Computers" | "Music"; guest types add optional scale/rotation/zIndex for client-only transforms.
 - Routing (`src/App.tsx`): `/` renders `RoomPage` (guest store when signed out), `/visit/:token` for invites, `/ref/:code` captures referral, `/admin` admin panel. Sign-in triggers `users.ensureUser` (imports guest session + referral, then clears guest data).
-- Rooms: active room via `rooms.getMyActiveRoom`; guests load the default template via `rooms.getDefaultRoom` (returns `{ template, items: [] }` and throws if no default template is configured). Save items (including host-controlled music state) with `rooms.saveMyRoom`; invites resolved with `rooms.getRoomByInvite` (honors leases from `roomLeases`). Shortcuts live on the user (`users.getMyComputer`/`users.saveMyComputer`) and apply to all rooms.
+- Rooms: active room via `rooms.getMyActiveRoom`; guests load the default template via `rooms.getDefaultRoom` (returns `{ template, items: [] }` and throws if no default template is configured). Save items (including host-controlled music state) with `rooms.saveMyRoom`; invites resolved with `rooms.getRoomByInvite` (open/closed determined by invite `expiresAt`). Shortcuts live on the user (`users.getMyComputer`/`users.saveMyComputer`) and apply to all rooms.
 - Catalog/shop: `catalog.list` for drawer/shop; inventory persisted in `inventory`; admin-only catalog mutations and storage upload helpers live in `convex/catalog.ts`.
 
 ## Design System: Cozy Neo-Brutalism

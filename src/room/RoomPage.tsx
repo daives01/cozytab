@@ -1,4 +1,4 @@
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { useState, useRef, useCallback, type DragEvent } from "react";
@@ -116,7 +116,9 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const setNormalizedItems = setLocalItems as (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
-    const renewLease = useMutation(api.rooms.renewLease);
+    const heartbeatInvite = useMutation(api.rooms.heartbeatInvite);
+    const closeInviteSession = useMutation(api.rooms.closeInviteSession);
+    const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
@@ -232,9 +234,11 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     useLeaseHeartbeat({
         isGuest,
         room,
-        renewLease,
+        heartbeatInvite,
+        closeInviteSession,
         hasVisitors,
         currentUserId: user?._id ?? null,
+        isSharingActive: !!activeInvites?.length,
     });
 
     useSyncComputerState({

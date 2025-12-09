@@ -1,9 +1,9 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 
-// Lease TTL slightly larger than heartbeat interval buffer.
+// Heartbeat TTL slightly larger than interval buffer.
 const LEASE_TTL_MS = 7 * 60 * 1000;
 const HOST_ONLY_TIMEOUT_MS = 10 * 60 * 1000;
 const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
@@ -96,11 +96,19 @@ async function getUser(ctx: QueryCtx | MutationCtx) {
         .unique();
 }
 
-async function getRoomLease(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
-    return await ctx.db
-        .query("roomLeases")
+async function getPrimaryInviteForRoom(ctx: QueryCtx | MutationCtx, roomId: Id<"rooms">) {
+    const invites = await ctx.db
+        .query("roomInvites")
         .withIndex("by_room", (q) => q.eq("roomId", roomId))
-        .unique();
+        .collect();
+    if (invites.length === 0) return null;
+    const [latest] = invites.sort((a, b) => b.createdAt - a.createdAt);
+    return latest;
+}
+
+function isInviteOpen(invite: { expiresAt?: number | null }, now: number) {
+    if (invite.expiresAt === undefined || invite.expiresAt === null) return false;
+    return invite.expiresAt > now;
 }
 
 async function requireAuth(ctx: QueryCtx | MutationCtx) {
@@ -130,12 +138,6 @@ function computeHostOnlySince(hasGuests: boolean, existingHostOnlySince: number 
 function hasHostOnlyExpired(hostOnlySince: number | undefined, now: number) {
     if (!hostOnlySince) return false;
     return now - hostOnlySince >= HOST_ONLY_TIMEOUT_MS;
-}
-
-async function closeRoomAndDeleteLease(ctx: MutationCtx, leaseId: Id<"roomLeases"> | null) {
-    if (leaseId) {
-        await ctx.db.delete(leaseId);
-    }
 }
 
 export const getMyActiveRoom = query({
@@ -312,11 +314,6 @@ export const deleteRoom = mutation({
 
         await ctx.db.delete(args.roomId);
 
-        const lease = await getRoomLease(ctx, args.roomId);
-        if (lease) {
-            await closeRoomAndDeleteLease(ctx, lease._id);
-        }
-
         if (wasActive) {
             const remainingRooms = allRooms.filter(r => r._id !== args.roomId);
             if (remainingRooms.length > 0) {
@@ -382,19 +379,16 @@ export const getRoomByInvite = query({
     handler: async (ctx, args) => {
         const invite = await ctx.db
             .query("roomInvites")
-            .withIndex("by_token", (q) => q.eq("token", args.token))
+            .withIndex("by_code", (q) => q.eq("code", args.token))
             .unique();
 
         if (!invite) return null;
-        if (!invite.isActive) return null;
-        if (invite.expiresAt && invite.expiresAt < Date.now()) return null;
+
+        const now = Date.now();
+        const inviteOpen = isInviteOpen(invite, now);
 
         const room = await ctx.db.get(invite.roomId);
         if (!room) return null;
-
-        const lease = await getRoomLease(ctx, room._id);
-        const now = Date.now();
-        const isLeaseActive = lease ? lease.expiresAt > now : false;
 
         const owner = await ctx.db.get(room.userId);
         const template = await ctx.db.get(room.templateId);
@@ -403,15 +397,67 @@ export const getRoomByInvite = query({
             room: { ...room, template },
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
             ownerReferralCode: owner?.referralCode ?? null,
-            closed: !isLeaseActive,
+            closed: !inviteOpen,
         };
     },
 });
 
-export const renewLease = mutation({
+async function heartbeatRoom(
+    ctx: MutationCtx,
+    args: {
+        roomId: Id<"rooms">;
+        hasGuests?: boolean;
+    }
+) {
+    const user = await requireAuth(ctx);
+    const room = await getRoomOrThrow(ctx, args.roomId);
+    assertRoomOwner(room, user);
+    assertRoomActive(room);
+
+    const now = Date.now();
+    const expiresAt = now + LEASE_TTL_MS;
+    const hasGuests = args.hasGuests ?? false;
+
+    const invite = await getPrimaryInviteForRoom(ctx, args.roomId);
+    if (!invite) {
+        return { expiresAt: null, closed: true as const, reason: "invite-missing" as const };
+    }
+
+    const inviteRecord = invite;
+
+    const hostOnlySince = computeHostOnlySince(hasGuests, inviteRecord?.hostOnlySince, now);
+
+    // If the host has been alone for too long, close the room.
+    if (hasHostOnlyExpired(hostOnlySince, now)) {
+        await ctx.db.patch(inviteRecord!._id, {
+            expiresAt: now,
+            hostOnlySince,
+        });
+        return { expiresAt: now, closed: true as const, reason: HOST_ONLY_INACTIVE_ERROR };
+    }
+
+    // Keep the invite alive.
+    if (inviteRecord) {
+        await ctx.db.patch(inviteRecord._id, {
+            expiresAt,
+            hostOnlySince,
+        });
+    }
+
+    return { expiresAt, closed: false as const };
+}
+
+export const heartbeatInvite = mutation({
     args: {
         roomId: v.id("rooms"),
         hasGuests: v.optional(v.boolean()),
+    },
+    handler: (ctx, args) => heartbeatRoom(ctx, args),
+});
+
+export const closeInviteSession = mutation({
+    args: {
+        roomId: v.id("rooms"),
     },
     handler: async (ctx, args) => {
         const user = await requireAuth(ctx);
@@ -420,42 +466,15 @@ export const renewLease = mutation({
         assertRoomActive(room);
 
         const now = Date.now();
-        const expiresAt = now + LEASE_TTL_MS;
-        const hasGuests = args.hasGuests ?? false;
-
-        const existingLease = await getRoomLease(ctx, args.roomId);
-        if (existingLease && existingLease.hostId !== user._id) {
-            console.warn("[rooms.renewLease] host mismatch", {
-                leaseHostId: existingLease.hostId,
-                callerId: user._id,
-                roomId: args.roomId,
-            });
-            throw new Error("Forbidden: lease owned by different host");
-        }
-        const hostOnlySince = computeHostOnlySince(hasGuests, existingLease?.hostOnlySince, now);
-
-        if (hasHostOnlyExpired(hostOnlySince, now)) {
-            await closeRoomAndDeleteLease(ctx, existingLease?._id ?? null);
-            return { expiresAt: null, closed: true, reason: HOST_ONLY_INACTIVE_ERROR };
-        }
-
-        if (existingLease) {
-            await ctx.db.patch(existingLease._id, {
-                lastSeen: now,
-                expiresAt,
-                hostOnlySince,
-            });
-        } else {
-            await ctx.db.insert("roomLeases", {
-                roomId: args.roomId,
-                hostId: user._id,
-                lastSeen: now,
-                expiresAt,
-                hostOnlySince,
+        const invite = await getPrimaryInviteForRoom(ctx, args.roomId);
+        if (invite) {
+            await ctx.db.patch(invite._id, {
+                expiresAt: now,
+                hostOnlySince: undefined,
             });
         }
 
-        return { expiresAt, closed: false as const };
+        return { closed: true as const, expiresAt: now };
     },
 });
 
@@ -468,66 +487,17 @@ export const getRoomStatus = query({
             return { status: "inactive" as const, closesAt: null, hostId: room.userId };
         }
 
-        const lease = await getRoomLease(ctx, args.roomId);
         const now = Date.now();
-        const isLeaseActive = lease ? lease.expiresAt > now : false;
+        const invite = await getPrimaryInviteForRoom(ctx, args.roomId);
+        const inviteOpen = invite ? isInviteOpen(invite, now) : false;
+        const closesAt = invite?.expiresAt ?? null;
 
         return {
-            status: isLeaseActive ? ("open" as const) : ("stale" as const),
-            closesAt: lease?.expiresAt ?? null,
+            status: inviteOpen ? ("open" as const) : ("stale" as const),
+            closesAt,
             hostId: room.userId,
         };
     },
 });
 
-export const cleanupRoomLease = mutation({
-    args: { roomId: v.id("rooms") },
-    handler: async (ctx, args) => {
-        const room = await ctx.db.get(args.roomId);
-        if (!room) return { cleaned: false, reason: "missing-room" as const };
-
-        const lease = await getRoomLease(ctx, args.roomId);
-        if (!lease) return { cleaned: false, reason: "no-lease" as const };
-
-        const now = Date.now();
-        if (lease.expiresAt > now) {
-            return { cleaned: false, reason: "lease-active" as const };
-        }
-
-        await ctx.db.delete(lease._id);
-        return { cleaned: true, reason: "expired" as const };
-    },
-});
-
-export const closeHostOnlyRooms = internalMutation({
-    args: {},
-    handler: async (ctx) => {
-        const now = Date.now();
-        const leases = await ctx.db.query("roomLeases").collect();
-
-        for (const lease of leases) {
-            if (!lease.hostOnlySince) continue;
-            const hostOnlyDuration = now - lease.hostOnlySince;
-            if (hostOnlyDuration < HOST_ONLY_TIMEOUT_MS) continue;
-
-            await closeRoomAndDeleteLease(ctx, lease._id);
-        }
-
-        return { closed: true };
-    },
-});
-
-export const closeStaleRooms = internalMutation({
-    args: {},
-    handler: async (ctx) => {
-        const now = Date.now();
-        const leases = await ctx.db.query("roomLeases").collect();
-        for (const lease of leases) {
-            if (lease.expiresAt > now) continue;
-
-            await closeRoomAndDeleteLease(ctx, lease._id);
-        }
-        return { closed: true };
-    },
-});
 

@@ -48,7 +48,6 @@ export function VisitorRoomPage() {
     const { user: clerkUser, isSignedIn } = useUser();
     const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
-    const cleanupRoomLease = useMutation(api.rooms.cleanupRoomLease);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
     const { width: viewportWidth, height: viewportHeight } = useViewportSize();
@@ -166,14 +165,6 @@ export function VisitorRoomPage() {
 
     useEffect(() => {
         if (!roomData?.room?._id) return;
-        if (!roomStatus) return;
-        if (roomStatus.status === "open") return;
-
-        cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
-    }, [cleanupRoomLease, roomData?.room?._id, roomStatus]);
-
-    useEffect(() => {
-        if (!roomData?.room?._id) return;
         if (roomClosed) return;
         if (roomStatus?.status !== "open") return;
 
@@ -183,17 +174,15 @@ export function VisitorRoomPage() {
         const delay = closesAt - Date.now();
         if (delay <= 0) {
             setTimeout(() => setRoomClosedOverride(true), 0);
-            cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
             return;
         }
 
         const timer = setTimeout(() => {
             setRoomClosedOverride(true);
-            cleanupRoomLease({ roomId: roomData.room._id }).catch(() => {});
         }, delay);
 
         return () => clearTimeout(timer);
-    }, [cleanupRoomLease, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
+    }, [roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
     const handleMusicToggle = (itemId: string, playing: boolean, urlKey?: string) => {
         const hostItem = items?.find((i) => i.id === itemId);

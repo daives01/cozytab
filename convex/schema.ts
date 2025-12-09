@@ -65,16 +65,6 @@ export default defineSchema({
         .index("by_user_template", ["userId", "templateId"])
         .index("by_user_active", ["userId", "isActive"]),
 
-    roomLeases: defineTable({
-        roomId: v.id("rooms"),
-        hostId: v.id("users"),
-        lastSeen: v.number(),
-        expiresAt: v.number(),
-        hostOnlySince: v.optional(v.number()),
-    })
-        .index("by_room", ["roomId"])
-        .index("by_host", ["hostId"]),
-
     catalogItems: defineTable({
         name: v.string(),
         category: v.string(),
@@ -95,14 +85,13 @@ export default defineSchema({
 
     roomInvites: defineTable({
         roomId: v.id("rooms"),
-        token: v.string(),
-        code: v.string(),
+        code: v.string(), // 6-char invite code used in links
         createdAt: v.number(),
-        expiresAt: v.optional(v.number()),
-        isActive: v.boolean(),
+        expiresAt: v.number(),
+        // Track host-only idle timeout
+        hostOnlySince: v.optional(v.number()),
         createdBy: v.id("users"),
     })
-        .index("by_token", ["token"])
         .index("by_room", ["roomId"])
         .index("by_code", ["code"]),
 });
