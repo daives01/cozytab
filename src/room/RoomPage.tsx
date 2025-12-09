@@ -116,7 +116,6 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const setNormalizedItems = setLocalItems as (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
-    const updateMusicState = useMutation(api.rooms.updateMusicState);
     const renewLease = useMutation(api.rooms.renewLease);
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
@@ -283,17 +282,6 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
 
     useOnboardingAssetPrefetch(onboardingActive, resolvedComputerAssetUrl, computerPrefetchedRef);
 
-    const updateMusicStateOwner = useCallback(
-        (args: {
-            roomId: Id<"rooms">;
-            itemId: string;
-            musicPlaying: boolean;
-            musicStartedAt: number;
-            musicPositionAtStart: number;
-        }) => updateMusicState(args),
-        [updateMusicState]
-    );
-
     const handlers = useRoomHandlers({
         isGuest,
         mode,
@@ -313,7 +301,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         setIsDrawerOpen,
         setMode,
         updateCursor,
-        updateMusicState: updateMusicStateOwner,
+        saveRoom,
         updateGuestShortcuts,
         saveComputer,
         cursorColor,
@@ -430,24 +418,12 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onMusicSave={async (updatedItem, updatedItems) => {
                 setNormalizedItems(() => updatedItems);
 
-                const isPlaying = updatedItem.musicPlaying === true;
-                const startedAt = updatedItem.musicStartedAt ?? Date.now();
-                const positionAtStart = updatedItem.musicPositionAtStart ?? 0;
-
                 if (updatedItem.musicUrl) {
                     setMusicAutoplay({ itemId: updatedItem.id, token: `${updatedItem.id}-${Date.now()}` });
                 }
 
                 if (!isGuest && room) {
                     await saveRoom({ roomId: room._id, items: updatedItems });
-
-                    await updateMusicState({
-                        roomId: room._id,
-                        itemId: updatedItem.id,
-                        musicPlaying: isPlaying,
-                        musicStartedAt: isPlaying ? startedAt : 0,
-                        musicPositionAtStart: isPlaying ? positionAtStart : 0,
-                    });
                 }
             }}
             onCloseMusic={() => setMusicPlayerItemId(null)}

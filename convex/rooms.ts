@@ -371,36 +371,6 @@ export const saveMyRoom = mutation({
     },
 });
 
-export const updateMusicState = mutation({
-    args: {
-        roomId: v.id("rooms"),
-        itemId: v.string(),
-        musicPlaying: v.boolean(),
-        musicStartedAt: v.number(),
-        musicPositionAtStart: v.number(),
-    },
-    handler: async (ctx, args) => {
-        const user = await requireAuth(ctx);
-        const room = await getRoomOrThrow(ctx, args.roomId);
-        assertRoomOwner(room, user);
-        assertRoomActive(room);
-
-        const updatedItems = room.items.map((item) => {
-            if (item.id === args.itemId) {
-                return {
-                    ...item,
-                    musicPlaying: args.musicPlaying,
-                    musicStartedAt: args.musicStartedAt,
-                    musicPositionAtStart: args.musicPositionAtStart,
-                };
-            }
-            return item;
-        });
-
-        await ctx.db.patch(args.roomId, { items: updatedItems });
-    },
-});
-
 export const getRoomByInvite = query({
     args: { token: v.string() },
     handler: async (ctx, args) => {

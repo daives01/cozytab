@@ -31,13 +31,7 @@ type HandlersArgs = {
     setIsDrawerOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
     setMode: (next: "view" | "edit") => void;
     updateCursor: (x: number, y: number, clientX: number, clientY: number, hasVisitors: boolean) => void;
-    updateMusicState: (args: {
-        roomId: Id<"rooms">;
-        itemId: string;
-        musicPlaying: boolean;
-        musicStartedAt: number;
-        musicPositionAtStart: number;
-    }) => Promise<unknown> | void;
+    saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
     updateGuestShortcuts: (next: ComputerShortcut[]) => void;
     saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void;
     cursorColor: string;
@@ -62,7 +56,7 @@ export function useRoomHandlers({
     setIsDrawerOpen,
     setMode,
     updateCursor,
-    updateMusicState,
+    saveRoom,
     updateGuestShortcuts,
     saveComputer,
     cursorColor,
@@ -70,18 +64,15 @@ export function useRoomHandlers({
     const handleMusicToggle = useCallback(
         (itemId: string, playing: boolean) => {
             const now = Date.now();
-            setLocalItems((prev) => updateItemsForMusicToggle(prev, itemId, playing, now));
-            if (!isGuest && roomId) {
-                updateMusicState({
-                    roomId,
-                    itemId,
-                    musicPlaying: playing,
-                    musicStartedAt: playing ? now : 0,
-                    musicPositionAtStart: 0,
-                });
-            }
+            setLocalItems((prev) => {
+                const next = updateItemsForMusicToggle(prev, itemId, playing, now);
+                if (!isGuest && roomId && mode === "view") {
+                    saveRoom({ roomId, items: next });
+                }
+                return next;
+            });
         },
-        [isGuest, roomId, setLocalItems, updateMusicState]
+        [isGuest, mode, roomId, saveRoom, setLocalItems]
     );
 
     const handleModeToggle = useCallback(() => {
