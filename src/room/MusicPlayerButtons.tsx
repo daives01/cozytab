@@ -3,6 +3,9 @@ import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
 
+// When a visitor unmutes, jump slightly ahead to counteract accumulated lag.
+const VISITOR_UNMUTE_AHEAD_SECONDS = .1;
+
 interface MusicPlayerButtonsProps {
     item: RoomItem;
     onToggle?: (playing: boolean) => void;
@@ -27,6 +30,16 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
         ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${window.location.origin}`
         : null;
 
+    const computeLivePositionSeconds = useCallback(() => {
+        const positionAtStart = item.musicPositionAtStart ?? 0;
+        const startedAt = item.musicStartedAt ?? 0;
+        const nowSeconds =
+            item.musicPlaying && startedAt
+                ? (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000
+                : positionAtStart / 1000;
+        return nowSeconds;
+    }, [item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt]);
+
     const sendCommand = useCallback(
         (command: string, args?: unknown) => {
             if (!isReady || !iframeRef.current?.contentWindow) return;
@@ -42,6 +55,17 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
         setTimeout(() => setIsReady(true), 500);
     }, []);
 
+    const seekTo = useCallback(
+        (seconds: number, force = false) => {
+            if (!isReady || !videoId) return;
+            const delta = Math.abs(seconds - lastSeekSecondsRef.current);
+            if (!force && delta < 0.25) return;
+            sendCommand("seekTo", [seconds, true]);
+            lastSeekSecondsRef.current = seconds;
+        },
+        [isReady, sendCommand, videoId]
+    );
+
     useEffect(() => {
         lastSeekSecondsRef.current = 0;
         if (isReady) {
@@ -51,18 +75,9 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
 
     useEffect(() => {
         if (!isReady || !videoId) return;
-        const positionAtStart = item.musicPositionAtStart ?? 0;
-        const startedAt = item.musicStartedAt ?? 0;
-        const nowSeconds =
-            item.musicPlaying && startedAt
-                ? (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000
-                : positionAtStart / 1000;
-
-        const delta = Math.abs(nowSeconds - lastSeekSecondsRef.current);
-        if (delta < 0.25) return;
-        sendCommand("seekTo", [nowSeconds, true]);
-        lastSeekSecondsRef.current = nowSeconds;
-    }, [isReady, item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt, sendCommand, videoId]);
+        const nowSeconds = computeLivePositionSeconds();
+        seekTo(nowSeconds);
+    }, [computeLivePositionSeconds, isReady, seekTo, videoId]);
 
     useEffect(() => {
         const canPlay = hasInteracted && playing && (!isVisitor || !muted);
@@ -99,7 +114,12 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
             setHasInteracted(true);
             setMuted((prev) => {
                 const next = !prev;
-                sendCommand(next ? "mute" : "unMute");
+                if (next) {
+                    sendCommand("mute");
+                } else {
+                    seekTo(computeLivePositionSeconds() + VISITOR_UNMUTE_AHEAD_SECONDS, true);
+                    sendCommand("unMute");
+                }
                 return next;
             });
             return;
