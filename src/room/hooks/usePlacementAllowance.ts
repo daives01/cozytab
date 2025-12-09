@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { addInventoryCounts, countIds, remainingForId } from "../utils/itemCounts";
 
 type InventoryWithCounts = { catalogItemId: Id<"catalogItems">; count?: number };
