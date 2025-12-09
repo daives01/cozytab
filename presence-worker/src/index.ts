@@ -5,16 +5,33 @@ export { PresenceRoom } from "./PresenceRoom";
 
 type Bindings = {
     PRESENCE_ROOM: DurableObjectNamespace;
+    DEBUG_PRESENCE_SECRET?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
 
-// Enable CORS for the frontend
-app.use("*", cors({
-    origin: "*", // In production, restrict to your domain
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Upgrade", "Connection"],
-}));
+const ALLOWED_ORIGINS = new Set<string>([
+    "https://cozytab.club",
+    "http://localhost:8787",
+    "http://localhost:5173",
+    "http://localhost:4173",
+]);
+
+const resolveOrigin = (origin: string | null): string | undefined | null => {
+    if (!origin) return origin;
+    const normalized = origin.toLowerCase();
+    return ALLOWED_ORIGINS.has(normalized) ? origin : undefined;
+};
+
+// Enable CORS for allowed frontends
+app.use(
+    "*",
+    cors({
+        origin: resolveOrigin,
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Upgrade", "Connection"],
+    })
+);
 
 // Health check endpoint
 app.get("/", (c) => {
@@ -38,8 +55,14 @@ app.get("/ws/:roomId", async (c) => {
     return stub.fetch(c.req.raw);
 });
 
-// Get current room state (for debugging/reconnection)
+// Get current room state (for debugging/reconnection) - gated behind a secret
 app.get("/room/:roomId", async (c) => {
+    const secret = c.env.DEBUG_PRESENCE_SECRET;
+    const provided = c.req.header("x-debug-secret");
+    if (!secret || !provided || provided !== secret) {
+        return c.text("Not found", 404);
+    }
+
     const roomId = c.req.param("roomId");
     const id = c.env.PRESENCE_ROOM.idFromName(roomId);
     const stub = c.env.PRESENCE_ROOM.get(id);

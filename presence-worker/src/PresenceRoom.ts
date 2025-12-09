@@ -25,6 +25,101 @@ type WebSocketAttachment = {
 
 const DEFAULT_POSITION = { x: 960, y: 540 };
 
+const MAX_MESSAGE_SIZE_BYTES = 4096; // keep WebSocket payloads bounded
+const MAX_NAME_LENGTH = 64;
+const MAX_CHAT_LENGTH = 500;
+const MAX_COORDINATE = 10000; // generous guardrail for coordinates
+const textEncoder = new TextEncoder();
+
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === "number" && Number.isFinite(value);
+}
+
+function isValidId(value: unknown): value is string {
+    return typeof value === "string" && value.length > 0 && value.length <= 128;
+}
+
+function isValidDisplayName(value: unknown): value is string {
+    return typeof value === "string" && value.length > 0 && value.length <= MAX_NAME_LENGTH;
+}
+
+function isValidCursorColor(value: unknown): value is string | undefined {
+    return value === undefined || (typeof value === "string" && value.length <= 32);
+}
+
+function clampChatMessage(value: unknown): string | null {
+    if (value === null) return null;
+    if (typeof value !== "string") return null;
+    return value.slice(0, MAX_CHAT_LENGTH);
+}
+
+function validateMessage(raw: unknown): PresenceMessage | null {
+    if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
+        return null;
+    }
+
+    const data = raw as { [key: string]: unknown; type: string };
+
+    switch (data.type) {
+        case "join": {
+            if (!isValidId(data.visitorId) || !isValidDisplayName(data.displayName) || typeof data.isOwner !== "boolean") {
+                return null;
+            }
+            if (!isValidCursorColor(data.cursorColor)) return null;
+            return {
+                type: "join",
+                visitorId: data.visitorId,
+                displayName: data.displayName,
+                isOwner: data.isOwner,
+                cursorColor: data.cursorColor,
+            };
+        }
+        case "leave": {
+            if (!isValidId(data.visitorId)) return null;
+            return { type: "leave", visitorId: data.visitorId };
+        }
+        case "rename": {
+            if (!isValidId(data.visitorId) || !isValidDisplayName(data.displayName)) return null;
+            if (!isValidCursorColor(data.cursorColor)) return null;
+            return {
+                type: "rename",
+                visitorId: data.visitorId,
+                displayName: data.displayName,
+                cursorColor: data.cursorColor,
+            };
+        }
+        case "cursor": {
+            if (
+                !isValidId(data.visitorId) ||
+                !isFiniteNumber(data.x) ||
+                !isFiniteNumber(data.y) ||
+                Math.abs(data.x) > MAX_COORDINATE ||
+                Math.abs(data.y) > MAX_COORDINATE
+            ) {
+                return null;
+            }
+            if (!isValidCursorColor(data.cursorColor)) return null;
+            return {
+                type: "cursor",
+                visitorId: data.visitorId,
+                x: data.x,
+                y: data.y,
+                cursorColor: data.cursorColor,
+            };
+        }
+        case "chat": {
+            if (!isValidId(data.visitorId)) return null;
+            return { type: "chat", visitorId: data.visitorId, text: clampChatMessage(data.text) };
+        }
+        case "state": {
+            // State is only emitted server-side; do not accept from clients.
+            return null;
+        }
+        default:
+            return null;
+    }
+}
+
 export class PresenceRoom extends DurableObject {
     private visitors: Map<string, VisitorState> = new Map();
 
@@ -58,6 +153,11 @@ export class PresenceRoom extends DurableObject {
     async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
         if (typeof message !== "string") return;
 
+        if (textEncoder.encode(message).length > MAX_MESSAGE_SIZE_BYTES) {
+            ws.close(1009, "Payload too large");
+            return;
+        }
+
         // Some clients send keepalive pings as plain text; avoid JSON parse failures.
         if (message === "ping") {
             try {
@@ -70,9 +170,15 @@ export class PresenceRoom extends DurableObject {
 
         let data: PresenceMessage | null = null;
         try {
-            data = JSON.parse(message) as PresenceMessage;
+            data = validateMessage(JSON.parse(message));
         } catch (e) {
             console.error("[DO] Error processing message:", e);
+            ws.close(1003, "Invalid JSON");
+            return;
+        }
+
+        if (!data) {
+            ws.close(1008, "Invalid message");
             return;
         }
 
@@ -107,6 +213,12 @@ export class PresenceRoom extends DurableObject {
     }
 
     private handleJoin(ws: WebSocket, data: Extract<PresenceMessage, { type: "join" }>) {
+        const existingAttachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+        if (existingAttachment && existingAttachment.visitorId !== data.visitorId) {
+            ws.close(1008, "Visitor already bound");
+            return;
+        }
+
         const attachment: WebSocketAttachment = {
             visitorId: data.visitorId,
             displayName: data.displayName,
@@ -139,6 +251,7 @@ export class PresenceRoom extends DurableObject {
         const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
         if (!attachment || attachment.visitorId !== visitorId) return null;
 
+        // Rehydrate minimal state for hibernated sockets; do not allow spoofed IDs.
         const visitor: VisitorState = {
             visitorId: attachment.visitorId,
             displayName: attachment.displayName,
@@ -154,13 +267,15 @@ export class PresenceRoom extends DurableObject {
 
     private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket) {
         const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
+        if (!visitor) {
+            ws.close(1008, "Join required");
+            return;
+        }
 
-        if (visitor) {
-            visitor.x = data.x;
-            visitor.y = data.y;
-            if (data.cursorColor) {
-                visitor.cursorColor = data.cursorColor;
-            }
+        visitor.x = data.x;
+        visitor.y = data.y;
+        if (data.cursorColor) {
+            visitor.cursorColor = data.cursorColor;
         }
 
         this.broadcast(ws, data);
@@ -168,22 +283,26 @@ export class PresenceRoom extends DurableObject {
 
     private handleChat(data: Extract<PresenceMessage, { type: "chat" }>, ws: WebSocket) {
         const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
-
-        if (visitor) {
-            visitor.chatMessage = data.text;
+        if (!visitor) {
+            ws.close(1008, "Join required");
+            return;
         }
+
+        visitor.chatMessage = data.text;
 
         this.broadcast(ws, data);
     }
 
     private handleRename(data: Extract<PresenceMessage, { type: "rename" }>, ws: WebSocket) {
         const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
+        if (!visitor) {
+            ws.close(1008, "Join required");
+            return;
+        }
 
-        if (visitor) {
-            visitor.displayName = data.displayName;
-            if (data.cursorColor) {
-                visitor.cursorColor = data.cursorColor;
-            }
+        visitor.displayName = data.displayName;
+        if (data.cursorColor) {
+            visitor.cursorColor = data.cursorColor;
         }
 
         this.broadcast(ws, data);
@@ -201,6 +320,10 @@ export class PresenceRoom extends DurableObject {
     }
 
     private handleLeave(visitorId: string, excludeWs: WebSocket): void {
+        if (!this.visitors.has(visitorId)) {
+            return;
+        }
+
         this.visitors.delete(visitorId);
         const leaveMsg: PresenceMessage = { type: "leave", visitorId };
         this.broadcast(excludeWs, leaveMsg);
