@@ -1,5 +1,6 @@
 import { ItemNode } from "../ItemNode";
 import { MusicPlayerButtons } from "../MusicPlayerButtons";
+import { MusicNotesOverlay } from "./MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
 import type { RoomItem } from "../../types";
 import { PresenceLayer } from "./PresenceLayer";
@@ -77,15 +78,18 @@ export function RoomItemsLayer({
                         isOnboardingComputerTarget={onboardingStep === "click-computer"}
                         overlay={
                             isMusicItem(item) ? (
-                                <MusicPlayerButtons
-                                    key={item.id}
-                                    item={item}
-                                    onToggle={(playing) => handleMusicToggle(item.id, playing)}
-                                    autoPlayToken={
-                                        musicAutoplay && musicAutoplay.itemId === item.id ? musicAutoplay.token : null
-                                    }
-                                    isVisitor={isGuest}
-                                />
+                                <>
+                                    <MusicNotesOverlay playing={Boolean(item.musicPlaying)} seed={item.id} />
+                                    <MusicPlayerButtons
+                                        key={item.id}
+                                        item={item}
+                                        onToggle={(playing) => handleMusicToggle(item.id, playing)}
+                                        autoPlayToken={
+                                            musicAutoplay && musicAutoplay.itemId === item.id ? musicAutoplay.token : null
+                                        }
+                                        isVisitor={isGuest}
+                                    />
+                                </>
                             ) : null
                         }
                     />

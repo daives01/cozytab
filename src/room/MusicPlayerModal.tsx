@@ -244,7 +244,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                     className="h-14 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-lg uppercase tracking-wide shadow-[var(--shadow-4-strong)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
                                 >
                                     <Save className="mr-2 h-5 w-5" />
-                                    Play Track
+                                    Spin
                                 </Button>
                             </div>
                         </div>

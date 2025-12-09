@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ItemNode } from "./ItemNode";
 import { MusicPlayerButtons } from "./MusicPlayerButtons";
+import { MusicNotesOverlay } from "./components/MusicNotesOverlay";
 import { LocalCursor } from "./LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
@@ -320,17 +321,20 @@ export function VisitorRoomPage() {
                         isVisitor={true}
                         overlay={
                             isMusicItem(item) ? (
-                                <MusicPlayerButtons
-                                    key={item.id}
-                                    item={localMusicItem}
-                                    onToggle={(playing) => handleMusicToggle(item.id, playing, musicUrlKey(item))}
-                                autoPlayToken={
-                                    visitorMusicState[item.id]?.playing
-                                        ? `${visitorMusicState[item.id].urlKey}-${visitorMusicState[item.id].startedAt}`
-                                        : null
-                                }
-                                    isVisitor={true}
-                                />
+                                <>
+                                    <MusicNotesOverlay playing={Boolean(localMusicItem.musicPlaying)} seed={item.id} />
+                                    <MusicPlayerButtons
+                                        key={item.id}
+                                        item={localMusicItem}
+                                        onToggle={(playing) => handleMusicToggle(item.id, playing, musicUrlKey(item))}
+                                        autoPlayToken={
+                                            visitorMusicState[item.id]?.playing
+                                                ? `${visitorMusicState[item.id].urlKey}-${visitorMusicState[item.id].startedAt}`
+                                                : null
+                                        }
+                                        isVisitor={true}
+                                    />
+                                </>
                             ) : null
                         }
                     />
