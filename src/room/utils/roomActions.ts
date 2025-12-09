@@ -34,11 +34,11 @@ export function updateItemsForMusicToggle(items: RoomItem[], itemId: string, pla
 
 export function addDroppedItem(
     items: RoomItem[],
-    catalogItemId: string,
+    catalogItemId: Id<"catalogItems">,
     x: number,
     y: number
 ): RoomItem[] {
-    const catalogId = catalogItemId as Id<"catalogItems">;
+    const catalogId = catalogItemId;
     const newItem: RoomItem = {
         id: crypto.randomUUID(),
         catalogItemId: catalogId,

@@ -10,6 +10,7 @@ import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
 import type { ComputerShortcut, RoomItem } from "../types";
+import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
@@ -397,7 +398,7 @@ export function VisitorRoomPage() {
                 onGuestCoinsChange={(coins) => setGuestCoins(coins)}
                 startingCoins={GUEST_STARTING_COINS}
                 guestInventory={guestInventory}
-                onGuestPurchase={(itemId) =>
+                onGuestPurchase={(itemId: Id<"catalogItems">) =>
                     setGuestInventory((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
                 }
                 isOnboardingShopStep={false}

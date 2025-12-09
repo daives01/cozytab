@@ -9,12 +9,13 @@ import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
 import { LocalCursor } from "../LocalCursor";
 import type { RoomItem, ComputerShortcut } from "../../types";
+import type { Id } from "../../../convex/_generated/dataModel";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
 import type { TimeOfDay } from "../roomConstants";
 
 interface GuestDrawerItem {
-    inventoryId: string;
-    catalogItemId: string;
+    inventoryId: Id<"catalogItems">;
+    catalogItemId: Id<"catalogItems">;
     name: string;
     assetUrl: string;
     category: string;
@@ -52,8 +53,8 @@ interface RoomOverlaysProps {
     guestCoins: number;
     onGuestCoinsChange: (coins: number | ((prev: number) => number)) => void;
     startingCoins: number;
-    guestInventory: string[];
-    onGuestPurchase: (itemId: string) => void;
+    guestInventory: Id<"catalogItems">[];
+    onGuestPurchase: (itemId: Id<"catalogItems">) => void;
     onOnboardingShortcutAdded: () => void;
     highlightFirstMusicItem: boolean;
     displayName?: string;

@@ -81,6 +81,7 @@ export default defineSchema({
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
+        isStarterItem: v.optional(v.boolean()),
     }).index("by_name", ["name"]),
 
     inventory: defineTable({

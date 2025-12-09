@@ -1,4 +1,5 @@
 import type { ComputerShortcut } from "../types";
+import type { Id } from "../../convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
 import { useAtomValue, useSetAtom } from "jotai";
 import {
@@ -26,8 +27,8 @@ export interface ComputerOverlayProps {
     guestCoins?: number;
     onGuestCoinsChange?: (coins: number) => void;
     startingCoins: number;
-    guestInventory: string[];
-    onGuestPurchase: (catalogItemId: string) => void;
+    guestInventory: Id<"catalogItems">[];
+    onGuestPurchase: (catalogItemId: Id<"catalogItems">) => void;
     highlightFirstMusicItem?: boolean;
     displayName?: string;
     username?: string;
@@ -82,7 +83,7 @@ export function ComputerOverlay({
     const effectiveGuestInventory = isGuest ? guestInventoryAtomValue : guestInventory;
     const handleGuestPurchase =
         isGuest && onGuestPurchase === undefined
-            ? (itemId: string) =>
+            ? (itemId: Id<"catalogItems">) =>
                   setGuestInventoryAtomValue((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
             : onGuestPurchase;
 

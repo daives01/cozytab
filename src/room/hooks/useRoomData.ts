@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { api } from "../../../convex/_generated/api";
-import { STARTER_COMPUTER_NAME } from "../../../shared/guestTypes";
 import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
 import type { TimeOfDay } from "../roomConstants";
 import type { RoomItem } from "../../types";
@@ -34,7 +33,11 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const computerCatalogItem = useMemo(() => {
         if (!catalogItems) return null;
-        return catalogItems.find((c: (typeof catalogItems)[number]) => c.name === STARTER_COMPUTER_NAME) ?? null;
+        return (
+            catalogItems.find(
+                (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase().includes("computer")
+            ) ?? catalogItems.find((c: (typeof catalogItems)[number]) => c.isStarterItem) ?? null
+        );
     }, [catalogItems]);
 
     const computerStorageId = useMemo(() => {

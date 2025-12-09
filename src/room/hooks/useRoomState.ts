@@ -38,19 +38,22 @@ import {
     guestOnboardingCompletedAtom,
     normalizeGuestShortcuts,
 } from "../guestState";
-import { readGuestSession } from "../guestSession";
+import { readGuestSession, buildCatalogLookup } from "../guestSession";
+import type { Doc } from "../../../convex/_generated/dataModel";
 
 export type UseRoomStateArgs = {
     isGuest: boolean;
     guestSession?: GuestSessionState | null;
+    catalogItems?: Doc<"catalogItems">[] | null;
 };
 
-export function useRoomState({ isGuest, guestSession }: UseRoomStateArgs) {
+export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomStateArgs) {
+    const catalogLookup = useMemo(() => buildCatalogLookup(catalogItems ?? undefined), [catalogItems]);
     const initialGuestSession = useMemo(() => {
         if (guestSession) return guestSession;
-        if (isGuest) return readGuestSession();
+        if (isGuest) return readGuestSession(catalogLookup ?? null);
         return null;
-    }, [guestSession, isGuest]);
+    }, [guestSession, isGuest, catalogLookup]);
 
     const authedShortcutsRef = useRef<ComputerShortcut[]>(normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? []));
     const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
@@ -171,6 +174,14 @@ export function useRoomState({ isGuest, guestSession }: UseRoomStateArgs) {
             authedShortcutsRef.current = localShortcuts;
         }
     }, [isGuest, localShortcuts]);
+
+    useEffect(() => {
+        if (!isGuest) return;
+        if (!catalogLookup) return;
+        if (guestInventoryValue.length > 0) return;
+        if (catalogLookup.starterIds.length === 0) return;
+        setGuestInventoryValue(() => [...catalogLookup.starterIds]);
+    }, [catalogLookup, guestInventoryValue.length, isGuest, setGuestInventoryValue]);
 
     return {
         initialGuestSession,

@@ -126,7 +126,7 @@ export function useRoomHandlers({
             const x = relativeX / scale;
             const y = relativeY / scale;
 
-            setLocalItems((prev) => addDroppedItem(prev, catalogItemId, x, y));
+            setLocalItems((prev) => addDroppedItem(prev, catalogItemId as Id<"catalogItems">, x, y));
 
             if (onboardingStep === "place-computer") {
                 advanceOnboarding();

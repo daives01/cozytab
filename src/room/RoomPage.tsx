@@ -1,7 +1,7 @@
 import { useMutation } from "convex/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { useState, useRef, useCallback, useMemo, type DragEvent } from "react";
+import { useState, useRef, useCallback, type DragEvent } from "react";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
@@ -24,7 +24,7 @@ import { useRoomGate } from "./hooks/useRoomGate";
 import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
-import { GUEST_STARTING_COINS, type GuestSessionState, type GuestRoomItem } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestSessionState } from "../../shared/guestTypes";
 import { RoomStateProvider } from "./state/roomAtoms";
 import {
     useCursorColorSaver,
@@ -109,73 +109,11 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         guestSessionLoadedRef,
         guestCursorColor,
         setGuestCursorColor,
-    } = useRoomState({ isGuest, guestSession });
+    } = useRoomState({ isGuest, guestSession, catalogItems });
 
-    const catalogIdLookup = useMemo(() => {
-        const map = new Map<string, Id<"catalogItems">>();
-        (catalogItems ?? []).forEach((item) => {
-            map.set(item._id as unknown as string, item._id);
-            map.set(item.name, item._id);
-        });
-        return map;
-    }, [catalogItems]);
-
-    const normalizeGuestItems = useCallback(
-        (items: GuestRoomItem[] | undefined): RoomItem[] => {
-            if (!items) return [];
-            return items
-                .map((item) => {
-                    const catalogId = catalogIdLookup.get(item.catalogItemId);
-                    if (!catalogId) return null;
-                    return { ...item, catalogItemId: catalogId } as RoomItem;
-                })
-                .filter((item): item is RoomItem => item !== null);
-        },
-        [catalogIdLookup]
-    );
-
-    const denormalizeRoomItems = useCallback((items: RoomItem[]): GuestRoomItem[] => {
-        return items.map((item) => ({
-            ...item,
-            catalogItemId: item.catalogItemId as unknown as string,
-        }));
-    }, []);
-
-    const normalizedInitialGuestSession = useMemo(() => {
-        if (!initialGuestSession) return null;
-        return {
-            ...initialGuestSession,
-            roomItems: normalizeGuestItems(initialGuestSession.roomItems as GuestRoomItem[]),
-        };
-    }, [initialGuestSession, normalizeGuestItems]);
-
-    const normalizedLocalItems: RoomItem[] = isGuest
-        ? normalizeGuestItems(localItems as GuestRoomItem[])
-        : (localItems as RoomItem[]);
-
-    const setNormalizedItems = useCallback(
-        (updaterOrItems: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => {
-            const applyUpdate = (prev: RoomItem[]) =>
-                typeof updaterOrItems === "function" ? updaterOrItems(prev) : updaterOrItems;
-
-            type SetOwnerItems = (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
-            type SetGuestItems = (updater: GuestRoomItem[] | ((prev: GuestRoomItem[]) => GuestRoomItem[])) => void;
-
-            const setOwnerItems = setLocalItems as unknown as SetOwnerItems;
-            const setGuestItems = setLocalItems as unknown as SetGuestItems;
-
-            if (!isGuest) {
-                setOwnerItems(applyUpdate);
-                return;
-            }
-
-            setGuestItems((prev: GuestRoomItem[]) => {
-                const nextRoomItems = applyUpdate(normalizeGuestItems(prev));
-                return denormalizeRoomItems(nextRoomItems);
-            });
-        },
-        [denormalizeRoomItems, isGuest, normalizeGuestItems, setLocalItems]
-    );
+    const normalizedInitialGuestSession = initialGuestSession;
+    const normalizedLocalItems = localItems as RoomItem[];
+    const setNormalizedItems = setLocalItems as (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const updateMusicState = useMutation(api.rooms.updateMusicState);
@@ -219,7 +157,11 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     );
 
     const updateGuestInventory = useCallback(
-        (updater: (prev: string[]) => string[]) => setGuestInventoryValue(updater),
+        (updater: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => {
+            (setGuestInventoryValue as unknown as (fn: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => void)(
+                updater
+            );
+        },
         [setGuestInventoryValue]
     );
 
@@ -462,8 +404,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             guestCoins={guestCoinsValue}
             onGuestCoinsChange={(coins) => updateGuestCoins(coins)}
             startingCoins={GUEST_STARTING_COINS}
-            guestInventory={guestInventoryValue}
-            onGuestPurchase={(itemId) => {
+            guestInventory={guestInventoryValue as Id<"catalogItems">[]}
+            onGuestPurchase={(itemId: Id<"catalogItems">) => {
                 updateGuestInventory((prev) => {
                     if (prev.includes(itemId)) return prev;
                     return [...prev, itemId];

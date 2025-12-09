@@ -2,13 +2,7 @@ import { query, mutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
-import {
-    GUEST_STARTING_COINS,
-    STARTER_COMPUTER_NAME,
-    type GuestRoomItem,
-    type GuestSessionState,
-    type GuestShortcut,
-} from "../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestRoomItem, type GuestSessionState, type GuestShortcut } from "../shared/guestTypes";
 import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
 
 type AnyCtx = QueryCtx | MutationCtx;
@@ -238,34 +232,6 @@ function hslToHex(h: number, s: number, l: number): string {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-async function ensureStarterComputer(
-    ctx: MutationCtx,
-    userId: Id<"users">,
-    catalogItems?: Doc<"catalogItems">[]
-) {
-    const catalog = catalogItems ?? (await ctx.db.query("catalogItems").collect());
-    const starterItem = catalog.find((c) => c.name === STARTER_COMPUTER_NAME) ?? null;
-    if (!starterItem) return false;
-
-    const existing = await ctx.db
-        .query("inventory")
-        .withIndex("by_user_and_item", (q) =>
-            q.eq("userId", userId).eq("catalogItemId", starterItem._id)
-        )
-        .unique();
-
-    if (existing) return true;
-
-    await ctx.db.insert("inventory", {
-        userId,
-        catalogItemId: starterItem._id,
-        purchasedAt: Date.now(),
-        hidden: false,
-    });
-
-    return true;
-}
-
 async function importInventoryWithinBudget(
     ctx: MutationCtx,
     userId: Id<"users">,
@@ -288,7 +254,7 @@ async function importInventoryWithinBudget(
         if (!catalogItem) continue;
         const catalogKey = catalogItem._id as unknown as string;
         if (seenCatalogIds.has(catalogKey)) continue;
-        const cost = catalogItem.name === STARTER_COMPUTER_NAME ? 0 : catalogItem.basePrice ?? 0;
+        const cost = catalogItem.isStarterItem ? 0 : catalogItem.basePrice ?? 0;
         const cachedCost = catalogCostCache[catalogKey] ?? cost;
         if (remainingBudget.value - cachedCost < 0) continue;
 
@@ -373,7 +339,7 @@ async function seedRoomFromGuest(
 
 const guestRoomItemValidator = v.object({
     id: v.string(),
-    catalogItemId: v.string(),
+    catalogItemId: v.id("catalogItems"),
     x: v.number(),
     y: v.number(),
     url: v.optional(v.string()),
@@ -442,7 +408,7 @@ export const ensureUser = mutation({
                     : undefined;
         const guestSessionState: GuestSessionState = {
             coins: reportedGuestCoins,
-            inventoryIds: rawGuestInventory,
+            inventoryIds: rawGuestInventory as unknown as Id<"catalogItems">[],
             roomItems: rawGuestRoomItems ?? [],
             shortcuts: rawGuestShortcuts ?? [],
             onboardingCompleted: Boolean(guestSession?.onboardingCompleted),
@@ -457,7 +423,6 @@ export const ensureUser = mutation({
         const guestShortcuts = guestSessionState.shortcuts;
         const normalizedGuestShortcuts = sanitizeGuestShortcuts(guestShortcuts);
 
-        let catalogItemsCache: Doc<"catalogItems">[] | null = null;
         let user = await findUserByExternalId(ctx, identity.subject);
 
         if (!user) {
@@ -500,12 +465,12 @@ export const ensureUser = mutation({
             });
             user = await ctx.db.get(id);
             if (user) {
-                const {
-                    remainingCurrency,
-                    catalogItems,
-                } = await importInventoryWithinBudget(ctx, user._id, guestInventory, GUEST_STARTING_COINS);
-
-                catalogItemsCache = catalogItems;
+                const { remainingCurrency, catalogItems } = await importInventoryWithinBudget(
+                    ctx,
+                    user._id,
+                    guestInventory,
+                    GUEST_STARTING_COINS
+                );
 
                 await ctx.db.patch(user._id, {
                     currency: Math.min(remainingCurrency, reportedGuestCoins),
@@ -563,8 +528,6 @@ export const ensureUser = mutation({
                     cursorColor: guestCursorColor,
                 });
             }
-
-            await ensureStarterComputer(ctx, user._id, catalogItemsCache ?? undefined);
         }
 
         return user;

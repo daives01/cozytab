@@ -40,8 +40,8 @@ interface ShopProps {
     guestCoins?: number;
     onGuestCoinsChange?: (coins: number) => void;
     startingCoins?: number;
-    guestOwnedIds?: string[];
-    onGuestPurchase?: (catalogItemId: string) => void;
+    guestOwnedIds?: Id<"catalogItems">[];
+    onGuestPurchase?: (catalogItemId: Id<"catalogItems">) => void;
     highlightFirstMusicItem?: boolean;
 }
 
@@ -174,7 +174,7 @@ export function Shop({
 
     const guestOwnedSet = useMemo(() => {
         const set = new Set<Id<"catalogItems">>();
-        const owned = guestOwnedIds || [];
+    const owned = guestOwnedIds || [];
         const catalogByName = new Map(
             (catalogItems || []).map((item) => [item.name.toLowerCase(), item])
         );

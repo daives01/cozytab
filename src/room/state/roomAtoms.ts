@@ -4,6 +4,7 @@ import type { Getter, Setter } from "jotai/vanilla";
 import { atom, createStore } from "jotai/vanilla";
 import React, { type PropsWithChildren, useMemo } from "react";
 import type { ComputerShortcut, RoomItem } from "../../types";
+import type { Id } from "../../../convex/_generated/dataModel";
 
 export type Mode = "view" | "edit";
 export type MusicAutoplayState = { itemId: string; token: string } | null;
@@ -23,7 +24,7 @@ type RoomUiState = {
     displayName: string | null;
     onboardingCompleted: boolean;
     coins: number;
-    inventory: string[];
+    inventory: Id<"catalogItems">[];
     sessionLoaded: boolean;
 };
 
@@ -183,7 +184,7 @@ export const coinsAtom = atom(
 
 export const inventoryAtom = atom(
     (get) => get(roomStateAtom).inventory,
-    (get, set, updater: (prev: string[]) => string[]) => {
+    (get, set, updater: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => {
         const current = get(roomStateAtom).inventory;
         patchState(get, set, { inventory: updater(current) });
     }

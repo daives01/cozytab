@@ -65,7 +65,7 @@ export const guestCoinsAtom = atom(
 
 export const guestInventoryAtom = atom(
     (get) => get(baseSessionAtom).inventoryIds,
-    (get, set, updater: (prev: string[]) => string[]) => {
+    (get, set, updater: (prev: typeof startFallback.inventoryIds) => typeof startFallback.inventoryIds) => {
         const current = get(baseSessionAtom);
         const next = updater(current.inventoryIds);
         const persisted = saveGuestSession({ inventoryIds: next });

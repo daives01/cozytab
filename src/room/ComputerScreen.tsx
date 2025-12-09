@@ -57,8 +57,8 @@ interface ComputerScreenProps {
     guestCoins?: number;
     onGuestCoinsChange?: (coins: number) => void;
     startingCoins?: number;
-    guestInventory?: string[];
-    onGuestPurchase?: (catalogItemId: string) => void;
+    guestInventory?: Id<"catalogItems">[];
+    onGuestPurchase?: (catalogItemId: Id<"catalogItems">) => void;
     highlightFirstMusicItem?: boolean;
     displayName?: string;
     username?: string;

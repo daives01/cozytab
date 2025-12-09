@@ -1,3 +1,4 @@
+import type { Id } from "../../convex/_generated/dataModel";
 import {
     GUEST_COINS_STORAGE_KEY,
     GUEST_INVENTORY_STORAGE_KEY,
@@ -5,14 +6,11 @@ import {
     GUEST_ROOM_STORAGE_KEY,
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
-    STARTER_COMPUTER_NAME,
     GUEST_CURSOR_COLOR_STORAGE_KEY,
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
 } from "../../shared/guestTypes";
-
-export const GUEST_STARTER_ITEM_NAME = STARTER_COMPUTER_NAME;
 
 function randomBrightColor(): string {
     const hue = Math.floor(Math.random() * 360);
@@ -53,7 +51,7 @@ function hslToHex(h: number, s: number, l: number): string {
 
 const defaultState: GuestSessionState = {
     coins: GUEST_STARTING_COINS,
-    inventoryIds: [GUEST_STARTER_ITEM_NAME],
+    inventoryIds: [],
     roomItems: [],
     shortcuts: [],
     onboardingCompleted: false,
@@ -65,16 +63,28 @@ const clampNumber = (value: unknown, fallback: number, min: number, max: number)
     return Math.max(min, Math.min(max, value));
 };
 
-const ensureStarterInventory = (ids: string[]) => {
-    const seen = new Set(ids.filter((id): id is string => typeof id === "string"));
-    if (!seen.has(GUEST_STARTER_ITEM_NAME)) {
-        seen.add(GUEST_STARTER_ITEM_NAME);
-    }
-    return Array.from(seen);
-};
-
 export function clampGuestCoins(value: unknown): number {
     return clampNumber(value, GUEST_STARTING_COINS, 0, GUEST_STARTING_COINS);
+}
+
+export type CatalogLookup = {
+    byId: Set<Id<"catalogItems">>;
+    starterIds: Id<"catalogItems">[];
+};
+
+export function buildCatalogLookup(
+    catalogItems: { _id: Id<"catalogItems">; name: string; isStarterItem?: boolean }[] | undefined
+): CatalogLookup | null {
+    if (!catalogItems || catalogItems.length === 0) return null;
+    const byId = new Set<Id<"catalogItems">>();
+    const starterIds: Id<"catalogItems">[] = [];
+
+    for (const item of catalogItems) {
+        byId.add(item._id);
+        if (item.isStarterItem) starterIds.push(item._id);
+    }
+
+    return { byId, starterIds };
 }
 
 function safeRead(key: string) {
@@ -114,38 +124,40 @@ function parseJson<T>(raw: string | null, fallback: T): T {
     }
 }
 
-function sanitizeRoomItems(items: unknown): GuestRoomItem[] {
-    if (!Array.isArray(items)) return [];
+function sanitizeRoomItems(items: GuestRoomItem[]): GuestRoomItem[] {
     return items
         .filter((item): item is GuestRoomItem => typeof item === "object" && item !== null)
         .map((item) => ({
+            ...item,
             id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
-            catalogItemId: typeof item.catalogItemId === "string" ? item.catalogItemId : "",
-            x: clampNumber((item as GuestRoomItem).x, 0, -Infinity, Infinity),
-            y: clampNumber((item as GuestRoomItem).y, 0, -Infinity, Infinity),
-            url: typeof (item as GuestRoomItem).url === "string" ? (item as GuestRoomItem).url : undefined,
-            flipped: typeof (item as GuestRoomItem).flipped === "boolean" ? (item as GuestRoomItem).flipped : undefined,
-            musicUrl:
-                typeof (item as GuestRoomItem).musicUrl === "string"
-                    ? (item as GuestRoomItem).musicUrl
-                    : undefined,
-            musicType: (item as GuestRoomItem).musicType === "youtube"
-                ? (item as GuestRoomItem).musicType
-                : undefined,
-            musicPlaying:
-                typeof (item as GuestRoomItem).musicPlaying === "boolean"
-                    ? (item as GuestRoomItem).musicPlaying
-                    : undefined,
-            musicStartedAt:
-                typeof (item as GuestRoomItem).musicStartedAt === "number"
-                    ? (item as GuestRoomItem).musicStartedAt
-                    : undefined,
-            musicPositionAtStart:
-                typeof (item as GuestRoomItem).musicPositionAtStart === "number"
-                    ? (item as GuestRoomItem).musicPositionAtStart
-                    : undefined,
-        }))
-        .filter((item) => item.catalogItemId);
+            x: clampNumber(item.x, 0, 0, Infinity),
+            y: clampNumber(item.y, 0, 0, Infinity),
+        }));
+}
+
+function normalizeGuestSession(
+    raw: GuestSessionState,
+    catalogLookup: CatalogLookup | null
+): GuestSessionState {
+    const filterIds = (ids: Id<"catalogItems">[]) =>
+        catalogLookup ? ids.filter((id) => catalogLookup.byId.has(id)) : ids;
+    const starterIds = catalogLookup?.starterIds ?? [];
+
+    const inventoryIds = Array.from(new Set([...filterIds(raw.inventoryIds), ...starterIds]));
+    const allowedIds = new Set(inventoryIds);
+    const normalizedRoomItems = raw.roomItems.filter((item) =>
+        catalogLookup ? catalogLookup.byId.has(item.catalogItemId) : true
+    );
+    normalizedRoomItems.forEach((item) => allowedIds.add(item.catalogItemId));
+
+    return {
+        coins: raw.coins,
+        inventoryIds: Array.from(allowedIds),
+        roomItems: normalizedRoomItems,
+        shortcuts: raw.shortcuts,
+        onboardingCompleted: raw.onboardingCompleted,
+        cursorColor: raw.cursorColor,
+    };
 }
 
 function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
@@ -162,7 +174,7 @@ function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
         .filter((shortcut) => shortcut.url);
 }
 
-export function readGuestSession(): GuestSessionState {
+export function readGuestSession(catalogLookup: CatalogLookup | null = null): GuestSessionState {
     if (typeof window === "undefined") {
         return { ...defaultState };
     }
@@ -177,7 +189,7 @@ export function readGuestSession(): GuestSessionState {
     const parsedRoom = parseJson<{ items?: GuestRoomItem[] }>(roomRaw, { items: [] });
     const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
 
-    const parsedInventory = parseJson<string[]>(inventoryRaw, []);
+    const parsedInventory = parseJson<Id<"catalogItems">[]>(inventoryRaw, []);
     const parsedCursorColor =
         typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0
             ? cursorColorRaw
@@ -187,21 +199,24 @@ export function readGuestSession(): GuestSessionState {
         safeWrite(GUEST_CURSOR_COLOR_STORAGE_KEY, parsedCursorColor);
     }
 
-    return {
-        coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
-        inventoryIds: ensureStarterInventory(parsedInventory),
-        roomItems: sanitizeRoomItems(parsedRoom.items ?? []),
-        shortcuts: sanitizeShortcuts(parsedShortcuts),
-        onboardingCompleted: onboardingRaw === "true",
-        cursorColor: parsedCursorColor,
-    };
+    return normalizeGuestSession(
+        {
+            coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
+            inventoryIds: parsedInventory,
+            roomItems: sanitizeRoomItems(parsedRoom.items ?? []),
+            shortcuts: sanitizeShortcuts(parsedShortcuts),
+            onboardingCompleted: onboardingRaw === "true",
+            cursorColor: parsedCursorColor,
+        },
+        catalogLookup
+    );
 }
 
 export function saveGuestRoomItems(items: GuestRoomItem[]) {
     safeWrite(GUEST_ROOM_STORAGE_KEY, JSON.stringify({ items }));
 }
 
-export function saveGuestInventory(inventoryIds: string[]) {
+export function saveGuestInventory(inventoryIds: Id<"catalogItems">[]) {
     safeWrite(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify(inventoryIds));
 }
 
@@ -260,11 +275,7 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
 
     const next: GuestSessionState = {
         coins: clampGuestCoins(partial.coins ?? current.coins),
-        inventoryIds: ensureStarterInventory(
-            Array.isArray(partial.inventoryIds)
-                ? partial.inventoryIds
-                : current.inventoryIds
-        ),
+        inventoryIds: Array.isArray(partial.inventoryIds) ? partial.inventoryIds : current.inventoryIds,
         roomItems: partial.roomItems ? sanitizeRoomItems(partial.roomItems) : current.roomItems,
         shortcuts: partial.shortcuts ? sanitizeShortcuts(partial.shortcuts) : current.shortcuts,
         onboardingCompleted: partial.onboardingCompleted ?? current.onboardingCompleted,

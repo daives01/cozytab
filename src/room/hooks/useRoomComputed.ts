@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { STARTER_COMPUTER_NAME } from "../../../shared/guestTypes";
 import { canShare, canUseComputer } from "../utils/sessionGuards";
 import type { OnboardingStep } from "../Onboarding";
+import type { Id, Doc } from "../../../convex/_generated/dataModel";
 
 type UseRoomComputedArgs = {
-    catalogItems: { _id?: string; name?: string; assetUrl: string; category: string }[] | undefined;
-    guestInventoryValue: string[];
+    catalogItems: Doc<"catalogItems">[] | undefined;
+    guestInventoryValue: Id<"catalogItems">[];
     userDisplayName?: string | null;
     userUsername?: string | null;
     clerkUsername?: string | null;
@@ -37,15 +37,15 @@ export function useRoomComputed({
 
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
-        const uniqueInventoryIds = Array.from(new Set<string>([...guestInventoryValue, STARTER_COMPUTER_NAME]));
+        const uniqueInventoryIds = Array.from(new Set<Id<"catalogItems">>(guestInventoryValue));
 
         return uniqueInventoryIds
-            .map((id) => catalogItems.find((c) => c._id === id || c.name === id))
+            .map((id) => catalogItems.find((c) => c._id === id))
             .filter((item): item is (typeof catalogItems)[number] => Boolean(item))
             .map((item) => ({
-                inventoryId: `guest-${item._id ?? item.name ?? STARTER_COMPUTER_NAME}`,
-                catalogItemId: item.name ?? STARTER_COMPUTER_NAME,
-                name: item.name ?? STARTER_COMPUTER_NAME,
+                inventoryId: item._id,
+                catalogItemId: item._id,
+                name: item.name,
                 assetUrl: item.assetUrl,
                 category: item.category,
                 hidden: false,

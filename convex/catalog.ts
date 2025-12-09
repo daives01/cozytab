@@ -1,7 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { STARTER_COMPUTER_NAME } from "../shared/guestTypes";
 
 // Helper to check if the current user is an admin
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -46,6 +45,7 @@ export const addItem = mutation({
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
+        isStarterItem: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
@@ -59,7 +59,10 @@ export const addItem = mutation({
             return { success: false, message: "Item with this name already exists" };
         }
 
-        const id = await ctx.db.insert("catalogItems", args);
+        const id = await ctx.db.insert("catalogItems", {
+            ...args,
+            isStarterItem: args.isStarterItem ?? false,
+        });
         return { success: true, id };
     },
 });
@@ -72,6 +75,7 @@ export const updateItem = mutation({
         basePrice: v.optional(v.number()),
         assetUrl: v.optional(v.string()),
         defaultWidth: v.optional(v.number()),
+        isStarterItem: v.optional(v.boolean()),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
@@ -91,6 +95,7 @@ export const updateItem = mutation({
             basePrice: number;
             assetUrl: string;
             defaultWidth: number;
+            isStarterItem: boolean;
         }>;
 
         if (Object.keys(filteredUpdates).length === 0) {
@@ -116,87 +121,5 @@ export const getImageUrl = query({
     args: { storageId: v.id("_storage") },
     handler: async (ctx, args) => {
         return await ctx.storage.getUrl(args.storageId);
-    },
-});
-
-export const seed = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const items = [
-            {
-                name: "tv",
-                category: "Furniture",
-                basePrice: 5,
-                assetUrl: "https://placehold.co/100x100/333/fff?text=TV",
-                defaultWidth: 100,
-            },
-            {
-                name: "plant",
-                category: "Decor",
-                basePrice: 3,
-                assetUrl: "https://placehold.co/60x100/2ecc71/fff?text=Plant",
-                defaultWidth: 60,
-            },
-            {
-                name: "desk",
-                category: "Furniture",
-                basePrice: 8,
-                assetUrl: "https://placehold.co/150x80/e67e22/fff?text=Desk",
-                defaultWidth: 150,
-            },
-            {
-                name: STARTER_COMPUTER_NAME,
-                category: "Computers",
-                basePrice: 1,
-                assetUrl: "https://placehold.co/120x100/2563eb/fff?text=Computer",
-                defaultWidth: 120,
-            },
-            {
-                name: "vinyl player",
-                category: "Music",
-                basePrice: 3,
-                assetUrl: "https://placehold.co/100x100/8b5cf6/fff?text=Vinyl+Player",
-                defaultWidth: 100,
-            },
-            {
-                name: "lamp",
-                category: "Decor",
-                basePrice: 4,
-                assetUrl: "https://placehold.co/50x80/f1c40f/fff?text=Lamp",
-                defaultWidth: 50,
-            },
-            {
-                name: "bookshelf",
-                category: "Furniture",
-                basePrice: 6,
-                assetUrl: "https://placehold.co/120x150/8b4513/fff?text=Bookshelf",
-                defaultWidth: 120,
-            },
-        ];
-
-        let inserted = 0;
-        let updated = 0;
-
-        for (const item of items) {
-            const existing = await ctx.db
-                .query("catalogItems")
-                .withIndex("by_name", (q) => q.eq("name", item.name))
-                .unique();
-
-            if (existing) {
-                await ctx.db.patch(existing._id, {
-                    category: item.category,
-                    basePrice: item.basePrice,
-                    assetUrl: item.assetUrl,
-                    defaultWidth: item.defaultWidth,
-                });
-                updated++;
-            } else {
-                await ctx.db.insert("catalogItems", item);
-                inserted++;
-            }
-        }
-
-        return `Catalog updated: ${inserted} new items, ${updated} updated`;
     },
 });
