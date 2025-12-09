@@ -262,16 +262,22 @@ export function useLeaseHeartbeat({
     currentUserId?: Id<"users"> | null;
 }) {
     const hasVisitorsRef = useRef(hasVisitors);
+    const wasSharingActiveRef = useRef(false);
+    const roomId = room?._id ?? null;
 
     useEffect(() => {
         hasVisitorsRef.current = hasVisitors;
     }, [hasVisitors]);
 
     useEffect(() => {
+        wasSharingActiveRef.current = isSharingActive;
+    }, [isSharingActive]);
+
+    useEffect(() => {
         if (isGuest) return;
-        if (!room) return;
+        if (!roomId) return;
         if (!currentUserId) return;
-        if (room.userId !== currentUserId) return;
+        if (!room || room.userId !== currentUserId) return;
         if (!isSharingActive) return;
 
         let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -286,7 +292,7 @@ export function useLeaseHeartbeat({
 
         const sendHeartbeat = () => {
             if (stopped) return;
-            heartbeatInvite({ roomId: room._id, hasGuests: hasVisitorsRef.current })
+            heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current })
                 .then((result: { closed?: boolean; reason?: string } | unknown) => {
                     const closed = typeof result === "object" && result !== null && "closed" in result
                         ? (result as { closed?: boolean }).closed
@@ -321,19 +327,12 @@ export function useLeaseHeartbeat({
         return () => {
             stopped = true;
             stopHeartbeats();
+            // Only close if we previously had sharing active for this room.
+            if (wasSharingActiveRef.current && roomId) {
+                closeInviteSession({ roomId }).catch(() => {});
+            }
         };
-    }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, room]);
-
-    useEffect(() => {
-        if (isGuest) return;
-        if (!room) return;
-        if (!currentUserId) return;
-        if (room.userId !== currentUserId) return;
-
-        return () => {
-            closeInviteSession({ roomId: room._id }).catch(() => {});
-        };
-    }, [closeInviteSession, currentUserId, isGuest, room]);
+    }, [closeInviteSession, currentUserId, heartbeatInvite, isGuest, isSharingActive, roomId, room]);
 }
 
 export function useSyncComputerState({

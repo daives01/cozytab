@@ -2,7 +2,7 @@
 
 ## Overview
 - Cozytab lets users or guests build shareable rooms with draggable catalog items, shortcuts, and optional music. Rooms are created from templates; one room is marked active.
-- Auth via Clerk; guest sessions can be imported on sign-in (referrals add cozy coins). Presence/presence leases handled with Convex plus a Cloudflare Worker.
+- Auth via Clerk; guest sessions can be imported on sign-in (referrals add cozy coins). Room presence handled with Convex, Cursor sharing handled with a Cloudflare Worker.
 
 ## Tech Stack
 - React 19 + React Router 7, TypeScript, Vite 7 (packageManager: bun@1.1.32).
@@ -23,7 +23,6 @@
 - `rooms`: userId, templateId, name, isActive, items[], shortcuts?; indexes `by_user`, `by_user_active`.
   - Items: id, catalogItemId, x, y, url?, flipped?, musicUrl?, musicType?("youtube"), musicPlaying?, musicStartedAt?, musicPositionAtStart?.
   - Shortcuts: id, name, url, row?, col?.
-- (removed) `roomLeases`: room openness now tracked via invites.
 - `catalogItems`: name, category (string), basePrice, assetUrl, defaultWidth; index `by_name`.
 - `inventory`: userId, catalogItemId, purchasedAt, hidden?; indexes `by_user`, `by_user_and_item`.
 - `roomInvites`: roomId, code (6 chars), createdAt, expiresAt, hostOnlySince?, createdBy; indexes `by_room`, `by_code`.

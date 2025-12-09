@@ -420,7 +420,8 @@ async function heartbeatRoom(
 
     const invite = await getPrimaryInviteForRoom(ctx, args.roomId);
     if (!invite) {
-        return { expiresAt: null, closed: true as const, reason: "invite-missing" as const };
+        // No invite means sharing is off; do nothing and keep the room closed.
+        return { expiresAt: null, closed: false as const, reason: "invite-missing" as const };
     }
 
     const inviteRecord = invite;
@@ -453,6 +454,17 @@ export const heartbeatInvite = mutation({
         hasGuests: v.optional(v.boolean()),
     },
     handler: (ctx, args) => heartbeatRoom(ctx, args),
+});
+
+// Temporary stub to quiet stale clients still calling the old endpoint.
+export const renewLease = mutation({
+    args: {
+        roomId: v.id("rooms"),
+        hasGuests: v.optional(v.boolean()),
+    },
+    handler: async () => {
+        return { closed: true as const, reason: "deprecated" as const };
+    },
 });
 
 export const closeInviteSession = mutation({

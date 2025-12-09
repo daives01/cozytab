@@ -1,2 +1,2 @@
-[ ] clean up DB
-    - cursorColor dupe
+### small bugs
+host sometimes gets "listen in" but music is playing anyway

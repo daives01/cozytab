@@ -27,10 +27,16 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
             return;
         }
 
-        // Keep a lightweight ticking clock only while an invite is active.
-        const id = setInterval(() => setNow(Date.now()), 1_000);
-        return () => clearInterval(id);
-    }, [expiresAt]);
+        const nowTs = Date.now();
+        const remaining = expiresAt - nowTs;
+        if (remaining <= 0) {
+            setNow(nowTs);
+            return;
+        }
+
+        const id = setTimeout(() => setNow(Date.now()), remaining + 10);
+        return () => clearTimeout(id);
+    }, [expiresAt, now]);
 
     const handleResetCode = async () => {
         setIsRotating(true);
