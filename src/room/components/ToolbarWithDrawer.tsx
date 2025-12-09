@@ -1,6 +1,7 @@
-import type React from "react";
+import type { Id } from "../../../convex/_generated/dataModel";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
+import type { GuestDrawerItem } from "../AssetDrawer/types";
 
 type Mode = "view" | "edit";
 
@@ -14,7 +15,8 @@ interface ToolbarWithDrawerProps {
     isDrawerOpen: boolean;
     draggedItemId: string | null;
     highlightComputer: boolean;
-    guestItems?: React.ComponentProps<typeof EditDrawer>["guestItems"];
+    guestItems?: GuestDrawerItem[];
+    placedCatalogItemIds?: Id<"catalogItems">[];
     onToggleMode: () => void;
     onShareClick: () => void;
     onDrawerToggle: () => void;
@@ -32,6 +34,7 @@ export function ToolbarWithDrawer({
     draggedItemId,
     highlightComputer,
     guestItems,
+    placedCatalogItemIds,
     onToggleMode,
     onShareClick,
     onDrawerToggle,
@@ -59,6 +62,7 @@ export function ToolbarWithDrawer({
                 highlightComputer={highlightComputer}
                 isGuest={isGuest}
                 guestItems={guestItems}
+                placedCatalogItemIds={placedCatalogItemIds}
                 orientation={drawerOrientation}
             />
         </>

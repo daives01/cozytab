@@ -1,11 +1,12 @@
 import { Package, Coins, Check } from "lucide-react";
 import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { AssetImage } from "../../components/AssetImage";
+import { ItemCountBadge } from "../components/ItemCountBadge";
 
 interface ItemsTabProps {
     groupedItems: Record<string, Doc<"catalogItems">[]>;
     categories: string[];
-    ownedSet: Set<Id<"catalogItems">>;
+    ownedCounts: Map<Id<"catalogItems">, number>;
     userCurrency: number;
     purchasing: Id<"catalogItems"> | null;
     lastResult: { itemId: Id<"catalogItems">; message: string; success: boolean } | null;
@@ -18,7 +19,7 @@ interface ItemsTabProps {
 export function ItemsTab({
     groupedItems,
     categories,
-    ownedSet,
+    ownedCounts,
     userCurrency,
     purchasing,
     lastResult,
@@ -54,7 +55,8 @@ export function ItemsTab({
 
                         <div className="flex flex-wrap gap-2.5 md:gap-3 justify-center md:justify-start">
                             {groupedItems[category].map((item) => {
-                                const isOwned = ownedSet.has(item._id);
+                                const ownedCount = ownedCounts.get(item._id) ?? 0;
+                                const isOwned = ownedCount > 0;
                                 const canAfford = userCurrency >= item.basePrice;
                                 const isPurchasing = purchasing === item._id;
                                 const resultForItem = lastResult?.itemId === item._id ? lastResult : null;
@@ -75,11 +77,11 @@ export function ItemsTab({
                                                 Start here
                                             </div>
                                         )}
-                                        {isOwned && (
-                                            <div className="absolute -top-2 -right-2 bg-[var(--success)] text-white rounded-full p-0.5 shadow-sm border-2 border-[var(--ink)]">
-                                                <Check className="h-3.5 w-3.5" />
-                                            </div>
-                                        )}
+                                        <ItemCountBadge
+                                            count={ownedCount}
+                                            icon={isOwned ? <Check className="h-4 w-4 text-[var(--success-dark)]" /> : null}
+                                            className="border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)]"
+                                        />
 
                                         <div className="w-full h-[112px] bg-transparent rounded-md mb-2 flex items-center justify-center overflow-hidden">
                                             <AssetImage
@@ -94,26 +96,20 @@ export function ItemsTab({
                                             {item.name}
                                         </h4>
 
-                                        {isOwned ? (
-                                            <div className="text-center text-[var(--success-dark)] font-bold text-size-base">
-                                                Owned
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => onPurchase(item._id)}
-                                                disabled={!canAfford || isPurchasing}
-                                                className={`w-full py-1 px-2.5 rounded-md font-bold text-size-base transition-all flex items-center justify-center gap-1.5 border-2 ${
-                                                    isPurchasing
-                                                        ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
-                                                        : canAfford
-                                                        ? "bg-[var(--warning)] text-[var(--ink)] hover:bg-[var(--warning-dark)] border-[var(--ink)] shadow-md active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
-                                                        : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
-                                                }`}
-                                            >
-                                                <Coins className="h-3.5 w-3.5" />
-                                                <span>{item.basePrice}</span>
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => onPurchase(item._id)}
+                                            disabled={!canAfford || isPurchasing}
+                                            className={`w-full py-1 px-2.5 rounded-md font-bold text-size-base transition-all flex items-center justify-center gap-1.5 border-2 ${
+                                                isPurchasing
+                                                    ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
+                                                    : canAfford
+                                                    ? "bg-[var(--warning)] text-[var(--ink)] hover:bg-[var(--warning-dark)] border-[var(--ink)] shadow-md active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
+                                                    : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
+                                            }`}
+                                        >
+                                            <Coins className="h-3.5 w-3.5" />
+                                            <span>{item.basePrice}</span>
+                                        </button>
 
                                         {resultForItem && (
                                             <div

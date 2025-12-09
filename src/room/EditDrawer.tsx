@@ -1,7 +1,9 @@
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import type React from "react";
+import type { Id } from "../../convex/_generated/dataModel";
 import { AssetDrawer } from "./AssetDrawer";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT } from "./AssetDrawer/constants";
+import type { GuestDrawerItem } from "./AssetDrawer/types";
 import { TrashCan } from "./TrashCan";
 
 type Mode = "view" | "edit";
@@ -14,7 +16,8 @@ interface EditDrawerProps {
     onDeleteItem: (itemId: string) => void;
     highlightComputer: boolean;
     isGuest: boolean;
-    guestItems?: React.ComponentProps<typeof AssetDrawer>["guestItems"];
+    guestItems?: GuestDrawerItem[];
+    placedCatalogItemIds?: Id<"catalogItems">[];
     orientation?: "left" | "bottom";
 }
 
@@ -27,6 +30,7 @@ export function EditDrawer({
     highlightComputer,
     isGuest,
     guestItems,
+    placedCatalogItemIds,
     orientation = "left",
 }: EditDrawerProps) {
     const isLeft = orientation === "left";
@@ -73,12 +77,13 @@ export function EditDrawer({
 
             <AssetDrawer
                 isOpen={isDrawerOpen}
-                onDragStart={(e: React.DragEvent, id: string) => {
-                    e.dataTransfer.setData("catalogItemId", id);
+                onDragStart={(e: React.DragEvent, id: Id<"catalogItems">) => {
+                    e.dataTransfer.setData("catalogItemId", String(id));
                 }}
                 highlightComputer={highlightComputer}
                 isGuest={isGuest}
                 guestItems={guestItems}
+                placedCatalogItemIds={placedCatalogItemIds}
                 orientation={orientation}
             />
 

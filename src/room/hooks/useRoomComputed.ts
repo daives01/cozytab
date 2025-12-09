@@ -1,11 +1,13 @@
 import { useMemo } from "react";
 import { canShare, canUseComputer } from "../utils/sessionGuards";
+import { countIds } from "../utils/itemCounts";
 import type { OnboardingStep } from "../Onboarding";
 import type { Id, Doc } from "../../../convex/_generated/dataModel";
 
 type UseRoomComputedArgs = {
     catalogItems: Doc<"catalogItems">[] | undefined;
     guestInventoryValue: Id<"catalogItems">[];
+    placedCatalogItemIds: Id<"catalogItems">[];
     userDisplayName?: string | null;
     userUsername?: string | null;
     clerkUsername?: string | null;
@@ -19,6 +21,7 @@ type UseRoomComputedArgs = {
 export function useRoomComputed({
     catalogItems,
     guestInventoryValue,
+    placedCatalogItemIds,
     userDisplayName,
     userUsername,
     clerkUsername,
@@ -37,20 +40,28 @@ export function useRoomComputed({
 
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
-        const uniqueInventoryIds = Array.from(new Set<Id<"catalogItems">>(guestInventoryValue));
 
-        return uniqueInventoryIds
-            .map((id) => catalogItems.find((c) => c._id === id))
-            .filter((item): item is (typeof catalogItems)[number] => Boolean(item))
-            .map((item) => ({
-                inventoryId: item._id,
-                catalogItemId: item._id,
-                name: item.name,
-                assetUrl: item.assetUrl,
-                category: item.category,
-                hidden: false,
-            }));
-    }, [catalogItems, guestInventoryValue]);
+        const placedCounts = countIds(placedCatalogItemIds);
+        const inventoryCounts = countIds(guestInventoryValue);
+
+        return Array.from(inventoryCounts.entries())
+            .map(([idKey, total]) => {
+                const item = catalogItems.find((c) => String(c._id) === idKey);
+                if (!item) return null;
+                const placed = placedCounts.get(idKey) ?? 0;
+                return {
+                    inventoryId: idKey,
+                    catalogItemId: item._id,
+                    name: item.name,
+                    assetUrl: item.assetUrl,
+                    category: item.category,
+                    hidden: false,
+                    count: total,
+                    remaining: Math.max(0, total - placed),
+                };
+            })
+            .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    }, [catalogItems, guestInventoryValue, placedCatalogItemIds]);
 
     const shouldHighlightMusicPurchase = onboardingStep === "buy-item";
     const shareAllowed = canShare(isGuest);

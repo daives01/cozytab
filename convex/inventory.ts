@@ -26,6 +26,8 @@ export const getMyInventory = query({
 
         const detailedInventory = await Promise.all(
             inventoryItems.map(async (inv) => {
+                const count = inv.count ?? 1;
+                if (count <= 0) return null;
                 const cached = catalogCache.get(inv.catalogItemId);
                 const catalogItem = cached ?? (await ctx.db.get(inv.catalogItemId));
                 if (!catalogItem) return null;
@@ -41,6 +43,7 @@ export const getMyInventory = query({
                     defaultWidth: catalogItem.defaultWidth,
                     hidden: inv.hidden ?? false,
                     purchasedAt: inv.purchasedAt,
+                    count,
                 };
             })
         );
@@ -71,7 +74,9 @@ export const getMyInventoryIds = query({
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
 
-        return inventoryItems.map((inv) => inv.catalogItemId);
+        return inventoryItems
+            .filter((inv) => (inv.count ?? 1) > 0)
+            .map((inv) => inv.catalogItemId);
     },
 });
 
@@ -97,7 +102,7 @@ export const hasItem = query({
             )
             .unique();
 
-        return inventoryItem !== null;
+        return inventoryItem !== null && (inventoryItem.count ?? 1) > 0;
     },
 });
 
@@ -123,10 +128,6 @@ export const purchaseItem = mutation({
             )
             .unique();
 
-        if (existingItem) {
-            return { success: false, message: "You already own this item" };
-        }
-
         const catalogItem = await ctx.db.get(args.catalogItemId);
         if (!catalogItem) {
             return { success: false, message: "Item not found" };
@@ -136,20 +137,29 @@ export const purchaseItem = mutation({
             return { success: false, message: "Insufficient funds" };
         }
 
+        const newBalance = user.currency - catalogItem.basePrice;
         await ctx.db.patch(user._id, {
-            currency: user.currency - catalogItem.basePrice,
+            currency: newBalance,
         });
 
-        await ctx.db.insert("inventory", {
-            userId: user._id,
-            catalogItemId: args.catalogItemId,
-            purchasedAt: Date.now(),
-            hidden: false,
-        });
+        if (existingItem) {
+            await ctx.db.patch(existingItem._id, {
+                count: (existingItem.count ?? 1) + 1,
+                hidden: existingItem.hidden ?? false,
+            });
+        } else {
+            await ctx.db.insert("inventory", {
+                userId: user._id,
+                catalogItemId: args.catalogItemId,
+                purchasedAt: Date.now(),
+                hidden: false,
+                count: 1,
+            });
+        }
 
         return {
             success: true,
-            newBalance: user.currency - catalogItem.basePrice,
+            newBalance,
         };
     },
 });
@@ -175,6 +185,31 @@ export const setHidden = mutation({
         await ctx.db.patch(args.inventoryId, { hidden: args.hidden });
 
         return { success: true };
+    },
+});
+
+export const backfillInventoryCounts = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const identity = await ctx.auth.getUserIdentity();
+        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.NODE_ENV;
+        if (!identity) {
+            throw new Error("Not authenticated");
+        }
+        if (nodeEnv !== "development") {
+            throw new Error("Backfill is dev-only");
+        }
+
+        const updated: string[] = [];
+        const inventoryItems = await ctx.db.query("inventory").collect();
+        for (const item of inventoryItems) {
+            if (item.count === undefined) {
+                await ctx.db.patch(item._id, { count: 1 });
+                updated.push(item._id as unknown as string);
+            }
+        }
+
+        return { updated };
     },
 });
 

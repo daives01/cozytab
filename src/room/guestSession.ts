@@ -143,16 +143,23 @@ function normalizeGuestSession(
         catalogLookup ? ids.filter((id) => catalogLookup.byId.has(id)) : ids;
     const starterIds = catalogLookup?.starterIds ?? [];
 
-    const inventoryIds = Array.from(new Set([...filterIds(raw.inventoryIds), ...starterIds]));
-    const allowedIds = new Set(inventoryIds);
+    const filteredInventoryIds = filterIds(raw.inventoryIds);
+    const inventoryIds = [...filteredInventoryIds];
+
+    // Ensure each starter item is granted once without collapsing purchased duplicates.
+    for (const starterId of starterIds) {
+        if (!filteredInventoryIds.includes(starterId)) {
+            inventoryIds.push(starterId);
+        }
+    }
+
     const normalizedRoomItems = raw.roomItems.filter((item) =>
         catalogLookup ? catalogLookup.byId.has(item.catalogItemId) : true
     );
-    normalizedRoomItems.forEach((item) => allowedIds.add(item.catalogItemId));
 
     return {
         coins: raw.coins,
-        inventoryIds: Array.from(allowedIds),
+        inventoryIds,
         roomItems: normalizedRoomItems,
         shortcuts: raw.shortcuts,
         onboardingCompleted: raw.onboardingCompleted,

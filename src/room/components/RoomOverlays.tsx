@@ -12,15 +12,7 @@ import type { RoomItem, ComputerShortcut } from "../../types";
 import type { Id } from "../../../convex/_generated/dataModel";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
 import type { TimeOfDay } from "../roomConstants";
-
-interface GuestDrawerItem {
-    inventoryId: Id<"catalogItems">;
-    catalogItemId: Id<"catalogItems">;
-    name: string;
-    assetUrl: string;
-    category: string;
-    hidden: boolean;
-}
+import type { GuestDrawerItem } from "../AssetDrawer/types";
 
 interface RoomOverlaysProps {
     isGuest: boolean;
@@ -33,6 +25,7 @@ interface RoomOverlaysProps {
     draggedItemId: string | null;
     highlightComputer: boolean;
     guestItems?: GuestDrawerItem[];
+    placedCatalogItemIds: Id<"catalogItems">[];
     onToggleMode: () => void;
     onShareClick: () => void;
     onDrawerToggle: () => void;
@@ -100,6 +93,7 @@ export function RoomOverlays({
     draggedItemId,
     highlightComputer,
     guestItems,
+    placedCatalogItemIds,
     onToggleMode,
     onShareClick,
     onDrawerToggle,
@@ -160,6 +154,7 @@ export function RoomOverlays({
                 draggedItemId={draggedItemId}
                 highlightComputer={highlightComputer}
                 guestItems={guestItems}
+                placedCatalogItemIds={placedCatalogItemIds}
                 onToggleMode={onToggleMode}
                 onShareClick={onShareClick}
                 onDrawerToggle={onDrawerToggle}

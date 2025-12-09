@@ -1,5 +1,25 @@
+import { ROOM_ITEM_MAX_X, ROOM_ITEM_MAX_Y } from "../roomConstants";
 import type { RoomItem } from "../../types";
 import type { Id } from "../../../convex/_generated/dataModel";
+
+const MIN_POSITION = 0;
+
+function clampCoordinate(value: number, max: number) {
+    if (!Number.isFinite(value)) return MIN_POSITION;
+    return Math.min(max, Math.max(MIN_POSITION, value));
+}
+
+export function clampItemPosition(item: RoomItem): RoomItem {
+    return {
+        ...item,
+        x: clampCoordinate(item.x, ROOM_ITEM_MAX_X),
+        y: clampCoordinate(item.y, ROOM_ITEM_MAX_Y),
+    };
+}
+
+export function clampItems(items: RoomItem[]): RoomItem[] {
+    return items.map((item) => clampItemPosition(item));
+}
 
 export function bringItemToFront(items: RoomItem[], itemId: string) {
     const index = items.findIndex((item) => item.id === itemId);
@@ -56,12 +76,14 @@ export function addDroppedItem(
     x: number,
     y: number
 ): RoomItem[] {
+    const clampedX = clampCoordinate(x, ROOM_ITEM_MAX_X);
+    const clampedY = clampCoordinate(y, ROOM_ITEM_MAX_Y);
     const catalogId = catalogItemId;
     const newItem: RoomItem = {
         id: crypto.randomUUID(),
         catalogItemId: catalogId,
-        x,
-        y,
+        x: clampedX,
+        y: clampedY,
         flipped: false,
     };
     return [...items, newItem];

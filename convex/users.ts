@@ -236,42 +236,49 @@ async function importInventoryWithinBudget(
     ctx: MutationCtx,
     userId: Id<"users">,
     guestInventory: string[],
-    startingCurrency: number
+    reportedCoins: number
 ) {
     const inventoryNames = new Set<string>();
-    const seenCatalogIds = new Set<string>();
-    const catalogCostCache: Record<string, number> = {};
     const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
-    const remainingBudget = { value: startingCurrency };
+    const totalBudget = GUEST_STARTING_COINS;
+    const safeReportedCoins = Math.max(0, reportedCoins);
+    const maxSpend = Math.max(0, totalBudget - safeReportedCoins);
+    let spent = 0;
+    const counts = new Map<string, number>();
+    const starterFreeGranted = new Set<string>();
 
     const resolveCatalogItem = (idOrName: string) =>
-        catalogItems.find(
-            (c) => c.name === idOrName || (c._id as unknown as string) === idOrName
-        );
+        catalogItems.find((c) => c.name === idOrName || (c._id as unknown as string) === idOrName);
 
     for (const idOrName of guestInventory) {
         const catalogItem = resolveCatalogItem(idOrName);
         if (!catalogItem) continue;
         const catalogKey = catalogItem._id as unknown as string;
-        if (seenCatalogIds.has(catalogKey)) continue;
-        const cost = catalogItem.isStarterItem ? 0 : catalogItem.basePrice ?? 0;
-        const cachedCost = catalogCostCache[catalogKey] ?? cost;
-        if (remainingBudget.value - cachedCost < 0) continue;
+        const baseCost = catalogItem.basePrice ?? 0;
+        const cost = catalogItem.isStarterItem && !starterFreeGranted.has(catalogKey) ? 0 : baseCost;
+        if (spent + cost > maxSpend) continue;
 
-        seenCatalogIds.add(catalogKey);
         inventoryNames.add(catalogItem.name);
-        catalogCostCache[catalogKey] = cachedCost;
-        remainingBudget.value -= cachedCost;
+        spent += cost;
+        if (catalogItem.isStarterItem && cost === 0) {
+            starterFreeGranted.add(catalogKey);
+        }
+        counts.set(catalogKey, (counts.get(catalogKey) ?? 0) + 1);
+    }
 
+    for (const [catalogKey, count] of counts.entries()) {
+        const catalogItem = catalogItems.find((c) => (c._id as unknown as string) === catalogKey);
+        if (!catalogItem) continue;
         await ctx.db.insert("inventory", {
             userId,
             catalogItemId: catalogItem._id,
             purchasedAt: Date.now(),
+            count,
         });
     }
 
     return {
-        remainingCurrency: Math.max(0, Math.min(remainingBudget.value, startingCurrency)),
+        remainingCurrency: Math.max(0, totalBudget - spent),
         inventoryNames,
         catalogItems,
     };
@@ -469,7 +476,7 @@ export const ensureUser = mutation({
                     ctx,
                     user._id,
                     guestInventory,
-                    GUEST_STARTING_COINS
+                    reportedGuestCoins
                 );
 
                 await ctx.db.patch(user._id, {

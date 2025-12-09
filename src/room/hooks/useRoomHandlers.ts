@@ -8,6 +8,7 @@ import {
     addDroppedItem,
     bringItemToFront,
     clampCursorToRoom,
+    clampItemPosition,
     sendItemToBack,
     updateItemsForMusicToggle,
 } from "../utils/roomActions";
@@ -35,6 +36,7 @@ type HandlersArgs = {
     updateGuestShortcuts: (next: ComputerShortcut[]) => void;
     saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void;
     cursorColor: string;
+    canPlaceItem: (catalogItemId: Id<"catalogItems">) => boolean;
 };
 
 export function useRoomHandlers({
@@ -60,6 +62,7 @@ export function useRoomHandlers({
     updateGuestShortcuts,
     saveComputer,
     cursorColor,
+    canPlaceItem,
 }: HandlersArgs) {
     const handleMusicToggle = useCallback(
         (itemId: string, playing: boolean) => {
@@ -105,6 +108,7 @@ export function useRoomHandlers({
             const catalogItemId = e.dataTransfer.getData("catalogItemId");
             if (!catalogItemId) return;
             if (!containerRef.current) return;
+            if (!canPlaceItem(catalogItemId as Id<"catalogItems">)) return;
 
             const rect = containerRef.current.getBoundingClientRect();
             const relativeX = e.clientX - rect.left;
@@ -123,7 +127,7 @@ export function useRoomHandlers({
                 advanceOnboarding();
             }
         },
-        [advanceOnboarding, containerRef, mode, onboardingStep, scale, setLocalItems]
+        [advanceOnboarding, canPlaceItem, containerRef, mode, onboardingStep, scale, setLocalItems]
     );
 
     const handleCursorMove = useCallback(
@@ -179,7 +183,7 @@ export function useRoomHandlers({
 
     const handleChangeItem = useCallback(
         (newItem: RoomItem) => {
-            setLocalItems((prev) => prev.map((i) => (i.id === newItem.id ? newItem : i)));
+            setLocalItems((prev) => prev.map((i) => (i.id === newItem.id ? clampItemPosition(newItem) : i)));
         },
         [setLocalItems]
     );

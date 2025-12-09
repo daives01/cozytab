@@ -10,6 +10,7 @@ import { LoadingState } from "./components/LoadingState";
 import { ItemCard } from "./components/ItemCard";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
 import type { AssetDrawerProps, GuestDrawerItem } from "./types";
+import { countIds } from "../utils/itemCounts";
 
 export function AssetDrawer({
     isOpen,
@@ -17,6 +18,7 @@ export function AssetDrawer({
     highlightComputer,
     isGuest = false,
     guestItems,
+    placedCatalogItemIds = [],
     orientation = "left",
 }: AssetDrawerProps) {
     const inventoryItems = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : undefined);
@@ -26,7 +28,20 @@ export function AssetDrawer({
     const [pendingHides, setPendingHides] = useState<Record<string, boolean>>({});
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
-    const items: GuestDrawerItem[] = useMemo(() => (isGuest ? guestItems : inventoryItems) ?? [], [guestItems, inventoryItems, isGuest]);
+    const placedCounts = useMemo(() => countIds(placedCatalogItemIds), [placedCatalogItemIds]);
+
+    const items: GuestDrawerItem[] = useMemo(() => {
+        const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
+        return source.map((item) => {
+            const total = Math.max(1, item.count ?? 1);
+            const placed = placedCounts.get(String(item.catalogItemId)) ?? 0;
+            return {
+                ...item,
+                count: total,
+                remaining: Math.max(0, total - placed),
+            } as GuestDrawerItem;
+        });
+    }, [guestItems, inventoryItems, isGuest, placedCounts]);
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
     const showHideControls = !isGuest && items.length > HIDE_TOGGLE_THRESHOLD;
 

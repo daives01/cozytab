@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
 import { AssetImage } from "../../../components/AssetImage";
+import { ItemCountBadge } from "../../components/ItemCountBadge";
 import { cardClass, compactCardClass, iconButtonClass } from "../constants";
 import { setDragImageFromElement } from "../../utils/dragPreview";
 import type { ItemCardProps } from "../types";
@@ -22,9 +23,10 @@ export function ItemCard({
             ? "outline outline-2 outline-dotted outline-[var(--color-accent)] outline-offset-4"
             : "";
     const shouldShowToggle = !isGuest && showHideControls;
+    const isDepleted = (item.remaining ?? 0) <= 0;
     const imageWrapperClass = compact
-        ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15 cursor-grab active:cursor-grabbing"
-        : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20 cursor-grab active:cursor-grabbing";
+        ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15"
+        : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20";
     const toggleVisibilityClass = isPending ? "opacity-60" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
     const togglePositionClass = compact ? "right-1.5 top-1.5 h-8 w-8 shadow-[var(--shadow-3)]" : "";
     const titleClass = compact
@@ -36,9 +38,15 @@ export function ItemCard({
         <Card
             key={item.inventoryId}
             data-onboarding={isComputer ? "storage-item-computer" : undefined}
-            className={`${compact ? compactCardClass : cardClass} ${highlightClass}`}
-            draggable
+            className={`relative ${compact ? compactCardClass : cardClass} ${highlightClass} ${
+                isDepleted ? "opacity-60 cursor-not-allowed" : "cursor-grab active:cursor-grabbing"
+            }`}
+            draggable={!isDepleted}
             onDragStart={(e) => {
+                if (isDepleted) {
+                    e.preventDefault();
+                    return;
+                }
                 e.dataTransfer.effectAllowed = "move";
                 const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
                 setDragImageFromElement(e, img);
@@ -67,6 +75,7 @@ export function ItemCard({
                     </button>
                 )}
             </div>
+            <ItemCountBadge count={Math.max(0, item.remaining ?? 0)} muted={isDepleted} />
             <div className={titleRowClass}>
                 <div className={titleClass} title={item.name}>
                     {item.name}

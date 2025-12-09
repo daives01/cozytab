@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { useState, useRef, useCallback, useEffect, type DragEvent } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
@@ -21,6 +21,7 @@ import { useRoomState } from "./hooks/useRoomState";
 import { useRoomHandlers } from "./hooks/useRoomHandlers";
 import { useRoomComputed } from "./hooks/useRoomComputed";
 import { useRoomGate } from "./hooks/useRoomGate";
+import { usePlacementAllowance } from "./hooks/usePlacementAllowance";
 import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
@@ -72,6 +73,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         roomBackgroundImageUrl,
         resolvedComputerAssetUrl,
     } = useRoomData({ isGuest, timeOfDay });
+    const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
     const {
         initialGuestSession,
         mode,
@@ -114,6 +116,14 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const normalizedInitialGuestSession = initialGuestSession;
     const normalizedLocalItems = localItems as RoomItem[];
     const setNormalizedItems = setLocalItems as (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
+    const placedCatalogItemIds = useMemo(() => normalizedLocalItems.map((item) => item.catalogItemId), [normalizedLocalItems]);
+    const { canPlace: canPlaceItem } = usePlacementAllowance({
+        isGuest,
+        placedCatalogItemIds,
+        guestInventoryIds: guestInventoryValue as Id<"catalogItems">[],
+        inventoryItems: inventoryWithCounts,
+        inventoryLoading: inventoryWithCounts === undefined,
+    });
     const createRoom = useMutation(api.rooms.createRoom);
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const heartbeatInvite = useMutation(api.rooms.heartbeatInvite);
@@ -280,6 +290,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const computed = useRoomComputed({
         catalogItems,
         guestInventoryValue,
+        placedCatalogItemIds,
         userDisplayName: user?.displayName,
         userUsername: user?.username,
         clerkUsername: clerkUser?.username,
@@ -315,6 +326,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         updateGuestShortcuts,
         saveComputer,
         cursorColor,
+        canPlaceItem,
     });
 
     const handleDragOver = (e: DragEvent) => {
@@ -373,6 +385,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             draggedItemId={draggedItemId}
             highlightComputer={onboardingStep === "place-computer"}
             guestItems={computed.guestDrawerItems}
+            placedCatalogItemIds={placedCatalogItemIds}
             onToggleMode={handlers.handleModeToggle}
             onShareClick={() => setIsShareModalOpen(true)}
             onDrawerToggle={handlers.handleDrawerToggle}
@@ -404,10 +417,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             startingCoins={GUEST_STARTING_COINS}
             guestInventory={guestInventoryValue as Id<"catalogItems">[]}
             onGuestPurchase={(itemId: Id<"catalogItems">) => {
-                updateGuestInventory((prev) => {
-                    if (prev.includes(itemId)) return prev;
-                    return [...prev, itemId];
-                });
+                updateGuestInventory((prev) => [...prev, itemId]);
             }}
             onOnboardingShortcutAdded={() => {
                 if (onboardingStep === "add-shortcut") {

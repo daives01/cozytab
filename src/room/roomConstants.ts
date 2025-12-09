@@ -4,6 +4,10 @@ import { getDaylightWindow } from "./timeOfDay";
 export const ROOM_WIDTH = 1920;
 export const ROOM_HEIGHT = 1440;
 
+// Interaction/saving bounds (keep items safely on-screen with ~10% inset)
+export const ROOM_ITEM_MAX_X = 1700;
+export const ROOM_ITEM_MAX_Y = 1400;
+
 // Fallback illustration for the room image overlay (when DB asset is missing)
 export const ROOM_IMAGE_FALLBACK = "/assets/brown-room.svg";
 export const BASE_BACKGROUND_DAY = "/backgrounds/snow-background-day.svg";

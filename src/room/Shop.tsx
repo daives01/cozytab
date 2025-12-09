@@ -100,7 +100,7 @@ export function Shop({
 }: ShopProps) {
     const [activeTab, setActiveTab] = useState<ShopTab>("items");
     const catalogItems = useQuery(api.catalog.list);
-    const ownedItemIds = useQuery(api.inventory.getMyInventoryIds, isGuest ? "skip" : undefined);
+    const ownedInventory = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : undefined);
     const referralStats = useQuery(api.users.getReferralStats, isGuest ? "skip" : undefined);
     const purchaseItem = useMutation(api.inventory.purchaseItem);
     const [purchasing, setPurchasing] = useState<Id<"catalogItems"> | null>(null);
@@ -172,24 +172,33 @@ export function Shop({
         }
     };
 
-    const guestOwnedSet = useMemo(() => {
-        const set = new Set<Id<"catalogItems">>();
-    const owned = guestOwnedIds || [];
-        const catalogByName = new Map(
-            (catalogItems || []).map((item) => [item.name.toLowerCase(), item])
-        );
+    const guestOwnedCounts = useMemo(() => {
+        const counts = new Map<Id<"catalogItems">, number>();
+        const owned = guestOwnedIds || [];
+        const catalogByName = new Map((catalogItems || []).map((item) => [item.name.toLowerCase(), item]));
 
         owned.forEach((raw) => {
             const match =
                 catalogItems?.find((item) => item._id === raw) ??
                 catalogByName.get(String(raw).toLowerCase());
             if (match) {
-                set.add(match._id);
+                counts.set(match._id, (counts.get(match._id) ?? 0) + 1);
             }
         });
-        return set;
+        return counts;
     }, [guestOwnedIds, catalogItems]);
-    const ownedSet = new Set([...(ownedItemIds || []), ...guestOwnedSet]);
+
+    const ownedCounts = useMemo(() => {
+        const counts = new Map<Id<"catalogItems">, number>();
+        ownedInventory?.forEach((item) => {
+            const key = item.catalogItemId as Id<"catalogItems">;
+            counts.set(key, (counts.get(key) ?? 0) + (item.count ?? 1));
+        });
+        guestOwnedCounts.forEach((value, key) => {
+            counts.set(key, (counts.get(key) ?? 0) + value);
+        });
+        return counts;
+    }, [guestOwnedCounts, ownedInventory]);
     const ownedTemplateSet = new Set(ownedTemplateIds || []);
     const groupedItems = catalogItems ? groupByCategory(catalogItems) : {};
     const categories = sortCategories(Object.keys(groupedItems));
@@ -318,18 +327,18 @@ export function Shop({
                         <div className="animate-pulse text-xl">Loading shop...</div>
                     </div>
                 ) : activeTab === "items" ? (
-                    <ItemsTab
-                        groupedItems={groupedItems}
-                        categories={categories}
-                        ownedSet={ownedSet}
-                        userCurrency={effectiveCoins}
-                        purchasing={purchasing}
-                        lastResult={lastResult}
-                        onPurchase={handlePurchase}
-                        getCategoryDisplayName={getCategoryDisplayName}
-                        getCategoryColor={getCategoryColor}
-                        highlightItemId={highlightItemId}
-                    />
+                <ItemsTab
+                    groupedItems={groupedItems}
+                    categories={categories}
+                    ownedCounts={ownedCounts}
+                    userCurrency={effectiveCoins}
+                    purchasing={purchasing}
+                    lastResult={lastResult}
+                    onPurchase={handlePurchase}
+                    getCategoryDisplayName={getCategoryDisplayName}
+                    getCategoryColor={getCategoryColor}
+                    highlightItemId={highlightItemId}
+                />
                 ) : (
                     <RoomsTab
                         purchasableRooms={purchasableRooms}

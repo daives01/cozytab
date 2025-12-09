@@ -79,6 +79,7 @@ export default defineSchema({
         catalogItemId: v.id("catalogItems"),
         purchasedAt: v.number(),
         hidden: v.optional(v.boolean()),
+        count: v.optional(v.number()),
     })
         .index("by_user", ["userId"])
         .index("by_user_and_item", ["userId", "catalogItemId"]),

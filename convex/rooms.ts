@@ -10,7 +10,8 @@ const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
 
 const MAX_ROOM_ITEMS = 50;
 const MIN_POSITION = 0;
-const MAX_POSITION = 2000;
+const MAX_X_POSITION = 1700;
+const MAX_Y_POSITION = 1400;
 const MAX_URL_LENGTH = 2048;
 const MAX_TIME_POSITION_MS = Number.MAX_SAFE_INTEGER;
 
@@ -56,8 +57,8 @@ function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogI
         const normalized: RoomItem = {
             id: item.id,
             catalogItemId: item.catalogItemId,
-            x: clampNumber(item.x, MIN_POSITION, MAX_POSITION),
-            y: clampNumber(item.y, MIN_POSITION, MAX_POSITION),
+            x: clampNumber(item.x, MIN_POSITION, MAX_X_POSITION),
+            y: clampNumber(item.y, MIN_POSITION, MAX_Y_POSITION),
         };
 
         if (item.url !== undefined) {

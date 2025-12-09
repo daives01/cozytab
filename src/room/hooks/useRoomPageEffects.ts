@@ -4,6 +4,7 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import type { RoomItem, ComputerShortcut } from "../../types";
 import type { DailyRewardToastPayload } from "../types/dailyReward";
 import { debounce } from "../../lib/debounce";
+import { clampItems } from "../utils/roomActions";
 
 type RoomRecord = Pick<Doc<"rooms">, "_id" | "items" | "userId">;
 
@@ -60,13 +61,11 @@ export function useGuestBootstrap({
         const session = initialGuestSession ?? { roomItems: [] };
 
         if (session.roomItems.length > 0) {
-            setLocalItems(() => session.roomItems as RoomItem[]);
+            setLocalItems(() => clampItems(session.roomItems as RoomItem[]));
         } else if (guestRoomItems?.length) {
-            setLocalItems(() => guestRoomItems as RoomItem[]);
-        } else {
-            if (guestTemplateItems && guestTemplateItems.length > 0) {
-                setLocalItems(() => guestTemplateItems as RoomItem[]);
-            }
+            setLocalItems(() => clampItems(guestRoomItems as RoomItem[]));
+        } else if (guestTemplateItems && guestTemplateItems.length > 0) {
+            setLocalItems(() => clampItems(guestTemplateItems as RoomItem[]));
         }
 
         guestSessionLoadedRef.current = true;
@@ -234,7 +233,7 @@ export function useEnsureRoomLoaded({
                 const roomId = room._id;
                 const isNewRoom = roomId !== lastRoomIdRef.current;
                 if (!hasHydratedRef.current || isNewRoom) {
-                    setLocalItems(room.items as RoomItem[]);
+                    setLocalItems(clampItems(room.items as RoomItem[]));
                     hasHydratedRef.current = true;
                     lastRoomIdRef.current = roomId;
                 }

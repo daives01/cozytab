@@ -2,20 +2,23 @@ import type React from "react";
 import type { Id } from "../../../convex/_generated/dataModel";
 
 export type GuestDrawerItem = {
-    inventoryId: Id<"inventory"> | string;
-    catalogItemId: string;
+    inventoryId: Id<"inventory"> | Id<"catalogItems"> | string;
+    catalogItemId: Id<"catalogItems">;
     name: string;
     assetUrl: string;
     category: string;
     hidden?: boolean;
+    count: number;
+    remaining: number;
 };
 
 export interface AssetDrawerProps {
     isOpen: boolean;
-    onDragStart: (e: React.DragEvent, id: string) => void;
+    onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
     highlightComputer?: boolean;
     isGuest?: boolean;
     guestItems?: GuestDrawerItem[] | undefined;
+    placedCatalogItemIds?: Id<"catalogItems">[];
     orientation?: "left" | "bottom";
 }
 
@@ -31,7 +34,7 @@ export interface ItemCardProps {
     isGuest?: boolean;
     isPending?: boolean;
     showHideControls?: boolean;
-    onDragStart: (e: React.DragEvent, id: string) => void;
+    onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
     onToggleHidden: (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => void;
     compact?: boolean;
 }
@@ -42,7 +45,7 @@ export interface HiddenItemsSectionProps {
     isBulkUnhiding: boolean;
     onToggleSection: () => void;
     onUnhideAll: () => void;
-    onDragStart: (e: React.DragEvent, id: string) => void;
+    onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
     onToggleHidden: (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => void;
     pendingHides: Record<string, boolean>;
     isGuest: boolean;
