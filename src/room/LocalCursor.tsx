@@ -6,9 +6,10 @@ interface LocalCursorProps {
     y: number;
     chatMessage?: string | null;
     cursorColor?: string;
+    inMenu?: boolean;
 }
 
-export function LocalCursor({ x, y, chatMessage = null, cursorColor }: LocalCursorProps) {
+export function LocalCursor({ x, y, chatMessage = null, cursorColor, inMenu = false }: LocalCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
     if (displayedMessage === null) {
@@ -25,6 +26,7 @@ export function LocalCursor({ x, y, chatMessage = null, cursorColor }: LocalCurs
             useFixedPosition={true}
             hidePointer={true}
             cursorColor={cursorColor}
+            inMenu={inMenu}
         />
     );
 }

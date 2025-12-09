@@ -141,7 +141,7 @@ export function VisitorRoomPage() {
     const presenceRoomId =
         isStatusOpen && !roomData?.closed && !roomClosed ? roomData?.room?._id ?? null : null;
 
-    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage } = usePresenceAndChat({
+    const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage, setInMenu } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: {
             id: visitorIdentity.id,
@@ -150,6 +150,10 @@ export function VisitorRoomPage() {
         },
         isOwner: false,
     });
+    const isInMenu = isComputerOpen;
+    useEffect(() => {
+        setInMenu(isInMenu);
+    }, [isInMenu, setInMenu]);
     const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
     useCursorColor(visitorIdentity.cursorColor);
@@ -377,6 +381,7 @@ export function VisitorRoomPage() {
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
+                inMenu={isInMenu}
             />
 
             <ComputerOverlay

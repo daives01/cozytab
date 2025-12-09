@@ -4,7 +4,7 @@ type PresenceMessage =
     | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string }
+    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string; inMenu?: boolean }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
 
@@ -16,6 +16,7 @@ export type VisitorState = {
     y: number;
     chatMessage: string | null;
     cursorColor?: string;
+    inMenu: boolean;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
@@ -84,6 +85,8 @@ export function useWebSocketPresence(
     const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const heartbeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasSentCursorRef = useRef(false);
+    const inMenuRef = useRef(false);
+    const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
 
     const resetHeartbeat = useCallback(() => {
         clearTimeoutRef(heartbeatTimeoutRef);
@@ -137,7 +140,7 @@ export function useWebSocketPresence(
 
         switch (data.type) {
             case "state":
-                setVisitors(data.visitors);
+                setVisitors(data.visitors.map((visitor) => ({ ...visitor, inMenu: Boolean(visitor.inMenu) })));
                 break;
             case "join":
                 setVisitors((prev) => {
@@ -153,6 +156,7 @@ export function useWebSocketPresence(
                             y: DEFAULT_POSITION.y,
                             chatMessage: null,
                             cursorColor: data.cursorColor,
+                            inMenu: false,
                         },
                     ];
                 });
@@ -169,6 +173,7 @@ export function useWebSocketPresence(
                                 x: data.x,
                                 y: data.y,
                                 cursorColor: data.cursorColor ?? v.cursorColor,
+                                inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
                             }
                             : v
                     )
@@ -288,39 +293,50 @@ export function useWebSocketPresence(
     }, [handleIncomingMessage, isOwner, resetHeartbeat, roomId, sendMessage, startHeartbeat, visitorId]);
 
     // Send cursor position with throttling
-    const sendCursor = useCallback((x: number, y: number, color?: string) => {
-        if (!visitorId) return;
+    const buildCursorMessage = useCallback(
+        (x: number, y: number, color?: string, inMenu?: boolean): PresenceMessage => ({
+            type: "cursor",
+            visitorId,
+            x,
+            y,
+            cursorColor: color ?? latestCursorColorRef.current,
+            inMenu: inMenu ?? inMenuRef.current,
+        }),
+        [visitorId]
+    );
 
-        const now = Date.now();
-        const timeSinceLastSend = now - lastSendTimeRef.current;
-        const cursorColorToSend = color ?? latestCursorColorRef.current;
+    const sendCursor = useCallback(
+        (x: number, y: number, color?: string, opts?: { inMenu?: boolean; force?: boolean }) => {
+            if (!visitorId) return;
 
-        if (timeSinceLastSend >= THROTTLE_MS) {
-            lastSendTimeRef.current = now;
-            sendMessage({ type: "cursor", visitorId, x, y, cursorColor: cursorColorToSend });
-            pendingCursorRef.current = null;
-            return;
-        }
+            const now = Date.now();
+            const timeSinceLastSend = now - lastSendTimeRef.current;
+            const transmit = (nextX: number, nextY: number) => {
+                lastSendTimeRef.current = Date.now();
+                lastBroadcastCursorRef.current = { x: nextX, y: nextY };
+                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu));
+            };
 
-        pendingCursorRef.current = { x, y };
+            if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
+                transmit(x, y);
+                pendingCursorRef.current = null;
+                return;
+            }
 
-        if (!throttleTimeoutRef.current) {
-            throttleTimeoutRef.current = setTimeout(() => {
-                throttleTimeoutRef.current = null;
-                if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
-                    lastSendTimeRef.current = Date.now();
-                    sendMessage({
-                        type: "cursor",
-                        visitorId,
-                        x: pendingCursorRef.current.x,
-                        y: pendingCursorRef.current.y,
-                        cursorColor: latestCursorColorRef.current,
-                    });
-                    pendingCursorRef.current = null;
-                }
-            }, THROTTLE_MS - timeSinceLastSend);
-        }
-    }, [sendMessage, visitorId]);
+            pendingCursorRef.current = { x, y };
+
+            if (!throttleTimeoutRef.current) {
+                throttleTimeoutRef.current = setTimeout(() => {
+                    throttleTimeoutRef.current = null;
+                    if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
+                        transmit(pendingCursorRef.current.x, pendingCursorRef.current.y);
+                        pendingCursorRef.current = null;
+                    }
+                }, THROTTLE_MS - timeSinceLastSend);
+            }
+        },
+        [buildCursorMessage, sendMessage, visitorId]
+    );
 
     // Update cursor position (matches usePresence API)
     const updateCursor = useCallback(
@@ -351,12 +367,25 @@ export function useWebSocketPresence(
         [sendMessage, visitorId]
     );
 
+    const setInMenu = useCallback(
+        (next: boolean) => {
+            if (!visitorId) return;
+            if (inMenuRef.current === next) return;
+
+            inMenuRef.current = next;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { inMenu: next, force: true });
+        },
+        [sendCursor, visitorId]
+    );
+
     return {
         visitors,
         updateCursor,
         updateChatMessage,
         screenCursor,
         localChatMessage,
+        setInMenu,
         // No batchInterval needed - direct updates
         batchInterval: 0,
     };

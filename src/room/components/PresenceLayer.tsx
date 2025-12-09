@@ -22,6 +22,7 @@ export function PresenceLayer({ visitors, currentVisitorId, scale }: PresenceLay
                         chatMessage={visitor.chatMessage}
                         scale={scale}
                         cursorColor={visitor.cursorColor}
+                        inMenu={visitor.inMenu}
                     />
                 ))}
         </>

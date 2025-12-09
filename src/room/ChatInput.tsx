@@ -6,6 +6,7 @@ interface ChatInputProps {
 }
 
 const CHAT_TIMEOUT_MS = 3000;
+const MAX_CHAT_LENGTH = 75;
 
 export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps) {
     const [isActive, setIsActive] = useState(false);
@@ -72,7 +73,11 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
 
                 if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                     e.preventDefault();
-                    const newMessage = (messageRef.current + e.key).slice(0, 100);
+                    const updatedMessage = messageRef.current + e.key;
+                    const newMessage =
+                        updatedMessage.length > MAX_CHAT_LENGTH
+                            ? updatedMessage.slice(-MAX_CHAT_LENGTH)
+                            : updatedMessage;
                     messageRef.current = newMessage;
                     onMessageChange(newMessage);
                     resetTimeout();

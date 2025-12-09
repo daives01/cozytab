@@ -3,7 +3,7 @@ export type PresenceMessage =
     | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string }
+    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string; inMenu?: boolean }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
 
@@ -15,6 +15,7 @@ export type VisitorState = {
     y: number;
     chatMessage: string | null;
     cursorColor?: string;
+    inMenu: boolean;
 };
 
 type WebSocketAttachment = {
@@ -45,6 +46,25 @@ function isValidDisplayName(value: unknown): value is string {
 
 function isValidCursorColor(value: unknown): value is string | undefined {
     return value === undefined || (typeof value === "string" && value.length <= 32);
+}
+
+function isValidBoolean(value: unknown): value is boolean | undefined {
+    return value === undefined || typeof value === "boolean";
+}
+
+function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
+    if (
+        !isValidId(data.visitorId) ||
+        !isFiniteNumber(data.x) ||
+        !isFiniteNumber(data.y) ||
+        Math.abs(data.x as number) > MAX_COORDINATE ||
+        Math.abs(data.y as number) > MAX_COORDINATE
+    ) {
+        return false;
+    }
+    if (!isValidCursorColor(data.cursorColor)) return false;
+    if (!isValidBoolean(data.inMenu)) return false;
+    return true;
 }
 
 function clampChatMessage(value: unknown): string | null {
@@ -89,22 +109,21 @@ function validateMessage(raw: unknown): PresenceMessage | null {
             };
         }
         case "cursor": {
-            if (
-                !isValidId(data.visitorId) ||
-                !isFiniteNumber(data.x) ||
-                !isFiniteNumber(data.y) ||
-                Math.abs(data.x) > MAX_COORDINATE ||
-                Math.abs(data.y) > MAX_COORDINATE
-            ) {
-                return null;
-            }
-            if (!isValidCursorColor(data.cursorColor)) return null;
+            if (!isValidCursorPayload(data)) return null;
+            const { visitorId, x, y, cursorColor, inMenu } = data as unknown as {
+                visitorId: string;
+                x: number;
+                y: number;
+                cursorColor?: string;
+                inMenu?: boolean;
+            };
             return {
                 type: "cursor",
-                visitorId: data.visitorId,
-                x: data.x,
-                y: data.y,
-                cursorColor: data.cursorColor,
+                visitorId,
+                x,
+                y,
+                cursorColor,
+                inMenu,
             };
         }
         case "chat": {
@@ -236,6 +255,7 @@ export class PresenceRoom extends DurableObject {
             y: DEFAULT_POSITION.y,
             chatMessage: null,
             cursorColor: data.cursorColor,
+            inMenu: false,
         });
 
         const stateMsg: PresenceMessage = {
@@ -260,33 +280,31 @@ export class PresenceRoom extends DurableObject {
             y: DEFAULT_POSITION.y,
             chatMessage: null,
             cursorColor: undefined,
+            inMenu: false,
         };
         this.visitors.set(visitorId, visitor);
         return visitor;
     }
 
     private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket) {
-        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
-        if (!visitor) {
-            ws.close(1008, "Join required");
-            return;
-        }
+        const visitor = this.getVisitorOrClose(ws, data.visitorId);
+        if (!visitor) return;
 
         visitor.x = data.x;
         visitor.y = data.y;
         if (data.cursorColor) {
             visitor.cursorColor = data.cursorColor;
         }
+        if (typeof data.inMenu === "boolean") {
+            visitor.inMenu = data.inMenu;
+        }
 
         this.broadcast(ws, data);
     }
 
     private handleChat(data: Extract<PresenceMessage, { type: "chat" }>, ws: WebSocket) {
-        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
-        if (!visitor) {
-            ws.close(1008, "Join required");
-            return;
-        }
+        const visitor = this.getVisitorOrClose(ws, data.visitorId);
+        if (!visitor) return;
 
         visitor.chatMessage = data.text;
 
@@ -294,11 +312,8 @@ export class PresenceRoom extends DurableObject {
     }
 
     private handleRename(data: Extract<PresenceMessage, { type: "rename" }>, ws: WebSocket) {
-        const visitor = this.visitors.get(data.visitorId) ?? this.ensureVisitorFromAttachment(ws, data.visitorId);
-        if (!visitor) {
-            ws.close(1008, "Join required");
-            return;
-        }
+        const visitor = this.getVisitorOrClose(ws, data.visitorId);
+        if (!visitor) return;
 
         visitor.displayName = data.displayName;
         if (data.cursorColor) {
@@ -317,6 +332,15 @@ export class PresenceRoom extends DurableObject {
         } catch (e) {
             console.error("[DO] Error detaching visitor:", e);
         }
+    }
+
+    private getVisitorOrClose(ws: WebSocket, visitorId: string): VisitorState | null {
+        const visitor = this.visitors.get(visitorId) ?? this.ensureVisitorFromAttachment(ws, visitorId);
+        if (!visitor) {
+            ws.close(1008, "Join required");
+            return null;
+        }
+        return visitor;
     }
 
     private handleLeave(visitorId: string, excludeWs: WebSocket): void {

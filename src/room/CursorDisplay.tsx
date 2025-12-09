@@ -11,6 +11,7 @@ interface CursorDisplayProps {
     hidePointer?: boolean;
     scale?: number;
     cursorColor?: string;
+    inMenu?: boolean;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -32,12 +33,13 @@ export function CursorDisplay({
     hidePointer = false,
     scale = 1,
     cursorColor,
+    inMenu = false,
 }: CursorDisplayProps) {
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
     const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
     const chatBubbleClasses =
-        "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] break-words break-all flex items-center justify-center min-w-[40px] min-h-[32px]";
+        "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
     const handwritingFont = {
@@ -49,21 +51,21 @@ export function CursorDisplay({
         fontSize: "1.07em",
     };
 
+    const cursorStyle = {
+        position: useFixedPosition ? "fixed" : "absolute",
+        left: x,
+        top: y,
+        zIndex: useFixedPosition ? 99999 : isLocal ? 101 : 100,
+        transform: useFixedPosition
+            ? `translate(${-POINTER_HOTSPOT.x}px, ${-POINTER_HOTSPOT.y}px)`
+            : `translate(${-POINTER_HOTSPOT.x}px, ${-POINTER_HOTSPOT.y}px) scale(${scale > 0 ? 1 / scale : 1})`,
+        transformOrigin: "top left",
+        transition: isLocal ? "none" : "left 50ms linear, top 50ms linear",
+        opacity: inMenu ? 0.3 : 1,
+    } as const;
+
     return (
-        <div
-            className="pointer-events-none"
-            style={{
-                position: useFixedPosition ? "fixed" : "absolute",
-                left: x,
-                top: y,
-                zIndex: useFixedPosition ? 99999 : (isLocal ? 101 : 100),
-                transform: useFixedPosition
-                    ? `translate(${-POINTER_HOTSPOT.x}px, ${-POINTER_HOTSPOT.y}px)`
-                    : `translate(${-POINTER_HOTSPOT.x}px, ${-POINTER_HOTSPOT.y}px) scale(${scale > 0 ? 1 / scale : 1})`,
-                transformOrigin: "top left",
-                transition: isLocal ? "none" : "left 50ms linear, top 50ms linear",
-            }}
-        >
+        <div className="pointer-events-none" style={cursorStyle}>
             {!hidePointer && (
                 <svg
                     width={POINTER_SIZE.width}
@@ -134,6 +136,8 @@ export function CursorDisplay({
                                 color: chatTextOnCustomColor,
                                 opacity: chatOpacity,
                                 transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
+                                overflowWrap: "anywhere",
+                                wordBreak: "break-word",
                             }}
                         >
                             {chatMessage === "" ? (

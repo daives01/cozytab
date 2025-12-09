@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "convex/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { useState, useRef, useCallback, type DragEvent } from "react";
+import { useState, useRef, useCallback, useEffect, type DragEvent } from "react";
 import type { RoomItem, ComputerShortcut } from "../types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
@@ -214,11 +214,17 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         localChatMessage,
         hasVisitors,
         visitorCount,
+        setInMenu,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: { id: visitorId ?? "owner", name: ownerName, cursorColor },
         isOwner: true,
     });
+
+    const isInMenu = isComputerOpen || Boolean(musicPlayerItemId);
+    useEffect(() => {
+        setInMenu(isInMenu);
+    }, [isInMenu, setInMenu]);
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
