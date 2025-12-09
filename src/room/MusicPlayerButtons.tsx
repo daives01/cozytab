@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
 
@@ -7,20 +7,24 @@ interface MusicPlayerButtonsProps {
     item: RoomItem;
     onToggle?: (playing: boolean) => void;
     autoPlayToken?: string | null;
+    isVisitor?: boolean;
 }
 
-export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlayerButtonsProps) {
+export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = false }: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
     const [hasInteracted, setHasInteracted] = useState(false);
+    const [muted, setMuted] = useState(false);
     const playing = item.musicPlaying ?? false;
-    const hasPlaybackPermission = hasInteracted || (!!autoPlayToken && playing);
-    const needsResume = playing && !hasPlaybackPermission;
+    // Host: require explicit interaction to auto-play after refresh; ignore token.
+    // Visitor: require first interaction; token only helps after interaction is granted.
+    const needsResume = playing && !hasInteracted;
+    const lastSeekSecondsRef = useRef<number>(0);
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
 
     const embedUrl = videoId
-        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&loop=1&playlist=${videoId}&origin=${window.location.origin}`
+        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${window.location.origin}`
         : null;
 
     const sendCommand = useCallback(
@@ -39,10 +43,33 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
     }, []);
 
     useEffect(() => {
-        if (isReady && playing && hasPlaybackPermission) {
+        lastSeekSecondsRef.current = 0;
+        if (isReady) {
+            sendCommand("pauseVideo");
+        }
+    }, [isReady, sendCommand, videoId]);
+
+    useEffect(() => {
+        if (!isReady || !videoId) return;
+        const positionAtStart = item.musicPositionAtStart ?? 0;
+        const startedAt = item.musicStartedAt ?? 0;
+        const nowSeconds =
+            item.musicPlaying && startedAt
+                ? (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000
+                : positionAtStart / 1000;
+
+        const delta = Math.abs(nowSeconds - lastSeekSecondsRef.current);
+        if (delta < 0.25) return;
+        sendCommand("seekTo", [nowSeconds, true]);
+        lastSeekSecondsRef.current = nowSeconds;
+    }, [isReady, item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt, sendCommand, videoId]);
+
+    useEffect(() => {
+        const canPlay = hasInteracted && playing && (!isVisitor || !muted);
+        if (isReady && canPlay) {
             sendCommand("playVideo");
         }
-    }, [hasPlaybackPermission, isReady, playing, sendCommand]);
+    }, [hasInteracted, isVisitor, isReady, muted, playing, sendCommand]);
 
     useEffect(() => {
         if (isReady && !playing) {
@@ -51,12 +78,32 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
     }, [isReady, playing, sendCommand]);
 
     useEffect(() => {
+        if (!isReady) return;
+        sendCommand(muted ? "mute" : "unMute");
+    }, [isReady, muted, sendCommand]);
+
+    // Token-based autoplay only applies for visitors after interaction (host ignores it) and only when unmuted.
+    useEffect(() => {
+        if (!isVisitor) return;
+        if (!hasInteracted) return;
         if (!autoPlayToken || !playing || !isReady) return;
+        if (muted) return;
         sendCommand("playVideo");
-    }, [autoPlayToken, isReady, playing, sendCommand]);
+    }, [autoPlayToken, hasInteracted, isReady, isVisitor, muted, playing, sendCommand]);
 
     const handlePlayPause = () => {
         if (!isReady) return;
+
+        // Visitors only toggle local mute; host controls playback.
+        if (isVisitor) {
+            setHasInteracted(true);
+            setMuted((prev) => {
+                const next = !prev;
+                sendCommand(next ? "mute" : "unMute");
+                return next;
+            });
+            return;
+        }
 
         if (playing) {
             sendCommand("pauseVideo");
@@ -71,6 +118,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
     const handleResume = () => {
         if (!isReady) return;
         setHasInteracted(true);
+        setMuted(false);
         sendCommand("playVideo");
         onToggle?.(true);
     };
@@ -92,7 +140,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
             {needsResume ? (
                 <div className="absolute left-1/2 top-[calc(100%+8px)] -translate-x-1/2 z-20 opacity-95 whitespace-nowrap">
                     <button
-                        className="pointer-events-auto font-['Patrick_Hand'] text-base px-5 py-3 min-w-[140px] rounded-full border-2 border-[var(--ink)] bg-white shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
+                        className="pointer-events-auto font-['Patrick_Hand'] text-size-xl px-5 py-3 min-w-[140px] rounded-full border-2 border-[var(--ink)] bg-white shadow-md hover:scale-105 active:scale-95 transition-all whitespace-nowrap"
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -114,10 +162,16 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken }: MusicPlaye
                             handlePlayPause();
                         }}
                         onTouchStart={(e) => e.stopPropagation()}
-                        title={playing ? "Pause" : "Play"}
+                        title={isVisitor ? (muted ? "Unmute" : "Mute") : playing ? "Pause" : "Play"}
                         disabled={!isReady}
                     >
-                        {playing ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+                        {isVisitor
+                            ? muted
+                                ? <VolumeX className="h-6 w-6" />
+                                : <Volume2 className="h-6 w-6 ml-0.5" />
+                            : playing
+                                ? <Pause className="h-6 w-6" />
+                                : <Play className="h-6 w-6 ml-0.5" />}
                     </button>
                 </div>
             )}

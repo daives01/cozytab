@@ -36,7 +36,6 @@ import { RoomShell } from "./RoomShell";
 import { ChatHint } from "./components/ChatHint";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
 
-const nowTimestamp = () => Date.now();
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 
 export function VisitorRoomPage() {
@@ -81,15 +80,12 @@ export function VisitorRoomPage() {
             if (!isMusicItem(item)) continue;
             const key = musicUrlKey(item);
             const playing = item.musicPlaying ?? false;
-            const startedAt = item.musicStartedAt ?? 0;
-            const positionAtStart = item.musicPositionAtStart ?? 0;
 
             next[item.id] = {
                 urlKey: key,
-                // Mirror host state on entry so the user sees the "Listen in" prompt when host was already playing.
                 playing,
-                startedAt: playing ? startedAt : 0,
-                positionAtStart: playing ? positionAtStart : 0,
+                startedAt: item.musicStartedAt ?? 0,
+                positionAtStart: item.musicPositionAtStart ?? 0,
             };
         }
         return next;
@@ -99,11 +95,15 @@ export function VisitorRoomPage() {
             {};
         for (const [itemId, baseState] of Object.entries(baseVisitorMusicState)) {
             const override = visitorMusicOverrides[itemId];
-            if (override && override.urlKey === baseState.urlKey) {
-                next[itemId] = override;
-            } else {
-                next[itemId] = baseState;
-            }
+            const useOverride = override && override.urlKey === baseState.urlKey;
+            const wantsPlay = useOverride ? override.playing : true;
+            next[itemId] = {
+                urlKey: baseState.urlKey,
+                // Host is authoritative: only play if host is playing AND visitor opted in.
+                playing: baseState.playing && wantsPlay,
+                startedAt: baseState.startedAt,
+                positionAtStart: baseState.positionAtStart,
+            };
         }
         return next;
     }, [baseVisitorMusicState, visitorMusicOverrides]);
@@ -196,6 +196,9 @@ export function VisitorRoomPage() {
     }, [cleanupRoomLease, roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
     const handleMusicToggle = (itemId: string, playing: boolean, urlKey?: string) => {
+        const hostItem = items?.find((i) => i.id === itemId);
+        const hostStartedAt = hostItem?.musicStartedAt ?? 0;
+        const hostPositionAtStart = hostItem?.musicPositionAtStart ?? 0;
         setVisitorMusicOverrides((prev) => {
             const existing = prev[itemId] ?? baseVisitorMusicState[itemId];
             const key = urlKey ?? existing?.urlKey ?? "";
@@ -204,8 +207,8 @@ export function VisitorRoomPage() {
                 [itemId]: {
                     urlKey: key,
                     playing,
-                    startedAt: playing ? nowTimestamp() : 0,
-                    positionAtStart: 0,
+                    startedAt: playing ? hostStartedAt : 0,
+                    positionAtStart: playing ? hostPositionAtStart : hostPositionAtStart,
                 },
             };
         });
@@ -329,9 +332,15 @@ export function VisitorRoomPage() {
                         overlay={
                             isMusicItem(item) ? (
                                 <MusicPlayerButtons
-                                    key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                    key={item.id}
                                     item={localMusicItem}
                                     onToggle={(playing) => handleMusicToggle(item.id, playing, musicUrlKey(item))}
+                                autoPlayToken={
+                                    visitorMusicState[item.id]?.playing
+                                        ? `${visitorMusicState[item.id].urlKey}-${visitorMusicState[item.id].startedAt}`
+                                        : null
+                                }
+                                    isVisitor={true}
                                 />
                             ) : null
                         }

@@ -12,6 +12,7 @@ const MAX_ROOM_ITEMS = 50;
 const MIN_POSITION = 0;
 const MAX_POSITION = 2000;
 const MAX_URL_LENGTH = 2048;
+const MAX_TIME_POSITION_MS = Number.MAX_SAFE_INTEGER;
 
 type RoomItem = {
     id: string;
@@ -30,6 +31,11 @@ type RoomItem = {
 function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
     return Math.min(max, Math.max(min, value));
+}
+
+function clampNonNegative(value: number | undefined) {
+    if (value === undefined) return undefined;
+    return clampNumber(value, 0, MAX_TIME_POSITION_MS);
 }
 
 function clampStringLength(value: string, maxLength: number) {
@@ -70,10 +76,10 @@ function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogI
             normalized.musicPlaying = item.musicPlaying;
         }
         if (item.musicStartedAt !== undefined) {
-            normalized.musicStartedAt = item.musicStartedAt;
+            normalized.musicStartedAt = clampNonNegative(item.musicStartedAt);
         }
         if (item.musicPositionAtStart !== undefined) {
-            normalized.musicPositionAtStart = item.musicPositionAtStart;
+            normalized.musicPositionAtStart = clampNonNegative(item.musicPositionAtStart);
         }
 
         return normalized;

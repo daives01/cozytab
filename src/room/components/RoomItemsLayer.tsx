@@ -78,12 +78,13 @@ export function RoomItemsLayer({
                         overlay={
                             isMusicItem(item) ? (
                                 <MusicPlayerButtons
-                                    key={`music-${item.id}-${item.musicUrl ?? "none"}`}
+                                    key={item.id}
                                     item={item}
                                     onToggle={(playing) => handleMusicToggle(item.id, playing)}
                                     autoPlayToken={
                                         musicAutoplay && musicAutoplay.itemId === item.id ? musicAutoplay.token : null
                                     }
+                                    isVisitor={isGuest}
                                 />
                             ) : null
                         }

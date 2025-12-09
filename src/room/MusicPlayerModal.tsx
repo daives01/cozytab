@@ -78,8 +78,8 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             ...item,
             musicUrl: trimmedUrl,
             musicType: "youtube",
-            musicPlaying: true,
-            musicStartedAt: Date.now(),
+            musicPlaying: false,
+            musicStartedAt: undefined,
             musicPositionAtStart: 0,
         };
         onSave(updatedItem);

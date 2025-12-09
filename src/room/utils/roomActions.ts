@@ -19,17 +19,35 @@ export function sendItemToBack(items: RoomItem[], itemId: string) {
     return next;
 }
 
-export function updateItemsForMusicToggle(items: RoomItem[], itemId: string, playing: boolean, now: number) {
-    return items.map((item) =>
-        item.id === itemId
-            ? {
-                  ...item,
-                  musicPlaying: playing,
-                  musicStartedAt: playing ? now : undefined,
-                  musicPositionAtStart: playing ? 0 : undefined,
-              }
-            : item
+function computePositionAtToggle(item: RoomItem, now: number) {
+    return (
+        (item.musicPositionAtStart ?? 0) +
+        (item.musicPlaying && item.musicStartedAt ? Math.max(0, now - item.musicStartedAt) : 0)
     );
+}
+
+export function updateItemsForMusicToggle(items: RoomItem[], itemId: string, playing: boolean, now: number) {
+    return items.map((item) => {
+        if (item.id !== itemId) return item;
+
+        const positionAtStart = computePositionAtToggle(item, now);
+
+        if (playing) {
+            return {
+                ...item,
+                musicPlaying: true,
+                musicStartedAt: now,
+                musicPositionAtStart: positionAtStart,
+            };
+        }
+
+        return {
+            ...item,
+            musicPlaying: false,
+            musicStartedAt: undefined,
+            musicPositionAtStart: positionAtStart,
+        };
+    });
 }
 
 export function addDroppedItem(
