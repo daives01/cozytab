@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent, TouchEvent } from "react";
 import { Volume1, Volume2, VolumeX } from "lucide-react";
 
@@ -11,13 +11,16 @@ export function NeoVolumeSlider({ value, onChange }: VolumeSliderProps) {
     const trackRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
 
-    const handleInteraction = (clientX: number) => {
-        if (!trackRef.current) return;
-        const rect = trackRef.current.getBoundingClientRect();
-        const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-        const percentage = x / rect.width;
-        onChange(Math.max(0, Math.min(1, percentage)));
-    };
+    const handleInteraction = useCallback(
+        (clientX: number) => {
+            if (!trackRef.current) return;
+            const rect = trackRef.current.getBoundingClientRect();
+            const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+            const percentage = x / rect.width;
+            onChange(Math.max(0, Math.min(1, percentage)));
+        },
+        [onChange]
+    );
 
     const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
         setIsDragging(true);
@@ -48,7 +51,7 @@ export function NeoVolumeSlider({ value, onChange }: VolumeSliderProps) {
             window.removeEventListener("touchmove", onTouchMove);
             window.removeEventListener("touchend", onTouchEnd);
         };
-    }, [isDragging]);
+    }, [handleInteraction, isDragging]);
 
     const percentage = value * 100;
     const VolumeIcon = value === 0 ? VolumeX : value < 0.5 ? Volume1 : Volume2;

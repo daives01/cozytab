@@ -25,6 +25,7 @@ import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
 import { ComputerOverlay } from "./ComputerOverlay";
 import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import { OnboardingSpotlight } from "./OnboardingSpotlight";
 import {
     guestCoinsAtom,
     guestCursorColorAtom,
@@ -39,6 +40,7 @@ import { ChatHint } from "./components/ChatHint";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
+const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";
 
 type InviteQueryResult = ReturnType<typeof useQuery<typeof api.rooms.getRoomByInvite>>;
 
@@ -190,6 +192,11 @@ function VisitorRoomPageContent({
     const roomClosed = roomClosedOverride || roomData?.closed === true || roomUnavailable;
     const presenceRoomId =
         isStatusOpen && !roomData?.closed && !roomClosed ? roomData?.room?._id ?? null : null;
+    const [visitorChatOnboardingDismissed, setVisitorChatOnboardingDismissed] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY));
+    });
+    const showVisitorChatOnboarding = Boolean(presenceRoomId && !visitorChatOnboardingDismissed);
 
     const { visitors, updateCursor, updateChatMessage, screenCursor, localChatMessage, setInMenu } = usePresenceAndChat({
         roomId: presenceRoomId,
@@ -204,6 +211,12 @@ function VisitorRoomPageContent({
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
+    const handleDismissChatOnboarding = useCallback(() => {
+        setVisitorChatOnboardingDismissed(true);
+        if (typeof window !== "undefined") {
+            window.localStorage.setItem(VISITOR_CHAT_ONBOARDING_KEY, "1");
+        }
+    }, []);
     const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
     useCursorColor(visitorIdentity.cursorColor);
@@ -400,6 +413,31 @@ function VisitorRoomPageContent({
                     </Button>
                 </Link>
             </div>
+
+            {showVisitorChatOnboarding && (
+                <OnboardingSpotlight
+                    message="Press Enter to chat"
+                    messageContent={
+                        <div className="space-y-2">
+                            <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">
+                                Press{" "}
+                                <span className="inline-flex items-center justify-center rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-3 py-1 font-mono text-base shadow-[var(--shadow-3)]">
+                                    Enter
+                                </span>{" "}
+                                to chat
+                            </p>
+                            <p className="text-sm text-[var(--color-muted-foreground)]">Hit Enter to start typing, Enter again to send.</p>
+                        </div>
+                    }
+                    bubblePosition="bottom"
+                    bubbleWidth={600}
+                    onSkip={handleDismissChatOnboarding}
+                    showSkip={false}
+                    pulseTarget={false}
+                    onNext={handleDismissChatOnboarding}
+                    showNext
+                />
+            )}
 
             <ChatInput onMessageChange={updateChatMessage} />
             <ChatHint />

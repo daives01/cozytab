@@ -13,7 +13,9 @@ interface OnboardingSpotlightProps {
     targetSelector?: string;
     targetRef?: React.RefObject<HTMLElement | null>;
     message: string;
+    messageContent?: React.ReactNode;
     bubblePosition?: "top" | "bottom" | "left" | "right";
+    bubbleWidth?: number;
     fixedBubblePosition?: Partial<Record<"top" | "left" | "right" | "bottom", number>>;
     onSkip: () => void;
     showSkip?: boolean;
@@ -103,7 +105,9 @@ export function OnboardingSpotlight({
     targetSelector,
     targetRef,
     message,
+    messageContent,
     bubblePosition = "bottom",
+    bubbleWidth = BUBBLE_WIDTH,
     fixedBubblePosition,
     onSkip,
     showSkip = true,
@@ -160,7 +164,7 @@ export function OnboardingSpotlight({
                 left: fixedBubblePosition.left,
                 right: fixedBubblePosition.right,
                 bottom: fixedBubblePosition.bottom,
-                maxWidth: BUBBLE_WIDTH,
+                maxWidth: bubbleWidth,
             };
         }
 
@@ -179,15 +183,15 @@ export function OnboardingSpotlight({
         switch (bubblePosition) {
             case "top":
                 top = spotlight.top - BUBBLE_GAP - BUBBLE_HEIGHT;
-                left = spotlight.left + spotlight.width / 2 - BUBBLE_WIDTH / 2;
+                left = spotlight.left + spotlight.width / 2 - bubbleWidth / 2;
                 break;
             case "bottom":
                 top = spotlight.top + spotlight.height + BUBBLE_GAP;
-                left = spotlight.left + spotlight.width / 2 - BUBBLE_WIDTH / 2;
+                left = spotlight.left + spotlight.width / 2 - bubbleWidth / 2;
                 break;
             case "left":
                 top = spotlight.top + spotlight.height / 2 - BUBBLE_HEIGHT / 2;
-                left = spotlight.left - BUBBLE_GAP - BUBBLE_WIDTH;
+                left = spotlight.left - BUBBLE_GAP - bubbleWidth;
                 break;
             case "right":
                 top = spotlight.top + spotlight.height / 2 - BUBBLE_HEIGHT / 2;
@@ -196,15 +200,15 @@ export function OnboardingSpotlight({
         }
 
         const nextTop = top === undefined ? top : clampWithinViewport(top, BUBBLE_HEIGHT, BUBBLE_MARGIN, window.innerHeight);
-        const nextLeft = left === undefined ? left : clampWithinViewport(left, BUBBLE_WIDTH, BUBBLE_MARGIN, window.innerWidth);
+        const nextLeft = left === undefined ? left : clampWithinViewport(left, bubbleWidth, BUBBLE_MARGIN, window.innerWidth);
 
         return {
             position: "fixed",
             top: nextTop,
             left: nextLeft,
-            maxWidth: BUBBLE_WIDTH,
+            maxWidth: bubbleWidth,
         };
-    }, [bubblePosition, fixedBubblePosition, spotlight]);
+    }, [bubblePosition, bubbleWidth, fixedBubblePosition, spotlight]);
 
     const shouldShowTail = Boolean(spotlight && bubblePosition === "bottom");
 
@@ -236,14 +240,18 @@ export function OnboardingSpotlight({
                     <BubbleHeader />
 
                     <div className="space-y-4 px-6 py-5">
-                        <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">
-                            {message.split("\n").map((line, idx, arr) => (
-                                <span key={idx}>
-                                    {line}
-                                    {idx < arr.length - 1 && <br />}
-                                </span>
-                            ))}
-                        </p>
+                        {messageContent ? (
+                            messageContent
+                        ) : (
+                            <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">
+                                {message.split("\n").map((line, idx, arr) => (
+                                    <span key={idx}>
+                                        {line}
+                                        {idx < arr.length - 1 && <br />}
+                                    </span>
+                                ))}
+                            </p>
+                        )}
                         <BubbleActions showNext={showNext} onNext={onNext} showSkip={showSkip} onSkip={onSkip} />
                     </div>
                 </div>

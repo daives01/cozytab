@@ -1,6 +1,6 @@
 export function ChatHint() {
     return (
-        <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+        <div className="absolute bottom-4 left-4 z-50 pointer-events-none" data-onboarding="chat-hint">
             <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
                 <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
                 <span

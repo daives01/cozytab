@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { playKeyDown, playKeyUp } from "../lib/typingAudio";
-import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 
 interface ChatInputProps {
     onMessageChange: (message: string | null) => void;
@@ -14,7 +12,6 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
     const [isActive, setIsActive] = useState(false);
     const messageRef = useRef("");
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const { enabled: keyboardSoundsEnabled } = useKeyboardSoundPreferences();
 
     const clearChat = useCallback(() => {
         setIsActive(false);
@@ -40,10 +37,6 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
             const target = e.target as HTMLElement;
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
                 return;
-            }
-
-            if (keyboardSoundsEnabled && !e.repeat) {
-                playKeyDown(e.key);
             }
 
             if (e.key === "Enter" && !isActive) {
@@ -98,9 +91,6 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
                 return;
             }
-            if (keyboardSoundsEnabled) {
-                playKeyUp(e.key);
-            }
         };
 
         window.addEventListener("keydown", handleKeyDown);
@@ -112,7 +102,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [isActive, disabled, onMessageChange, clearChat, resetTimeout, keyboardSoundsEnabled]);
+    }, [isActive, disabled, onMessageChange, clearChat, resetTimeout]);
 
     return null;
 }

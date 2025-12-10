@@ -15,6 +15,7 @@ import {
 } from "./referralStorage";
 import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
+import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
 
 function ReferralCapture() {
   const { code } = useParams<{ code: string }>();
@@ -29,6 +30,8 @@ function ReferralCapture() {
 }
 
 function App() {
+  useGlobalTypingSounds();
+
   return (
     <BrowserRouter>
       <TouchWarningGate />
