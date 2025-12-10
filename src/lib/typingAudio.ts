@@ -1,6 +1,8 @@
 // Lightweight typing audio controller backed by downloaded WAV assets.
 // Provides simple play helpers and tweakable constants.
 
+import { ensureAudioReady, getAudioContext, isAudioUnlocked } from "./audio";
+
 export const TYPING_AUDIO_VOLUME = 0.35;
 export const TYPING_AUDIO_MAX_SIMULTANEOUS = 4;
 export const TYPING_AUDIO_THROTTLE_MS = 35;
@@ -27,23 +29,9 @@ const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
     },
 };
 
-let audioCtx: AudioContext | null = null;
 const bufferCache = new Map<string, AudioBuffer>();
 const lastPlayed = new Map<string, number>();
 const activeSources = new Set<AudioBufferSourceNode>();
-
-function getAudioContext(): AudioContext | null {
-    if (typeof window === "undefined") return null;
-    const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctor) return null;
-    if (!audioCtx) {
-        audioCtx = new Ctor();
-    }
-    if (audioCtx.state === "suspended") {
-        audioCtx.resume().catch(() => {});
-    }
-    return audioCtx;
-}
 
 async function loadBuffer(url: string): Promise<AudioBuffer | null> {
     if (bufferCache.has(url)) return bufferCache.get(url) ?? null;
@@ -82,6 +70,10 @@ function limitVoices() {
 }
 
 async function playSample(path: string) {
+    if (!isAudioUnlocked()) {
+        const ready = await ensureAudioReady();
+        if (!ready) return;
+    }
     const ctx = getAudioContext();
     if (!ctx) return;
     if (!shouldPlay(path)) return;

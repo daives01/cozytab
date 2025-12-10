@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { playKeyDown, playKeyUp } from "../lib/typingAudio";
+import { isAudioUnlocked } from "@/lib/audio";
 import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
 
 type PresenceMessage =
@@ -125,6 +126,7 @@ export function useWebSocketPresence(
 
     const queueRemoteTypingSounds = useCallback((senderId: string, nextText: string | null) => {
         if (!isKeyboardSoundEnabled() || nextText === null) return;
+        if (!isAudioUnlocked()) return;
         const prevVisitor = visitorsRef.current.find((v) => v.visitorId === senderId);
         const prevText = prevVisitor?.chatMessage ?? "";
         if (nextText.length <= prevText.length) return;

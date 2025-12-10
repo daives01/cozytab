@@ -2,6 +2,7 @@ import { useRef, useCallback, useState, useEffect } from "react";
 import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
+import { ensureAudioReady } from "@/lib/audio";
 
 // When a visitor unmutes, jump slightly ahead to counteract accumulated lag.
 const VISITOR_UNMUTE_AHEAD_SECONDS = .1;
@@ -107,6 +108,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
     }, [autoPlayToken, hasInteracted, isReady, isVisitor, muted, playing, sendCommand]);
 
     const handlePlayPause = () => {
+        void ensureAudioReady();
         if (!isReady) return;
 
         // Visitors only toggle local mute; host controls playback.
@@ -136,6 +138,7 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
     };
 
     const handleResume = () => {
+        void ensureAudioReady();
         if (!isReady) return;
         setHasInteracted(true);
         setMuted(false);

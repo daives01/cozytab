@@ -26,6 +26,7 @@ import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
 import { GUEST_STARTING_COINS, type GuestSessionState } from "../../shared/guestTypes";
+import { useAudioUnlock } from "@/lib/audio";
 import { RoomStateProvider } from "./state/roomAtoms";
 import {
     useCursorColorSaver,
@@ -62,6 +63,7 @@ export function RoomPage(props: RoomPageProps) {
 
 function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const { user: clerkUser } = useUser();
+    useAudioUnlock();
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
     const {
         room,
