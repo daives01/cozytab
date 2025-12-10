@@ -23,6 +23,7 @@ export function PresenceLayer({ visitors, currentVisitorId, scale }: PresenceLay
                         scale={scale}
                         cursorColor={visitor.cursorColor}
                         inMenu={visitor.inMenu}
+                        tabbedOut={visitor.tabbedOut}
                     />
                 ))}
         </>

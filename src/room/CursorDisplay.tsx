@@ -12,6 +12,7 @@ interface CursorDisplayProps {
     scale?: number;
     cursorColor?: string;
     inMenu?: boolean;
+    tabbedOut?: boolean;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -34,6 +35,7 @@ export function CursorDisplay({
     scale = 1,
     cursorColor,
     inMenu = false,
+    tabbedOut = false,
 }: CursorDisplayProps) {
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
@@ -51,6 +53,7 @@ export function CursorDisplay({
         fontSize: "1.07em",
     };
 
+    const presenceOpacity = tabbedOut ? 0.25 : inMenu ? 0.3 : 1;
     const cursorStyle = {
         position: useFixedPosition ? "fixed" : "absolute",
         left: x,
@@ -61,7 +64,7 @@ export function CursorDisplay({
             : `translate(${-POINTER_HOTSPOT.x}px, ${-POINTER_HOTSPOT.y}px) scale(${scale > 0 ? 1 / scale : 1})`,
         transformOrigin: "top left",
         transition: isLocal ? "none" : "left 50ms linear, top 50ms linear",
-        opacity: inMenu ? 0.3 : 1,
+        opacity: presenceOpacity,
     } as const;
 
     return (

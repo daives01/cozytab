@@ -1,10 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { playKeyDown, playKeyUp } from "../lib/typingAudio";
+import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
 
 type PresenceMessage =
-    | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
+    | {
+          type: "join";
+          visitorId: string;
+          displayName: string;
+          isOwner: boolean;
+          cursorColor?: string;
+          tabbedOut?: boolean;
+      }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string; inMenu?: boolean }
+    | {
+          type: "cursor";
+          visitorId: string;
+          x: number;
+          y: number;
+          cursorColor?: string;
+          inMenu?: boolean;
+          tabbedOut?: boolean;
+      }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
 
@@ -17,6 +34,7 @@ export type VisitorState = {
     chatMessage: string | null;
     cursorColor?: string;
     inMenu: boolean;
+    tabbedOut: boolean;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
@@ -24,6 +42,8 @@ const THROTTLE_MS = 50;
 const DEFAULT_POSITION = { x: 960, y: 540 };
 const INITIAL_RETRY_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;
+export const REMOTE_KEYUP_MIN_DELAY_MS = 45;
+export const REMOTE_KEYUP_MAX_DELAY_MS = 100;
 
 function resolveWsBaseUrl() {
     const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
@@ -75,8 +95,10 @@ export function useWebSocketPresence(
     const latestCursorColorRef = useRef<string | undefined>(cursorColor);
     const previousDisplayNameRef = useRef(displayName);
     const [visitors, setVisitors] = useState<VisitorState[]>([]);
+    const visitorsRef = useRef<VisitorState[]>([]);
     const [screenCursor, setScreenCursor] = useState(getInitialCursor);
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
+    const remoteKeyupTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
 
     const lastSendTimeRef = useRef<number>(0);
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
@@ -86,7 +108,38 @@ export function useWebSocketPresence(
     const heartbeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasSentCursorRef = useRef(false);
     const inMenuRef = useRef(false);
+    const tabbedOutRef = useRef<boolean>(
+        typeof document !== "undefined" ? document.visibilityState === "hidden" : false
+    );
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
+    const setVisitorsAndStore = useCallback(
+        (updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
+            setVisitors((prev) => {
+                const next = typeof updater === "function" ? (updater as (p: VisitorState[]) => VisitorState[])(prev) : updater;
+                visitorsRef.current = next;
+                return next;
+            });
+        },
+        []
+    );
+
+    const queueRemoteTypingSounds = useCallback((senderId: string, nextText: string | null) => {
+        if (!isKeyboardSoundEnabled() || nextText === null) return;
+        const prevVisitor = visitorsRef.current.find((v) => v.visitorId === senderId);
+        const prevText = prevVisitor?.chatMessage ?? "";
+        if (nextText.length <= prevText.length) return;
+
+        const addedSegment = nextText.slice(prevText.length);
+        const range = Math.max(REMOTE_KEYUP_MAX_DELAY_MS - REMOTE_KEYUP_MIN_DELAY_MS, 0);
+
+        for (const char of addedSegment) {
+            const key = char === " " ? " " : char;
+            playKeyDown(key);
+            const delay = REMOTE_KEYUP_MIN_DELAY_MS + Math.random() * range;
+            const timeout = setTimeout(() => playKeyUp(key), delay);
+            remoteKeyupTimeoutsRef.current.push(timeout);
+        }
+    }, []);
 
     const resetHeartbeat = useCallback(() => {
         clearTimeoutRef(heartbeatTimeoutRef);
@@ -140,13 +193,19 @@ export function useWebSocketPresence(
 
         switch (data.type) {
             case "state":
-                setVisitors(data.visitors.map((visitor) => ({ ...visitor, inMenu: Boolean(visitor.inMenu) })));
+                setVisitorsAndStore(
+                    data.visitors.map((visitor) => ({
+                        ...visitor,
+                        inMenu: Boolean(visitor.inMenu),
+                        tabbedOut: Boolean(visitor.tabbedOut),
+                    }))
+                );
                 break;
             case "join":
-                setVisitors((prev) => {
+                setVisitorsAndStore((prev) => {
                     const exists = prev.some((v) => v.visitorId === data.visitorId);
                     if (exists) return prev;
-                    return [
+                    const next = [
                         ...prev,
                         {
                             visitorId: data.visitorId,
@@ -157,52 +216,57 @@ export function useWebSocketPresence(
                             chatMessage: null,
                             cursorColor: data.cursorColor,
                             inMenu: false,
+                            tabbedOut: Boolean(data.tabbedOut),
                         },
                     ];
+                    return next;
                 });
                 break;
             case "leave":
-                setVisitors((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
+                setVisitorsAndStore((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
                 break;
             case "cursor":
-                setVisitors((prev) =>
+                setVisitorsAndStore((prev) =>
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
-                                ...v,
-                                x: data.x,
-                                y: data.y,
-                                cursorColor: data.cursorColor ?? v.cursorColor,
-                                inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
-                            }
+                                  ...v,
+                                  x: data.x,
+                                  y: data.y,
+                                  cursorColor: data.cursorColor ?? v.cursorColor,
+                                  inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
+                                  tabbedOut:
+                                      typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
+                              }
                             : v
                     )
                 );
                 break;
             case "rename":
-                setVisitors((prev) =>
+                setVisitorsAndStore((prev) =>
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
-                                ...v,
-                                displayName: data.displayName,
-                                cursorColor: data.cursorColor ?? v.cursorColor,
-                            }
+                                  ...v,
+                                  displayName: data.displayName,
+                                  cursorColor: data.cursorColor ?? v.cursorColor,
+                              }
                             : v
                     )
                 );
                 break;
             case "chat":
-                setVisitors((prev) =>
-                    prev.map((v) =>
-                        v.visitorId === data.visitorId ? { ...v, chatMessage: data.text } : v
-                    )
+                if (data.visitorId !== visitorId) {
+                    queueRemoteTypingSounds(data.visitorId, data.text);
+                }
+                setVisitorsAndStore((prev) =>
+                    prev.map((v) => (v.visitorId === data.visitorId ? { ...v, chatMessage: data.text } : v))
                 );
                 break;
             default:
                 console.warn("[Presence] Unknown message type", (data as { type?: string })?.type);
         }
-    }, [resetHeartbeat]);
+    }, [queueRemoteTypingSounds, resetHeartbeat, setVisitorsAndStore, visitorId]);
 
     useEffect(() => {
         latestCursorColorRef.current = cursorColor;
@@ -250,6 +314,7 @@ export function useWebSocketPresence(
                     displayName: latestDisplayNameRef.current,
                     isOwner,
                     cursorColor: latestCursorColorRef.current,
+                    tabbedOut: tabbedOutRef.current,
                 });
             };
 
@@ -294,19 +359,25 @@ export function useWebSocketPresence(
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
-        (x: number, y: number, color?: string, inMenu?: boolean): PresenceMessage => ({
+        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean): PresenceMessage => ({
             type: "cursor",
             visitorId,
             x,
             y,
             cursorColor: color ?? latestCursorColorRef.current,
             inMenu: inMenu ?? inMenuRef.current,
+            tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : tabbedOutRef.current,
         }),
         [visitorId]
     );
 
     const sendCursor = useCallback(
-        (x: number, y: number, color?: string, opts?: { inMenu?: boolean; force?: boolean }) => {
+        (
+            x: number,
+            y: number,
+            color?: string,
+            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean }
+        ) => {
             if (!visitorId) return;
 
             const now = Date.now();
@@ -314,7 +385,7 @@ export function useWebSocketPresence(
             const transmit = (nextX: number, nextY: number) => {
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: nextX, y: nextY };
-                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu));
+                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut));
             };
 
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
@@ -378,6 +449,34 @@ export function useWebSocketPresence(
         },
         [sendCursor, visitorId]
     );
+
+    useEffect(() => {
+        if (!roomId) return;
+        if (typeof document === "undefined") return;
+
+        const handleVisibilityChange = () => {
+            const hidden = document.visibilityState === "hidden";
+            tabbedOutRef.current = hidden;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { tabbedOut: hidden, force: true });
+
+            const ws = wsRef.current;
+            if (hidden && ws?.readyState === WebSocket.OPEN) {
+                ws.send("ping");
+            }
+        };
+
+        handleVisibilityChange();
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [roomId, sendCursor]);
+
+    useEffect(() => {
+        return () => {
+            remoteKeyupTimeoutsRef.current.forEach(clearTimeout);
+            remoteKeyupTimeoutsRef.current = [];
+        };
+    }, []);
 
     return {
         visitors,

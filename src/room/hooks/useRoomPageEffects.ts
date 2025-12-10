@@ -264,6 +264,7 @@ export function useLeaseHeartbeat({
     const roomId = room?._id ?? null;
     const latestRoomIdRef = useRef<Id<"rooms"> | null>(roomId);
     const sharingActiveRef = useRef(isSharingActive);
+    const hiddenHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         hasVisitorsRef.current = hasVisitors;
@@ -284,11 +285,19 @@ export function useLeaseHeartbeat({
         let intervalId: ReturnType<typeof setInterval> | null = null;
         let stopped = false;
 
+        const stopHiddenHeartbeats = () => {
+            if (hiddenHeartbeatRef.current) {
+                clearInterval(hiddenHeartbeatRef.current);
+                hiddenHeartbeatRef.current = null;
+            }
+        };
+
         const stopHeartbeats = () => {
             if (intervalId) {
                 clearInterval(intervalId);
                 intervalId = null;
             }
+            stopHiddenHeartbeats();
         };
 
         const sendHeartbeat = () => {
@@ -325,9 +334,35 @@ export function useLeaseHeartbeat({
             sendHeartbeat();
         }, 120_000);
 
+        const maybeAttachVisibilityListener = () => {
+            if (typeof document === "undefined") return null;
+
+            const handleVisibilityChange = () => {
+                const hidden = document.visibilityState === "hidden";
+                if (hidden) {
+                    sendHeartbeat();
+                    if (!hiddenHeartbeatRef.current) {
+                        hiddenHeartbeatRef.current = setInterval(sendHeartbeat, 60_000);
+                    }
+                } else {
+                    stopHiddenHeartbeats();
+                }
+            };
+
+            document.addEventListener("visibilitychange", handleVisibilityChange);
+            handleVisibilityChange();
+            return () => {
+                document.removeEventListener("visibilitychange", handleVisibilityChange);
+                stopHiddenHeartbeats();
+            };
+        };
+
+        const detachVisibility = maybeAttachVisibilityListener();
+
         return () => {
             stopped = true;
             stopHeartbeats();
+            detachVisibility?.();
         };
     }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, room, roomId]);
 

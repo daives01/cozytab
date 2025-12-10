@@ -3,6 +3,7 @@ import { api } from "../../convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ToggleSwitch } from "@/components/ui/toggle";
 import { X, Copy, Check, Share2, RefreshCw, Lock, Globe, Link as LinkIcon } from "lucide-react";
 
 export function ShareModal({ onClose }: { onClose: () => void }) {
@@ -122,18 +123,13 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                 </div>
                             </div>
                             
-                            <button
-                                onClick={handleToggleAccess}
-                                className={`relative h-9 w-16 rounded-full border-2 border-[var(--color-foreground)] transition-all duration-300 ${
-                                    shareUrl ? "bg-[var(--color-share-accent)]" : "bg-[var(--color-muted)]"
-                                }`}
-                            >
-                                <span
-                                    className={`absolute top-1 left-1 h-6 w-6 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-sm transition-transform duration-300 ${
-                                        shareUrl ? "translate-x-7" : "translate-x-0"
-                                    }`}
-                                />
-                            </button>
+                            <ToggleSwitch
+                                aria-label="Toggle public access"
+                                checked={!!shareUrl}
+                                onCheckedChange={() => handleToggleAccess()}
+                                activeClassName="bg-[var(--color-share-accent)]"
+                                inactiveClassName="bg-[var(--color-muted)]"
+                            />
                         </div>
 
                         <div className="relative h-[200px] w-full">

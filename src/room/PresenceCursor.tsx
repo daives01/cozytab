@@ -10,9 +10,20 @@ interface PresenceCursorProps {
     scale: number;
     cursorColor?: string;
     inMenu?: boolean;
+    tabbedOut?: boolean;
 }
 
-export function PresenceCursor({ name, isOwner, x, y, chatMessage, scale, cursorColor, inMenu }: PresenceCursorProps) {
+export function PresenceCursor({
+    name,
+    isOwner,
+    x,
+    y,
+    chatMessage,
+    scale,
+    cursorColor,
+    inMenu,
+    tabbedOut,
+}: PresenceCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
     return (
@@ -27,6 +38,7 @@ export function PresenceCursor({ name, isOwner, x, y, chatMessage, scale, cursor
             scale={scale}
             cursorColor={cursorColor}
             inMenu={inMenu}
+            tabbedOut={tabbedOut}
         />
     );
 }

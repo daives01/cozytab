@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { playKeyDown, playKeyUp } from "../lib/typingAudio";
+import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 
 interface ChatInputProps {
     onMessageChange: (message: string | null) => void;
@@ -12,6 +14,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
     const [isActive, setIsActive] = useState(false);
     const messageRef = useRef("");
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { enabled: keyboardSoundsEnabled } = useKeyboardSoundPreferences(true);
 
     const clearChat = useCallback(() => {
         setIsActive(false);
@@ -37,6 +40,10 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
             const target = e.target as HTMLElement;
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
                 return;
+            }
+
+            if (keyboardSoundsEnabled && !e.repeat) {
+                playKeyDown(e.key);
             }
 
             if (e.key === "Enter" && !isActive) {
@@ -86,14 +93,26 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
             }
         };
 
+        const handleKeyUp = (e: KeyboardEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+                return;
+            }
+            if (keyboardSoundsEnabled) {
+                playKeyUp(e.key);
+            }
+        };
+
         window.addEventListener("keydown", handleKeyDown);
+        window.addEventListener("keyup", handleKeyUp);
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
+            window.removeEventListener("keyup", handleKeyUp);
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
         };
-    }, [isActive, disabled, onMessageChange, clearChat, resetTimeout]);
+    }, [isActive, disabled, onMessageChange, clearChat, resetTimeout, keyboardSoundsEnabled]);
 
     return null;
 }

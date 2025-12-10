@@ -122,6 +122,19 @@ export const getMe = query({
     },
 });
 
+export const getKeyboardSoundSettings = query({
+    args: {},
+    handler: async (ctx) => {
+        const { user } = await getUserForRequest(ctx);
+        if (!user) return null;
+
+        return {
+            enabled: user.keyboardSoundsEnabled ?? true,
+            volume: clampVolume(user.keyboardSoundVolume, 0.5),
+        };
+    },
+});
+
 export const isAdmin = query({
     args: {},
     handler: async (ctx) => {
@@ -194,6 +207,11 @@ const MAX_GUEST_ITEMS = 100;
 function clampGuestCoins(value: unknown): number {
     if (typeof value !== "number" || Number.isNaN(value)) return GUEST_STARTING_COINS;
     return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
+}
+
+function clampVolume(value: unknown, fallback = 0.5): number {
+    if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+    return Math.max(0, Math.min(1, value));
 }
 
 function randomBrightColor(): string {
@@ -899,6 +917,24 @@ export const saveMyComputer = mutation({
         });
 
         return { success: true, cursorColor: nextCursorColor };
+    },
+});
+
+export const saveKeyboardSoundSettings = mutation({
+    args: {
+        enabled: v.boolean(),
+        volume: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const { user } = await requireUser(ctx);
+        const clampedVolume = clampVolume(args.volume, 0.5);
+
+        await ctx.db.patch(user._id, {
+            keyboardSoundsEnabled: args.enabled,
+            keyboardSoundVolume: clampedVolume,
+        });
+
+        return { enabled: args.enabled, volume: clampedVolume };
     },
 });
 

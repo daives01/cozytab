@@ -8,6 +8,8 @@ export default defineSchema({
         displayName: v.optional(v.string()),
         currency: v.number(),
         cursorColor: v.optional(v.string()),
+        keyboardSoundsEnabled: v.optional(v.boolean()),
+        keyboardSoundVolume: v.optional(v.number()),
         computer: v.optional(
             v.object({
                 shortcuts: v.array(

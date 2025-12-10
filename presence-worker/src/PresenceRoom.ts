@@ -1,9 +1,24 @@
 import { DurableObject } from "cloudflare:workers";
 export type PresenceMessage =
-    | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string }
+    | {
+          type: "join";
+          visitorId: string;
+          displayName: string;
+          isOwner: boolean;
+          cursorColor?: string;
+          tabbedOut?: boolean;
+      }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string; inMenu?: boolean }
+    | {
+          type: "cursor";
+          visitorId: string;
+          x: number;
+          y: number;
+          cursorColor?: string;
+          inMenu?: boolean;
+          tabbedOut?: boolean;
+      }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
 
@@ -16,6 +31,7 @@ export type VisitorState = {
     chatMessage: string | null;
     cursorColor?: string;
     inMenu: boolean;
+    tabbedOut: boolean;
 };
 
 type WebSocketAttachment = {
@@ -64,6 +80,7 @@ function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
     }
     if (!isValidCursorColor(data.cursorColor)) return false;
     if (!isValidBoolean(data.inMenu)) return false;
+    if (!isValidBoolean(data.tabbedOut)) return false;
     return true;
 }
 
@@ -86,12 +103,14 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 return null;
             }
             if (!isValidCursorColor(data.cursorColor)) return null;
+            if (!isValidBoolean(data.tabbedOut)) return null;
             return {
                 type: "join",
                 visitorId: data.visitorId,
                 displayName: data.displayName,
                 isOwner: data.isOwner,
                 cursorColor: data.cursorColor,
+                tabbedOut: typeof data.tabbedOut === "boolean" ? data.tabbedOut : undefined,
             };
         }
         case "leave": {
@@ -110,12 +129,13 @@ function validateMessage(raw: unknown): PresenceMessage | null {
         }
         case "cursor": {
             if (!isValidCursorPayload(data)) return null;
-            const { visitorId, x, y, cursorColor, inMenu } = data as unknown as {
+            const { visitorId, x, y, cursorColor, inMenu, tabbedOut } = data as unknown as {
                 visitorId: string;
                 x: number;
                 y: number;
                 cursorColor?: string;
                 inMenu?: boolean;
+                tabbedOut?: boolean;
             };
             return {
                 type: "cursor",
@@ -124,6 +144,7 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 y,
                 cursorColor,
                 inMenu,
+                tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : undefined,
             };
         }
         case "chat": {
@@ -256,6 +277,7 @@ export class PresenceRoom extends DurableObject {
             chatMessage: null,
             cursorColor: data.cursorColor,
             inMenu: false,
+            tabbedOut: Boolean(data.tabbedOut),
         });
 
         const stateMsg: PresenceMessage = {
@@ -281,6 +303,7 @@ export class PresenceRoom extends DurableObject {
             chatMessage: null,
             cursorColor: undefined,
             inMenu: false,
+            tabbedOut: false,
         };
         this.visitors.set(visitorId, visitor);
         return visitor;
@@ -297,6 +320,9 @@ export class PresenceRoom extends DurableObject {
         }
         if (typeof data.inMenu === "boolean") {
             visitor.inMenu = data.inMenu;
+        }
+        if (typeof data.tabbedOut === "boolean") {
+            visitor.tabbedOut = data.tabbedOut;
         }
 
         this.broadcast(ws, data);
