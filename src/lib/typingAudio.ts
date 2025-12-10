@@ -6,6 +6,10 @@ import { ensureAudioReady, getAudioContext, isAudioUnlocked } from "./audio";
 export const TYPING_AUDIO_VOLUME = 0.35;
 export const TYPING_AUDIO_MAX_SIMULTANEOUS = 4;
 export const TYPING_AUDIO_THROTTLE_MS = 35;
+export const TYPING_AUDIO_RATE_MIN = 0.92;
+export const TYPING_AUDIO_RATE_MAX = 1.08;
+export const TYPING_AUDIO_VOLUME_JITTER_MIN = 0.95;
+export const TYPING_AUDIO_VOLUME_JITTER_MAX = 1.0;
 let typingVolumeMultiplier = 1;
 
 export function setTypingVolumeMultiplier(multiplier: number) {
@@ -32,6 +36,10 @@ const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
 const bufferCache = new Map<string, AudioBuffer>();
 const lastPlayed = new Map<string, number>();
 const activeSources = new Set<AudioBufferSourceNode>();
+
+function randomInRange(min: number, max: number) {
+    return min + Math.random() * (max - min);
+}
 
 async function loadBuffer(url: string): Promise<AudioBuffer | null> {
     if (bufferCache.has(url)) return bufferCache.get(url) ?? null;
@@ -85,7 +93,11 @@ async function playSample(path: string) {
 
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
-    gain.gain.value = TYPING_AUDIO_VOLUME * typingVolumeMultiplier;
+
+    // Randomize pitch and micro-variations in level for more realism.
+    source.playbackRate.value = randomInRange(TYPING_AUDIO_RATE_MIN, TYPING_AUDIO_RATE_MAX);
+    gain.gain.value =
+        TYPING_AUDIO_VOLUME * typingVolumeMultiplier * randomInRange(TYPING_AUDIO_VOLUME_JITTER_MIN, TYPING_AUDIO_VOLUME_JITTER_MAX);
 
     source.buffer = buffer;
     source.connect(gain).connect(ctx.destination);

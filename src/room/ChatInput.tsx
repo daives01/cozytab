@@ -14,7 +14,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
     const [isActive, setIsActive] = useState(false);
     const messageRef = useRef("");
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const { enabled: keyboardSoundsEnabled } = useKeyboardSoundPreferences(true);
+    const { enabled: keyboardSoundsEnabled } = useKeyboardSoundPreferences();
 
     const clearChat = useCallback(() => {
         setIsActive(false);

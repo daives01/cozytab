@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { clampHue, hexToHsl, hslToHex, type HslColor } from "../utils/cursorColor";
 import { useKeyboardSoundPreferences } from "../../hooks/useKeyboardSoundSetting";
 import { ToggleSwitch } from "@/components/ui/toggle";
+import { NeoVolumeSlider } from "./VolumeSlider.tsx";
 
 interface DisplayNameSectionProps {
     currentDisplayName: string;
@@ -27,7 +28,7 @@ export function CustomizePanel({
     const [localName, setLocalName] = useState(displayNameProps?.currentDisplayName ?? "");
     const [hasTyped, setHasTyped] = useState(false);
     const { enabled: keyboardSoundsEnabled, setEnabled: setKeyboardSoundsEnabled, volume: keyboardVolume, setVolume } =
-        useKeyboardSoundPreferences(true);
+        useKeyboardSoundPreferences();
     const hsl = useMemo<HslColor>(() => hexToHsl(color), [color]);
 
     const safeHue = clampHue(hsl.h ?? 0);
@@ -163,19 +164,8 @@ export function CustomizePanel({
                                 </div>
                         </div>
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <p className="text-xs text-[var(--ink-subtle)]">Volume (0 - 1)</p>
-                                <span className="text-xs text-[var(--ink-subtle)]">{keyboardVolume.toFixed(2)}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={1}
-                                step={0.05}
-                                value={keyboardVolume}
-                                onChange={(e) => setVolume(Number(e.target.value))}
-                                className="w-full h-3 rounded-full appearance-none cursor-pointer shadow-inner"
-                            />
+                            <p className="text-xs text-[var(--ink-subtle)]">Volume</p>
+                            <NeoVolumeSlider value={keyboardVolume} onChange={setVolume} />
                         </div>
                     </div>
                 </div>
