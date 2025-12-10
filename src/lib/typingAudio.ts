@@ -1,13 +1,13 @@
-// Lightweight typing audio controller backed by downloaded WAV assets.
+// Lightweight typing audio controller backed by downloaded audio assets.
 // Provides simple play helpers and tweakable constants.
 
 import { ensureAudioReady, getAudioContext, isAudioUnlocked } from "./audio";
 
-export const TYPING_AUDIO_VOLUME = 0.35;
+export const TYPING_AUDIO_VOLUME = .5;
 export const TYPING_AUDIO_MAX_SIMULTANEOUS = 4;
 export const TYPING_AUDIO_THROTTLE_MS = 35;
-export const TYPING_AUDIO_RATE_MIN = 0.92;
-export const TYPING_AUDIO_RATE_MAX = 1.08;
+export const TYPING_AUDIO_RATE_MIN = 0.95;
+export const TYPING_AUDIO_RATE_MAX = 1.00;
 export const TYPING_AUDIO_VOLUME_JITTER_MIN = 0.95;
 export const TYPING_AUDIO_VOLUME_JITTER_MAX = 1.0;
 let typingVolumeMultiplier = 1;
@@ -16,20 +16,22 @@ export function setTypingVolumeMultiplier(multiplier: number) {
     typingVolumeMultiplier = Math.max(0, Math.min(1, multiplier));
 }
 
-type SampleCategory = "normal" | "enter" | "space";
+type SampleCategory = "key" | "enter" | "space" | "backspace";
 type Phase = "down" | "up";
 
 const SOUND_BASE = "/assets/sounds";
 const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
     down: {
-        normal: `${SOUND_BASE}/normal-down.wav`,
-        enter: `${SOUND_BASE}/enter-down.wav`,
-        space: `${SOUND_BASE}/large-down.wav`,
+        key: `${SOUND_BASE}/key-down.mp3`,
+        enter: `${SOUND_BASE}/enter-down.mp3`,
+        space: `${SOUND_BASE}/space-down.mp3`,
+        backspace: `${SOUND_BASE}/backspace-down.mp3`,
     },
     up: {
-        normal: `${SOUND_BASE}/normal-up.wav`,
-        enter: `${SOUND_BASE}/enter-up.wav`,
-        space: `${SOUND_BASE}/large-up.wav`,
+        key: `${SOUND_BASE}/key-up.mp3`,
+        enter: `${SOUND_BASE}/enter-up.mp3`,
+        space: `${SOUND_BASE}/space-up.mp3`,
+        backspace: `${SOUND_BASE}/backspace-up.mp3`,
     },
 };
 
@@ -112,8 +114,9 @@ async function playSample(path: string) {
 
 function resolveCategory(key: string): SampleCategory {
     if (key === "Enter") return "enter";
+    if (key === "Backspace") return "backspace";
     if (key === " " || key === "Spacebar") return "space";
-    return "normal";
+    return "key";
 }
 
 function getPath(phase: Phase, key: string): string {
