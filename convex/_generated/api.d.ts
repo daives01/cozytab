@@ -11,6 +11,8 @@
 import type * as catalog from "../catalog.js";
 import type * as inventory from "../inventory.js";
 import type * as invites from "../invites.js";
+import type * as lib_currency from "../lib/currency.js";
+import type * as lib_id from "../lib/id.js";
 import type * as lib_time from "../lib/time.js";
 import type * as roomTemplates from "../roomTemplates.js";
 import type * as rooms from "../rooms.js";
@@ -26,6 +28,8 @@ declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
   inventory: typeof inventory;
   invites: typeof invites;
+  "lib/currency": typeof lib_currency;
+  "lib/id": typeof lib_id;
   "lib/time": typeof lib_time;
   roomTemplates: typeof roomTemplates;
   rooms: typeof rooms;

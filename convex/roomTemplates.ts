@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { applyCurrencyChange } from "./lib/currency";
+import { randomId } from "./lib/id";
 
 // Helper to check if the current user is an admin
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -169,7 +171,10 @@ export const generateUploadUrl = mutation({
 
 // Purchase a room with a specific template (creates a new room instance)
 export const purchaseRoom = mutation({
-    args: { templateId: v.id("roomTemplates") },
+    args: {
+        templateId: v.id("roomTemplates"),
+        requestId: v.optional(v.string()),
+    },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Not authenticated");
@@ -191,10 +196,24 @@ export const purchaseRoom = mutation({
             return { success: false, message: "Insufficient funds" };
         }
 
-        // Deduct currency
-        await ctx.db.patch(user._id, {
-            currency: user.currency - template.basePrice,
+        const requestId = args.requestId ?? randomId();
+        const change = await applyCurrencyChange({
+            ctx,
+            userId: user._id,
+            delta: -template.basePrice,
+            reason: "room_purchase",
+            idempotencyKey: `room_purchase:${user._id}:${requestId}`,
+            metadata: { templateId: args.templateId },
         });
+
+        if (!change.applied) {
+            return {
+                success: true,
+                message: "Purchase already processed",
+                roomId: undefined,
+                newBalance: change.balance,
+            };
+        }
 
         // Set all existing rooms to inactive
         const existingRooms = await ctx.db
@@ -220,7 +239,7 @@ export const purchaseRoom = mutation({
         return {
             success: true,
             roomId,
-            newBalance: user.currency - template.basePrice,
+            newBalance: change.balance,
         };
     },
 });

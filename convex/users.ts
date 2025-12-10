@@ -1,9 +1,10 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
 import { GUEST_STARTING_COINS, type GuestRoomItem, type GuestSessionState, type GuestShortcut } from "../shared/guestTypes";
 import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
+import { applyCurrencyChange } from "./lib/currency";
 
 type AnyCtx = QueryCtx | MutationCtx;
 
@@ -445,8 +446,13 @@ export const ensureUser = mutation({
 
                 if (referrer) {
                     referrerId = referrer._id;
-                    await ctx.db.patch(referrer._id, {
-                        currency: referrer.currency + 1,
+                    await applyCurrencyChange({
+                        ctx,
+                        userId: referrer._id,
+                        delta: 1,
+                        reason: "referral",
+                        idempotencyKey: `referral:${referrer._id}:${identity.subject}`,
+                        metadata: { referredExternalId: identity.subject },
                     });
                 }
             }
@@ -460,7 +466,7 @@ export const ensureUser = mutation({
                 externalId: identity.subject,
                 username: derivedUsername,
                 displayName: derivedDisplayName,
-                currency: computedCurrency,
+                currency: 0,
                 cursorColor,
                 computer: {
                     shortcuts: normalizedGuestShortcuts,
@@ -472,6 +478,16 @@ export const ensureUser = mutation({
             });
             user = await ctx.db.get(id);
             if (user) {
+                const starting = await applyCurrencyChange({
+                    ctx,
+                    userId: user._id,
+                    delta: computedCurrency,
+                    reason: "starting_balance",
+                    idempotencyKey: `starting:${user._id}`,
+                    metadata: { source: "guest_session", reportedGuestCoins },
+                });
+                user = { ...user, currency: starting.balance };
+
                 const { remainingCurrency, catalogItems } = await importInventoryWithinBudget(
                     ctx,
                     user._id,
@@ -479,8 +495,25 @@ export const ensureUser = mutation({
                     reportedGuestCoins
                 );
 
+                const targetCurrency = Math.min(remainingCurrency, reportedGuestCoins);
+                const adjustmentDelta = targetCurrency - computedCurrency;
+                if (adjustmentDelta !== 0) {
+                    const adjustment = await applyCurrencyChange({
+                        ctx,
+                        userId: user._id,
+                        delta: adjustmentDelta,
+                        reason: "guest_import",
+                        idempotencyKey: `guest_import:${user._id}`,
+                        metadata: {
+                            reportedGuestCoins,
+                            targetCurrency,
+                            spent: computedCurrency - targetCurrency,
+                        },
+                    });
+                    user = { ...user, currency: adjustment.balance };
+                }
+
                 await ctx.db.patch(user._id, {
-                    currency: Math.min(remainingCurrency, reportedGuestCoins),
                     onboardingCompleted: guestSessionState.onboardingCompleted === true || user.onboardingCompleted === true,
                 });
 
@@ -591,16 +624,35 @@ export const claimDailyReward = mutation({
         const dayDelta = getDayDelta(user.lastDailyRewardDay, todayKey);
         const previousStreak = user.loginStreak ?? 0;
         const nextStreak = dayDelta === 1 ? previousStreak + 1 : 1;
+        const idempotencyKey = `daily:${user._id}:${todayKey}`;
+
+        const change = await applyCurrencyChange({
+            ctx,
+            userId: user._id,
+            delta: 1,
+            reason: "daily_reward",
+            idempotencyKey,
+            metadata: { day: todayKey },
+        });
+
+        if (!change.applied) {
+            return {
+                success: false,
+                message: "Daily reward already claimed",
+                nextRewardAt,
+                loginStreak: user.loginStreak ?? previousStreak,
+                lastDailyRewardDay: user.lastDailyRewardDay,
+            };
+        }
 
         await ctx.db.patch(user._id, {
-            currency: user.currency + 1,
             lastDailyRewardDay: todayKey,
             loginStreak: nextStreak,
         });
 
         return {
             success: true,
-            newBalance: user.currency + 1,
+            newBalance: change.balance,
             lastDailyRewardDay: todayKey,
             loginStreak: nextStreak,
             nextRewardAt,
@@ -653,6 +705,99 @@ export const devDeleteMyAccount = mutation({
         await ctx.db.delete(user._id);
 
         return { deleted: true };
+    },
+});
+
+export const backfillCurrencyLedger = internalMutation({
+    args: {},
+    handler: async (ctx) => {
+        const users = await ctx.db.query("users").collect();
+        let created = 0;
+        let skipped = 0;
+
+        for (const ledgerUser of users) {
+            const idempotencyKey = `starting:${ledgerUser._id}`;
+            const existing = await ctx.db
+                .query("currencyTransactions")
+                .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
+                .unique();
+            if (existing) {
+                skipped++;
+                continue;
+            }
+
+            await ctx.db.insert("currencyTransactions", {
+                userId: ledgerUser._id,
+                delta: ledgerUser.currency,
+                reason: "starting_balance",
+                idempotencyKey,
+                createdAt: Date.now(),
+                metadata: { source: "backfill" },
+            });
+            created++;
+        }
+
+        return { created, skipped };
+    },
+});
+
+export const reconcileCurrencyBalances = internalMutation({
+    args: {
+        limit: v.optional(v.number()),
+        repair: v.optional(v.boolean()),
+    },
+    handler: async (ctx, args) => {
+        const limit = Math.max(1, args.limit ?? 100);
+        const repair = args.repair === true;
+        const users = await ctx.db.query("users").collect();
+
+        const mismatches: Array<{
+            userId: Id<"users">;
+            externalId: string;
+            ledgerSum: number;
+            recorded: number;
+            delta: number;
+        }> = [];
+        let repaired = 0;
+
+        for (const target of users) {
+            if (mismatches.length >= limit) break;
+
+            const transactions = await ctx.db
+                .query("currencyTransactions")
+                .withIndex("by_user", (q) => q.eq("userId", target._id))
+                .collect();
+            const ledgerSum = transactions.reduce((sum, tx) => sum + tx.delta, 0);
+            const delta = ledgerSum - target.currency;
+            if (delta !== 0) {
+                mismatches.push({
+                    userId: target._id,
+                    externalId: target.externalId,
+                    ledgerSum,
+                    recorded: target.currency,
+                    delta,
+                });
+                if (repair) {
+                    const adjustment = await applyCurrencyChange({
+                        ctx,
+                        userId: target._id,
+                        delta,
+                        reason: "admin_adjustment",
+                        idempotencyKey: `reconcile:${target._id}:${ledgerSum}:${target.currency}`,
+                        metadata: {
+                            ledgerSum,
+                            recorded: target.currency,
+                            delta,
+                        },
+                    });
+                    if (adjustment.applied) {
+                        repaired++;
+                    }
+                }
+            }
+        }
+
+        return { mismatches, repaired };
     },
 });
 

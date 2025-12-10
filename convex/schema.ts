@@ -95,4 +95,15 @@ export default defineSchema({
     })
         .index("by_room", ["roomId"])
         .index("by_code", ["code"]),
+
+    currencyTransactions: defineTable({
+        userId: v.id("users"),
+        delta: v.number(),
+        reason: v.string(),
+        idempotencyKey: v.string(),
+        createdAt: v.number(),
+        metadata: v.optional(v.any()),
+    })
+        .index("by_user", ["userId"])
+        .index("by_idempotencyKey", ["idempotencyKey"]),
 });

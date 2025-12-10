@@ -3,10 +3,13 @@
 
 
 ### small-ish features
+ - autoplay after loading a new track without breaking the multiplayer stuff
+ - make play/pause bigger and always on top
  X cursor status for "in a menu", stop sending updates
- - similar to above, user "tabbed out" state
- - use @ rather than ../../..
  X one item instance per item
+ - similar to above, user "tabbed out" state
+ - little typing ping if user is tabbed out and guest is typing
+ - use @ rather than ../../..
 
  ### Big features
  - stripe integration

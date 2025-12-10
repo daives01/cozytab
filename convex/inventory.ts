@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
+import { applyCurrencyChange } from "./lib/currency";
+import { randomId } from "./lib/id";
 
 export const getMyInventory = query({
     args: {},
@@ -107,7 +109,10 @@ export const hasItem = query({
 });
 
 export const purchaseItem = mutation({
-    args: { catalogItemId: v.id("catalogItems") },
+    args: {
+        catalogItemId: v.id("catalogItems"),
+        requestId: v.optional(v.string()),
+    },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) throw new Error("Not authenticated");
@@ -137,10 +142,18 @@ export const purchaseItem = mutation({
             return { success: false, message: "Insufficient funds" };
         }
 
-        const newBalance = user.currency - catalogItem.basePrice;
-        await ctx.db.patch(user._id, {
-            currency: newBalance,
+        const requestId = args.requestId ?? randomId();
+        const change = await applyCurrencyChange({
+            ctx,
+            userId: user._id,
+            delta: -catalogItem.basePrice,
+            reason: "purchase",
+            idempotencyKey: `purchase:${user._id}:${requestId}`,
+            metadata: { catalogItemId: args.catalogItemId },
         });
+        if (!change.applied) {
+            return { success: true, newBalance: change.balance };
+        }
 
         if (existingItem) {
             await ctx.db.patch(existingItem._id, {
@@ -159,7 +172,7 @@ export const purchaseItem = mutation({
 
         return {
             success: true,
-            newBalance,
+            newBalance: change.balance,
         };
     },
 });
