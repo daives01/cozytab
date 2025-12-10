@@ -129,6 +129,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const heartbeatInvite = useMutation(api.rooms.heartbeatInvite);
     const closeInviteSession = useMutation(api.rooms.closeInviteSession);
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
+    const activeInviteCode = !isGuest ? activeInvites?.[0]?.code ?? null : null;
+    const inviteLoading = !isGuest && activeInvites === undefined;
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
@@ -149,6 +151,19 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         (isGuest ? guestCursorColor : authedCursorColor ?? user?.cursorColor ?? computerState?.cursorColor) ??
         "var(--chart-4)";
     useCursorColor(cursorColor);
+
+    useEffect(() => {
+        if (isGuest) return;
+        if (inviteLoading) return;
+        if (typeof window === "undefined") return;
+
+        const desiredPath = activeInviteCode ? `/visit/${activeInviteCode}` : "/";
+        const currentPath = window.location.pathname;
+
+        if (currentPath !== desiredPath) {
+            window.history.replaceState(window.history.state, "", desiredPath);
+        }
+    }, [activeInviteCode, inviteLoading, isGuest]);
 
     useCursorColorSaver(saveComputer, authedShortcutsRef, saveAuthedCursorColorRef);
 

@@ -13,6 +13,7 @@ import { Home, Users } from "lucide-react";
 import type { ComputerShortcut, RoomItem } from "../types";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
+import { RoomPage } from "./RoomPage";
 import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
@@ -39,15 +40,64 @@ import { useViewportSize } from "./hooks/useRoomPageEffects";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 
+type InviteQueryResult = ReturnType<typeof useQuery<typeof api.rooms.getRoomByInvite>>;
+
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
+    const { isSignedIn } = useUser();
+    const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const roomData = useQuery(api.rooms.getRoomByInvite, token ? { token } : "skip");
+
+    const isOwnerLoading = isSignedIn && authedUser === undefined;
+    const isOwnerViewingInvite =
+        isSignedIn && Boolean(authedUser?._id && roomData?.room?.userId === authedUser._id);
+
+    if (!token) {
+        return (
+            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
+                <p>Invalid invite link</p>
+                <Link to="/">
+                    <Button>
+                        <Home className="mr-2 h-4 w-4" />
+                        Go Home
+                    </Button>
+                </Link>
+            </div>
+        );
+    }
+
+    if (isOwnerLoading || roomData === undefined) {
+        return (
+            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
+                Loading room...
+            </div>
+        );
+    }
+
+    if (isOwnerViewingInvite && roomData?.room?._id) {
+        return <RoomPage isGuest={false} />;
+    }
+
+    return (
+        <VisitorRoomPageContent
+            roomData={roomData as Exclude<InviteQueryResult, undefined>}
+            authedUser={authedUser}
+        />
+    );
+}
+
+function VisitorRoomPageContent({
+    roomData,
+    authedUser,
+}: {
+    roomData: Exclude<InviteQueryResult, undefined>;
+    authedUser: ReturnType<typeof useQuery<typeof api.users.getMe>>;
+}) {
     const roomStatus = useQuery(
         api.rooms.getRoomStatus,
         roomData?.room?._id ? { roomId: roomData.room._id } : "skip"
     );
     const { user: clerkUser, isSignedIn } = useUser();
-    const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
     const saveComputer = useMutation(api.users.saveMyComputer);
 
@@ -240,28 +290,6 @@ export function VisitorRoomPage() {
     const overlayDisplayName = isSignedIn ? visitorIdentity.name : undefined;
     const overlayUsername = isSignedIn ? clerkUser?.username ?? "you" : undefined;
     const overlayCursorColor = visitorIdentity.cursorColor;
-
-    if (!token) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>Invalid invite link</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    if (roomData === undefined) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading room...
-            </div>
-        );
-    }
 
     if (roomData === null) {
         return (
