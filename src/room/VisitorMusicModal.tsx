@@ -31,6 +31,16 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
     };
 
     useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                onClose();
+            }
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [onClose]);
+
+    useEffect(() => {
         if (!videoId) {
             setTitle(null);
             setIsFetchingTitle(false);
