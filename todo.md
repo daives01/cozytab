@@ -5,10 +5,10 @@
 ### small-ish features
  - autoplay after loading a new track without breaking the multiplayer stuff
  - make play/pause bigger and always on top
- - volume control for music
- - esc should close computer
- - "now playing" for visitors
+ X esc should close computer
  - use @ rather than ../../..
+ X "now playing" for visitors
+ X volume control for music
  X cursor status for "in a menu", stop sending updates
  X one item instance per item
  X similar to above, user "tabbed out" state
@@ -16,4 +16,3 @@
 
  ### Big features
  - stripe integration
-   need to tighten buying process first

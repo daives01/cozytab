@@ -574,6 +574,7 @@ export function ComputerScreen({
                     setPendingShortcutPosition(null);
                     setNewShortcutUrl("");
                 }
+                onClose();
                 return;
             }
 
@@ -599,7 +600,16 @@ export function ComputerScreen({
         };
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
-    }, [cancelRename, desktopShortcuts, draggingId, handleDeleteShortcut, inlineAddPrompt, renamingId, selectedId]);
+    }, [
+        cancelRename,
+        desktopShortcuts,
+        draggingId,
+        handleDeleteShortcut,
+        inlineAddPrompt,
+        onClose,
+        renamingId,
+        selectedId,
+    ]);
 
     function commitRename(id: string) {
         const target = desktopShortcuts.find((s) => s.id === id);
