@@ -6,8 +6,8 @@ import { ensureAudioReady, getAudioContext, isAudioUnlocked } from "./audio";
 export const TYPING_AUDIO_VOLUME = .5;
 export const TYPING_AUDIO_MAX_SIMULTANEOUS = 4;
 export const TYPING_AUDIO_THROTTLE_MS = 35;
-export const TYPING_AUDIO_RATE_MIN = 0.95;
-export const TYPING_AUDIO_RATE_MAX = 1.00;
+export const TYPING_AUDIO_RATE_MIN = 0.85;
+export const TYPING_AUDIO_RATE_MAX = 0.95;
 export const TYPING_AUDIO_VOLUME_JITTER_MIN = 0.95;
 export const TYPING_AUDIO_VOLUME_JITTER_MAX = 1.0;
 let typingVolumeMultiplier = 1;
@@ -98,6 +98,7 @@ async function playSample(path: string) {
 
     // Randomize pitch and micro-variations in level for more realism.
     source.playbackRate.value = randomInRange(TYPING_AUDIO_RATE_MIN, TYPING_AUDIO_RATE_MAX);
+
     gain.gain.value =
         TYPING_AUDIO_VOLUME * typingVolumeMultiplier * randomInRange(TYPING_AUDIO_VOLUME_JITTER_MIN, TYPING_AUDIO_VOLUME_JITTER_MAX);
 
