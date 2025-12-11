@@ -345,6 +345,26 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         cursorColor,
         canPlaceItem,
     });
+    const { handleModeToggle } = handlers;
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            const target = event.target as HTMLElement | null;
+            const isTypingTarget =
+                target &&
+                (target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.getAttribute("contenteditable") === "true");
+            if (isTypingTarget) return;
+            if (mode === "edit") {
+                event.preventDefault();
+                handleModeToggle();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [handleModeToggle, mode]);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
