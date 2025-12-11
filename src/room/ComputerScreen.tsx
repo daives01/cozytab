@@ -13,6 +13,8 @@ import { DesktopGrid } from "./computer/DesktopGrid";
 import { InlineAddPrompt } from "./computer/InlineAddPrompt";
 import { DesktopContextMenu, type ContextMenuState } from "./computer/DesktopContextMenu";
 import { Taskbar, WindowHeader } from "./computer/Taskbar";
+import { VolumePanel } from "./computer/VolumePanel";
+import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 import {
     GRID_COLUMNS,
     ROW_HEIGHT,
@@ -114,6 +116,7 @@ export function ComputerScreen({
         col: number;
     } | null>(null);
     const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
+    const [isVolumePanelOpen, setIsVolumePanelOpen] = useState(false);
     const [now, setNow] = useState(() => new Date());
     const [desktopScale, setDesktopScale] = useState(1);
     const [windows, setWindows] = useState<ComputerWindow[]>([]);
@@ -143,6 +146,12 @@ export function ComputerScreen({
         originH: number;
     } | null>(null);
     const windowsRef = useRef<ComputerWindow[]>([]);
+    const {
+        volume: keyboardVolume,
+        musicVolume,
+        setVolume: setKeyboardVolume,
+        setMusicVolume,
+    } = useKeyboardSoundPreferences();
     const { signOut } = useClerk();
     const isDevEnv = import.meta.env.DEV;
     const devDeleteMyAccount = useMutation(api.users.devDeleteMyAccount);
@@ -687,6 +696,7 @@ export function ComputerScreen({
         setSelectedId(null);
         setContextMenu(null);
         setIsStartMenuOpen(false);
+        setIsVolumePanelOpen(false);
         if (renamingId) {
             cancelRename();
         }
@@ -700,9 +710,13 @@ export function ComputerScreen({
     const toggleStartMenu = () => {
         setIsStartMenuOpen((prev) => !prev);
         setContextMenu(null);
+        setIsVolumePanelOpen(false);
     };
 
-    const closeStartMenu = () => setIsStartMenuOpen(false);
+    const closeStartMenu = () => {
+        setIsStartMenuOpen(false);
+        setIsVolumePanelOpen(false);
+    };
 
     const handleContextMenuOpen = (
         event: React.MouseEvent,
@@ -734,7 +748,16 @@ export function ComputerScreen({
             col,
         });
         setIsStartMenuOpen(false);
+        setIsVolumePanelOpen(false);
     };
+
+    const toggleVolumePanel = () => {
+        setIsVolumePanelOpen((prev) => !prev);
+        setIsStartMenuOpen(false);
+        setContextMenu(null);
+    };
+
+    const closeVolumePanel = () => setIsVolumePanelOpen(false);
 
     const startAddAtCell = (row: number, col: number, x: number, y: number) => {
         setPendingShortcutPosition({ row, col });
@@ -765,6 +788,7 @@ export function ComputerScreen({
             onClick={() => {
                 setIsStartMenuOpen(false);
                 setContextMenu(null);
+                setIsVolumePanelOpen(false);
                 onClose();
             }}
         >
@@ -924,6 +948,18 @@ export function ComputerScreen({
                                 closeStartMenu();
                                 handleDevDeleteUser();
                             }}
+                            onToggleVolume={toggleVolumePanel}
+                            isVolumeOpen={isVolumePanelOpen}
+                            volumeLevel={keyboardVolume}
+                        />
+
+                        <VolumePanel
+                            isOpen={isVolumePanelOpen}
+                            onClose={closeVolumePanel}
+                            keyboardVolume={keyboardVolume}
+                            musicVolume={musicVolume}
+                            onKeyboardVolumeChange={setKeyboardVolume}
+                            onMusicVolumeChange={setMusicVolume}
                         />
                     </div>
 

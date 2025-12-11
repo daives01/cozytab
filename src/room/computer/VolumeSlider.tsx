@@ -1,43 +1,61 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MouseEvent, TouchEvent } from "react";
-import { Volume1, Volume2, VolumeX } from "lucide-react";
 
 type VolumeSliderProps = {
     value: number;
     onChange: (val: number) => void;
+    muted?: boolean;
+    height?: number; // pixel height override
 };
 
-export function NeoVolumeSlider({ value, onChange }: VolumeSliderProps) {
+export function RetroVolumeFader({ value, onChange, muted = false, height }: VolumeSliderProps) {
     const trackRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const rafRef = useRef<number | null>(null);
+    const lastClientY = useRef<number | null>(null);
+
+    const clamp = (next: number) => Math.max(0, Math.min(1, next));
+
+    const runInteraction = useCallback(() => {
+        if (!trackRef.current || lastClientY.current === null) {
+            rafRef.current = null;
+            return;
+        }
+        const rect = trackRef.current.getBoundingClientRect();
+        const y = Math.max(rect.top, Math.min(lastClientY.current, rect.bottom));
+        const percentage = 1 - (y - rect.top) / rect.height;
+        onChange(clamp(percentage));
+        rafRef.current = null;
+    }, [onChange]);
 
     const handleInteraction = useCallback(
-        (clientX: number) => {
-            if (!trackRef.current) return;
-            const rect = trackRef.current.getBoundingClientRect();
-            const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-            const percentage = x / rect.width;
-            onChange(Math.max(0, Math.min(1, percentage)));
+        (clientY: number) => {
+            lastClientY.current = clientY;
+            if (rafRef.current === null) {
+                rafRef.current = window.requestAnimationFrame(runInteraction);
+            }
         },
-        [onChange]
+        [runInteraction]
     );
 
     const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
         setIsDragging(true);
-        handleInteraction(e.clientX);
+        handleInteraction(e.clientY);
     };
 
     const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+        e.preventDefault();
         setIsDragging(true);
-        handleInteraction(e.touches[0].clientX);
+        handleInteraction(e.touches[0].clientY);
     };
 
     useEffect(() => {
         if (!isDragging) return;
 
-        const onMove = (e: globalThis.MouseEvent) => handleInteraction(e.clientX);
+        const onMove = (e: globalThis.MouseEvent) => handleInteraction(e.clientY);
         const onUp = () => setIsDragging(false);
-        const onTouchMove = (e: globalThis.TouchEvent) => handleInteraction(e.touches[0].clientX);
+        const onTouchMove = (e: globalThis.TouchEvent) => handleInteraction(e.touches[0].clientY);
         const onTouchEnd = () => setIsDragging(false);
 
         window.addEventListener("mousemove", onMove);
@@ -53,48 +71,49 @@ export function NeoVolumeSlider({ value, onChange }: VolumeSliderProps) {
         };
     }, [handleInteraction, isDragging]);
 
-    const percentage = value * 100;
-    const VolumeIcon = value === 0 ? VolumeX : value < 0.5 ? Volume1 : Volume2;
+    useEffect(
+        () => () => {
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current);
+            }
+        },
+        []
+    );
+
+    const percentage = Math.round(clamp(value) * 100);
+
+    const containerHeight = height ?? 128; // default 8rem similar to h-32
 
     return (
-        <div className="flex w-full items-center gap-4 select-none font-sans">
-            <button
-                onClick={() => onChange(value === 0 ? 0.5 : 0)}
-                className="group flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_var(--color-foreground)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-                aria-label={value === 0 ? "Unmute" : "Mute"}
-            >
-                <VolumeIcon 
-                    className={`h-6 w-6 text-[var(--color-foreground)] transition-all duration-300 ${value === 0 ? 'text-[var(--color-muted-foreground)]' : ''}`} 
-                />
-            </button>
-
+        <div className="relative flex w-12 justify-center py-2 select-none" style={{ height: containerHeight }}>
             <div
                 ref={trackRef}
-                className="relative h-12 flex-1 cursor-pointer touch-none rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)]/10 shadow-[4px_4px_0px_0px_var(--color-foreground)]"
+                className={`relative h-full w-4 cursor-pointer touch-none rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-muted)]/20 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.1)] ${
+                    muted ? "opacity-60" : ""
+                }`}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
+                aria-label="Volume fader"
+                role="slider"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={percentage}
             >
-                <div className="absolute inset-0 rounded-lg overflow-hidden">
-                    
-                    <div
-                        className="absolute inset-y-0 left-0 bg-[var(--color-share-accent)] border-r-2 border-[var(--color-foreground)]"
-                        style={{ width: `${percentage}%` }}
-                    />
-                </div>
                 <div
-                    className="absolute top-0 bottom-0 w-6 -ml-3 z-10 flex items-center justify-center cursor-grab active:cursor-grabbing group"
-                    style={{ left: `${percentage}%` }}
+                    className="absolute bottom-0 w-full rounded-b-full bg-emerald-400 border-[var(--color-foreground)] border-t-0 opacity-90"
+                    style={{ height: `${percentage}%` }}
+                />
+                <div
+                    className="absolute left-1/2 z-10 h-5 w-8 -translate-x-1/2 cursor-grab active:cursor-grabbing"
+                    style={{ bottom: `calc(${percentage}% - 10px)` }}
                 >
-                    <div className="h-8 w-4 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-sm transition-transform group-active:scale-95 group-hover:scale-110 flex flex-col gap-1 items-center justify-center">
-                         <div className="w-0.5 h-3 bg-[var(--color-foreground)]/20 rounded-full" />
+                    <div className="flex h-full w-full items-center justify-center rounded-sm border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-transform hover:scale-105 active:scale-95 active:shadow-none">
+                        <div className="h-[2px] w-4 rounded-full bg-[var(--color-foreground)] opacity-30" />
                     </div>
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none mix-blend-plus-darker">
-                    <span className="text-xs font-black font-mono tracking-widest text-[var(--color-foreground)]">
-                        {Math.round(percentage)}%
-                    </span>
                 </div>
             </div>
         </div>
     );
 }
+
+export { RetroVolumeFader as NeoVolumeSlider };

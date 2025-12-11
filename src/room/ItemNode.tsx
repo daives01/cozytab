@@ -105,7 +105,8 @@ export function ItemNode({
         (isVisitor
             ? Boolean(
                 hasUrl ||
-                (isComputerCategory && onComputerClick)
+                (isComputerCategory && onComputerClick) ||
+                (isMusicCategory && onMusicPlayerClick)
             )
             : Boolean(
                 (isComputerCategory && onComputerClick) ||
@@ -136,6 +137,11 @@ export function ItemNode({
                 e.stopPropagation();
                 if (mode !== "view" || !isInteractable) return;
 
+                if (isMusicCategory && onMusicPlayerClick) {
+                    onMusicPlayerClick();
+                    return;
+                }
+
                 if (isVisitor && item.url) {
                     window.open(item.url, "_blank");
                     return;
@@ -143,11 +149,6 @@ export function ItemNode({
 
                 if (isComputerCategory && onComputerClick) {
                     onComputerClick();
-                    return;
-                }
-
-                if (isMusicCategory && onMusicPlayerClick) {
-                    onMusicPlayerClick();
                     return;
                 }
 

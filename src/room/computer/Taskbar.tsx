@@ -8,6 +8,9 @@ import {
     User,
     UserCircle,
     UserPlus,
+    Volume1,
+    Volume2,
+    VolumeX,
     X,
 } from "lucide-react";
 import type { TimeOfDay } from "../roomConstants";
@@ -31,6 +34,9 @@ interface TaskbarProps {
     onResetStorage: () => void;
     onDeleteAccount: () => void;
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
+    onToggleVolume: () => void;
+    isVolumeOpen: boolean;
+    volumeLevel: number;
 }
 
 function TaskbarTooltip({ label }: { label: string }) {
@@ -95,6 +101,9 @@ export function Taskbar({
     onResetStorage,
     onDeleteAccount,
     onSetDevTimeOfDay,
+    onToggleVolume,
+    isVolumeOpen,
+    volumeLevel,
 }: TaskbarProps) {
     const devTimeOfDayOptions: Array<{ label: string; value: TimeOfDay | null }> = [
         { label: "Auto", value: null },
@@ -102,6 +111,7 @@ export function Taskbar({
         { label: "Night", value: "night" },
     ];
     const visibleTimeOfDay = devTimeOfDay ?? currentTimeOfDay;
+    const VolumeIcon = volumeLevel === 0 ? VolumeX : volumeLevel < 0.5 ? Volume1 : Volume2;
 
     return (
         <div className="bg-gradient-to-b from-[var(--taskbar-from)] to-[var(--taskbar-to)] border-t-2 border-[var(--taskbar-border)] p-1.5 px-2 shadow-[var(--shadow-inset-1)] text-[var(--ink)] relative">
@@ -191,8 +201,23 @@ export function Taskbar({
                 <div className="flex-1" />
 
                 <div className="flex items-center gap-2 bg-[color-mix(in_srgb,var(--taskbar-from)_70%,transparent)] border border-[var(--taskbar-border)] rounded px-2 py-1 shadow-inner">
-                    <Clock3 className="h-4 w-4 text-[var(--ink-muted)]" />
-                    <span className="font-mono text-sm text-[var(--ink)]">{nowLabel}</span>
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleVolume();
+                        }}
+                        aria-label="Volume"
+                        aria-pressed={isVolumeOpen}
+                        className={`h-7 w-8 rounded-sm border-2 border-[var(--taskbar-border)] bg-gradient-to-b from-[color-mix(in_srgb,var(--taskbar-to)_92%,var(--card))] to-[color-mix(in_srgb,var(--taskbar-from)_90%,transparent)] shadow-[2px_2px_0px_0px_color-mix(in_srgb,var(--ink)_25%,transparent)] flex items-center justify-center transition-transform ${
+                            isVolumeOpen ? "translate-y-[1px] shadow-none" : ""
+                        }`}
+                    >
+                        <VolumeIcon className="h-4 w-4 text-[var(--ink)]" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <Clock3 className="h-4 w-4 text-[var(--ink-muted)]" />
+                        <span className="font-mono text-sm text-[var(--ink)]">{nowLabel}</span>
+                    </div>
                 </div>
             </div>
 

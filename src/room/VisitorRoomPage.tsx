@@ -38,6 +38,7 @@ import { PresenceLayer } from "./components/PresenceLayer";
 import { RoomShell } from "./RoomShell";
 import { ChatHint } from "./components/ChatHint";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
+import { VisitorMusicModal } from "./VisitorMusicModal.tsx";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";
@@ -115,6 +116,7 @@ function VisitorRoomPageContent({
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
     const [guestCursorColor] = useState(() => randomBrightColor());
     const [isComputerOpen, setIsComputerOpen] = useState(false);
+    const [activeMusicItemId, setActiveMusicItemId] = useState<string | null>(null);
     const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
@@ -159,6 +161,21 @@ function VisitorRoomPageContent({
         }
         return next;
     }, [baseVisitorMusicState, visitorMusicOverrides]);
+
+    const activeMusicItem = useMemo(() => {
+        if (!activeMusicItemId || !items) return null;
+        const rawItem = items.find((i) => i.id === activeMusicItemId);
+        if (!rawItem) return null;
+        const musicState = visitorMusicState[rawItem.id];
+        return musicState
+            ? {
+                  ...rawItem,
+                  musicPlaying: musicState.playing,
+                  musicStartedAt: musicState.startedAt,
+                  musicPositionAtStart: musicState.positionAtStart,
+              }
+            : rawItem;
+    }, [activeMusicItemId, items, visitorMusicState]);
 
     // Guest-local computer state
     const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
@@ -207,7 +224,7 @@ function VisitorRoomPageContent({
         },
         isOwner: false,
     });
-    const isInMenu = isComputerOpen;
+    const isInMenu = isComputerOpen || Boolean(activeMusicItem);
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
@@ -362,7 +379,7 @@ function VisitorRoomPageContent({
                         onDragStart={() => {}}
                         onDragEnd={() => {}}
                         onComputerClick={handleOpenComputer}
-                        onMusicPlayerClick={() => {}}
+                        onMusicPlayerClick={() => setActiveMusicItemId(item.id)}
                         isVisitor={true}
                         overlay={
                             isMusicItem(item) ? (
@@ -441,6 +458,10 @@ function VisitorRoomPageContent({
 
             <ChatInput onMessageChange={updateChatMessage} />
             <ChatHint />
+
+            {activeMusicItem ? (
+                <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
+            ) : null}
 
             <LocalCursor
                 x={screenCursor.x}

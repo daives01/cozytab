@@ -3,9 +3,11 @@ import { Play, Pause, Volume2, VolumeX } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
 import { ensureAudioReady } from "@/lib/audio";
+import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 
 // When a visitor unmutes, jump slightly ahead to counteract accumulated lag.
 const VISITOR_UNMUTE_AHEAD_SECONDS = .1;
+const PLAY_KICK_DELAY_MS = 1000;
 
 interface MusicPlayerButtonsProps {
     item: RoomItem;
@@ -17,8 +19,10 @@ interface MusicPlayerButtonsProps {
 export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = false }: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
-    const [hasInteracted, setHasInteracted] = useState(false);
+    // Hosts are treated as having interacted so state-driven playback can start.
+    const [hasInteracted, setHasInteracted] = useState(() => !isVisitor);
     const [muted, setMuted] = useState(false);
+    const { musicVolume } = useKeyboardSoundPreferences();
     const playing = item.musicPlaying ?? false;
     // Host: require explicit interaction to auto-play after refresh; ignore token.
     // Visitor: require first interaction; token only helps after interaction is granted.
@@ -80,12 +84,28 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
         seekTo(nowSeconds);
     }, [computeLivePositionSeconds, isReady, seekTo, videoId]);
 
+    // When a new track is requested, wait a beat before attempting play so the iframe is settled.
+    useEffect(() => {
+        if (!playing || !isReady || !videoId) return;
+        if (isVisitor && muted) return;
+        if (!hasInteracted) return;
+        const timer = window.setTimeout(() => {
+            sendCommand("playVideo");
+        }, PLAY_KICK_DELAY_MS);
+        return () => window.clearTimeout(timer);
+    }, [hasInteracted, isReady, isVisitor, muted, playing, sendCommand, videoId]);
+
     useEffect(() => {
         const canPlay = hasInteracted && playing && (!isVisitor || !muted);
         if (isReady && canPlay) {
             sendCommand("playVideo");
         }
     }, [hasInteracted, isVisitor, isReady, muted, playing, sendCommand]);
+
+    useEffect(() => {
+        if (!isReady) return;
+        sendCommand("setVolume", [Math.round(musicVolume * 100)]);
+    }, [isReady, musicVolume, sendCommand]);
 
     useEffect(() => {
         if (isReady && !playing) {

@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { clampHue, hexToHsl, hslToHex, type HslColor } from "../utils/cursorColor";
-import { useKeyboardSoundPreferences } from "../../hooks/useKeyboardSoundSetting";
-import { ToggleSwitch } from "@/components/ui/toggle";
-import { NeoVolumeSlider } from "./VolumeSlider.tsx";
 
 interface DisplayNameSectionProps {
     currentDisplayName: string;
@@ -27,8 +24,6 @@ export function CustomizePanel({
 }: CustomizePanelProps) {
     const [localName, setLocalName] = useState(displayNameProps?.currentDisplayName ?? "");
     const [hasTyped, setHasTyped] = useState(false);
-    const { enabled: keyboardSoundsEnabled, setEnabled: setKeyboardSoundsEnabled, volume: keyboardVolume, setVolume } =
-        useKeyboardSoundPreferences();
     const hsl = useMemo<HslColor>(() => hexToHsl(color), [color]);
 
     const safeHue = clampHue(hsl.h ?? 0);
@@ -146,28 +141,6 @@ export function CustomizePanel({
                         </div>
                     </div>
 
-                    <div className="bg-[var(--card)] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] rounded-2xl p-4 shadow-md space-y-3 text-[var(--ink)]">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-semibold">Keyboard sounds</h3>
-                                <p className="text-xs text-[var(--ink-subtle)]">Play typing clicks for chat input.</p>
-                            </div>
-                                <div className="inline-flex items-center gap-2">
-                                    <span className="text-sm text-[var(--ink-subtle)]">
-                                        {keyboardSoundsEnabled ? "On" : "Off"}
-                                    </span>
-                                    <ToggleSwitch
-                                        aria-label="Toggle keyboard sounds"
-                                        checked={keyboardSoundsEnabled}
-                                        onCheckedChange={setKeyboardSoundsEnabled}
-                                    />
-                                </div>
-                        </div>
-                        <div className="space-y-2">
-                            <p className="text-xs text-[var(--ink-subtle)]">Volume</p>
-                            <NeoVolumeSlider value={keyboardVolume} onChange={setVolume} />
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

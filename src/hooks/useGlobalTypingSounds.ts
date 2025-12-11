@@ -5,12 +5,12 @@ import { useKeyboardSoundPreferences } from "./useKeyboardSoundSetting";
 
 // Listens for local keyboard events and plays typing sounds globally.
 export function useGlobalTypingSounds() {
-    const { enabled } = useKeyboardSoundPreferences();
-    const enabledRef = useRef(enabled);
+    const { volume } = useKeyboardSoundPreferences();
+    const enabledRef = useRef(volume > 0.0001);
 
     useEffect(() => {
-        enabledRef.current = enabled;
-    }, [enabled]);
+        enabledRef.current = volume > 0.0001;
+    }, [volume]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -32,3 +32,4 @@ export function useGlobalTypingSounds() {
         };
     }, []);
 }
+

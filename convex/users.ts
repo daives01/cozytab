@@ -129,8 +129,8 @@ export const getKeyboardSoundSettings = query({
         if (!user) return null;
 
         return {
-            enabled: user.keyboardSoundsEnabled ?? true,
             volume: clampVolume(user.keyboardSoundVolume, 0.5),
+            musicVolume: clampVolume(user.musicPlayerVolume, 0.7),
         };
     },
 });
@@ -922,19 +922,32 @@ export const saveMyComputer = mutation({
 
 export const saveKeyboardSoundSettings = mutation({
     args: {
-        enabled: v.boolean(),
         volume: v.number(),
+        musicVolume: v.optional(v.number()),
     },
     handler: async (ctx, args) => {
         const { user } = await requireUser(ctx);
         const clampedVolume = clampVolume(args.volume, 0.5);
+        const clampedMusicVolume = clampVolume(args.musicVolume ?? user.musicPlayerVolume, 0.7);
 
         await ctx.db.patch(user._id, {
-            keyboardSoundsEnabled: args.enabled,
             keyboardSoundVolume: clampedVolume,
+            musicPlayerVolume: clampedMusicVolume,
         });
 
-        return { enabled: args.enabled, volume: clampedVolume };
+        return { volume: clampedVolume, musicVolume: clampedMusicVolume };
+    },
+});
+
+export const saveMusicPlayerVolume = mutation({
+    args: {
+        volume: v.number(),
+    },
+    handler: async (ctx, args) => {
+        const { user } = await requireUser(ctx);
+        const clamped = clampVolume(args.volume, 0.7);
+        await ctx.db.patch(user._id, { musicPlayerVolume: clamped });
+        return { volume: clamped };
     },
 });
 
