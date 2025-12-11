@@ -1,5 +1,5 @@
-import type { ComputerShortcut } from "../types";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { ComputerShortcut } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
 import { useAtomValue, useSetAtom } from "jotai";
 import {

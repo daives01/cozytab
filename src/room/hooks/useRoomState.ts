@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { ComputerShortcut } from "../../types";
-import type { GuestSessionState } from "../../../shared/guestTypes";
+import type { ComputerShortcut } from "@/types";
+import type { GuestSessionState } from "@shared/guestTypes";
 import {
     coinsAtom,
     computerOpenAtom,
@@ -39,7 +39,7 @@ import {
     normalizeGuestShortcuts,
 } from "../guestState";
 import { readGuestSession, buildCatalogLookup } from "../guestSession";
-import type { Doc } from "../../../convex/_generated/dataModel";
+import type { Doc } from "@convex/_generated/dataModel";
 
 export type UseRoomStateArgs = {
     isGuest: boolean;

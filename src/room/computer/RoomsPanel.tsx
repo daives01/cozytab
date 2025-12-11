@@ -1,6 +1,6 @@
 import { CheckCircle2, Home } from "lucide-react";
-import type { Id } from "../../../convex/_generated/dataModel";
-import { AssetImage } from "../../components/AssetImage";
+import type { Id } from "@convex/_generated/dataModel";
+import { AssetImage } from "@/components/AssetImage";
 
 interface Room {
     _id: Id<"rooms">;

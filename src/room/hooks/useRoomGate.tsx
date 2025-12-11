@@ -1,7 +1,7 @@
 import { DesktopOnlyNotice, LoadingScreen, NoDemoRoom } from "../components/RoomFallbacks";
-import type { Doc } from "../../../convex/_generated/dataModel";
-import type { RoomItem } from "../../types";
-import type { GuestSessionState } from "../../../shared/guestTypes";
+import type { Doc } from "@convex/_generated/dataModel";
+import type { RoomItem } from "@/types";
+import type { GuestSessionState } from "@shared/guestTypes";
 
 type HydratedRoom = (Doc<"rooms"> & { template?: Doc<"roomTemplates"> | null }) | null | undefined;
 type GuestDefaultRoom = { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;

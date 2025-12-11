@@ -6,8 +6,8 @@ import {
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
-} from "../../../shared/guestTypes";
-import type { ComputerShortcut } from "../../types";
+} from "@shared/guestTypes";
+import type { ComputerShortcut } from "@/types";
 import {
     readGuestSession,
     saveGuestSession,

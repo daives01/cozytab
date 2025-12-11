@@ -1,4 +1,4 @@
-import type { Id } from "../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 
 export const GUEST_STARTING_COINS = 5;
 export const GUEST_ROOM_STORAGE_KEY = "cozytab_guest_room";

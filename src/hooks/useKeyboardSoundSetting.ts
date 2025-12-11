@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { setTypingVolumeMultiplier } from "../lib/typingAudio";
+import { api } from "@convex/_generated/api";
+import { setTypingVolumeMultiplier } from "@/lib/typingAudio";
 import { debounce } from "@/lib/debounce";
 
 type KeyboardSoundPrefs = { volume: number; musicVolume: number };

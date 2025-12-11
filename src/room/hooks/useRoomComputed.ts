@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { canShare, canUseComputer } from "../utils/sessionGuards";
 import { countIds } from "../utils/itemCounts";
 import type { OnboardingStep } from "../Onboarding";
-import type { Id, Doc } from "../../../convex/_generated/dataModel";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 
 type UseRoomComputedArgs = {
     catalogItems: Doc<"catalogItems">[] | undefined;

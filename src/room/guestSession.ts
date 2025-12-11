@@ -1,4 +1,4 @@
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 import {
     GUEST_COINS_STORAGE_KEY,
     GUEST_INVENTORY_STORAGE_KEY,
@@ -10,7 +10,7 @@ import {
     type GuestRoomItem,
     type GuestSessionState,
     type GuestShortcut,
-} from "../../shared/guestTypes";
+} from "@shared/guestTypes";
 
 function randomBrightColor(): string {
     const hue = Math.floor(Math.random() * 360);

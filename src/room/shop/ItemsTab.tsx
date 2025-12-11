@@ -1,7 +1,7 @@
 import { Package, Coins, Check } from "lucide-react";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
-import { AssetImage } from "../../components/AssetImage";
-import { ItemCountBadge } from "../components/ItemCountBadge";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import { AssetImage } from "@/components/AssetImage";
+import { ItemCountBadge } from "@/room/components/ItemCountBadge";
 
 interface ItemsTabProps {
     groupedItems: Record<string, Doc<"catalogItems">[]>;

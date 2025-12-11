@@ -1,6 +1,6 @@
 import { ROOM_ITEM_MAX_X, ROOM_ITEM_MAX_Y } from "../roomConstants";
-import type { RoomItem } from "../../types";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { RoomItem } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
 
 const MIN_POSITION = 0;
 

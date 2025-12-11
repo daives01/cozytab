@@ -1,5 +1,5 @@
 import { useMemo, type CSSProperties } from "react";
-import { cn } from "../../lib/utils";
+import { cn } from "@/lib/utils";
 
 import musicNote1 from "/assets/music-note-1.svg?raw";
 import musicNote2 from "/assets/music-note-2.svg?raw";

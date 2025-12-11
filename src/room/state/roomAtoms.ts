@@ -3,8 +3,8 @@ import { selectAtom } from "jotai/utils";
 import type { Getter, Setter } from "jotai/vanilla";
 import { atom, createStore } from "jotai/vanilla";
 import React, { type PropsWithChildren, useMemo } from "react";
-import type { ComputerShortcut, RoomItem } from "../../types";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
 
 export type Mode = "view" | "edit";
 export type MusicAutoplayState = { itemId: string; token: string } | null;

@@ -1,4 +1,4 @@
-import type { ComputerShortcut } from "../../types";
+import type { ComputerShortcut } from "@/types";
 
 type ContextMenuState =
     | { target: "shortcut"; id: string; x: number; y: number }

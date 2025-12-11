@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { convexTest } from "convex-test";
-import schema from "../convex/schema";
-import { applyCurrencyChange } from "../convex/lib/currency";
+import schema from "@convex/schema";
+import { applyCurrencyChange } from "@convex/lib/currency";
 
 const modules = {
-    "../convex/_generated/api.js": () => import("../convex/_generated/api.js"),
-    "../convex/_generated/server.js": () => import("../convex/_generated/server.js"),
+    "@convex/_generated/api.js": () => import("@convex/_generated/api.js"),
+    "@convex/_generated/server.js": () => import("@convex/_generated/server.js"),
 };
 
 async function setupUser(initialCurrency: number) {

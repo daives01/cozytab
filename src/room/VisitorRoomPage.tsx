@@ -10,9 +10,9 @@ import { LocalCursor } from "./LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import type { ComputerShortcut, RoomItem } from "../types";
-import type { Id } from "../../convex/_generated/dataModel";
-import { api } from "../../convex/_generated/api";
+import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
 import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
@@ -24,7 +24,7 @@ import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
 import { ComputerOverlay } from "./ComputerOverlay";
-import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
 import {
     guestCoinsAtom,

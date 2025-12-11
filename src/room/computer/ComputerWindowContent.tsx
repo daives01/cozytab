@@ -5,7 +5,7 @@ import { Shop } from "../Shop";
 import { AboutPanel } from "./AboutPanel";
 import { CustomizePanel } from "./CustomizePanel";
 import type { ComputerWindowApp } from "./computerTypes";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 
 type ShopWindowProps = ComponentProps<typeof Shop>;
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Id, TableNames } from "../../../convex/_generated/dataModel";
+import type { Id, TableNames } from "@convex/_generated/dataModel";
 
 interface UseImageUploadOptions<T extends TableNames> {
     generateUploadUrl: () => Promise<string>;

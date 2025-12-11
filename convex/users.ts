@@ -2,7 +2,7 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
-import { GUEST_STARTING_COINS, type GuestRoomItem, type GuestSessionState, type GuestShortcut } from "../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestRoomItem, type GuestSessionState, type GuestShortcut } from "@shared/guestTypes";
 import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
 import { applyCurrencyChange } from "./lib/currency";
 

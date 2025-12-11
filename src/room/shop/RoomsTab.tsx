@@ -1,6 +1,6 @@
 import { Home, Coins, Check } from "lucide-react";
-import type { Doc, Id } from "../../../convex/_generated/dataModel";
-import { AssetImage } from "../../components/AssetImage";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import { AssetImage } from "@/components/AssetImage";
 
 interface RoomsTabProps {
     purchasableRooms: Doc<"roomTemplates">[];

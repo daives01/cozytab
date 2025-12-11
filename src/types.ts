@@ -1,4 +1,4 @@
-import type { Doc } from "../convex/_generated/dataModel";
+import type { Doc } from "@convex/_generated/dataModel";
 
 type UserComputer = NonNullable<Doc<"users">["computer"]>;
 
@@ -13,4 +13,4 @@ export type CatalogItemCategory = "Furniture" | "Decor" | "Computers" | "Music";
 export type RoomItem = Doc<"rooms">["items"][number];
 export type ComputerShortcut = UserComputer["shortcuts"][number];
 
-export type { GuestRoomItem, GuestSessionState, GuestShortcut } from "../shared/guestTypes";
+export type { GuestRoomItem, GuestSessionState, GuestShortcut } from "@shared/guestTypes";

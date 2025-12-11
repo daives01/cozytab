@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Globe } from "lucide-react";
-import type { ComputerShortcut } from "../../types";
+import type { ComputerShortcut } from "@/types";
 
 interface DesktopGridProps {
     orderedShortcuts: ComputerShortcut[];

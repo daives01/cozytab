@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import type React from "react";
-import type { Id } from "../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 import { AssetDrawer } from "./AssetDrawer";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT } from "./AssetDrawer/constants";
 import type { GuestDrawerItem } from "./AssetDrawer/types";

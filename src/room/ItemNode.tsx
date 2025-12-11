@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { RoomItem } from "../types";
-import type { Doc } from "../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { RoomItem } from "@/types";
+import type { Doc } from "@convex/_generated/dataModel";
 import type React from "react";
 import { AssetImage } from "../components/AssetImage";
 import { ArrowDown, ArrowUp, FlipHorizontal2 } from "lucide-react";

@@ -1,9 +1,9 @@
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { Clock, Coins, Flame, Home, Package, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { ItemsTab } from "./shop/ItemsTab";
 import { RoomsTab } from "./shop/RoomsTab";
 import { purchaseWithBudget } from "./utils/sessionGuards";

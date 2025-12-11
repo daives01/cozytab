@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../../../convex/_generated/api";
-import type { Id } from "../../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import { AssetDrawerHeader } from "./components/Header";
 import { HiddenItemsSection } from "./components/HiddenItemsSection";
 import { EmptyState } from "./components/EmptyState";

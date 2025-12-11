@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { SignedIn } from "@clerk/clerk-react";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { CatalogItemsTab } from "./CatalogItemsTab";
 import { RoomTemplatesTab } from "./RoomTemplatesTab";
 

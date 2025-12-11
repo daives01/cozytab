@@ -2,9 +2,9 @@ import { ItemNode } from "../ItemNode";
 import { MusicPlayerButtons } from "../MusicPlayerButtons";
 import { MusicNotesOverlay } from "./MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
-import type { RoomItem } from "../../types";
+import type { RoomItem } from "@/types";
 import { PresenceLayer } from "./PresenceLayer";
-import type { VisitorState } from "../../hooks/useWebSocketPresence";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
 
 type Mode = "view" | "edit";

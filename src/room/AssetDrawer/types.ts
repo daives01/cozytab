@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 
 export type GuestDrawerItem = {
     inventoryId: Id<"inventory"> | Id<"catalogItems"> | string;

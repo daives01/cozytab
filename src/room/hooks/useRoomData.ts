@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
-import type { Id } from "../../../convex/_generated/dataModel";
-import { api } from "../../../convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
 import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
 import type { TimeOfDay } from "../roomConstants";
-import type { RoomItem } from "../../types";
-import type { Doc } from "../../../convex/_generated/dataModel";
+import type { RoomItem } from "@/types";
+import type { Doc } from "@convex/_generated/dataModel";
 
 interface RoomDataArgs {
     isGuest: boolean;

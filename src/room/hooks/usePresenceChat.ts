@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useWebSocketPresence, type VisitorState } from "../../hooks/useWebSocketPresence";
+import { useWebSocketPresence, type VisitorState } from "@/hooks/useWebSocketPresence";
 
 interface PresenceIdentity {
     id: string;

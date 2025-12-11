@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from "convex/react";
-import type { Id } from "../../convex/_generated/dataModel";
-import { api } from "../../convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
-import type { RoomItem, ComputerShortcut } from "../types";
+import type { RoomItem, ComputerShortcut } from "@/types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
 import type { DailyRewardToastPayload } from "./types/dailyReward";
@@ -25,7 +25,7 @@ import { usePlacementAllowance } from "./hooks/usePlacementAllowance";
 import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
-import { GUEST_STARTING_COINS, type GuestSessionState } from "../../shared/guestTypes";
+import { GUEST_STARTING_COINS, type GuestSessionState } from "@shared/guestTypes";
 import { useAudioUnlock } from "@/lib/audio";
 import { RoomStateProvider } from "./state/roomAtoms";
 import {

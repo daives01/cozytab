@@ -1,9 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Eye, EyeOff } from "lucide-react";
-import { AssetImage } from "../../../components/AssetImage";
-import { ItemCountBadge } from "../../components/ItemCountBadge";
+import { AssetImage } from "@/components/AssetImage";
+import { ItemCountBadge } from "@/room/components/ItemCountBadge";
 import { cardClass, compactCardClass, iconButtonClass } from "../constants";
-import { setDragImageFromElement } from "../../utils/dragPreview";
+import { setDragImageFromElement } from "@/room/utils/dragPreview";
 import type { ItemCardProps } from "../types";
 
 export function ItemCard({

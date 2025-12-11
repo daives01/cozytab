@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useClerk } from "@clerk/clerk-react";
-import type { ComputerShortcut } from "../types";
-import type { Id } from "../../convex/_generated/dataModel";
-import { GUEST_STARTING_COINS } from "../../shared/guestTypes";
+import type { ComputerShortcut } from "@/types";
+import type { Id } from "@convex/_generated/dataModel";
+import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { clearGuestSession } from "./guestSession";
 import { WindowFrame } from "./computer/WindowFrame";
 import { ComputerWindowContent } from "./computer/ComputerWindowContent";

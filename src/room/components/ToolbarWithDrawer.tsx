@@ -1,4 +1,4 @@
-import type { Id } from "../../../convex/_generated/dataModel";
+import type { Id } from "@convex/_generated/dataModel";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
 import type { GuestDrawerItem } from "../AssetDrawer/types";

@@ -1,5 +1,5 @@
 import type React from "react";
-import type { ComputerShortcut } from "../../types";
+import type { ComputerShortcut } from "@/types";
 import type { ComputerWindowApp } from "./computerTypes";
 
 export const GRID_COLUMNS = 6;
