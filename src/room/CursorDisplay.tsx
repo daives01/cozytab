@@ -20,6 +20,7 @@ import { getReadableTextColor } from "./utils/cursorColor";
 
 const POINTER_HOTSPOT = { x: 6, y: 3 };
 const POINTER_SIZE = { width: 38, height: 48 };
+const CHAT_MAX_WIDTH_PX = 220;
 
 export function CursorDisplay({
     name = "",
@@ -41,7 +42,7 @@ export function CursorDisplay({
     const textOnPointerColor = getReadableTextColor(pointerColor);
     const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
     const chatBubbleClasses =
-        "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[200px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
+        "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[220px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
     const handwritingFont = {
@@ -141,6 +142,8 @@ export function CursorDisplay({
                                 transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
                                 overflowWrap: "anywhere",
                                 wordBreak: "break-word",
+                                width: "max-content",
+                                maxWidth: CHAT_MAX_WIDTH_PX,
                             }}
                         >
                             {chatMessage === "" ? (
