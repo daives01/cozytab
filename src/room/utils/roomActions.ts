@@ -1,4 +1,4 @@
-import { ROOM_ITEM_MAX_X, ROOM_ITEM_MAX_Y } from "../roomConstants";
+import { ROOM_ITEM_MAX_X, ROOM_ITEM_MAX_Y } from "@/time/roomConstants";
 import type { RoomItem } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 

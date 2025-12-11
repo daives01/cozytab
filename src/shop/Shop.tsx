@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { ItemsTab } from "./shop/ItemsTab";
 import { RoomsTab } from "./shop/RoomsTab";
-import { purchaseWithBudget } from "./utils/sessionGuards";
+import { purchaseWithBudget } from "@/room/utils/sessionGuards";
 
 type ShopTab = "items" | "rooms";
 

@@ -9,7 +9,7 @@ import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 const VISITOR_UNMUTE_AHEAD_SECONDS = .1;
 const PLAY_KICK_DELAY_MS = 1000;
 
-interface MusicPlayerButtonsProps {
+export interface MusicPlayerButtonsProps {
     item: RoomItem;
     onToggle?: (playing: boolean) => void;
     autoPlayToken?: string | null;

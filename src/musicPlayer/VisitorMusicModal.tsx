@@ -1,12 +1,12 @@
 import { Disc, Music, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { RetroVolumeFader } from "./computer/VolumeSlider";
+import { RetroVolumeFader } from "../computer/VolumeSlider";
 import { extractYouTubeId } from "../lib/youtube";
 import type { RoomItem } from "../types";
 import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 import { useEffect, useState } from "react";
 
-interface VisitorMusicModalProps {
+export interface VisitorMusicModalProps {
     item: RoomItem;
     onClose: () => void;
 }

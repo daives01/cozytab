@@ -23,7 +23,7 @@ const MUSIC_NOTES_CONFIG = {
     maxSizePx: 32,
 };
 
-type MusicNotesOverlayProps = {
+export type MusicNotesOverlayProps = {
     playing: boolean;
     seed: string;
     className?: string;

@@ -6,8 +6,8 @@ import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
 import { AdminPage } from "./admin/AdminPage";
-import { clearGuestSession, readGuestSession } from "./room/guestSession";
-import { createGuestStore, GuestStateProvider } from "./room/guestState";
+import { clearGuestSession, readGuestSession } from "./guest/guestSession";
+import { createGuestStore, GuestStateProvider } from "./guest/state";
 import {
   clearReferralCode,
   getReferralCode,

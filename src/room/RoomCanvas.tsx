@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type React from "react";
-import { ROOM_HEIGHT, ROOM_WIDTH, BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT, type TimeOfDay } from "./roomConstants";
+import { ROOM_HEIGHT, ROOM_WIDTH, BASE_BACKGROUND_DAY, BASE_BACKGROUND_NIGHT } from "@/time/roomConstants";
+import type { TimeOfDay } from "./types";
 
 interface RoomCanvasProps {
     roomBackgroundImageUrl?: string;

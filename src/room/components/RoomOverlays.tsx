@@ -1,17 +1,16 @@
 import { ToolbarWithDrawer } from "./ToolbarWithDrawer";
-import { ComputerOverlay } from "../ComputerOverlay";
-import { MusicPlayerModal } from "../MusicPlayerModal";
+import { ComputerOverlay } from "@/computer/ComputerOverlay";
+import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
 import type { OnboardingStep } from "../Onboarding";
 import { DailyRewardToast } from "./DailyRewardToast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
-import { LocalCursor } from "../LocalCursor";
+import { LocalCursor } from "@/presence/LocalCursor";
 import type { RoomItem, ComputerShortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
-import type { DailyRewardToastPayload } from "../types/dailyReward";
-import type { TimeOfDay } from "../roomConstants";
+import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
 
 interface RoomOverlaysProps {

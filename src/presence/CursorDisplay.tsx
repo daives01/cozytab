@@ -16,7 +16,7 @@ interface CursorDisplayProps {
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
-import { getReadableTextColor } from "./utils/cursorColor";
+import { getReadableTextColor } from "@/room/utils/cursorColor";
 
 const POINTER_HOTSPOT = { x: 6, y: 3 };
 const POINTER_SIZE = { width: 38, height: 48 };

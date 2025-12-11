@@ -1,10 +1,10 @@
 import type { ComponentProps } from "react";
 import { InvitePanel } from "./InvitePanel";
 import { RoomsPanel } from "./RoomsPanel";
-import { Shop } from "../Shop";
+import { Shop } from "@/shop/Shop";
 import { AboutPanel } from "./AboutPanel";
 import { CustomizePanel } from "./CustomizePanel";
-import type { ComputerWindowApp } from "./computerTypes";
+import type { ComputerWindowApp } from "./types";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 
 type ShopWindowProps = ComponentProps<typeof Shop>;

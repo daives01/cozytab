@@ -1,5 +1,5 @@
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
-import { PresenceCursor } from "../PresenceCursor";
+import { PresenceCursor } from "./PresenceCursor";
 
 interface PresenceLayerProps {
     visitors: VisitorState[];

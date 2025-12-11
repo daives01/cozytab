@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import type { Doc } from "@convex/_generated/dataModel";
-import type { DailyRewardState, DailyRewardToastPayload } from "../types/dailyReward";
+import type { DailyRewardState, DailyRewardToastPayload } from "../types";
 
 interface UseDailyRewardOptions {
     user: Doc<"users"> | null | undefined;

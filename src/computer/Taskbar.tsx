@@ -13,7 +13,7 @@ import {
     VolumeX,
     X,
 } from "lucide-react";
-import type { TimeOfDay } from "../roomConstants";
+import type { TimeOfDay } from "../room/types";
 
 interface TaskbarProps {
     nowLabel: string;

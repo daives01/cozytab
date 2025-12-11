@@ -1,7 +1,7 @@
 import type React from "react";
 import type { CSSProperties, DragEventHandler } from "react";
 import { RoomCanvas } from "../RoomCanvas";
-import type { TimeOfDay } from "../roomConstants";
+import type { TimeOfDay } from "../types";
 
 interface RoomStageProps {
     roomBackgroundImageUrl: string | null | undefined;

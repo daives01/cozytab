@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
-import { getLocalTimeOfDay, type TimeOfDay } from "../roomConstants";
+import { getLocalTimeOfDay } from "@/time/roomConstants";
+import type { TimeOfDay } from "../types";
 
 const timeOfDayActualAtom = atom<TimeOfDay>(getLocalTimeOfDay());
 const timeOfDayOverrideAtom = atom<TimeOfDay | null>(null);

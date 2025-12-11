@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, startTransition, useCallback } from "react
 import type React from "react";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { RoomItem, ComputerShortcut } from "@/types";
-import type { DailyRewardToastPayload } from "../types/dailyReward";
+import type { DailyRewardToastPayload } from "../types";
 import { debounce } from "@/lib/debounce";
 import { clampItems } from "../utils/roomActions";
 

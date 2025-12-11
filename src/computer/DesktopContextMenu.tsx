@@ -1,6 +1,6 @@
 import type { ComputerShortcut } from "@/types";
 
-type ContextMenuState =
+export type ContextMenuState =
     | { target: "shortcut"; id: string; x: number; y: number }
     | { target: "desktop"; x: number; y: number; row: number; col: number }
     | null;
@@ -79,5 +79,3 @@ export function DesktopContextMenu({
         </div>
     );
 }
-
-export type { ContextMenuState };

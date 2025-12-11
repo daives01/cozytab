@@ -3,7 +3,7 @@ import type { DragEvent } from "react";
 import type { ComputerShortcut, RoomItem } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { OnboardingStep } from "../Onboarding";
-import { ROOM_HEIGHT, ROOM_WIDTH } from "../roomConstants";
+import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
 import {
     addDroppedItem,
     bringItemToFront,

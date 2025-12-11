@@ -7,8 +7,8 @@ import {
     guestInventoryAtom,
     guestShortcutsAtom,
     guestNormalizedShortcutsAtom,
-} from "./guestState";
-import type { TimeOfDay } from "./roomConstants";
+} from "@/guest/state";
+import type { TimeOfDay } from "../room/types";
 
 export interface ComputerOverlayProps {
     isGuest: boolean;

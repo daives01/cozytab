@@ -1,7 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
-import { type TimeOfDay } from "../roomConstants";
+import { type TimeOfDay } from "../types";
 
 /**
  * Resolves the room-specific background image for a template.

@@ -37,8 +37,8 @@ import {
     guestShortcutsAtom,
     guestOnboardingCompletedAtom,
     normalizeGuestShortcuts,
-} from "../guestState";
-import { readGuestSession, buildCatalogLookup } from "../guestSession";
+} from "@/guest/state";
+import { readGuestSession, buildCatalogLookup } from "@/guest/guestSession";
 import type { Doc } from "@convex/_generated/dataModel";
 
 export type UseRoomStateArgs = {

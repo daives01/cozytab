@@ -5,15 +5,15 @@ import { useClerk } from "@clerk/clerk-react";
 import type { ComputerShortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
-import { clearGuestSession } from "./guestSession";
-import { WindowFrame } from "./computer/WindowFrame";
-import { ComputerWindowContent } from "./computer/ComputerWindowContent";
-import type { ComputerWindowApp } from "./computer/computerTypes";
-import { DesktopGrid } from "./computer/DesktopGrid";
-import { InlineAddPrompt } from "./computer/InlineAddPrompt";
-import { DesktopContextMenu, type ContextMenuState } from "./computer/DesktopContextMenu";
-import { Taskbar, WindowHeader } from "./computer/Taskbar";
-import { VolumePanel } from "./computer/VolumePanel";
+import { clearGuestSession } from "../guest/guestSession";
+import { WindowFrame } from "./WindowFrame";
+import { ComputerWindowContent } from "./ComputerWindowContent";
+import type { ComputerWindowApp, ContextMenuState } from "./types";
+import { DesktopGrid } from "./DesktopGrid";
+import { InlineAddPrompt } from "./InlineAddPrompt";
+import { DesktopContextMenu } from "./DesktopContextMenu";
+import { Taskbar, WindowHeader } from "./Taskbar";
+import { VolumePanel } from "./VolumePanel";
 import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 import {
     GRID_COLUMNS,
@@ -29,8 +29,8 @@ import {
     formatTime,
     normalizeShortcuts,
     withProtocol,
-} from "./computer/desktopUtils";
-import type { TimeOfDay } from "./roomConstants";
+} from "./desktopUtils";
+import type { TimeOfDay } from "../room/types";
 
 interface ComputerWindow {
     id: string;
@@ -43,7 +43,7 @@ interface ComputerWindow {
     z: number;
 }
 
-interface ComputerScreenProps {
+export interface ComputerScreenProps {
     shortcuts: ComputerShortcut[];
     onClose: () => void;
     onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;

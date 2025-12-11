@@ -4,9 +4,9 @@ import { useQuery, useMutation } from "convex/react";
 import { Link, useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { ItemNode } from "./ItemNode";
-import { MusicPlayerButtons } from "./MusicPlayerButtons";
-import { MusicNotesOverlay } from "./components/MusicNotesOverlay";
-import { LocalCursor } from "./LocalCursor";
+import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
+import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
+import { LocalCursor } from "@/presence/LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
@@ -18,12 +18,12 @@ import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
-import { ROOM_HEIGHT, ROOM_WIDTH } from "./roomConstants";
-import { useTimeOfDayControls } from "./hooks/useTimeOfDayControls";
+import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
+import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
-import { ComputerOverlay } from "./ComputerOverlay";
+import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
 import {
@@ -32,13 +32,13 @@ import {
     guestInventoryAtom,
     guestNormalizedShortcutsAtom,
     guestShortcutsAtom,
-} from "./guestState";
-import { usePresenceAndChat } from "./hooks/usePresenceChat";
-import { PresenceLayer } from "./components/PresenceLayer";
+} from "@/guest/state";
+import { usePresenceAndChat } from "@/presence/usePresenceChat";
+import { PresenceLayer } from "@/presence/PresenceLayer";
 import { RoomShell } from "./RoomShell";
 import { ChatHint } from "./components/ChatHint";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
-import { VisitorMusicModal } from "./VisitorMusicModal.tsx";
+import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";

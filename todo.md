@@ -14,5 +14,8 @@
  X similar to above, user "tabbed out" state
  X little typing ping if user is tabbed out and guest is typing
 
+ - "notebook" item? minecraft style (limited num pages, chars per page), ability to "lock" or "share"
+
  ### Big features
  - stripe integration
+ - "friends"

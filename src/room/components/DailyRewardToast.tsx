@@ -1,6 +1,6 @@
 import { Coins, Flame } from "lucide-react";
 
-import type { DailyRewardToastPayload } from "../types/dailyReward";
+import type { DailyRewardToastPayload } from "../types";
 import { Toast } from "@/components/ui/toast";
 
 interface DailyRewardToastProps {

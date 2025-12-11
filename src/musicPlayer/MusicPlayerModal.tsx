@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input";
 import { X, Trash2, Save, Disc, Link as LinkIcon, Music } from "lucide-react";
 import type { RoomItem } from "../types";
 import { extractYouTubeId } from "../lib/youtube";
-import { RetroVolumeFader } from "./computer/VolumeSlider";
+import { RetroVolumeFader } from "../computer/VolumeSlider";
 import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 
-interface MusicPlayerModalProps {
+export interface MusicPlayerModalProps {
     item: RoomItem;
     onClose: () => void;
     onSave: (item: RoomItem) => void;

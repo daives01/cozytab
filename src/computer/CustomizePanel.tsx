@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { clampHue, hexToHsl, hslToHex, type HslColor } from "../utils/cursorColor";
+import { clampHue, hexToHsl, hslToHex, type HslColor } from "@/room/utils/cursorColor";
 
 interface DisplayNameSectionProps {
     currentDisplayName: string;

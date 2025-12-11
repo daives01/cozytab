@@ -3,7 +3,7 @@ import { useQuery } from "convex/react";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
-import type { TimeOfDay } from "../roomConstants";
+import type { TimeOfDay } from "../types";
 import type { RoomItem } from "@/types";
 import type { Doc } from "@convex/_generated/dataModel";
 

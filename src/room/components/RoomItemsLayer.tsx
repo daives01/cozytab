@@ -1,9 +1,9 @@
 import { ItemNode } from "../ItemNode";
-import { MusicPlayerButtons } from "../MusicPlayerButtons";
-import { MusicNotesOverlay } from "./MusicNotesOverlay";
+import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
+import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
 import type { RoomItem } from "@/types";
-import { PresenceLayer } from "./PresenceLayer";
+import { PresenceLayer } from "@/presence/PresenceLayer";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
 
