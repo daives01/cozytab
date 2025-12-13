@@ -19,7 +19,7 @@ export function setTypingVolumeMultiplier(multiplier: number) {
 type SampleCategory = "key" | "enter" | "space" | "backspace";
 type Phase = "down" | "up";
 
-const SOUND_BASE = "/assets/sounds";
+const SOUND_BASE = "/assets/sounds/alpacas";
 const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
     down: {
         key: `${SOUND_BASE}/key-down.mp3`,
