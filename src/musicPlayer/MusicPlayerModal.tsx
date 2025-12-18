@@ -108,8 +108,13 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             musicStartedAt: undefined,
             musicPositionAtStart: undefined,
         };
+        // Persist cleared state externally but keep the modal open
         onSave(updatedItem);
-        onClose();
+        // Clear only the input/UI state, not close the modal
+        setMusicUrl("");
+        setPreviewUrl(null);
+        setTitle(null);
+        setError(null);
     };
 
     useEffect(() => {
@@ -151,10 +156,10 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                         </button>
                     </div>
 
-                    <div className="grid gap-6 px-7 py-6 md:grid-cols-[0.7fr_0.3fr] items-stretch">
-                        <div className="flex flex-col gap-5">
-                            <div className="relative flex flex-1 min-h-[20rem] items-center justify-center">
-                                <div className="relative flex items-center justify-center">
+                    <div className="flex gap-4 px-4 py-6 sm:gap-6 sm:px-7 items-stretch">
+                        <div className="flex min-w-0 flex-1 flex-col gap-5">
+                            <div className="relative flex flex-1 min-h-[16rem] sm:min-h-[20rem] items-center justify-center">
+                                <div className="relative flex items-center justify-center scale-75 sm:scale-100">
                                     <div
                                         className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
                                             previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
@@ -195,8 +200,8 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 </div>
                             </div>
 
-                            <div className="space-y-3 text-center px-4">
-                                <div className="text-2xl font-black text-[var(--color-foreground)] leading-snug line-clamp-2">
+                            <div className="space-y-3 text-center px-2 sm:px-4">
+                                <div className="text-xl sm:text-2xl font-black text-[var(--color-foreground)] leading-snug line-clamp-2">
                                     {title ? title : isFetchingTitle ? "Finding title..." : "Enter a YouTube link below"}
                                 </div>
                             </div>
@@ -218,7 +223,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                                     handleSave();
                                                 }
                                             }}
-                                            className="h-12 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 text-base font-medium font-mono placeholder:font-mono shadow-[var(--shadow-4-soft)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[var(--shadow-4)]"
+                                            className="h-10 sm:h-12 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-10 sm:pl-12 pr-4 text-sm sm:text-base font-medium font-mono placeholder:font-mono shadow-[var(--shadow-4-soft)] transition-all focus-visible:-translate-y-0.5 focus-visible:ring-0 focus-visible:shadow-[var(--shadow-4)]"
                                         />
                                     </div>
                                 </div>
@@ -230,29 +235,29 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 )}
                             </div>
 
-                            <div className="flex gap-3 px-1">
+                            <div className="flex gap-2 sm:gap-3 px-1">
                                 {item.musicUrl && (
                                     <Button
                                         variant="ghost"
                                         onClick={handleClear}
-                                        className="h-11 flex-1 border-2 border-transparent font-bold uppercase tracking-wide text-[var(--color-destructive)] transition-all hover:border-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/10 cursor-pointer"
+                                        className="h-10 sm:h-11 flex-1 border-2 border-transparent text-xs sm:text-sm font-bold uppercase tracking-wide text-[var(--color-destructive)] transition-all hover:border-[var(--color-destructive)] hover:bg-[var(--color-destructive)]/10 cursor-pointer"
                                     >
-                                        <Trash2 className="mr-2 h-5 w-5" />
+                                        <Trash2 className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 w-5" />
                                         Eject
                                     </Button>
                                 )}
                                 <Button
                                     onClick={handleSave}
                                     disabled={!musicUrl.trim() || !!error}
-                                    className="h-11 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-base uppercase tracking-wide shadow-[var(--shadow-4-strong)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
+                                    className="h-10 sm:h-11 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-sm sm:text-base uppercase tracking-wide shadow-[var(--shadow-4-strong)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
                                 >
-                                    <Save className="mr-2 h-5 w-5" />
+                                    <Save className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 w-5" />
                                     Spin
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-5">
+                        <div className="flex shrink-0 flex-col gap-5">
                             <div className="flex flex-1 flex-col items-center justify-center gap-4">
                                 <RetroVolumeFader value={musicVolume} onChange={setMusicVolume} height={320} />
                                 <span className="rounded-md border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-1 text-xs font-bold font-mono text-[var(--color-foreground)] shadow-[var(--shadow-2)]">
