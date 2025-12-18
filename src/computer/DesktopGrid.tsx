@@ -25,6 +25,9 @@ interface DesktopGridProps {
 function getFaviconUrl(url: string): string {
     try {
         const domain = new URL(url).hostname;
+        if (domain === "cozytab.club" || domain.endsWith(".cozytab.club")) {
+            return "/favicon.svg";
+        }
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
     } catch {
         return "";
