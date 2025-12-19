@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
@@ -816,6 +816,16 @@ export const reconcileCurrencyBalances = internalMutation({
         }
 
         return { mismatches, repaired };
+    },
+});
+
+export const getByExternalId = internalQuery({
+    args: { externalId: v.string() },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("users")
+            .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
+            .unique();
     },
 });
 

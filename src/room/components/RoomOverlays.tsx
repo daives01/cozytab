@@ -3,8 +3,10 @@ import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
+import { Heart } from "lucide-react";
 import type { OnboardingStep } from "../Onboarding";
 import { DailyRewardToast } from "./DailyRewardToast";
+import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
 import { LocalCursor } from "@/presence/LocalCursor";
@@ -70,6 +72,8 @@ interface RoomOverlaysProps {
     onAdvanceOnboarding: () => void;
     onCompleteOnboarding: () => void;
     dailyRewardToast: DailyRewardToastPayload | null;
+    stripeSuccessToast?: boolean;
+    onCloseStripeSuccessToast?: () => void;
 
     // Chat / cursors
     hasVisitors: boolean;
@@ -133,6 +137,8 @@ export function RoomOverlays({
     onAdvanceOnboarding,
     onCompleteOnboarding,
     dailyRewardToast,
+    stripeSuccessToast,
+    onCloseStripeSuccessToast,
     hasVisitors,
     isComputerOpenState,
     isShareModalOpen,
@@ -219,6 +225,16 @@ export function RoomOverlays({
             )}
 
             {!isGuest && dailyRewardToast && <DailyRewardToast toast={dailyRewardToast} />}
+
+            {stripeSuccessToast && (
+                <Toast
+                    tone="success"
+                    icon={<Heart className="h-5 w-5" />}
+                    title="Purchase successful!"
+                    description="Thank you for your support!"
+                    onClose={onCloseStripeSuccessToast}
+                />
+            )}
 
             {!isGuest && hasVisitors && (
                 <ChatInput

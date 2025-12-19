@@ -26,3 +26,17 @@
 
 ## CI (GitHub Actions)
 Add Bun to runners (e.g., `oven-sh/setup-bun`) and use `bun install` + workspace scripts for web, convex, and worker. Use the same build command as Vercel to stay consistent.
+
+## Stripe coin purchases
+
+- **Environment** – Add the following Convex variables:
+  - `STRIPE_SECRET_KEY`: your Stripe secret key (test or live).
+  - `STRIPE_WEBHOOK_SECRET`: webhook signing secret for `https://<deployment>.convex.site/stripe/webhook`.
+  - `APP_URL`: the publicly accessible base URL for your frontend (e.g., `https://cozytab.com`). This is used for Stripe success/cancel redirects.
+- **Webhook** – Register `https://<your-deployment>.convex.site/stripe/webhook` in the Stripe dashboard and include at least `checkout.session.completed`, `invoice.*`, `payment_intent.*`, and any other events on the [Convex Stripe docs](https://www.convex.dev/components/stripe) page.
+- **Price IDs → Coins** – The UI exposes three pre-configured packs:
+  1. `price_1SeoXtE5JLWOC7Y26Vzd26WC` → 10 cozy coins ($5 USD)
+  2. `price_1Sg479E5JLWOC7Y24Uswg7XL` → 50 cozy coins ($20 USD)
+  3. `price_1Sg47vE5JLWOC7Y2NvvcIOf1` → 1000 cozy coins ($50 USD)
+- **Discount guards** – Stripe webhooks route through `/stripe/webhook`, and a custom handler credits coins via the existing `currencyTransactions` ledger with an idempotency key of `stripe:checkout:<eventId>`.
+- **Testing** – Use Stripe's test cards (`4242 4242 4242 4242`) plus the Stripe dashboard `Send test webhook` button to confirm the webhook fires and transactions appear exactly once.
