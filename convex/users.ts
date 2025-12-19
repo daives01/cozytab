@@ -467,7 +467,7 @@ export const ensureUser = mutation({
                     await applyCurrencyChange({
                         ctx,
                         userId: referrer._id,
-                        delta: 1,
+                        delta: 3,
                         reason: "referral",
                         idempotencyKey: `referral:${referrer._id}:${identity.subject}`,
                         metadata: { referredExternalId: identity.subject },
