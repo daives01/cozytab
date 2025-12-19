@@ -8,6 +8,7 @@ import { buildCoinPacks, type CoinPack } from "@shared/coinPacks";
 import { ItemsTab } from "./shop/ItemsTab";
 import { RoomsTab } from "./shop/RoomsTab";
 import { purchaseWithBudget } from "@/room/utils/sessionGuards";
+import { useIsUSLocation } from "@/hooks/useIsUSLocation";
 
 type ShopTab = "items" | "rooms";
 
@@ -115,6 +116,7 @@ export function Shop({
     const [coinCheckoutError, setCoinCheckoutError] = useState<string | null>(null);
     const [coinCheckoutLoading, setCoinCheckoutLoading] = useState<string | null>(null);
     const createCoinCheckout = useAction(api.stripe.createCoinCheckout);
+    const { isUS } = useIsUSLocation();
 
     const coinPackConfig = useMemo(() => {
         const price10 = import.meta.env.VITE_STRIPE_PRICE_10_COINS as string | undefined;
@@ -195,6 +197,10 @@ export function Shop({
     };
 
     const handleCoinPurchase = async (pack: CoinPack) => {
+        if (isUS === false) {
+            setCoinCheckoutError("Currently, we only support customers in the United States.");
+            return;
+        }
         setCoinCheckoutError(null);
         setCoinCheckoutLoading(pack.priceId);
         try {
@@ -268,6 +274,12 @@ export function Shop({
         const id = window.setInterval(() => setNow(Date.now()), 60_000);
         return () => window.clearInterval(id);
     }, []);
+
+    useEffect(() => {
+        if (isUS === false && isCoinPanelOpen) {
+            setIsCoinPanelOpen(false);
+        }
+    }, [isUS, isCoinPanelOpen]);
 
     const nextRewardText = useMemo(() => {
         if (isGuest) return "";
@@ -363,10 +375,10 @@ export function Shop({
                         <div className="relative">
                             <button
                                 type="button"
-                                onClick={!isGuest ? toggleCoinPanel : undefined}
-                                disabled={isGuest}
+                                onClick={!isGuest && (isUS !== false) ? toggleCoinPanel : undefined}
+                                disabled={isGuest || isUS === false}
                                 className={`group flex items-center bg-secondary rounded-full border-2 border-foreground shadow-sm transition-all ${
-                                    !isGuest
+                                    !isGuest && (isUS !== false)
                                         ? "hover:bg-background active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                         : "cursor-default"
                                 }`}
@@ -377,7 +389,7 @@ export function Shop({
                                         {effectiveCoins.toLocaleString()}
                                     </span>
                                 </div>
-                                {!isGuest && (
+                                {!isGuest && (isUS !== false) && (
                                     <div
                                         className={`mr-1.5 h-8 w-8 rounded-full flex items-center justify-center transition-all ${
                                             isCoinPanelOpen
@@ -389,7 +401,7 @@ export function Shop({
                                     </div>
                                 )}
                             </button>
-                            {!isGuest && isCoinPanelOpen && (
+                            {!isGuest && (isUS !== false) && isCoinPanelOpen && (
                                 <div
                                     className="absolute right-0 top-full mt-3 w-[240px] bg-background border-2 border-foreground rounded-3xl p-3 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200"
                                     onClick={(event) => event.stopPropagation()}
@@ -411,7 +423,7 @@ export function Shop({
                                                     <span className="text-size-lg font-bold text-foreground">
                                                         {pack.coins.toLocaleString()} coins
                                                     </span>
-                                                    <span className="bg-background px-2 py-0.5 rounded-lg border-2 border-foreground text-[10px] font-bold text-foreground">
+                                                    <span className="bg-background px-2 py-0.5 rounded-lg border-2 border-foreground text-size-md font-bold text-foreground">
                                                         {pack.priceLabel}
                                                     </span>
                                                 </button>
