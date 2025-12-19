@@ -121,15 +121,17 @@ export function Shop({
     const coinPackConfig = useMemo(() => {
         const price10 = import.meta.env.VITE_STRIPE_PRICE_10_COINS as string | undefined;
         const price50 = import.meta.env.VITE_STRIPE_PRICE_50_COINS as string | undefined;
-        const price1000 = import.meta.env.VITE_STRIPE_PRICE_1000_COINS as string | undefined;
-        if (!price10 || !price50 || !price1000) {
+        const price150 = import.meta.env.VITE_STRIPE_PRICE_150_COINS as string | undefined;
+        const price500 = import.meta.env.VITE_STRIPE_PRICE_500_COINS as string | undefined;
+        if (!price10 || !price50 || !price150 || !price500) {
             console.warn("Stripe coin price IDs are missing in env; coin purchase UI will be hidden.");
             return null;
         }
         return buildCoinPacks({
             price10: price10.trim(),
             price50: price50.trim(),
-            price1000: price1000.trim(),
+            price150: price150.trim(),
+            price500: price500.trim()
         });
     }, []);
 

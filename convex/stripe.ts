@@ -16,7 +16,8 @@ function requireEnv(key: string, label: string): string {
 const { priceToAmount: COIN_PRICE_TO_AMOUNT } = buildCoinPacks({
     price10: requireEnv("STRIPE_PRICE_10_COINS", "10 coin pack"),
     price50: requireEnv("STRIPE_PRICE_50_COINS", "50 coin pack"),
-    price1000: requireEnv("STRIPE_PRICE_1000_COINS", "1000 coin pack"),
+    price150: requireEnv("STRIPE_PRICE_150_COINS", "150 coin pack"),
+    price500: requireEnv("STRIPE_PRICE_500_COINS", "500 coin pack"),
 });
 
 const stripeClient = new StripeSubscriptions(components.stripe, {});

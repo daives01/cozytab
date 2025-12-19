@@ -8,7 +8,8 @@ export type CoinPack = {
 export type CoinPackIds = {
     price10: string;
     price50: string;
-    price1000: string;
+    price150: string;
+    price500: string;
 };
 
 export function buildCoinPacks(ids: CoinPackIds) {
@@ -17,18 +18,24 @@ export function buildCoinPacks(ids: CoinPackIds) {
             priceId: ids.price10,
             coins: 10,
             label: "10 Cozy Coins",
-            priceLabel: "$5",
+            priceLabel: "$3",
         },
         {
             priceId: ids.price50,
             coins: 50,
             label: "50 Cozy Coins",
-            priceLabel: "$20",
+            priceLabel: "$10",
         },
         {
-            priceId: ids.price1000,
-            coins: 1000,
-            label: "1000 Cozy Coins",
+            priceId: ids.price150,
+            coins: 150,
+            label: "150 Cozy Coins",
+            priceLabel: "$25",
+        },
+        {
+            priceId: ids.price500,
+            coins: 500,
+            label: "500 Cozy Coins",
             priceLabel: "$50",
         },
     ];
