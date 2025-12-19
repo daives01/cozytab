@@ -79,6 +79,7 @@ interface RoomOverlaysProps {
     updateChatMessage: (msg: string | null) => void;
     localChatMessage: string | null;
     screenCursor: { x: number; y: number };
+    connectionState: "connecting" | "connected" | "reconnecting";
 }
 
 export function RoomOverlays({
@@ -139,6 +140,7 @@ export function RoomOverlays({
     updateChatMessage,
     localChatMessage,
     screenCursor,
+    connectionState,
 }: RoomOverlaysProps) {
     return (
         <>
@@ -221,11 +223,27 @@ export function RoomOverlays({
             {!isGuest && hasVisitors && (
                 <ChatInput
                     onMessageChange={updateChatMessage}
-                    disabled={isComputerOpenState || musicPlayerItemId !== null || isShareModalOpen}
+                    disabled={
+                        isComputerOpenState ||
+                        musicPlayerItemId !== null ||
+                        isShareModalOpen ||
+                        connectionState !== "connected"
+                    }
                 />
             )}
 
             {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !isShareModalOpen && <ChatHint />}
+
+            {!isGuest && connectionState !== "connected" && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
+                    <div className="rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] px-4 py-3 flex items-center gap-3">
+                        <div className="h-4 w-4 border-2 border-[var(--color-foreground)] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-sm font-medium">
+                            {connectionState === "connecting" ? "Connecting..." : "Reconnecting..."}
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <LocalCursor
                 x={screenCursor.x}

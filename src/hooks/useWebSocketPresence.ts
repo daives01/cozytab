@@ -46,6 +46,8 @@ const MAX_RETRY_DELAY_MS = 5000;
 export const REMOTE_KEYUP_MIN_DELAY_MS = 45;
 export const REMOTE_KEYUP_MAX_DELAY_MS = 100;
 
+export type ConnectionState = "connecting" | "connected" | "reconnecting";
+
 function resolveWsBaseUrl() {
     const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
     if (envUrl) {
@@ -100,6 +102,9 @@ export function useWebSocketPresence(
     const [screenCursor, setScreenCursor] = useState(getInitialCursor);
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
     const remoteKeyupTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+    const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
+    const isIntentionallyClosedRef = useRef(false);
+    const connectFnRef = useRef<(() => void) | null>(null);
 
     const lastSendTimeRef = useRef<number>(0);
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
@@ -125,8 +130,7 @@ export function useWebSocketPresence(
     );
 
     const queueRemoteTypingSounds = useCallback((senderId: string, nextText: string | null) => {
-        if (!isKeyboardSoundEnabled() || nextText === null) return;
-        if (!isAudioUnlocked()) return;
+        if (!isKeyboardSoundEnabled() || !isAudioUnlocked() || nextText === null) return;
         const prevVisitor = visitorsRef.current.find((v) => v.visitorId === senderId);
         const prevText = prevVisitor?.chatMessage ?? "";
         if (nextText.length <= prevText.length) return;
@@ -293,8 +297,19 @@ export function useWebSocketPresence(
         }
     }, [displayName, sendMessage, visitorId]);
 
-    useEffect(() => {
+    const reconnectNow = useCallback(() => {
         if (!roomId || !visitorId) return;
+        clearTimeoutRef(reconnectTimeoutRef);
+        isIntentionallyClosedRef.current = false;
+        if (connectFnRef.current) {
+            connectFnRef.current();
+        }
+    }, [roomId, visitorId]);
+
+    useEffect(() => {
+        if (!roomId || !visitorId) {
+            return;
+        }
 
         let cancelled = false;
         let retryDelay = INITIAL_RETRY_DELAY_MS;
@@ -303,12 +318,15 @@ export function useWebSocketPresence(
         const connect = () => {
             if (cancelled) return;
             hasSentCursorRef.current = false;
+            isIntentionallyClosedRef.current = false;
 
             const ws = new WebSocket(`${baseUrl}/ws/${roomId}`);
             wsRef.current = ws;
+            setConnectionState("connecting");
 
             ws.onopen = () => {
                 retryDelay = INITIAL_RETRY_DELAY_MS;
+                setConnectionState("connected");
                 startHeartbeat(ws);
                 sendMessage({
                     type: "join",
@@ -333,18 +351,24 @@ export function useWebSocketPresence(
                 clearIntervalRef(heartbeatIntervalRef);
                 resetHeartbeat();
 
-                if (cancelled) return;
+                if (cancelled || isIntentionallyClosedRef.current) {
+                    return;
+                }
 
+                setConnectionState("reconnecting");
                 reconnectTimeoutRef.current = setTimeout(connect, retryDelay);
 
                 retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
             };
         };
 
+        connectFnRef.current = connect;
         connect();
 
         return () => {
             cancelled = true;
+            isIntentionallyClosedRef.current = true;
+            connectFnRef.current = null;
             clearTimeoutRef(throttleTimeoutRef);
             clearTimeoutRef(reconnectTimeoutRef);
             clearIntervalRef(heartbeatIntervalRef);
@@ -487,6 +511,8 @@ export function useWebSocketPresence(
         screenCursor,
         localChatMessage,
         setInMenu,
+        connectionState,
+        reconnectNow,
         // No batchInterval needed - direct updates
         batchInterval: 0,
     };

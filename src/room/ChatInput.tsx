@@ -5,7 +5,7 @@ interface ChatInputProps {
     disabled?: boolean;
 }
 
-const CHAT_TIMEOUT_MS = 3000;
+const CHAT_TIMEOUT_MS = 2000;
 const MAX_CHAT_LENGTH = 75;
 
 export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps) {

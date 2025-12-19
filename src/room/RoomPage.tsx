@@ -242,6 +242,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         hasVisitors,
         visitorCount,
         setInMenu,
+        connectionState,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: { id: visitorId ?? "owner", name: ownerName, cursorColor },
@@ -496,6 +497,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             updateChatMessage={updateChatMessage}
             localChatMessage={localChatMessage}
             screenCursor={screenCursor}
+            connectionState={connectionState}
         />
     );
 
