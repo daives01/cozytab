@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useClerk } from "@clerk/clerk-react";
 import type { ComputerShortcut } from "@/types";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { clearGuestSession } from "../guest/guestSession";
 import { WindowFrame } from "./WindowFrame";
@@ -646,7 +646,7 @@ export function ComputerScreen({
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;
         if (!myRooms || myRooms.length <= 1) return;
-        const targetRoom = myRooms.find((room) => room._id === roomId);
+        const targetRoom = myRooms.find((room: Doc<"rooms">) => room._id === roomId);
         if (!targetRoom || targetRoom.isActive) return;
         setSwitchingRoom(roomId);
         try {

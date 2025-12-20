@@ -143,6 +143,11 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         maxScale: 1.25,
     });
     const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
+    const [showStripeSuccessToast, setShowStripeSuccessToast] = useState(() => {
+        if (typeof window === "undefined") return false;
+        const params = new URLSearchParams(window.location.search);
+        return params.get("success") === "stripe";
+    });
     const containerRef = useRef<HTMLDivElement | null>(null);
     const lastRoomPositionRef = useRef({ x: ROOM_WIDTH / 2, y: ROOM_HEIGHT / 2 });
     const computerPrefetchedRef = useRef(false);
@@ -296,6 +301,22 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const effectiveNextRewardAt = dailyRewardInfo.nextRewardAt;
 
     useDailyRewardToastTimer(dailyRewardToast, setDailyRewardToast);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("success") === "stripe") {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete("success");
+            window.history.replaceState({}, "", newUrl.pathname + newUrl.search);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!showStripeSuccessToast) return;
+        const timer = window.setTimeout(() => setShowStripeSuccessToast(false), 5000);
+        return () => window.clearTimeout(timer);
+    }, [showStripeSuccessToast]);
 
     const { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete } = useOnboarding({
         user,
@@ -490,6 +511,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onAdvanceOnboarding={advanceOnboarding}
             onCompleteOnboarding={handleOnboardingComplete}
             dailyRewardToast={dailyRewardToast}
+            stripeSuccessToast={showStripeSuccessToast}
+            onCloseStripeSuccessToast={() => setShowStripeSuccessToast(false)}
             hasVisitors={hasVisitors}
             isComputerOpenState={isComputerOpen}
             isShareModalOpen={isShareModalOpen}

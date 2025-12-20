@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
@@ -79,7 +79,7 @@ export function RoomTemplatesTab() {
         }
     };
 
-    const hasDefault = roomTemplates?.some(t => t.isDefault);
+    const hasDefault = roomTemplates?.some((t: Doc<"roomTemplates">) => t.isDefault);
 
     return (
         <>
@@ -209,7 +209,7 @@ export function RoomTemplatesTab() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--ink)]/20">
-                        {roomTemplates?.map((template) => (
+                        {roomTemplates?.map((template: Doc<"roomTemplates">) => (
                             <tr key={template._id} className="hover:bg-[var(--paper)]/50">
                                 <td className="px-4 py-3">
                                     <div className="relative group">

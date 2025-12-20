@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
@@ -182,7 +182,7 @@ export function CatalogItemsTab() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--ink)]/20">
-                        {catalogItems?.map((item) => (
+                        {catalogItems?.map((item: Doc<"catalogItems">) => (
                             <tr key={item._id} className="hover:bg-[var(--paper)]/50">
                                 <td className="px-4 py-3">
                                     <div className="relative group">
