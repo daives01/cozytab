@@ -87,7 +87,7 @@ export function RoomItemsLayer({
                                         autoPlayToken={
                                             musicAutoplay && musicAutoplay.itemId === item.id ? musicAutoplay.token : null
                                         }
-                                        isVisitor={isGuest}
+                                        isVisitor={false}
                                     />
                                 </>
                             ) : null
