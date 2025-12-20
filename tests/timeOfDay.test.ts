@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { getLocalTimeOfDay } from "../src/room/roomConstants";
-import { clearDaylightCache, getDaylightWindow } from "../src/room/timeOfDay";
-import { getTimezoneCoordinates } from "../src/room/timezoneCoordinates";
+import { getLocalTimeOfDay } from "../src/time/roomConstants";
+import { clearDaylightCache, getDaylightWindow } from "../src/time/timeOfDay";
+import { getTimezoneCoordinates } from "../src/time/timezoneCoordinates";
 
 describe("time of day helpers", () => {
     beforeEach(() => {
