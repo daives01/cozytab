@@ -5,12 +5,11 @@ import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { AssetDrawerHeader } from "./components/Header";
 import { HiddenItemsSection } from "./components/HiddenItemsSection";
-import { EmptyState } from "./components/EmptyState";
-import { LoadingState } from "./components/LoadingState";
 import { ItemCard } from "./components/ItemCard";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
 import type { AssetDrawerProps, GuestDrawerItem } from "./types";
 import { countIds } from "../utils/itemCounts";
+import { Package } from "lucide-react";
 
 export function AssetDrawer({
     isOpen,
@@ -132,7 +131,10 @@ export function AssetDrawer({
                 <ScrollArea className="flex-1 bg-[var(--color-background)] min-h-0">
                     <div className="space-y-6 p-4 pb-6">
                         {isLoading ? (
-                            <LoadingState />
+                            <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-card)] px-4 py-6 text-center shadow-[var(--shadow-4)]">
+                                <div className="h-12 w-12 animate-spin rounded-full border-2 border-dashed border-[var(--color-foreground)]/30" />
+                                <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Loading storage…</p>
+                            </div>
                         ) : items.length > 0 ? (
                             <>
                                 {visibleItems.length > 0 ? (
@@ -175,7 +177,13 @@ export function AssetDrawer({
                                 )}
                             </>
                         ) : (
-                            <EmptyState />
+                            <div className="flex flex-col items-center gap-3 rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-6 py-8 text-center shadow-[var(--shadow-8)]">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] shadow-[var(--shadow-4)]">
+                                    <Package className="h-7 w-7" />
+                                </div>
+                                <p className="text-lg font-black uppercase tracking-[0.22em] text-[var(--color-foreground)]">Storage is empty</p>
+                                <p className="max-w-[220px] text-sm font-medium text-[var(--color-muted-foreground)]">Visit the shop on your computer to start decorating your room.</p>
+                            </div>
                         )}
                     </div>
                 </ScrollArea>

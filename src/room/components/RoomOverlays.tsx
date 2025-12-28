@@ -1,4 +1,5 @@
-import { ToolbarWithDrawer } from "./ToolbarWithDrawer";
+import { RoomToolbar } from "../RoomToolbar";
+import { EditDrawer } from "../EditDrawer";
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { ShareModal } from "../ShareModal";
@@ -150,22 +151,28 @@ export function RoomOverlays({
 }: RoomOverlaysProps) {
     return (
         <>
-            <ToolbarWithDrawer
+            <RoomToolbar
                 isGuest={isGuest}
                 mode={mode}
+                onToggleMode={onToggleMode}
                 shareAllowed={shareAllowed}
                 visitorCount={visitorCount}
+                onShareClick={onShareClick}
                 drawerOffset={drawerOffset}
                 drawerOrientation={drawerOrientation}
+            />
+
+            <EditDrawer
+                mode={mode}
                 isDrawerOpen={isDrawerOpen}
+                onDrawerToggle={onDrawerToggle}
                 draggedItemId={draggedItemId}
+                onDeleteItem={onDeleteItem}
                 highlightComputer={highlightComputer}
+                isGuest={isGuest}
                 guestItems={guestItems}
                 placedCatalogItemIds={placedCatalogItemIds}
-                onToggleMode={onToggleMode}
-                onShareClick={onShareClick}
-                onDrawerToggle={onDrawerToggle}
-                onDeleteItem={onDeleteItem}
+                orientation={drawerOrientation}
             />
 
             <ComputerOverlay

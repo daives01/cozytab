@@ -17,6 +17,7 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+.cursor
 .DS_Store
 *.suo
 *.ntvs*
@@ -24,4 +25,5 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables
 .env.local

@@ -22,9 +22,9 @@ import { useRoomHandlers } from "./hooks/useRoomHandlers";
 import { useRoomComputed } from "./hooks/useRoomComputed";
 import { useRoomGate } from "./hooks/useRoomGate";
 import { usePlacementAllowance } from "./hooks/usePlacementAllowance";
-import { RoomShell } from "./RoomShell";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
+import { RoomCanvas } from "./RoomCanvas";
 import { GUEST_STARTING_COINS, type GuestSessionState } from "@shared/guestTypes";
 import { useAudioUnlock } from "@/lib/audio";
 import { RoomStateProvider } from "./state/roomAtoms";
@@ -525,24 +525,26 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     );
 
     return (
-        <RoomShell
-            roomBackgroundImageUrl={roomBackgroundImageUrl ?? null}
-            scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onDragOver={handleDragOver}
-            onDrop={handlers.handleDrop}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            onBackgroundClick={() => handlers.handleBackgroundClick()}
-            outerClassName={draggedItemId ? "select-none" : ""}
-            outerStyle={{
-                paddingLeft: drawerInsetLeft,
-                paddingBottom: drawerInsetBottom,
-                transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-            roomContent={roomContent}
-            overlays={overlays}
-        />
+        <div className="h-screen w-screen">
+            <RoomCanvas
+                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+                scale={scale}
+                timeOfDay={timeOfDay}
+                containerRef={containerRef}
+                onDragOver={handleDragOver}
+                onDrop={handlers.handleDrop}
+                onMouseMove={handleMouseEvent}
+                onMouseEnter={handleMouseEvent}
+                onBackgroundClick={() => handlers.handleBackgroundClick()}
+                outerClassName={draggedItemId ? "select-none" : ""}
+                outerStyle={{
+                    paddingLeft: drawerInsetLeft,
+                    paddingBottom: drawerInsetBottom,
+                    transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                roomContent={roomContent}
+                overlays={overlays}
+            />
+        </div>
     );
 }

@@ -92,7 +92,7 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "set-homepage": {
-        message: "Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set https://cozytab.club as your homepage. Works in Chrome and Firefox!",
+        message: `Make cozytab your homepage! Press Cmd/Ctrl+, to open settings, then set ${import.meta.env.VITE_APP_URL || window.location.origin} as your homepage. Works in Chrome and Firefox!`,
         bubblePosition: "bottom",
         showSkip: true,
         pulseTarget: false,

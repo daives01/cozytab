@@ -6,28 +6,28 @@ export { PresenceRoom } from "./PresenceRoom";
 type Bindings = {
     PRESENCE_ROOM: DurableObjectNamespace;
     DEBUG_PRESENCE_SECRET?: string;
+    PUBLIC_APP_URL?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
-
-const ALLOWED_ORIGINS = new Set<string>([
-    "https://cozytab.club",
-    "http://localhost:8787",
-    "http://localhost:5173",
-    "http://localhost:4173",
-]);
-
-const resolveOrigin = (origin: string | null): string | undefined | null => {
-    if (!origin) return origin;
-    const normalized = origin.toLowerCase();
-    return ALLOWED_ORIGINS.has(normalized) ? origin : undefined;
-};
 
 // Enable CORS for allowed frontends
 app.use(
     "*",
     cors({
-        origin: resolveOrigin,
+        origin: (origin, c) => {
+            const appUrl = c.env.PUBLIC_APP_URL || "https://your-app-url.com";
+            const ALLOWED_ORIGINS = new Set<string>([
+                appUrl,
+                "http://localhost:8787",
+                "http://localhost:5173",
+                "http://localhost:4173",
+            ]);
+
+            if (!origin) return origin;
+            const normalized = origin.toLowerCase();
+            return ALLOWED_ORIGINS.has(normalized) ? origin : undefined;
+        },
         allowMethods: ["GET", "POST", "OPTIONS"],
         allowHeaders: ["Content-Type", "Upgrade", "Connection"],
     })

@@ -25,7 +25,15 @@ interface DesktopGridProps {
 function getFaviconUrl(url: string): string {
     try {
         const domain = new URL(url).hostname;
-        if (domain === "cozytab.club" || domain.endsWith(".cozytab.club")) {
+        let appDomain: string;
+        try {
+            appDomain = new URL(import.meta.env.VITE_APP_URL || window.location.origin).hostname;
+        } catch {
+            // Fallback to window.location.origin if VITE_APP_URL is invalid
+            appDomain = new URL(window.location.origin).hostname;
+        }
+
+        if (domain === appDomain || domain.endsWith(`.${appDomain}`)) {
             return "/favicon.svg";
         }
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;

@@ -35,10 +35,10 @@ import {
 } from "@/guest/state";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
 import { PresenceLayer } from "@/presence/PresenceLayer";
-import { RoomShell } from "./RoomShell";
-import { ChatHint } from "./components/ChatHint";
+import { RoomCanvas } from "./RoomCanvas";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
+import { ChatHint } from "./components/ChatHint";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";
@@ -540,15 +540,17 @@ function VisitorRoomPageContent({
     );
 
     return (
-        <RoomShell
-            roomBackgroundImageUrl={roomBackgroundImageUrl ?? null}
-            scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            roomContent={roomContent}
-            overlays={overlays}
-        />
+        <div className="h-screen w-screen">
+            <RoomCanvas
+                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+                scale={scale}
+                timeOfDay={timeOfDay}
+                containerRef={containerRef}
+                onMouseMove={handleMouseEvent}
+                onMouseEnter={handleMouseEvent}
+                roomContent={roomContent}
+                overlays={overlays}
+            />
+        </div>
     );
 }

@@ -50,6 +50,8 @@ function detectPlatform(): { os: DetectedOS; browser: DetectedBrowser } {
 export function getHomepageInstruction(): string {
     const { os, browser } = detectPlatform();
 
+    const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+
     const instructions =
         "Set cozytab as your homepage in settings! Log in daily to earn a new coin!";
     let specificInstructions = "";
@@ -58,15 +60,15 @@ export function getHomepageInstruction(): string {
         switch (browser) {
             case "chrome":
                 specificInstructions =
-                    "Chrome: Settings (⌘ ,) → On startup → Open a specific page → https://cozytab.club.";
+                    `Chrome: Settings (⌘ ,) → On startup → Open a specific page → ${appUrl}.`;
                 break;
             case "edge":
                 specificInstructions =
-                    "Edge: Settings (⌘ ,) → Start, home, and new tabs → Home → custom page https://cozytab.club.";
+                    `Edge: Settings (⌘ ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
                 break;
             case "firefox":
                 specificInstructions =
-                    "Firefox: Settings (⌘ ,) → Home → Homepage and new windows → Custom URL https://cozytab.club.";
+                    `Firefox: Settings (⌘ ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
                 break;
             default:
                 break;
@@ -77,15 +79,15 @@ export function getHomepageInstruction(): string {
         switch (browser) {
             case "chrome":
                 specificInstructions =
-                    "Chrome: Settings (Ctrl ,) → On startup → Open a specific page → https://cozytab.club.";
+                    `Chrome: Settings (Ctrl ,) → On startup → Open a specific page → ${appUrl}.`;
                 break;
             case "edge":
                 specificInstructions =
-                    "Edge: Settings (Ctrl ,) → Start, home, and new tabs → Home → custom page https://cozytab.club.";
+                    `Edge: Settings (Ctrl ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
                 break;
             case "firefox":
                 specificInstructions =
-                    "Firefox: Settings (Ctrl ,) → Home → Homepage and new windows → Custom URL https://cozytab.club.";
+                    `Firefox: Settings (Ctrl ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
                 break;
             default:
                 break;
