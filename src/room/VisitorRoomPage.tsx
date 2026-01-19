@@ -38,6 +38,7 @@ import { PresenceLayer } from "@/presence/PresenceLayer";
 import { RoomCanvas } from "./RoomCanvas";
 import { useViewportSize } from "./hooks/useRoomPageEffects";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
+import { GameOverlay } from "@/games/components/GameOverlay";
 import { ChatHint } from "./components/ChatHint";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
@@ -222,7 +223,9 @@ function VisitorRoomPageContent({
         screenCursor,
         localChatMessage,
         setInMenu,
+        setInGame,
         connectionState,
+        wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: {
@@ -232,10 +235,14 @@ function VisitorRoomPageContent({
         },
         isOwner: false,
     });
-    const isInMenu = isComputerOpen || Boolean(activeMusicItem);
+    const [activeGameItemId, setActiveGameItemId] = useState<string | null>(null);
+    const isInMenu = isComputerOpen || Boolean(activeMusicItem) || Boolean(activeGameItemId);
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
+    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
+        setInGame(gameItemId);
+    }, [setInGame]);
     const handleDismissChatOnboarding = useCallback(() => {
         setVisitorChatOnboardingDismissed(true);
         if (typeof window !== "undefined") {
@@ -388,6 +395,7 @@ function VisitorRoomPageContent({
                         onDragEnd={() => {}}
                         onComputerClick={handleOpenComputer}
                         onMusicPlayerClick={() => setActiveMusicItemId(item.id)}
+                        onGameClick={() => setActiveGameItemId(item.id)}
                         isVisitor={true}
                         overlay={
                             isMusicItem(item) ? (
@@ -411,7 +419,7 @@ function VisitorRoomPageContent({
                 );
             })}
 
-            <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} />
+            <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} currentGameId={activeGameItemId} />
         </>
     );
 
@@ -484,6 +492,21 @@ function VisitorRoomPageContent({
             {activeMusicItem ? (
                 <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
             ) : null}
+
+            <GameOverlay
+                isOpen={!!activeGameItemId}
+                gameType="chess"
+                itemId={activeGameItemId ?? ""}
+                identity={{
+                    id: visitorIdentity.id,
+                    displayName: visitorIdentity.name,
+                    cursorColor: visitorIdentity.cursorColor,
+                }}
+                wsRef={wsRef}
+                onClose={() => setActiveGameItemId(null)}
+                onPointerMove={updateCursorFromClient}
+                onGameActiveChange={handleGameActiveChange}
+            />
 
             <LocalCursor
                 x={screenCursor.x}

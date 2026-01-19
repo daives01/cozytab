@@ -18,6 +18,7 @@ interface ItemNodeProps {
     onDragEnd?: () => void;
     onComputerClick?: () => void;
     onMusicPlayerClick?: () => void;
+    onGameClick?: () => void;
     isOnboardingComputerTarget?: boolean;
     isVisitor?: boolean;
     overlay?: React.ReactNode;
@@ -38,6 +39,7 @@ export function ItemNode({
     onDragEnd,
     onComputerClick,
     onMusicPlayerClick,
+    onGameClick,
     isOnboardingComputerTarget: _isOnboardingComputerTarget,
     isVisitor = false,
     overlay,
@@ -99,6 +101,7 @@ export function ItemNode({
     const category = catalogItem?.category?.toLowerCase();
     const isComputerCategory = category?.includes("computer");
     const isMusicCategory = category?.includes("music");
+    const isGameCategory = category?.includes("game");
     const hasUrl = Boolean(item.url);
     const isInteractable =
         mode === "view" &&
@@ -106,11 +109,13 @@ export function ItemNode({
             ? Boolean(
                 hasUrl ||
                 (isComputerCategory && onComputerClick) ||
-                (isMusicCategory && onMusicPlayerClick)
+                (isMusicCategory && onMusicPlayerClick) ||
+                (isGameCategory && onGameClick)
             )
             : Boolean(
                 (isComputerCategory && onComputerClick) ||
                 (isMusicCategory && onMusicPlayerClick) ||
+                (isGameCategory && onGameClick) ||
                 hasUrl
             ));
 
@@ -139,6 +144,11 @@ export function ItemNode({
 
                 if (isMusicCategory && onMusicPlayerClick) {
                     onMusicPlayerClick();
+                    return;
+                }
+
+                if (isGameCategory && onGameClick) {
+                    onGameClick();
                     return;
                 }
 

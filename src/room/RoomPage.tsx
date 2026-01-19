@@ -247,17 +247,25 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         hasVisitors,
         visitorCount,
         setInMenu,
+        setInGame,
         connectionState,
+        wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: { id: visitorId ?? "owner", name: ownerName, cursorColor },
         isOwner: true,
     });
 
-    const isInMenu = isComputerOpen || Boolean(musicPlayerItemId);
+    const [activeGameItemId, setActiveGameItemId] = useState<string | null>(null);
+
+    const isInMenu = isComputerOpen || Boolean(musicPlayerItemId) || Boolean(activeGameItemId);
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
+
+    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
+        setInGame(gameItemId);
+    }, [setInGame]);
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
@@ -420,6 +428,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onDragEnd={() => handlers.handleDragEnd()}
             onComputerClick={() => handlers.handleComputerClick()}
             onMusicPlayerClick={(id) => handlers.handleMusicPlayerClick(id)}
+            onGameClick={(id) => setActiveGameItemId(id)}
             bringItemToFront={(id) => handlers.handleBringToFront(id)}
             sendItemToBack={(id) => handlers.handleSendToBack(id)}
             onboardingStep={onboardingStep}
@@ -429,6 +438,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             visitors={visitors}
             visitorId={visitorId}
             isGuest={isGuest}
+            currentGameId={activeGameItemId}
         />
     );
 
@@ -521,6 +531,11 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             localChatMessage={localChatMessage}
             screenCursor={screenCursor}
             connectionState={connectionState}
+            activeGameItemId={activeGameItemId}
+            onCloseGame={() => setActiveGameItemId(null)}
+            onGameActiveChange={handleGameActiveChange}
+            gameIdentity={{ id: visitorId ?? "owner", displayName: ownerName, cursorColor }}
+            wsRef={wsRef}
         />
     );
 

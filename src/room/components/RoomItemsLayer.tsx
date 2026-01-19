@@ -20,6 +20,7 @@ interface RoomItemsLayerProps {
     onDragEnd: () => void;
     onComputerClick: () => void;
     onMusicPlayerClick: (id: string) => void;
+    onGameClick: (id: string) => void;
     bringItemToFront: (id: string) => void;
     sendItemToBack: (id: string) => void;
     onboardingStep: OnboardingStep | null;
@@ -29,6 +30,7 @@ interface RoomItemsLayerProps {
     visitors: VisitorState[];
     visitorId: string | null;
     isGuest: boolean;
+    currentGameId?: string | null;
 }
 
 export function RoomItemsLayer({
@@ -42,6 +44,7 @@ export function RoomItemsLayer({
     onDragEnd,
     onComputerClick,
     onMusicPlayerClick,
+    onGameClick,
     bringItemToFront,
     sendItemToBack,
     onboardingStep,
@@ -51,6 +54,7 @@ export function RoomItemsLayer({
     visitors,
     visitorId,
     isGuest,
+    currentGameId,
 }: RoomItemsLayerProps) {
     return (
         <>
@@ -71,6 +75,7 @@ export function RoomItemsLayer({
                         onDragEnd={onDragEnd}
                         onComputerClick={onComputerClick}
                         onMusicPlayerClick={() => onMusicPlayerClick(item.id)}
+                        onGameClick={() => onGameClick(item.id)}
                         onBringToFront={() => bringItemToFront(item.id)}
                         onSendToBack={() => sendItemToBack(item.id)}
                         canBringToFront={!isAtFront}
@@ -97,7 +102,7 @@ export function RoomItemsLayer({
             })}
 
             {!isGuest && presenceRoomId && (
-                <PresenceLayer visitors={visitors} currentVisitorId={visitorId} scale={scale} />
+                <PresenceLayer visitors={visitors} currentVisitorId={visitorId} scale={scale} currentGameId={currentGameId} />
             )}
         </>
     );

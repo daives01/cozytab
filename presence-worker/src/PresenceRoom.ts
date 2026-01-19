@@ -1,4 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
+import type { GameState, GamePlayer, GameCursor } from "../../shared/gameTypes";
+import { STARTING_FEN } from "../../shared/gameTypes";
+
+export type { GameState, GamePlayer, GameCursor };
+
 export type PresenceMessage =
     | {
           type: "join";
@@ -18,9 +23,17 @@ export type PresenceMessage =
           cursorColor?: string;
           inMenu?: boolean;
           tabbedOut?: boolean;
+          inGame?: string | null;
       }
     | { type: "chat"; visitorId: string; text: string | null }
-    | { type: "state"; visitors: VisitorState[] };
+    | { type: "state"; visitors: VisitorState[] }
+    | { type: "game_join"; visitorId: string; displayName: string; cursorColor?: string; itemId: string }
+    | { type: "game_leave"; visitorId: string; itemId: string }
+    | { type: "game_cursor"; visitorId: string; itemId: string; x: number; y: number; cursorColor?: string }
+    | { type: "game_move"; visitorId: string; itemId: string; move: { from: string; to: string; promotion?: string }; fen: string; lastMove: { from: string; to: string } }
+    | { type: "game_claim_side"; visitorId: string; itemId: string; side: "white" | "black" }
+    | { type: "game_reset"; visitorId: string; itemId: string }
+    | { type: "game_state"; itemId: string; state: GameState };
 
 export type VisitorState = {
     visitorId: string;
@@ -32,6 +45,7 @@ export type VisitorState = {
     cursorColor?: string;
     inMenu: boolean;
     tabbedOut: boolean;
+    inGame?: string | null;
 };
 
 type WebSocketAttachment = {
@@ -41,8 +55,7 @@ type WebSocketAttachment = {
 };
 
 const DEFAULT_POSITION = { x: 960, y: 540 };
-
-const MAX_MESSAGE_SIZE_BYTES = 4096; // keep WebSocket payloads bounded
+const MAX_MESSAGE_SIZE_BYTES = 8192; // increased for game state
 const MAX_NAME_LENGTH = 64;
 const MAX_CHAT_LENGTH = 500;
 const MAX_COORDINATE = 10000; // generous guardrail for coordinates
@@ -68,6 +81,10 @@ function isValidBoolean(value: unknown): value is boolean | undefined {
     return value === undefined || typeof value === "boolean";
 }
 
+function isValidInGame(value: unknown): value is string | null | undefined {
+    return value === undefined || value === null || (typeof value === "string" && value.length <= 128);
+}
+
 function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
     if (
         !isValidId(data.visitorId) ||
@@ -81,6 +98,7 @@ function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
     if (!isValidCursorColor(data.cursorColor)) return false;
     if (!isValidBoolean(data.inMenu)) return false;
     if (!isValidBoolean(data.tabbedOut)) return false;
+    if (!isValidInGame(data.inGame)) return false;
     return true;
 }
 
@@ -155,6 +173,62 @@ function validateMessage(raw: unknown): PresenceMessage | null {
             // State is only emitted server-side; do not accept from clients.
             return null;
         }
+        case "game_join": {
+            if (!isValidId(data.visitorId) || !isValidDisplayName(data.displayName) || !isValidId(data.itemId)) return null;
+            if (!isValidCursorColor(data.cursorColor)) return null;
+            return {
+                type: "game_join",
+                visitorId: data.visitorId,
+                displayName: data.displayName,
+                cursorColor: data.cursorColor,
+                itemId: data.itemId,
+            };
+        }
+        case "game_leave": {
+            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
+            return { type: "game_leave", visitorId: data.visitorId, itemId: data.itemId };
+        }
+        case "game_cursor": {
+            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
+            if (!isFiniteNumber(data.x) || !isFiniteNumber(data.y)) return null;
+            return {
+                type: "game_cursor",
+                visitorId: data.visitorId,
+                itemId: data.itemId,
+                x: data.x,
+                y: data.y,
+                cursorColor: isValidCursorColor(data.cursorColor) ? data.cursorColor : undefined,
+            };
+        }
+        case "game_move": {
+            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
+            const move = data.move as { from?: string; to?: string; promotion?: string } | undefined;
+            if (!move || typeof move.from !== "string" || typeof move.to !== "string") return null;
+            if (typeof data.fen !== "string") return null;
+            const lastMove = data.lastMove as { from?: string; to?: string } | undefined;
+            if (!lastMove || typeof lastMove.from !== "string" || typeof lastMove.to !== "string") return null;
+            return {
+                type: "game_move",
+                visitorId: data.visitorId,
+                itemId: data.itemId,
+                move: { from: move.from, to: move.to, promotion: move.promotion },
+                fen: data.fen,
+                lastMove: { from: lastMove.from, to: lastMove.to },
+            };
+        }
+        case "game_claim_side": {
+            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
+            if (data.side !== "white" && data.side !== "black") return null;
+            return { type: "game_claim_side", visitorId: data.visitorId, itemId: data.itemId, side: data.side };
+        }
+        case "game_reset": {
+            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
+            return { type: "game_reset", visitorId: data.visitorId, itemId: data.itemId };
+        }
+        case "game_state": {
+            // Server-side only
+            return null;
+        }
         default:
             return null;
     }
@@ -162,9 +236,26 @@ function validateMessage(raw: unknown): PresenceMessage | null {
 
 export class PresenceRoom extends DurableObject {
     private visitors: Map<string, VisitorState> = new Map();
+    private games: Map<string, GameState> = new Map();
 
     constructor(ctx: DurableObjectState, env: object) {
         super(ctx, env);
+    }
+
+    private getOrCreateGame(itemId: string): GameState {
+        let game = this.games.get(itemId);
+        if (!game) {
+            game = {
+                gameType: "chess",
+                players: [],
+                cursors: {},
+                fen: STARTING_FEN,
+                whitePlayer: null,
+                blackPlayer: null,
+            };
+            this.games.set(itemId, game);
+        }
+        return game;
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -237,6 +328,24 @@ export class PresenceRoom extends DurableObject {
                 break;
             case "leave":
                 this.handleLeave(data.visitorId, ws);
+                break;
+            case "game_join":
+                this.handleGameJoin(ws, data);
+                break;
+            case "game_leave":
+                this.handleGameLeave(ws, data);
+                break;
+            case "game_cursor":
+                this.handleGameCursor(ws, data);
+                break;
+            case "game_move":
+                this.handleGameMove(ws, data);
+                break;
+            case "game_claim_side":
+                this.handleGameClaimSide(ws, data);
+                break;
+            case "game_reset":
+                this.handleGameReset(ws, data);
                 break;
             default:
                 console.warn("[DO] Unknown message type", (data as { type?: string })?.type);
@@ -324,6 +433,9 @@ export class PresenceRoom extends DurableObject {
         if (typeof data.tabbedOut === "boolean") {
             visitor.tabbedOut = data.tabbedOut;
         }
+        if (data.inGame !== undefined) {
+            visitor.inGame = data.inGame;
+        }
 
         this.broadcast(ws, data);
     }
@@ -390,5 +502,98 @@ export class PresenceRoom extends DurableObject {
                 console.error("[DO] Error sending to WebSocket:", e);
             }
         }
+    }
+
+    private broadcastToAll(message: PresenceMessage): void {
+        const msgString = JSON.stringify(message);
+        for (const socket of this.ctx.getWebSockets()) {
+            if (socket.readyState !== WebSocket.OPEN) continue;
+            try {
+                socket.send(msgString);
+            } catch (e) {
+                console.error("[DO] Error sending to WebSocket:", e);
+            }
+        }
+    }
+
+    private handleGameJoin(ws: WebSocket, data: Extract<PresenceMessage, { type: "game_join" }>) {
+        const game = this.getOrCreateGame(data.itemId);
+        const existingPlayer = game.players.find((p) => p.visitorId === data.visitorId);
+        if (!existingPlayer) {
+            game.players.push({
+                visitorId: data.visitorId,
+                displayName: data.displayName,
+                cursorColor: data.cursorColor,
+                side: null,
+            });
+        }
+        const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
+        ws.send(JSON.stringify(stateMsg));
+        this.broadcast(ws, data);
+    }
+
+    private handleGameLeave(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_leave" }>) {
+        const game = this.games.get(data.itemId);
+        if (!game) return;
+        game.players = game.players.filter((p) => p.visitorId !== data.visitorId);
+        delete game.cursors[data.visitorId];
+        if (game.whitePlayer === data.visitorId) game.whitePlayer = null;
+        if (game.blackPlayer === data.visitorId) game.blackPlayer = null;
+        if (game.players.length === 0) {
+            this.games.delete(data.itemId);
+        }
+        this.broadcastToAll(data);
+    }
+
+    private handleGameCursor(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_cursor" }>) {
+        const game = this.games.get(data.itemId);
+        if (!game) return;
+        game.cursors[data.visitorId] = {
+            visitorId: data.visitorId,
+            x: data.x,
+            y: data.y,
+            cursorColor: data.cursorColor,
+        };
+        this.broadcastToAll(data);
+    }
+
+    private handleGameMove(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_move" }>) {
+        const game = this.games.get(data.itemId);
+        if (!game) return;
+        game.fen = data.fen;
+        game.lastMove = data.lastMove;
+        this.broadcastToAll(data);
+    }
+
+    private handleGameClaimSide(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_claim_side" }>) {
+        const game = this.games.get(data.itemId);
+        if (!game) return;
+        const player = game.players.find((p) => p.visitorId === data.visitorId);
+        if (!player) return;
+        if (data.side === "white" && !game.whitePlayer) {
+            if (game.blackPlayer === data.visitorId) game.blackPlayer = null;
+            game.whitePlayer = data.visitorId;
+            player.side = "white";
+        } else if (data.side === "black" && !game.blackPlayer) {
+            if (game.whitePlayer === data.visitorId) game.whitePlayer = null;
+            game.blackPlayer = data.visitorId;
+            player.side = "black";
+        }
+        const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
+        this.broadcastToAll(stateMsg);
+    }
+
+    private handleGameReset(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_reset" }>) {
+        const game = this.games.get(data.itemId);
+        if (!game) return;
+        game.fen = STARTING_FEN;
+        game.lastMove = undefined;
+        game.whitePlayer = null;
+        game.blackPlayer = null;
+        for (const player of game.players) {
+            player.side = null;
+        }
+        const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
+        this.broadcastToAll(stateMsg);
     }
 }

@@ -11,6 +11,7 @@ import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
 import { LocalCursor } from "@/presence/LocalCursor";
+import { GameOverlay } from "@/games/components/GameOverlay";
 import type { RoomItem, ComputerShortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
@@ -85,6 +86,13 @@ interface RoomOverlaysProps {
     localChatMessage: string | null;
     screenCursor: { x: number; y: number };
     connectionState: "connecting" | "connected" | "reconnecting";
+
+    // Game overlay
+    activeGameItemId: string | null;
+    onCloseGame: () => void;
+    onGameActiveChange: (gameItemId: string | null) => void;
+    gameIdentity: { id: string; displayName: string; cursorColor?: string };
+    wsRef: React.RefObject<WebSocket | null>;
 }
 
 export function RoomOverlays({
@@ -148,6 +156,11 @@ export function RoomOverlays({
     localChatMessage,
     screenCursor,
     connectionState,
+    activeGameItemId,
+    onCloseGame,
+    onGameActiveChange,
+    gameIdentity,
+    wsRef,
 }: RoomOverlaysProps) {
     return (
         <>
@@ -219,6 +232,17 @@ export function RoomOverlays({
                 ) : null;
             })()}
 
+            <GameOverlay
+                isOpen={!!activeGameItemId}
+                gameType="chess"
+                itemId={activeGameItemId ?? ""}
+                identity={gameIdentity}
+                wsRef={wsRef}
+                onClose={onCloseGame}
+                onPointerMove={onPointerMove}
+                onGameActiveChange={onGameActiveChange}
+            />
+
             {!isGuest && isShareModalOpen && <ShareModal onClose={onCloseShareModal} />}
 
             {onboardingActive && onboardingStep && (
@@ -249,13 +273,14 @@ export function RoomOverlays({
                     disabled={
                         isComputerOpenState ||
                         musicPlayerItemId !== null ||
+                        activeGameItemId !== null ||
                         isShareModalOpen ||
                         connectionState !== "connected"
                     }
                 />
             )}
 
-            {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !isShareModalOpen && <ChatHint />}
+            {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !activeGameItemId && !isShareModalOpen && <ChatHint />}
 
             {!isGuest && connectionState !== "connected" && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">

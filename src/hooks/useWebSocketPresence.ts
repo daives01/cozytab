@@ -22,6 +22,7 @@ type PresenceMessage =
           cursorColor?: string;
           inMenu?: boolean;
           tabbedOut?: boolean;
+          inGame?: string | null;
       }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -36,6 +37,7 @@ export type VisitorState = {
     cursorColor?: string;
     inMenu: boolean;
     tabbedOut: boolean;
+    inGame?: string | null;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
@@ -117,6 +119,7 @@ export function useWebSocketPresence(
     const tabbedOutRef = useRef<boolean>(
         typeof document !== "undefined" ? document.visibilityState === "hidden" : false
     );
+    const inGameRef = useRef<string | null>(null);
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
     const setVisitorsAndStore = useCallback(
         (updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
@@ -243,6 +246,7 @@ export function useWebSocketPresence(
                                   inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
                                   tabbedOut:
                                       typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
+                                  inGame: data.inGame !== undefined ? data.inGame : v.inGame,
                               }
                             : v
                     )
@@ -385,7 +389,7 @@ export function useWebSocketPresence(
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
-        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean): PresenceMessage => ({
+        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean, inGame?: string | null): PresenceMessage => ({
             type: "cursor",
             visitorId,
             x,
@@ -393,6 +397,7 @@ export function useWebSocketPresence(
             cursorColor: color ?? latestCursorColorRef.current,
             inMenu: inMenu ?? inMenuRef.current,
             tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : tabbedOutRef.current,
+            inGame: inGame !== undefined ? inGame : inGameRef.current,
         }),
         [visitorId]
     );
@@ -402,7 +407,7 @@ export function useWebSocketPresence(
             x: number,
             y: number,
             color?: string,
-            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean }
+            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null }
         ) => {
             if (!visitorId) return;
 
@@ -411,7 +416,7 @@ export function useWebSocketPresence(
             const transmit = (nextX: number, nextY: number) => {
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: nextX, y: nextY };
-                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut));
+                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame));
             };
 
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
@@ -476,6 +481,18 @@ export function useWebSocketPresence(
         [sendCursor, visitorId]
     );
 
+    const setInGame = useCallback(
+        (gameItemId: string | null) => {
+            if (!visitorId) return;
+            if (inGameRef.current === gameItemId) return;
+
+            inGameRef.current = gameItemId;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { inGame: gameItemId, force: true });
+        },
+        [sendCursor, visitorId]
+    );
+
     useEffect(() => {
         if (!roomId) return;
         if (typeof document === "undefined") return;
@@ -511,9 +528,11 @@ export function useWebSocketPresence(
         screenCursor,
         localChatMessage,
         setInMenu,
+        setInGame,
         connectionState,
         reconnectNow,
         // No batchInterval needed - direct updates
         batchInterval: 0,
+        wsRef,
     };
 }
