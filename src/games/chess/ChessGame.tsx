@@ -7,18 +7,12 @@ import { STARTING_FEN } from "../constants";
 import type { GameState, GamePlayer } from "../hooks/useGamePresence";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
-import { RotateCcw, Crown, X, Users } from "lucide-react";
+import { RotateCcw, Crown, X, Users, LogOut } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
 
 const HOLD_DURATION_MS = 800;
 
-function HoldToResetButton({
-  onReset,
-  variant = "landscape",
-}: {
-  onReset: () => void;
-  variant?: "portrait" | "landscape";
-}) {
+function HoldToResetButton({ onReset }: { onReset: () => void }) {
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -52,12 +46,6 @@ function HoldToResetButton({
     };
   }, []);
 
-  const isPortrait = variant === "portrait";
-  const baseClasses = isPortrait
-    ? "relative flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-xs font-medium select-none"
-    : "relative flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-sm font-medium select-none";
-  const iconSize = isPortrait ? "w-3 h-3" : "w-4 h-4";
-
   return (
     <button
       type="button"
@@ -67,15 +55,13 @@ function HoldToResetButton({
       onTouchStart={startHold}
       onTouchEnd={cancelHold}
       onTouchCancel={cancelHold}
-      className={`${baseClasses} ${isHolding ? "scale-95" : ""} transition-transform`}
+      className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-xs font-medium select-none ${isHolding ? "scale-95" : ""} transition-transform`}
     >
-      {/* Progress fill */}
       <div
         className="absolute inset-0 bg-red-400/40 origin-left transition-transform"
         style={{ transform: `scaleX(${progress})` }}
       />
-      <RotateCcw className={`${iconSize} relative z-10 ${isHolding ? "animate-spin" : ""}`} style={{ animationDuration: "0.8s" }} />
-      {!isPortrait && <span className="relative z-10">{isHolding ? "Hold..." : "Reset"}</span>}
+      <RotateCcw className={`w-3 h-3 relative z-10 ${isHolding ? "animate-spin" : ""}`} style={{ animationDuration: "0.8s" }} />
     </button>
   );
 }
@@ -89,6 +75,7 @@ interface ChessGameProps {
   visitors: VisitorState[];
   onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
   onClaimSide: (side: "white" | "black") => void;
+  onLeaveSide: () => void;
   onReset: () => void;
   onCursorMove: (x: number, y: number) => void;
   onClose: () => void;
@@ -97,13 +84,17 @@ interface ChessGameProps {
 function PlayerBadge({
   side,
   player,
+  isMe,
+  canJoin,
   onJoin,
-  disabled,
+  onLeave,
 }: {
   side: "white" | "black";
   player: GamePlayer | undefined;
+  isMe: boolean;
+  canJoin: boolean;
   onJoin: () => void;
-  disabled: boolean;
+  onLeave: () => void;
 }) {
   const colors = side === "black"
     ? "bg-gray-800 text-white"
@@ -116,6 +107,16 @@ function PlayerBadge({
       <div className={baseClasses}>
         <Crown className="w-4 h-4 shrink-0" />
         <span className="text-sm font-medium truncate max-w-[100px]">{player.displayName}</span>
+        {isMe && (
+          <button
+            type="button"
+            onClick={onLeave}
+            className={`p-1 rounded-md -mr-1 transition-colors ${side === "black" ? "hover:bg-white/20" : "hover:bg-black/10"}`}
+            title="Leave side"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
     );
   }
@@ -124,8 +125,8 @@ function PlayerBadge({
     <button
       type="button"
       onClick={onJoin}
-      disabled={disabled}
-      className={`${baseClasses} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
+      disabled={!canJoin}
+      className={`${baseClasses} ${!canJoin ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
     >
       <Crown className="w-4 h-4 shrink-0" />
       <span className={`text-sm font-medium ${side === "black" ? "text-gray-400" : "text-gray-500"}`}>Join</span>
@@ -142,6 +143,7 @@ export function ChessGame({
   visitors,
   onMove,
   onClaimSide,
+  onLeaveSide,
   onReset,
   onCursorMove,
   onClose,
@@ -252,7 +254,6 @@ export function ChessGame({
         if (possibleMoves.includes(sq)) {
           if (needsPromotion(selectedSquare, sq)) {
             setPendingPromotion({ from: selectedSquare, to: sq });
-            clearSelection();
             return;
           }
           tryMove(selectedSquare, sq);
@@ -365,7 +366,11 @@ export function ChessGame({
   const whitePlayer = gameState?.players.find((p) => p.visitorId === whitePlayerId);
   const blackPlayer = gameState?.players.find((p) => p.visitorId === blackPlayerId);
   const spectators = gameState?.players.filter((p) => p.visitorId !== whitePlayerId && p.visitorId !== blackPlayerId) ?? [];
-  const hasMySide = !!mySide;
+
+  // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
+  const otherPlayerExists = (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
+  const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
+  const canJoinBlack = !blackPlayer && (!mySide || !otherPlayerExists);
 
   const getPlayerChat = useCallback((playerId: string): string | null | undefined => {
     const visitor = visitors.find((v) => v.visitorId === playerId);
@@ -376,81 +381,79 @@ export function ChessGame({
   const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
   const topPlayer = topBadgeSide === "white" ? whitePlayer : blackPlayer;
   const bottomPlayer = bottomBadgeSide === "white" ? whitePlayer : blackPlayer;
+  const canJoinTop = topBadgeSide === "white" ? canJoinWhite : canJoinBlack;
+  const canJoinBottom = bottomBadgeSide === "white" ? canJoinWhite : canJoinBlack;
 
   return (
-    <div className="flex items-center justify-center gap-4 select-none">
-      {/* Left sidebar (landscape) */}
-      <div className="hidden landscape:flex flex-col gap-3 justify-between items-start self-stretch py-2">
-        <div className="flex flex-col gap-2">
-          <PlayerBadge side={topBadgeSide} player={topPlayer} onJoin={() => onClaimSide(topBadgeSide)} disabled={hasMySide} />
-          <PlayerBadge side={bottomBadgeSide} player={bottomPlayer} onJoin={() => onClaimSide(bottomBadgeSide)} disabled={hasMySide} />
+    <div className="flex flex-col items-center gap-3 select-none">
+      {/* Top controls */}
+      <div className="flex items-center justify-between w-full">
+        <PlayerBadge
+          side={topBadgeSide}
+          player={topPlayer}
+          isMe={mySide === topBadgeSide}
+          canJoin={canJoinTop}
+          onJoin={() => onClaimSide(topBadgeSide)}
+          onLeave={onLeaveSide}
+        />
+        <div className="flex items-center gap-2">
           {spectators.length > 0 && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/20 text-white/70 text-xs">
+            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-black/20 text-white/70 text-xs">
               <Users className="w-3 h-3" />
               <span>{spectators.length}</span>
             </div>
           )}
+          <HoldToResetButton onReset={onReset} />
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* Center column */}
-      <div className="flex flex-col items-center gap-3">
-        {/* Portrait top controls */}
-        <div className="flex landscape:hidden items-center justify-between w-full">
-          <PlayerBadge side={topBadgeSide} player={topPlayer} onJoin={() => onClaimSide(topBadgeSide)} disabled={hasMySide} />
-          <div className="flex items-center gap-2">
-            <HoldToResetButton onReset={onReset} variant="portrait" />
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-            >
-              <X className="w-4 h-4" />
-            </button>
+      {/* Board */}
+      <div
+        ref={boardRef}
+        className="relative aspect-square rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)] w-[min(85vw,85vh,500px)]"
+        onMouseMove={handleMouseMove}
+      >
+        <Chessboard
+          options={{
+            position: fen,
+            onPieceDrop: handleDrop,
+            onSquareClick: handleSquareClick,
+            boardOrientation,
+            squareStyles,
+            allowDragging: !!mySide && isMyTurn,
+            boardStyle: { borderRadius: "0" },
+            darkSquareStyle: { backgroundColor: "#b58863" },
+            lightSquareStyle: { backgroundColor: "#f0d9b5" },
+          } satisfies ChessboardOptions}
+        />
+        {otherCursors.map((cursor) => (
+          <div
+            key={cursor.visitorId}
+            className="absolute pointer-events-none transition-all duration-75"
+            style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)" }}
+          >
+            <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} />
           </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Board */}
-        <div
-          ref={boardRef}
-          className="relative aspect-square rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)] w-[min(85vw,85vh,500px)] landscape:w-[min(70vw,80vh,600px)]"
-          onMouseMove={handleMouseMove}
-        >
-          <Chessboard
-            options={{
-              position: fen,
-              onPieceDrop: handleDrop,
-              onSquareClick: handleSquareClick,
-              boardOrientation,
-              squareStyles,
-              allowDragging: !!mySide && isMyTurn,
-              boardStyle: { borderRadius: "0" },
-              darkSquareStyle: { backgroundColor: "#b58863" },
-              lightSquareStyle: { backgroundColor: "#f0d9b5" },
-            } satisfies ChessboardOptions}
-          />
-          {otherCursors.map((cursor) => (
-            <div
-              key={cursor.visitorId}
-              className="absolute pointer-events-none transition-all duration-75"
-              style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)" }}
-            >
-              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} />
-            </div>
-          ))}
-        </div>
-
-        {/* Portrait bottom controls */}
-        <div className="flex landscape:hidden items-center justify-between w-full">
-          <PlayerBadge side={bottomBadgeSide} player={bottomPlayer} onJoin={() => onClaimSide(bottomBadgeSide)} disabled={hasMySide} />
-          {spectators.length > 0 && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/20 text-white/70 text-xs">
-              <Users className="w-3 h-3" />
-              <span>{spectators.length}</span>
-            </div>
-          )}
-        </div>
-
+      {/* Bottom controls */}
+      <div className="flex items-center justify-between w-full">
+        <PlayerBadge
+          side={bottomBadgeSide}
+          player={bottomPlayer}
+          isMe={mySide === bottomBadgeSide}
+          canJoin={canJoinBottom}
+          onJoin={() => onClaimSide(bottomBadgeSide)}
+          onLeave={onLeaveSide}
+        />
         {/* Status - fixed height to prevent layout shift */}
         <div className="h-10 flex items-center justify-center">
           {gameStatus ? (
@@ -467,18 +470,6 @@ export function ChessGame({
             </div>
           ) : null}
         </div>
-      </div>
-
-      {/* Right sidebar (landscape) */}
-      <div className="hidden landscape:flex flex-col gap-3 justify-between items-end self-stretch py-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <HoldToResetButton onReset={onReset} variant="landscape" />
       </div>
 
       {/* Promotion modal */}

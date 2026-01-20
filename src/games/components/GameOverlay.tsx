@@ -40,6 +40,10 @@ export function GameOverlay({
     setGameMetadata({ side });
   };
 
+  const leaveSide = () => {
+    setGameMetadata({});
+  };
+
   const mySide = (myMetadata.side as "white" | "black" | undefined) ?? null;
 
   const chessBoardState = useQuery(api.games.getChessBoardState, isOpen ? { itemId } : "skip");
@@ -102,6 +106,7 @@ export function GameOverlay({
             visitors={visitors}
             onMove={handleMove}
             onClaimSide={claimSide}
+            onLeaveSide={leaveSide}
             onReset={handleReset}
             onCursorMove={updateGameCursor}
             onClose={onClose}

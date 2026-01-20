@@ -424,10 +424,31 @@ export class PresenceRoom extends DurableObject<Env> {
         try {
             const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
             if (attachment?.visitorId) {
+                // Clean up game presence for this visitor in all games
+                this.removeVisitorFromAllGames(attachment.visitorId);
+                // Clean up room presence
                 this.handleLeave(attachment.visitorId, ws);
             }
         } catch (e) {
             console.error("[DO] Error detaching visitor:", e);
+        }
+    }
+
+    private removeVisitorFromAllGames(visitorId: string) {
+        for (const [itemId, game] of this.games) {
+            const playerIndex = game.players.findIndex((p) => p.visitorId === visitorId);
+            if (playerIndex !== -1) {
+                game.players.splice(playerIndex, 1);
+                delete game.cursors[visitorId];
+                
+                // Broadcast game_leave to all clients
+                this.broadcastToAll({ type: "game_leave", visitorId, itemId });
+                
+                // Clean up empty games
+                if (game.players.length === 0) {
+                    this.games.delete(itemId);
+                }
+            }
         }
     }
 
