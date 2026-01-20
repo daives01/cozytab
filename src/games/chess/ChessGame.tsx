@@ -8,6 +8,7 @@ import type { GameState, GamePlayer } from "../hooks/useGamePresence";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { RotateCcw, Crown, X, Users } from "lucide-react";
+import { useChessSounds } from "./useChessSounds";
 
 const HOLD_DURATION_MS = 800;
 
@@ -149,6 +150,8 @@ export function ChessGame({
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
+  const { playMoveSound } = useChessSounds();
+  const prevFenRef = useRef(fen);
 
   const chess = useMemo(() => {
     const c = new Chess();
@@ -159,6 +162,22 @@ export function ChessGame({
     }
     return c;
   }, [fen]);
+
+  useEffect(() => {
+    if (prevFenRef.current !== fen && lastMove) {
+      const prevChess = new Chess();
+      try {
+        prevChess.load(prevFenRef.current);
+        const capturedPiece = prevChess.get(lastMove.to as Square);
+        const movingPiece = prevChess.get(lastMove.from as Square);
+        const isEnPassant = movingPiece?.type === "p" && lastMove.from[0] !== lastMove.to[0] && !capturedPiece;
+        playMoveSound(!!capturedPiece || isEnPassant);
+      } catch {
+        playMoveSound(false);
+      }
+    }
+    prevFenRef.current = fen;
+  }, [fen, lastMove, playMoveSound]);
 
   const boardOrientation = mySide === "black" ? "black" : "white";
 
@@ -432,26 +451,22 @@ export function ChessGame({
           )}
         </div>
 
-        {/* Status */}
-        {(gameStatus || mySide) && (
-          <div className="flex flex-col items-center gap-1 text-center">
-            {gameStatus && (
-              <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
-                {gameStatus}
-              </div>
-            )}
-            {mySide && !gameStatus && (
-              <div
-                className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-all ${
-                  isMyTurn ? "bg-green-500 text-white text-base animate-pulse" : "bg-[var(--color-muted)] text-[var(--color-foreground)] text-sm"
-                }`}
-              >
-                Playing as <span className="font-bold capitalize">{mySide}</span>
-                {isMyTurn ? " — Your turn!" : " — Waiting..."}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Status - fixed height to prevent layout shift */}
+        <div className="h-10 flex items-center justify-center">
+          {gameStatus ? (
+            <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
+              {gameStatus}
+            </div>
+          ) : mySide ? (
+            <div
+              className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-colors ${
+                isMyTurn ? "bg-green-500 text-white" : "bg-[var(--color-muted)] text-[var(--color-foreground)]"
+              }`}
+            >
+              {isMyTurn ? "Your turn!" : "Waiting..."}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {/* Right sidebar (landscape) */}

@@ -44,6 +44,6 @@ Worker presence handles generic player/cursor tracking for all game types.
 
 
 ### what's left
-- I want to add chess sounds
-- the UI for your turn/waiting/when you aren't playing makes the board "jump", it shouldn't. The board must stay in the same spot and those messages must not change the board position
-- the cursors when you're over a chess piece go back to OS. I need to show my custom cursors
+- ~~I want to add chess sounds~~ ✅ Added Move.mp3 and Capture.mp3 from lichess, plays on each move
+- ~~the UI for your turn/waiting/when you aren't playing makes the board "jump"~~ ✅ Fixed with fixed-height status container (h-10)
+- ~~the cursors when you're over a chess piece go back to OS~~ ✅ Added CSS overrides for `[data-piece]` in App.css
