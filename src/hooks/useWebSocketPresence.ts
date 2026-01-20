@@ -234,14 +234,21 @@ export function useWebSocketPresence(
             case "leave":
                 setVisitorsAndStore((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
                 break;
-            case "cursor":
+            case "cursor": {
+                const myInMenu = inMenuRef.current;
+                const myInGame = inGameRef.current;
+                const theirInMenu = typeof data.inMenu === "boolean" ? data.inMenu : false;
+                const theirInGame = data.inGame ?? null;
+
+                const inSameContext =
+                    myInGame === theirInGame && (myInMenu === theirInMenu || (myInGame !== null && theirInGame !== null));
+
                 setVisitorsAndStore((prev) =>
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
                                   ...v,
-                                  x: data.x,
-                                  y: data.y,
+                                  ...(inSameContext && { x: data.x, y: data.y }),
                                   cursorColor: data.cursorColor ?? v.cursorColor,
                                   inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
                                   tabbedOut:
@@ -252,6 +259,7 @@ export function useWebSocketPresence(
                     )
                 );
                 break;
+            }
             case "rename":
                 setVisitorsAndStore((prev) =>
                     prev.map((v) =>

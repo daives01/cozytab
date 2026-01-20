@@ -5,6 +5,7 @@ import { Chess } from "chess.js";
 import type { Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
 import type { GameState, GamePlayer } from "../hooks/useGamePresence";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { RotateCcw, Crown, X, Users } from "lucide-react";
 
@@ -13,6 +14,7 @@ interface ChessGameProps {
   fen: string;
   lastMove?: { from: string; to: string };
   visitorId: string;
+  visitors: VisitorState[];
   onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
   onClaimSide: (side: "white" | "black") => void;
   onReset: () => void;
@@ -64,6 +66,7 @@ export function ChessGame({
   fen,
   lastMove,
   visitorId,
+  visitors,
   onMove,
   onClaimSide,
   onReset,
@@ -240,8 +243,9 @@ export function ChessGame({
 
   const otherCursors = useMemo(() => {
     if (!gameState) return [];
+    const gamePlayerIds = new Set(gameState.players.map((p) => p.visitorId));
     return Object.values(gameState.cursors)
-      .filter((c) => c.visitorId !== visitorId)
+      .filter((c) => c.visitorId !== visitorId && gamePlayerIds.has(c.visitorId))
       .map((cursor) => {
         const ownerSide = getCursorOwnerSide(cursor.visitorId);
         const ownerViewsAsBlack = ownerSide === "black";
@@ -260,6 +264,11 @@ export function ChessGame({
   const blackPlayer = gameState?.players.find((p) => p.visitorId === gameState.gameData.blackPlayer);
   const spectators = gameState?.players.filter((p) => p.side === null) ?? [];
   const hasMySide = !!mySide;
+
+  const getPlayerChat = useCallback((playerId: string): string | null | undefined => {
+    const visitor = visitors.find((v) => v.visitorId === playerId);
+    return visitor?.chatMessage;
+  }, [visitors]);
 
   const topBadgeSide = boardOrientation === "white" ? "black" : "white";
   const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
@@ -330,7 +339,7 @@ export function ChessGame({
               className="absolute pointer-events-none transition-all duration-75"
               style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)" }}
             >
-              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} hidePointer={false} scale={1} />
+              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} />
             </div>
           ))}
         </div>

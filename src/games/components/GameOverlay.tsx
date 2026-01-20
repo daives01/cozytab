@@ -4,6 +4,7 @@ import { api } from "@convex/_generated/api";
 import { ChessGame } from "../chess/ChessGame";
 import { useGamePresence, type GameIdentity } from "../hooks/useGamePresence";
 import { STARTING_FEN } from "../constants";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 interface GameOverlayProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface GameOverlayProps {
   itemId: string;
   identity: GameIdentity;
   wsRef: React.RefObject<WebSocket | null>;
+  visitors: VisitorState[];
   onClose: () => void;
   onPointerMove?: (clientX: number, clientY: number) => void;
   onGameActiveChange?: (gameItemId: string | null) => void;
@@ -22,6 +24,7 @@ export function GameOverlay({
   itemId,
   identity,
   wsRef,
+  visitors,
   onClose,
   onPointerMove,
   onGameActiveChange,
@@ -89,6 +92,7 @@ export function GameOverlay({
             fen={fen}
             lastMove={lastMove}
             visitorId={identity.id}
+            visitors={visitors}
             onMove={handleMove}
             onClaimSide={claimSide}
             onReset={handleReset}

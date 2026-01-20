@@ -35,6 +35,7 @@ export type PresenceMessage =
     | { type: "game_leave"; visitorId: string; itemId: string }
     | { type: "game_cursor"; visitorId: string; itemId: string; x: number; y: number; cursorColor?: string }
     | { type: "game_claim_side"; visitorId: string; itemId: string; side: "white" | "black" }
+    | { type: "game_chat"; visitorId: string; itemId: string; text: string | null }
     | { type: "game_state"; itemId: string; state: GameState };
 
 export type VisitorState = {

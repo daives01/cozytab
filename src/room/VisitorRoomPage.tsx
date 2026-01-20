@@ -503,6 +503,7 @@ function VisitorRoomPageContent({
                     cursorColor: visitorIdentity.cursorColor,
                 }}
                 wsRef={wsRef}
+                visitors={visitors}
                 onClose={() => setActiveGameItemId(null)}
                 onPointerMove={updateCursorFromClient}
                 onGameActiveChange={handleGameActiveChange}
@@ -513,7 +514,6 @@ function VisitorRoomPageContent({
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
-                inMenu={isInMenu}
             />
 
             <ComputerOverlay

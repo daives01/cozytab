@@ -536,6 +536,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             onGameActiveChange={handleGameActiveChange}
             gameIdentity={{ id: visitorId ?? "owner", displayName: ownerName, cursorColor }}
             wsRef={wsRef}
+            visitors={visitors}
         />
     );
 

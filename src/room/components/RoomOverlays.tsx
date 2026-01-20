@@ -16,6 +16,7 @@ import type { RoomItem, ComputerShortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 interface RoomOverlaysProps {
     isGuest: boolean;
@@ -93,6 +94,7 @@ interface RoomOverlaysProps {
     onGameActiveChange: (gameItemId: string | null) => void;
     gameIdentity: { id: string; displayName: string; cursorColor?: string };
     wsRef: React.RefObject<WebSocket | null>;
+    visitors: VisitorState[];
 }
 
 export function RoomOverlays({
@@ -161,6 +163,7 @@ export function RoomOverlays({
     onGameActiveChange,
     gameIdentity,
     wsRef,
+    visitors,
 }: RoomOverlaysProps) {
     return (
         <>
@@ -238,6 +241,7 @@ export function RoomOverlays({
                 itemId={activeGameItemId ?? ""}
                 identity={gameIdentity}
                 wsRef={wsRef}
+                visitors={visitors}
                 onClose={onCloseGame}
                 onPointerMove={onPointerMove}
                 onGameActiveChange={onGameActiveChange}
