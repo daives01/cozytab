@@ -108,4 +108,11 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_idempotencyKey", ["idempotencyKey"]),
+
+    chessBoardStates: defineTable({
+        itemId: v.string(),
+        fen: v.string(),
+        lastMove: v.optional(v.object({ from: v.string(), to: v.string() })),
+    })
+        .index("by_itemId", ["itemId"]),
 });

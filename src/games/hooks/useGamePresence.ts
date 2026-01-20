@@ -42,10 +42,6 @@ export function useGamePresence({ wsRef, itemId, identity, isOpen }: UseGamePres
         const data = JSON.parse(event.data) as GameMessage;
         if (data.type === "game_state" && data.itemId === itemId) {
           setGameState(data.state);
-        } else if (data.type === "game_move" && data.itemId === itemId) {
-          setGameState((prev) =>
-            prev ? { ...prev, fen: data.fen, lastMove: data.lastMove } : prev
-          );
         } else if (data.type === "game_join" && data.itemId === itemId) {
           setGameState((prev) => {
             if (!prev) return prev;
@@ -68,8 +64,11 @@ export function useGamePresence({ wsRef, itemId, identity, isOpen }: UseGamePres
               ...prev,
               players: prev.players.filter((p) => p.visitorId !== data.visitorId),
               cursors: newCursors,
-              whitePlayer: prev.whitePlayer === data.visitorId ? null : prev.whitePlayer,
-              blackPlayer: prev.blackPlayer === data.visitorId ? null : prev.blackPlayer,
+              gameData: {
+                ...prev.gameData,
+                whitePlayer: prev.gameData.whitePlayer === data.visitorId ? null : prev.gameData.whitePlayer,
+                blackPlayer: prev.gameData.blackPlayer === data.visitorId ? null : prev.gameData.blackPlayer,
+              },
             };
           });
         } else if (data.type === "game_cursor" && data.itemId === itemId) {
@@ -134,20 +133,6 @@ export function useGamePresence({ wsRef, itemId, identity, isOpen }: UseGamePres
     [identity.id, identity.cursorColor, itemId, sendMessage]
   );
 
-  const makeMove = useCallback(
-    (move: { from: string; to: string; promotion?: string }, newFen: string) => {
-      sendMessage({
-        type: "game_move",
-        visitorId: identity.id,
-        itemId,
-        move,
-        fen: newFen,
-        lastMove: { from: move.from, to: move.to },
-      });
-    },
-    [identity.id, itemId, sendMessage]
-  );
-
   const claimSide = useCallback(
     (side: "white" | "black") => {
       sendMessage({
@@ -160,19 +145,9 @@ export function useGamePresence({ wsRef, itemId, identity, isOpen }: UseGamePres
     [identity.id, itemId, sendMessage]
   );
 
-  const resetGame = useCallback(() => {
-    sendMessage({
-      type: "game_reset",
-      visitorId: identity.id,
-      itemId,
-    });
-  }, [identity.id, itemId, sendMessage]);
-
   return {
     gameState,
     updateGameCursor,
-    makeMove,
     claimSide,
-    resetGame,
   };
 }

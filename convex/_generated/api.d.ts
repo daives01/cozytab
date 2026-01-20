@@ -9,6 +9,7 @@
  */
 
 import type * as catalog from "../catalog.js";
+import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as invites from "../invites.js";
@@ -28,6 +29,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
+  games: typeof games;
   http: typeof http;
   inventory: typeof inventory;
   invites: typeof invites;

@@ -1,8 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
 import type { GameState, GamePlayer, GameCursor } from "../../shared/gameTypes";
-import { STARTING_FEN } from "../../shared/gameTypes";
+import { createDefaultGameState } from "../../shared/gameTypes";
 
 export type { GameState, GamePlayer, GameCursor };
+
+export interface Env {
+    PRESENCE_ROOM: DurableObjectNamespace;
+}
 
 export type PresenceMessage =
     | {
@@ -30,9 +34,7 @@ export type PresenceMessage =
     | { type: "game_join"; visitorId: string; displayName: string; cursorColor?: string; itemId: string }
     | { type: "game_leave"; visitorId: string; itemId: string }
     | { type: "game_cursor"; visitorId: string; itemId: string; x: number; y: number; cursorColor?: string }
-    | { type: "game_move"; visitorId: string; itemId: string; move: { from: string; to: string; promotion?: string }; fen: string; lastMove: { from: string; to: string } }
     | { type: "game_claim_side"; visitorId: string; itemId: string; side: "white" | "black" }
-    | { type: "game_reset"; visitorId: string; itemId: string }
     | { type: "game_state"; itemId: string; state: GameState };
 
 export type VisitorState = {
@@ -55,10 +57,10 @@ type WebSocketAttachment = {
 };
 
 const DEFAULT_POSITION = { x: 960, y: 540 };
-const MAX_MESSAGE_SIZE_BYTES = 8192; // increased for game state
+const MAX_MESSAGE_SIZE_BYTES = 8192;
 const MAX_NAME_LENGTH = 64;
 const MAX_CHAT_LENGTH = 500;
-const MAX_COORDINATE = 10000; // generous guardrail for coordinates
+const MAX_COORDINATE = 10000;
 const textEncoder = new TextEncoder();
 
 function isFiniteNumber(value: unknown): value is number {
@@ -170,7 +172,6 @@ function validateMessage(raw: unknown): PresenceMessage | null {
             return { type: "chat", visitorId: data.visitorId, text: clampChatMessage(data.text) };
         }
         case "state": {
-            // State is only emitted server-side; do not accept from clients.
             return null;
         }
         case "game_join": {
@@ -200,33 +201,12 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 cursorColor: isValidCursorColor(data.cursorColor) ? data.cursorColor : undefined,
             };
         }
-        case "game_move": {
-            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
-            const move = data.move as { from?: string; to?: string; promotion?: string } | undefined;
-            if (!move || typeof move.from !== "string" || typeof move.to !== "string") return null;
-            if (typeof data.fen !== "string") return null;
-            const lastMove = data.lastMove as { from?: string; to?: string } | undefined;
-            if (!lastMove || typeof lastMove.from !== "string" || typeof lastMove.to !== "string") return null;
-            return {
-                type: "game_move",
-                visitorId: data.visitorId,
-                itemId: data.itemId,
-                move: { from: move.from, to: move.to, promotion: move.promotion },
-                fen: data.fen,
-                lastMove: { from: lastMove.from, to: lastMove.to },
-            };
-        }
         case "game_claim_side": {
             if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
             if (data.side !== "white" && data.side !== "black") return null;
             return { type: "game_claim_side", visitorId: data.visitorId, itemId: data.itemId, side: data.side };
         }
-        case "game_reset": {
-            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
-            return { type: "game_reset", visitorId: data.visitorId, itemId: data.itemId };
-        }
         case "game_state": {
-            // Server-side only
             return null;
         }
         default:
@@ -234,25 +214,18 @@ function validateMessage(raw: unknown): PresenceMessage | null {
     }
 }
 
-export class PresenceRoom extends DurableObject {
+export class PresenceRoom extends DurableObject<Env> {
     private visitors: Map<string, VisitorState> = new Map();
     private games: Map<string, GameState> = new Map();
 
-    constructor(ctx: DurableObjectState, env: object) {
+    constructor(ctx: DurableObjectState, env: Env) {
         super(ctx, env);
     }
 
     private getOrCreateGame(itemId: string): GameState {
         let game = this.games.get(itemId);
         if (!game) {
-            game = {
-                gameType: "chess",
-                players: [],
-                cursors: {},
-                fen: STARTING_FEN,
-                whitePlayer: null,
-                blackPlayer: null,
-            };
+            game = createDefaultGameState("chess");
             this.games.set(itemId, game);
         }
         return game;
@@ -289,7 +262,6 @@ export class PresenceRoom extends DurableObject {
             return;
         }
 
-        // Some clients send keepalive pings as plain text; avoid JSON parse failures.
         if (message === "ping") {
             try {
                 ws.send("pong");
@@ -338,14 +310,8 @@ export class PresenceRoom extends DurableObject {
             case "game_cursor":
                 this.handleGameCursor(ws, data);
                 break;
-            case "game_move":
-                this.handleGameMove(ws, data);
-                break;
             case "game_claim_side":
                 this.handleGameClaimSide(ws, data);
-                break;
-            case "game_reset":
-                this.handleGameReset(ws, data);
                 break;
             default:
                 console.warn("[DO] Unknown message type", (data as { type?: string })?.type);
@@ -402,7 +368,6 @@ export class PresenceRoom extends DurableObject {
         const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
         if (!attachment || attachment.visitorId !== visitorId) return null;
 
-        // Rehydrate minimal state for hibernated sockets; do not allow spoofed IDs.
         const visitor: VisitorState = {
             visitorId: attachment.visitorId,
             displayName: attachment.displayName,
@@ -537,8 +502,10 @@ export class PresenceRoom extends DurableObject {
         if (!game) return;
         game.players = game.players.filter((p) => p.visitorId !== data.visitorId);
         delete game.cursors[data.visitorId];
-        if (game.whitePlayer === data.visitorId) game.whitePlayer = null;
-        if (game.blackPlayer === data.visitorId) game.blackPlayer = null;
+        if (game.gameType === "chess") {
+            if (game.gameData.whitePlayer === data.visitorId) game.gameData.whitePlayer = null;
+            if (game.gameData.blackPlayer === data.visitorId) game.gameData.blackPlayer = null;
+        }
         if (game.players.length === 0) {
             this.games.delete(data.itemId);
         }
@@ -557,41 +524,19 @@ export class PresenceRoom extends DurableObject {
         this.broadcastToAll(data);
     }
 
-    private handleGameMove(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_move" }>) {
-        const game = this.games.get(data.itemId);
-        if (!game) return;
-        game.fen = data.fen;
-        game.lastMove = data.lastMove;
-        this.broadcastToAll(data);
-    }
-
     private handleGameClaimSide(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_claim_side" }>) {
         const game = this.games.get(data.itemId);
-        if (!game) return;
+        if (!game || game.gameType !== "chess") return;
         const player = game.players.find((p) => p.visitorId === data.visitorId);
         if (!player) return;
-        if (data.side === "white" && !game.whitePlayer) {
-            if (game.blackPlayer === data.visitorId) game.blackPlayer = null;
-            game.whitePlayer = data.visitorId;
+        if (data.side === "white" && !game.gameData.whitePlayer) {
+            if (game.gameData.blackPlayer === data.visitorId) game.gameData.blackPlayer = null;
+            game.gameData.whitePlayer = data.visitorId;
             player.side = "white";
-        } else if (data.side === "black" && !game.blackPlayer) {
-            if (game.whitePlayer === data.visitorId) game.whitePlayer = null;
-            game.blackPlayer = data.visitorId;
+        } else if (data.side === "black" && !game.gameData.blackPlayer) {
+            if (game.gameData.whitePlayer === data.visitorId) game.gameData.whitePlayer = null;
+            game.gameData.blackPlayer = data.visitorId;
             player.side = "black";
-        }
-        const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
-        this.broadcastToAll(stateMsg);
-    }
-
-    private handleGameReset(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_reset" }>) {
-        const game = this.games.get(data.itemId);
-        if (!game) return;
-        game.fen = STARTING_FEN;
-        game.lastMove = undefined;
-        game.whitePlayer = null;
-        game.blackPlayer = null;
-        for (const player of game.players) {
-            player.side = null;
         }
         const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
         this.broadcastToAll(stateMsg);

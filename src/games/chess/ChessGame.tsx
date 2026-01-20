@@ -10,6 +10,8 @@ import { RotateCcw, Crown, X, Users } from "lucide-react";
 
 interface ChessGameProps {
   gameState: GameState | null;
+  fen: string;
+  lastMove?: { from: string; to: string };
   visitorId: string;
   onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
   onClaimSide: (side: "white" | "black") => void;
@@ -18,35 +20,49 @@ interface ChessGameProps {
   onClose: () => void;
 }
 
-function PlayerBadge({ side, player, onJoin, disabled }: { 
-  side: "white" | "black"; 
-  player: GamePlayer | undefined; 
+function PlayerBadge({
+  side,
+  player,
+  onJoin,
+  disabled,
+}: {
+  side: "white" | "black";
+  player: GamePlayer | undefined;
   onJoin: () => void;
   disabled: boolean;
 }) {
+  const colors = side === "black"
+    ? "bg-gray-800 text-white"
+    : "bg-gray-100 text-gray-900";
+
+  const baseClasses = `flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-2)] ${colors}`;
+
+  if (player) {
+    return (
+      <div className={baseClasses}>
+        <Crown className="w-4 h-4 shrink-0" />
+        <span className="text-sm font-medium truncate max-w-[100px]">{player.displayName}</span>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-2)] ${
-      side === "black" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-900"
-    }`}>
+    <button
+      type="button"
+      onClick={onJoin}
+      disabled={disabled}
+      className={`${baseClasses} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
+    >
       <Crown className="w-4 h-4 shrink-0" />
-      <span className="text-sm font-medium truncate max-w-[100px]">
-        {player?.displayName ?? (
-          <button
-            type="button"
-            onClick={onJoin}
-            disabled={disabled}
-            className={`${side === "black" ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"} disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-          >
-            Join
-          </button>
-        )}
-      </span>
-    </div>
+      <span className={`text-sm font-medium ${side === "black" ? "text-gray-400" : "text-gray-500"}`}>Join</span>
+    </button>
   );
 }
 
 export function ChessGame({
   gameState,
+  fen,
+  lastMove,
   visitorId,
   onMove,
   onClaimSide,
@@ -55,12 +71,10 @@ export function ChessGame({
   onClose,
 }: ChessGameProps) {
   const boardRef = useRef<HTMLDivElement>(null);
-  const [pendingPromotion, setPendingPromotion] = useState<{
-    from: Square;
-    to: Square;
-  } | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
 
-  const fen = gameState?.fen ?? STARTING_FEN;
   const chess = useMemo(() => {
     const c = new Chess();
     try {
@@ -73,10 +87,12 @@ export function ChessGame({
 
   const mySide = useMemo(() => {
     if (!gameState) return null;
-    if (gameState.whitePlayer === visitorId) return "white";
-    if (gameState.blackPlayer === visitorId) return "black";
+    if (gameState.gameData.whitePlayer === visitorId) return "white";
+    if (gameState.gameData.blackPlayer === visitorId) return "black";
     return null;
   }, [gameState, visitorId]);
+
+  const boardOrientation = mySide === "black" ? "black" : "white";
 
   const isMyTurn = useMemo(() => {
     if (!mySide) return false;
@@ -85,65 +101,96 @@ export function ChessGame({
   }, [chess, mySide]);
 
   const gameStatus = useMemo(() => {
-    if (chess.isCheckmate()) {
-      const winner = chess.turn() === "w" ? "Black" : "White";
-      return `Checkmate! ${winner} wins!`;
-    }
+    if (chess.isCheckmate()) return `Checkmate! ${chess.turn() === "w" ? "Black" : "White"} wins!`;
     if (chess.isStalemate()) return "Stalemate!";
     if (chess.isDraw()) return "Draw!";
     if (chess.isCheck()) return "Check!";
     return null;
   }, [chess]);
 
-  const handleDrop = useCallback(
-    ({ sourceSquare, targetSquare }: { piece: unknown; sourceSquare: string; targetSquare: string | null }): boolean => {
-      if (!targetSquare) return false;
-      if (!mySide || !isMyTurn) return false;
+  const clearSelection = useCallback(() => {
+    setSelectedSquare(null);
+    setPossibleMoves([]);
+  }, []);
 
-      const piece = chess.get(sourceSquare as Square);
-      if (piece?.type === "p") {
-        const targetRank = targetSquare[1];
-        if ((mySide === "white" && targetRank === "8") || (mySide === "black" && targetRank === "1")) {
-          setPendingPromotion({ from: sourceSquare as Square, to: targetSquare as Square });
-          return false;
-        }
-      }
-
+  const tryMove = useCallback(
+    (from: Square, to: Square, promotion?: string) => {
       try {
-        const move = chess.move({ from: sourceSquare, to: targetSquare });
+        const move = chess.move({ from, to, promotion });
         if (move) {
-          onMove({ from: sourceSquare, to: targetSquare }, chess.fen());
+          onMove({ from, to, promotion }, chess.fen());
+          clearSelection();
           return true;
         }
       } catch {
-        return false;
+        // Invalid move
       }
       return false;
     },
-    [chess, mySide, isMyTurn, onMove]
+    [chess, onMove, clearSelection]
+  );
+
+  const needsPromotion = useCallback(
+    (from: Square, to: Square) => {
+      const piece = chess.get(from);
+      if (piece?.type !== "p") return false;
+      const targetRank = to[1];
+      return (mySide === "white" && targetRank === "8") || (mySide === "black" && targetRank === "1");
+    },
+    [chess, mySide]
+  );
+
+  const handleDrop = useCallback(
+    ({ sourceSquare, targetSquare }: { piece: unknown; sourceSquare: string; targetSquare: string | null }): boolean => {
+      if (!targetSquare || !mySide || !isMyTurn) return false;
+      const from = sourceSquare as Square;
+      const to = targetSquare as Square;
+
+      if (needsPromotion(from, to)) {
+        setPendingPromotion({ from, to });
+        return false;
+      }
+
+      return tryMove(from, to);
+    },
+    [mySide, isMyTurn, needsPromotion, tryMove]
+  );
+
+  const handleSquareClick = useCallback(
+    ({ square }: { piece: unknown; square: string }) => {
+      if (!mySide || !isMyTurn) return;
+      const sq = square as Square;
+
+      if (selectedSquare) {
+        if (possibleMoves.includes(sq)) {
+          if (needsPromotion(selectedSquare, sq)) {
+            setPendingPromotion({ from: selectedSquare, to: sq });
+            clearSelection();
+            return;
+          }
+          tryMove(selectedSquare, sq);
+          return;
+        }
+        clearSelection();
+      }
+
+      const piece = chess.get(sq);
+      const myColor = mySide === "white" ? "w" : "b";
+      if (piece?.color === myColor) {
+        setSelectedSquare(sq);
+        setPossibleMoves(chess.moves({ square: sq, verbose: true }).map((m) => m.to as Square));
+      }
+    },
+    [chess, mySide, isMyTurn, selectedSquare, possibleMoves, needsPromotion, tryMove, clearSelection]
   );
 
   const handlePromotion = useCallback(
     (piece: "q" | "r" | "b" | "n") => {
       if (!pendingPromotion) return;
-      try {
-        const move = chess.move({
-          from: pendingPromotion.from,
-          to: pendingPromotion.to,
-          promotion: piece,
-        });
-        if (move) {
-          onMove(
-            { from: pendingPromotion.from, to: pendingPromotion.to, promotion: piece },
-            chess.fen()
-          );
-        }
-      } catch {
-        // invalid
-      }
+      tryMove(pendingPromotion.from, pendingPromotion.to, piece);
       setPendingPromotion(null);
     },
-    [chess, pendingPromotion, onMove]
+    [pendingPromotion, tryMove]
   );
 
   const handleMouseMove = useCallback(
@@ -157,44 +204,89 @@ export function ChessGame({
     [onCursorMove]
   );
 
-  const lastMove = gameState?.lastMove;
-  const customSquareStyles = useMemo(() => {
+  const squareStyles = useMemo(() => {
     const styles: Record<string, React.CSSProperties> = {};
+
     if (lastMove) {
       styles[lastMove.from] = { backgroundColor: "rgba(255, 255, 0, 0.4)" };
       styles[lastMove.to] = { backgroundColor: "rgba(255, 255, 0, 0.4)" };
     }
+
+    if (selectedSquare) {
+      styles[selectedSquare] = { backgroundColor: "rgba(100, 200, 255, 0.6)" };
+    }
+
+    for (const sq of possibleMoves) {
+      const hasPiece = chess.get(sq as Square);
+      styles[sq] = {
+        ...styles[sq],
+        background: hasPiece
+          ? "radial-gradient(circle, transparent 60%, rgba(0,0,0,0.3) 60%)"
+          : "radial-gradient(circle, rgba(0,0,0,0.2) 25%, transparent 25%)",
+      };
+    }
+
     return styles;
-  }, [lastMove]);
+  }, [lastMove, selectedSquare, possibleMoves, chess]);
+
+  const getCursorOwnerSide = useCallback(
+    (cursorVisitorId: string): "white" | "black" | null => {
+      if (gameState?.gameData.whitePlayer === cursorVisitorId) return "white";
+      if (gameState?.gameData.blackPlayer === cursorVisitorId) return "black";
+      return null;
+    },
+    [gameState]
+  );
 
   const otherCursors = useMemo(() => {
     if (!gameState) return [];
-    return Object.values(gameState.cursors).filter((c) => c.visitorId !== visitorId);
-  }, [gameState, visitorId]);
+    return Object.values(gameState.cursors)
+      .filter((c) => c.visitorId !== visitorId)
+      .map((cursor) => {
+        const ownerSide = getCursorOwnerSide(cursor.visitorId);
+        const ownerViewsAsBlack = ownerSide === "black";
+        const iViewAsBlack = mySide === "black";
+        const needsFlip = ownerViewsAsBlack !== iViewAsBlack;
 
-  const players = gameState?.players ?? [];
-  const whitePlayer = players.find((p) => p.visitorId === gameState?.whitePlayer);
-  const blackPlayer = players.find((p) => p.visitorId === gameState?.blackPlayer);
-  const spectators = players.filter((p) => p.side === null);
+        return {
+          ...cursor,
+          displayX: needsFlip ? 100 - cursor.x : cursor.x,
+          displayY: needsFlip ? 100 - cursor.y : cursor.y,
+        };
+      });
+  }, [gameState, visitorId, mySide, getCursorOwnerSide]);
+
+  const whitePlayer = gameState?.players.find((p) => p.visitorId === gameState.gameData.whitePlayer);
+  const blackPlayer = gameState?.players.find((p) => p.visitorId === gameState.gameData.blackPlayer);
+  const spectators = gameState?.players.filter((p) => p.side === null) ?? [];
   const hasMySide = !!mySide;
+
+  const topBadgeSide = boardOrientation === "white" ? "black" : "white";
+  const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
+  const topPlayer = topBadgeSide === "white" ? whitePlayer : blackPlayer;
+  const bottomPlayer = bottomBadgeSide === "white" ? whitePlayer : blackPlayer;
 
   return (
     <div className="flex items-center justify-center gap-4 select-none">
-      {/* Left side controls (landscape only) */}
-      <div className="hidden landscape:flex flex-col gap-3 justify-center items-end">
-        <PlayerBadge side="black" player={blackPlayer} onJoin={() => onClaimSide("black")} disabled={hasMySide} />
-        {spectators.length > 0 && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/20 text-white/70 text-xs">
-            <Users className="w-3 h-3" />
-            <span>{spectators.length}</span>
-          </div>
-        )}
+      {/* Left sidebar (landscape) */}
+      <div className="hidden landscape:flex flex-col gap-3 justify-between items-start self-stretch py-2">
+        <div className="flex flex-col gap-2">
+          <PlayerBadge side={topBadgeSide} player={topPlayer} onJoin={() => onClaimSide(topBadgeSide)} disabled={hasMySide} />
+          <PlayerBadge side={bottomBadgeSide} player={bottomPlayer} onJoin={() => onClaimSide(bottomBadgeSide)} disabled={hasMySide} />
+          {spectators.length > 0 && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/20 text-white/70 text-xs">
+              <Users className="w-3 h-3" />
+              <span>{spectators.length}</span>
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Center column */}
       <div className="flex flex-col items-center gap-3">
-        {/* Portrait: top controls */}
+        {/* Portrait top controls */}
         <div className="flex landscape:hidden items-center justify-between w-full">
-          <PlayerBadge side="black" player={blackPlayer} onJoin={() => onClaimSide("black")} disabled={hasMySide} />
+          <PlayerBadge side={topBadgeSide} player={topPlayer} onJoin={() => onClaimSide(topBadgeSide)} disabled={hasMySide} />
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -213,7 +305,7 @@ export function ChessGame({
           </div>
         </div>
 
-        {/* The board - sized to fit viewport */}
+        {/* Board */}
         <div
           ref={boardRef}
           className="relative aspect-square rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)] w-[min(85vw,85vh,500px)] landscape:w-[min(70vw,80vh,600px)]"
@@ -223,12 +315,11 @@ export function ChessGame({
             options={{
               position: fen,
               onPieceDrop: handleDrop,
-              boardOrientation: mySide === "black" ? "black" : "white",
-              squareStyles: customSquareStyles,
+              onSquareClick: handleSquareClick,
+              boardOrientation,
+              squareStyles,
               allowDragging: !!mySide && isMyTurn,
-              boardStyle: {
-                borderRadius: "0",
-              },
+              boardStyle: { borderRadius: "0" },
               darkSquareStyle: { backgroundColor: "#b58863" },
               lightSquareStyle: { backgroundColor: "#f0d9b5" },
             } satisfies ChessboardOptions}
@@ -236,27 +327,17 @@ export function ChessGame({
           {otherCursors.map((cursor) => (
             <div
               key={cursor.visitorId}
-              className="absolute pointer-events-none"
-              style={{
-                left: `${cursor.x}%`,
-                top: `${cursor.y}%`,
-                transform: "translate(-50%, -50%)",
-              }}
+              className="absolute pointer-events-none transition-all duration-75"
+              style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)" }}
             >
-              <CursorDisplay
-                x={0}
-                y={0}
-                cursorColor={cursor.cursorColor}
-                hidePointer={false}
-                scale={1}
-              />
+              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} hidePointer={false} scale={1} />
             </div>
           ))}
         </div>
 
-        {/* Portrait: bottom controls */}
+        {/* Portrait bottom controls */}
         <div className="flex landscape:hidden items-center justify-between w-full">
-          <PlayerBadge side="white" player={whitePlayer} onJoin={() => onClaimSide("white")} disabled={hasMySide} />
+          <PlayerBadge side={bottomBadgeSide} player={bottomPlayer} onJoin={() => onClaimSide(bottomBadgeSide)} disabled={hasMySide} />
           {spectators.length > 0 && (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-black/20 text-white/70 text-xs">
               <Users className="w-3 h-3" />
@@ -265,17 +346,21 @@ export function ChessGame({
           )}
         </div>
 
-        {/* Status messages */}
+        {/* Status */}
         {(gameStatus || mySide) && (
-          <div className="flex flex-col items-center gap-1 text-white text-center">
+          <div className="flex flex-col items-center gap-1 text-center">
             {gameStatus && (
               <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
                 {gameStatus}
               </div>
             )}
             {mySide && !gameStatus && (
-              <div className="text-sm font-medium text-white/80">
-                Playing as <span className="font-bold">{mySide}</span>
+              <div
+                className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-all ${
+                  isMyTurn ? "bg-green-500 text-white text-base animate-pulse" : "bg-[var(--color-muted)] text-[var(--color-foreground)] text-sm"
+                }`}
+              >
+                Playing as <span className="font-bold capitalize">{mySide}</span>
                 {isMyTurn ? " — Your turn!" : " — Waiting..."}
               </div>
             )}
@@ -283,9 +368,15 @@ export function ChessGame({
         )}
       </div>
 
-      {/* Right side controls (landscape only) */}
-      <div className="hidden landscape:flex flex-col gap-3 justify-center items-start">
-        <PlayerBadge side="white" player={whitePlayer} onJoin={() => onClaimSide("white")} disabled={hasMySide} />
+      {/* Right sidebar (landscape) */}
+      <div className="hidden landscape:flex flex-col gap-3 justify-between items-end self-stretch py-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+        >
+          <X className="w-5 h-5" />
+        </button>
         <button
           type="button"
           onClick={onReset}
@@ -294,15 +385,9 @@ export function ChessGame({
           <RotateCcw className="w-4 h-4" />
           Reset
         </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-        >
-          <X className="w-5 h-5" />
-        </button>
       </div>
 
+      {/* Promotion modal */}
       {pendingPromotion && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">

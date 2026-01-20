@@ -273,14 +273,13 @@ export function RoomOverlays({
                     disabled={
                         isComputerOpenState ||
                         musicPlayerItemId !== null ||
-                        activeGameItemId !== null ||
                         isShareModalOpen ||
                         connectionState !== "connected"
                     }
                 />
             )}
 
-            {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !activeGameItemId && !isShareModalOpen && <ChatHint />}
+            {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !isShareModalOpen && <ChatHint />}
 
             {!isGuest && connectionState !== "connected" && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
