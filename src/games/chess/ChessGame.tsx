@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Chessboard } from "react-chessboard";
 import type { ChessboardOptions } from "react-chessboard";
 import { Chess } from "chess.js";
@@ -8,6 +8,76 @@ import type { GameState, GamePlayer } from "../hooks/useGamePresence";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { RotateCcw, Crown, X, Users } from "lucide-react";
+
+const HOLD_DURATION_MS = 800;
+
+function HoldToResetButton({
+  onReset,
+  variant = "landscape",
+}: {
+  onReset: () => void;
+  variant?: "portrait" | "landscape";
+}) {
+  const [progress, setProgress] = useState(0);
+  const [isHolding, setIsHolding] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
+
+  const startHold = useCallback(() => {
+    setIsHolding(true);
+    startTimeRef.current = Date.now();
+    intervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const newProgress = Math.min(elapsed / HOLD_DURATION_MS, 1);
+      setProgress(newProgress);
+      if (newProgress >= 1) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        onReset();
+        setProgress(0);
+        setIsHolding(false);
+      }
+    }, 16);
+  }, [onReset]);
+
+  const cancelHold = useCallback(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setProgress(0);
+    setIsHolding(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  const isPortrait = variant === "portrait";
+  const baseClasses = isPortrait
+    ? "relative flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-xs font-medium select-none"
+    : "relative flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-sm font-medium select-none";
+  const iconSize = isPortrait ? "w-3 h-3" : "w-4 h-4";
+
+  return (
+    <button
+      type="button"
+      onMouseDown={startHold}
+      onMouseUp={cancelHold}
+      onMouseLeave={cancelHold}
+      onTouchStart={startHold}
+      onTouchEnd={cancelHold}
+      onTouchCancel={cancelHold}
+      className={`${baseClasses} ${isHolding ? "scale-95" : ""} transition-transform`}
+    >
+      {/* Progress fill */}
+      <div
+        className="absolute inset-0 bg-red-400/40 origin-left transition-transform"
+        style={{ transform: `scaleX(${progress})` }}
+      />
+      <RotateCcw className={`${iconSize} relative z-10 ${isHolding ? "animate-spin" : ""}`} style={{ animationDuration: "0.8s" }} />
+      {!isPortrait && <span className="relative z-10">{isHolding ? "Hold..." : "Reset"}</span>}
+    </button>
+  );
+}
 
 interface ChessGameProps {
   gameState: GameState | null;
@@ -297,13 +367,7 @@ export function ChessGame({
         <div className="flex landscape:hidden items-center justify-between w-full">
           <PlayerBadge side={topBadgeSide} player={topPlayer} onJoin={() => onClaimSide(topBadgeSide)} disabled={hasMySide} />
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onReset}
-              className="flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none text-xs font-medium"
-            >
-              <RotateCcw className="w-3 h-3" />
-            </button>
+            <HoldToResetButton onReset={onReset} variant="portrait" />
             <button
               type="button"
               onClick={onClose}
@@ -386,14 +450,7 @@ export function ChessGame({
         >
           <X className="w-5 h-5" />
         </button>
-        <button
-          type="button"
-          onClick={onReset}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none text-sm font-medium"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Reset
-        </button>
+        <HoldToResetButton onReset={onReset} variant="landscape" />
       </div>
 
       {/* Promotion modal */}

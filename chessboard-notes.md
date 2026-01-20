@@ -43,7 +43,5 @@ Worker presence handles generic player/cursor tracking for all game types.
 
 
 ### what's left
-
-- Too easy to reset right now, it should be like a "hold" button or something.
 - I want to add chess sounds
 - the cursors when you're over a chess piece go back to OS. I need to show my custom cursors
