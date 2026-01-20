@@ -29,12 +29,18 @@ export function GameOverlay({
   onPointerMove,
   onGameActiveChange,
 }: GameOverlayProps) {
-  const { gameState, updateGameCursor, claimSide } = useGamePresence({
+  const { gameState, myMetadata, updateGameCursor, setGameMetadata } = useGamePresence({
     wsRef,
     itemId,
     identity,
     isOpen,
   });
+
+  const claimSide = (side: "white" | "black") => {
+    setGameMetadata({ side });
+  };
+
+  const mySide = (myMetadata.side as "white" | "black" | undefined) ?? null;
 
   const chessBoardState = useQuery(api.games.getChessBoardState, isOpen ? { itemId } : "skip");
   const makeChessMove = useMutation(api.games.makeChessMove);
@@ -92,6 +98,7 @@ export function GameOverlay({
             fen={fen}
             lastMove={lastMove}
             visitorId={identity.id}
+            mySide={mySide}
             visitors={visitors}
             onMove={handleMove}
             onClaimSide={claimSide}

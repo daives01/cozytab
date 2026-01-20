@@ -33,8 +33,7 @@ export type PresenceMessage =
     | { type: "state"; visitors: VisitorState[] }
     | { type: "game_join"; visitorId: string; displayName: string; cursorColor?: string; itemId: string }
     | { type: "game_leave"; visitorId: string; itemId: string }
-    | { type: "game_cursor"; visitorId: string; itemId: string; x: number; y: number; cursorColor?: string }
-    | { type: "game_claim_side"; visitorId: string; itemId: string; side: "white" | "black" }
+    | { type: "game_cursor"; visitorId: string; itemId: string; x: number; y: number; cursorColor?: string; gameMetadata?: Record<string, unknown> }
     | { type: "game_chat"; visitorId: string; itemId: string; text: string | null }
     | { type: "game_state"; itemId: string; state: GameState };
 
@@ -200,13 +199,10 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 x: data.x,
                 y: data.y,
                 cursorColor: isValidCursorColor(data.cursorColor) ? data.cursorColor : undefined,
+                gameMetadata: data.gameMetadata && typeof data.gameMetadata === "object" ? data.gameMetadata : undefined,
             };
         }
-        case "game_claim_side": {
-            if (!isValidId(data.visitorId) || !isValidId(data.itemId)) return null;
-            if (data.side !== "white" && data.side !== "black") return null;
-            return { type: "game_claim_side", visitorId: data.visitorId, itemId: data.itemId, side: data.side };
-        }
+
         case "game_state": {
             return null;
         }
@@ -310,9 +306,6 @@ export class PresenceRoom extends DurableObject<Env> {
                 break;
             case "game_cursor":
                 this.handleGameCursor(ws, data);
-                break;
-            case "game_claim_side":
-                this.handleGameClaimSide(ws, data);
                 break;
             default:
                 console.warn("[DO] Unknown message type", (data as { type?: string })?.type);
@@ -503,10 +496,6 @@ export class PresenceRoom extends DurableObject<Env> {
         if (!game) return;
         game.players = game.players.filter((p) => p.visitorId !== data.visitorId);
         delete game.cursors[data.visitorId];
-        if (game.gameType === "chess") {
-            if (game.gameData.whitePlayer === data.visitorId) game.gameData.whitePlayer = null;
-            if (game.gameData.blackPlayer === data.visitorId) game.gameData.blackPlayer = null;
-        }
         if (game.players.length === 0) {
             this.games.delete(data.itemId);
         }
@@ -521,25 +510,8 @@ export class PresenceRoom extends DurableObject<Env> {
             x: data.x,
             y: data.y,
             cursorColor: data.cursorColor,
+            gameMetadata: data.gameMetadata,
         };
         this.broadcastToAll(data);
-    }
-
-    private handleGameClaimSide(_ws: WebSocket, data: Extract<PresenceMessage, { type: "game_claim_side" }>) {
-        const game = this.games.get(data.itemId);
-        if (!game || game.gameType !== "chess") return;
-        const player = game.players.find((p) => p.visitorId === data.visitorId);
-        if (!player) return;
-        if (data.side === "white" && !game.gameData.whitePlayer) {
-            if (game.gameData.blackPlayer === data.visitorId) game.gameData.blackPlayer = null;
-            game.gameData.whitePlayer = data.visitorId;
-            player.side = "white";
-        } else if (data.side === "black" && !game.gameData.blackPlayer) {
-            if (game.gameData.whitePlayer === data.visitorId) game.gameData.whitePlayer = null;
-            game.gameData.blackPlayer = data.visitorId;
-            player.side = "black";
-        }
-        const stateMsg: PresenceMessage = { type: "game_state", itemId: data.itemId, state: game };
-        this.broadcastToAll(stateMsg);
     }
 }

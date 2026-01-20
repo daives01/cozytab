@@ -7,7 +7,7 @@
 **Worker (DO)** - Presence only:
 - Who's in what game
 - Cursor positions (ephemeral)
-- Claimed sides (white/black)
+- Generic `gameMetadata` on cursors (e.g., `{ side: "white" }` for chess)
 
 **Convex** - Board state:
 - `chessBoardStates` table with `itemId`, `fen`, `lastMove`
@@ -27,9 +27,10 @@
 ### Data Flow
 
 1. Player opens chess game → joins via WebSocket (DO tracks presence)
-2. Player claims side → WebSocket message updates DO state, broadcasts to others
+2. Player claims side → cursor update includes `gameMetadata: { side: "white" }`, broadcasts to others
 3. Player makes move → Convex mutation updates `chessBoardStates`, all clients see update via subscription
-4. Player cursor moves → WebSocket broadcasts to others (ephemeral, not persisted)
+4. Player cursor moves → WebSocket broadcasts cursor + gameMetadata to others (ephemeral)
+5. Player leaves → cursor disappears, side automatically freed
 
 ### Future Games
 
@@ -44,4 +45,5 @@ Worker presence handles generic player/cursor tracking for all game types.
 
 ### what's left
 - I want to add chess sounds
+- the UI for your turn/waiting/when you aren't playing makes the board "jump", it shouldn't. The board must stay in the same spot and those messages must not change the board position
 - the cursors when you're over a chess piece go back to OS. I need to show my custom cursors
