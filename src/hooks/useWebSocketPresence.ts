@@ -162,7 +162,17 @@ export function useWebSocketPresence(
             const sendPing = () => {
                 if (ws.readyState !== WebSocket.OPEN) return;
 
-                ws.send("ping");
+                try {
+                    ws.send("ping");
+                } catch (e) {
+                    console.error("[Presence] Ping failed, closing socket:", e);
+                    try {
+                        ws.close();
+                    } catch {
+                        // Ignore close errors
+                    }
+                    return;
+                }
 
                 resetHeartbeat();
                 heartbeatTimeoutRef.current = setTimeout(() => {
@@ -416,8 +426,9 @@ export function useWebSocketPresence(
             y: number,
             color?: string,
             opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null }
-        ) => {
-            if (!visitorId) return;
+        ): boolean => {
+            const ws = wsRef.current;
+            if (!visitorId || !ws || ws.readyState !== WebSocket.OPEN) return false;
 
             const now = Date.now();
             const timeSinceLastSend = now - lastSendTimeRef.current;
@@ -430,7 +441,7 @@ export function useWebSocketPresence(
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
                 transmit(x, y);
                 pendingCursorRef.current = null;
-                return;
+                return true;
             }
 
             pendingCursorRef.current = { x, y };
@@ -444,6 +455,7 @@ export function useWebSocketPresence(
                     }
                 }, THROTTLE_MS - timeSinceLastSend);
             }
+            return true;
         },
         [buildCursorMessage, sendMessage, visitorId]
     );
@@ -461,8 +473,8 @@ export function useWebSocketPresence(
             const shouldSend = shouldBroadcast || !hasSentCursorRef.current;
             if (!shouldSend) return;
 
-            sendCursor(roomX, roomY, latestCursorColorRef.current);
-            hasSentCursorRef.current = true;
+            const didSend = sendCursor(roomX, roomY, latestCursorColorRef.current);
+            if (didSend) hasSentCursorRef.current = true;
         },
         [sendCursor]
     );
@@ -513,7 +525,11 @@ export function useWebSocketPresence(
 
             const ws = wsRef.current;
             if (hidden && ws?.readyState === WebSocket.OPEN) {
-                ws.send("ping");
+                try {
+                    ws.send("ping");
+                } catch {
+                    // Ignore send errors when tab is hidden
+                }
             }
         };
 

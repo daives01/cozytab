@@ -11,6 +11,7 @@ interface PresenceCursorProps {
     cursorColor?: string;
     inMenu?: boolean;
     tabbedOut?: boolean;
+    dimmed?: boolean;
 }
 
 export function PresenceCursor({
@@ -23,6 +24,7 @@ export function PresenceCursor({
     cursorColor,
     inMenu,
     tabbedOut,
+    dimmed,
 }: PresenceCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
@@ -39,6 +41,7 @@ export function PresenceCursor({
             cursorColor={cursorColor}
             inMenu={inMenu}
             tabbedOut={tabbedOut}
+            dimmed={dimmed}
         />
     );
 }

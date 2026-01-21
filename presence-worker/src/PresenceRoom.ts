@@ -149,13 +149,14 @@ function validateMessage(raw: unknown): PresenceMessage | null {
         }
         case "cursor": {
             if (!isValidCursorPayload(data)) return null;
-            const { visitorId, x, y, cursorColor, inMenu, tabbedOut } = data as unknown as {
+            const { visitorId, x, y, cursorColor, inMenu, tabbedOut, inGame } = data as unknown as {
                 visitorId: string;
                 x: number;
                 y: number;
                 cursorColor?: string;
                 inMenu?: boolean;
                 tabbedOut?: boolean;
+                inGame?: string | null;
             };
             return {
                 type: "cursor",
@@ -165,6 +166,7 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 cursorColor,
                 inMenu,
                 tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : undefined,
+                inGame: inGame !== undefined ? inGame : undefined,
             };
         }
         case "chat": {
@@ -217,6 +219,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
     constructor(ctx: DurableObjectState, env: Env) {
         super(ctx, env);
+        this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     }
 
     private getOrCreateGame(itemId: string): GameState {
@@ -334,7 +337,6 @@ export class PresenceRoom extends DurableObject<Env> {
             isOwner: data.isOwner,
         };
 
-        this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
         ws.serializeAttachment(attachment);
 
         this.visitors.set(data.visitorId, {
@@ -347,6 +349,7 @@ export class PresenceRoom extends DurableObject<Env> {
             cursorColor: data.cursorColor,
             inMenu: false,
             tabbedOut: Boolean(data.tabbedOut),
+            inGame: null,
         });
 
         const stateMsg: PresenceMessage = {
@@ -372,6 +375,7 @@ export class PresenceRoom extends DurableObject<Env> {
             cursorColor: undefined,
             inMenu: false,
             tabbedOut: false,
+            inGame: null,
         };
         this.visitors.set(visitorId, visitor);
         return visitor;

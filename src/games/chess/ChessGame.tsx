@@ -342,6 +342,7 @@ export function ChessGame({
           ...cursor,
           displayX: needsFlip ? 100 - cursor.x : cursor.x,
           displayY: needsFlip ? 100 - cursor.y : cursor.y,
+          needsFlip,
         };
       });
   }, [gameState, visitorId, mySide, getCursorOwnerSide]);
@@ -417,29 +418,33 @@ export function ChessGame({
       {/* Board */}
       <div
         ref={boardRef}
-        className="relative aspect-square rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)] w-[min(85vw,85vh,500px)]"
+        className="relative aspect-square w-[min(85vw,85vh,500px)]"
         onMouseMove={handleMouseMove}
       >
-        <Chessboard
-          options={{
-            position: fen,
-            onPieceDrop: handleDrop,
-            onSquareClick: handleSquareClick,
-            boardOrientation,
-            squareStyles,
-            allowDragging: !!mySide && isMyTurn,
-            boardStyle: { borderRadius: "0" },
-            darkSquareStyle: { backgroundColor: "#b58863" },
-            lightSquareStyle: { backgroundColor: "#f0d9b5" },
-          } satisfies ChessboardOptions}
-        />
+        {/* Board wrapper with clipping for rounded corners */}
+        <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
+          <Chessboard
+            options={{
+              position: fen,
+              onPieceDrop: handleDrop,
+              onSquareClick: handleSquareClick,
+              boardOrientation,
+              squareStyles,
+              allowDragging: !!mySide && isMyTurn,
+              boardStyle: { borderRadius: "0" },
+              darkSquareStyle: { backgroundColor: "#b58863" },
+              lightSquareStyle: { backgroundColor: "#f0d9b5" },
+            } satisfies ChessboardOptions}
+          />
+        </div>
+        {/* Cursor layer outside clipping container so chat bubbles can overflow */}
         {otherCursors.map((cursor) => (
           <div
             key={cursor.visitorId}
             className="absolute pointer-events-none transition-all duration-75"
-            style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)" }}
+            style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
           >
-            <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} />
+            <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} rotated={cursor.needsFlip} />
           </div>
         ))}
       </div>
