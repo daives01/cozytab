@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
+import { Chessboard } from "react-chessboard";
 import { ChessGame } from "../chess/ChessGame";
 import { useGamePresence, type GameIdentity } from "../hooks/useGamePresence";
 import { STARTING_FEN } from "../constants";
@@ -50,6 +51,7 @@ export function GameOverlay({
   const makeChessMove = useMutation(api.games.makeChessMove);
   const resetChessBoard = useMutation(api.games.resetChessBoard);
 
+  const isLoading = chessBoardState === undefined;
   const fen = chessBoardState?.fen ?? STARTING_FEN;
   const lastMove = chessBoardState?.lastMove ?? undefined;
 
@@ -85,6 +87,28 @@ export function GameOverlay({
   const handlePointerMove = (e: React.PointerEvent) => {
     onPointerMove?.(e.clientX, e.clientY);
   };
+
+  // Don't render board until we have the game state to avoid flash of starting position
+  if (isLoading) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <div className="rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)] w-[min(85vw,85vh,500px)] opacity-70">
+          <Chessboard
+            options={{
+              position: "8/8/8/8/8/8/8/8",
+              allowDragging: false,
+              boardStyle: { borderRadius: "0" },
+              darkSquareStyle: { backgroundColor: "#b58863" },
+              lightSquareStyle: { backgroundColor: "#f0d9b5" },
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
