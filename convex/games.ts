@@ -41,7 +41,7 @@ export const resetChessBoard = mutation({
             .first();
 
         if (existing) {
-            await ctx.db.patch(existing._id, { fen: STARTING_FEN, lastMove: undefined });
+            await ctx.db.replace(existing._id, { itemId, fen: STARTING_FEN });
         } else {
             await ctx.db.insert("chessBoardStates", { itemId, fen: STARTING_FEN });
         }

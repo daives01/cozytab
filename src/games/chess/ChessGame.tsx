@@ -142,8 +142,8 @@ function PlayerBadge({
 
 export function ChessGame({
   playersInGame,
-  fen,
-  lastMove,
+  fen: serverFen,
+  lastMove: serverLastMove,
   visitorId,
   mySide,
   visitors,
@@ -159,7 +159,13 @@ export function ChessGame({
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
   const { playMoveSound } = useChessSounds();
-  const prevFenRef = useRef(fen);
+  const prevFenRef = useRef(serverFen);
+
+  const [pendingOptimistic, setPendingOptimistic] = useState<{ fen: string; lastMove: { from: string; to: string } } | null>(null);
+
+  const optimistic = pendingOptimistic && pendingOptimistic.fen !== serverFen ? pendingOptimistic : null;
+  const fen = optimistic?.fen ?? serverFen;
+  const lastMove = optimistic?.lastMove ?? serverLastMove;
 
   const chess = useMemo(() => {
     const c = new Chess();
@@ -213,7 +219,9 @@ export function ChessGame({
       try {
         const move = chess.move({ from, to, promotion });
         if (move) {
-          onMove({ from, to, promotion }, chess.fen());
+          const newFen = chess.fen();
+          setPendingOptimistic({ fen: newFen, lastMove: { from, to } });
+          onMove({ from, to, promotion }, newFen);
           clearSelection();
           return true;
         }

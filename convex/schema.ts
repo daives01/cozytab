@@ -111,7 +111,7 @@ export default defineSchema({
         .index("by_idempotencyKey", ["idempotencyKey"]),
 
     chessBoardStates: defineTable({
-        itemId: v.string(),
+        itemId: v.string(), // UUID of the room item (from rooms.items[].id), not a catalogItem ID
         fen: v.string(),
         lastMove: v.optional(v.object({ from: v.string(), to: v.string() })),
     })
