@@ -84,8 +84,35 @@ function isValidInGame(value: unknown): value is string | null | undefined {
     return value === undefined || value === null || (typeof value === "string" && value.length <= 128);
 }
 
+const MAX_GAME_METADATA_KEYS = 16;
+const MAX_GAME_METADATA_SIZE = 1024;
+
 function isValidGameMetadata(value: unknown): value is Record<string, unknown> | null | undefined {
-    return value === undefined || value === null || (typeof value === "object" && value !== null && !Array.isArray(value));
+    if (value === undefined || value === null) return true;
+    if (typeof value !== "object" || Array.isArray(value)) return false;
+
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    if (keys.length > MAX_GAME_METADATA_KEYS) return false;
+
+    // Shallow validation: primitives only, bounded size
+    for (const key of keys) {
+        if (key.length > 32) return false;
+        const v = obj[key];
+        if (v === null || v === undefined) continue;
+        if (typeof v === "string" && v.length > 128) return false;
+        if (typeof v === "number" && !Number.isFinite(v)) return false;
+        if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") return false;
+    }
+
+    // Final size check to catch many small keys
+    try {
+        if (JSON.stringify(obj).length > MAX_GAME_METADATA_SIZE) return false;
+    } catch {
+        return false;
+    }
+
+    return true;
 }
 
 function isValidCursorPayload(data: { [key: string]: unknown }): boolean {

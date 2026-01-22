@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { playKeyDown, playKeyUp } from "../lib/typingAudio";
 import { isAudioUnlocked } from "@/lib/audio";
 import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
+import { PRESENCE_THROTTLE_MS } from "@shared/gameTypes";
 
 type PresenceMessage =
     | {
@@ -43,7 +44,7 @@ export type VisitorState = {
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
-const THROTTLE_MS = 50;
+const THROTTLE_MS = PRESENCE_THROTTLE_MS;
 const DEFAULT_POSITION = { x: 960, y: 540 };
 const INITIAL_RETRY_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;

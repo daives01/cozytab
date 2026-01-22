@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Chessboard } from "react-chessboard";
 import { ChessGame } from "../chess/ChessGame";
-import { STARTING_FEN } from "../constants";
+import { STARTING_FEN, PRESENCE_THROTTLE_MS } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 interface GameOverlayProps {
@@ -18,7 +18,7 @@ interface GameOverlayProps {
   onGameActiveChange?: (gameItemId: string | null) => void;
 }
 
-const THROTTLE_MS = 50;
+const THROTTLE_MS = PRESENCE_THROTTLE_MS;
 
 export function GameOverlay({
   isOpen,
@@ -58,14 +58,16 @@ export function GameOverlay({
     }
     // Only initialize once per game session to avoid overwriting local changes
     if (hasInitializedRef.current) return;
-    const serverMetadata = myVisitor?.gameMetadata;
+    // Wait until we have presence state before initializing to avoid locking in empty metadata
+    if (!myVisitor) return;
+    const serverMetadata = myVisitor.gameMetadata;
     if (serverMetadata && typeof serverMetadata === "object") {
       gameMetadataRef.current = serverMetadata as Record<string, unknown>;
     } else {
       gameMetadataRef.current = {};
     }
     hasInitializedRef.current = true;
-  }, [isOpen, itemId, myVisitor?.gameMetadata]);
+  }, [isOpen, itemId, myVisitor]);
 
   // Merge metadata helper - always use local ref to avoid race conditions
   // between local changes and server echo-back

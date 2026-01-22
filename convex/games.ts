@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
-
-export const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+import { STARTING_FEN } from "../shared/gameTypes";
 
 export const getChessBoardState = query({
     args: { itemId: v.string() },
