@@ -360,7 +360,6 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         computed,
         handlers,
         localItems,
-        setLocalItems,
         placedCatalogItemIds,
         layout: { toolbarOffset, drawerOrientation },
         onboarding: { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete },

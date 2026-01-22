@@ -135,7 +135,9 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     const setLocalItems = isGuest ? setGuestItems : setAuthedItems;
 
     const selectedId = isGuest ? guestSelectedId : authedSelectedId;
-    const setSelectedId = isGuest ? setGuestSelectedId : setAuthedSelectedId;
+    const setSelectedId: (update: string | null | ((prev: string | null) => string | null)) => void = isGuest
+        ? setGuestSelectedId
+        : setAuthedSelectedId;
 
     const isDrawerOpen = isGuest ? guestDrawerOpen : authedDrawerOpen;
     const setIsDrawerOpen = isGuest ? setGuestDrawerOpen : setAuthedDrawerOpen;

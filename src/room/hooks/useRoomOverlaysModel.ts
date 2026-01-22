@@ -16,7 +16,6 @@ interface UseRoomOverlaysModelArgs {
     computed: ReturnType<typeof useRoomComputed>;
     handlers: ReturnType<typeof useRoomHandlers>;
     localItems: RoomItem[];
-    setLocalItems: (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
     placedCatalogItemIds: Id<"catalogItems">[];
 
     layout: {
