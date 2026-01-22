@@ -25,7 +25,7 @@ type HandlersArgs = {
     advanceOnboarding: () => void;
     computerGuardAllowOpen: boolean;
     setLocalItems: (updater: (prev: RoomItem[]) => RoomItem[]) => void;
-    setSelectedId: (id: string | null) => void;
+    setSelectedId: (update: string | null | ((prev: string | null) => string | null)) => void;
     setDraggedItemId: (id: string | null) => void;
     setIsComputerOpen: (next: boolean) => void;
     setMusicPlayerItemId: (id: string | null) => void;
@@ -200,6 +200,14 @@ export function useRoomHandlers({
         [setLocalItems]
     );
 
+    const handleDeleteItem = useCallback(
+        (itemId: string) => {
+            setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+            setSelectedId((current) => (current === itemId ? null : current));
+        },
+        [setLocalItems, setSelectedId]
+    );
+
     return {
         handleMusicToggle,
         handleModeToggle,
@@ -216,6 +224,7 @@ export function useRoomHandlers({
         handleDragEnd,
         handleBringToFront,
         handleSendToBack,
+        handleDeleteItem,
     };
 }
 

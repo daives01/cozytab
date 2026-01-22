@@ -15,10 +15,9 @@ import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
 import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
-import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
-import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
+import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
@@ -35,8 +34,7 @@ import {
 } from "@/guest/state";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
 import { PresenceLayer } from "@/presence/PresenceLayer";
-import { RoomCanvas } from "./RoomCanvas";
-import { useViewportSize } from "./hooks/useRoomPageEffects";
+import { RoomShell } from "./components/RoomShell";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
 import { GameOverlay } from "@/games/components/GameOverlay";
 import { ChatHint } from "./components/ChatHint";
@@ -105,12 +103,7 @@ function VisitorRoomPageContent({
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
     const saveComputer = useMutation(api.users.saveMyComputer);
 
-    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
-    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT, {
-        viewportWidth,
-        viewportHeight,
-        maxScale: 1.25,
-    });
+    const { scale } = useRoomViewportScale();
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
@@ -563,17 +556,15 @@ function VisitorRoomPageContent({
     );
 
     return (
-        <div className="h-screen w-screen">
-            <RoomCanvas
-                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
-                scale={scale}
-                timeOfDay={timeOfDay}
-                containerRef={containerRef}
-                onMouseMove={handleMouseEvent}
-                onMouseEnter={handleMouseEvent}
-                roomContent={roomContent}
-                overlays={overlays}
-            />
-        </div>
+        <RoomShell
+            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+            scale={scale}
+            timeOfDay={timeOfDay}
+            containerRef={containerRef}
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
+            roomContent={roomContent}
+            overlays={overlays}
+        />
     );
 }
