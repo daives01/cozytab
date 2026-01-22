@@ -51,6 +51,8 @@ type WebSocketAttachment = {
     tabbedOut?: boolean;
     inGame?: string | null;
     gameMetadata?: Record<string, unknown> | null;
+    x?: number;
+    y?: number;
 };
 
 const DEFAULT_POSITION = { x: 960, y: 540 };
@@ -220,6 +222,29 @@ export class PresenceRoom extends DurableObject<Env> {
         this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
     }
 
+    private hydrateVisitorsFromSockets() {
+        for (const socket of this.ctx.getWebSockets()) {
+            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            if (!att?.visitorId) continue;
+
+            if (!this.visitors.has(att.visitorId)) {
+                this.visitors.set(att.visitorId, {
+                    visitorId: att.visitorId,
+                    displayName: att.displayName,
+                    isOwner: att.isOwner,
+                    x: att.x ?? DEFAULT_POSITION.x,
+                    y: att.y ?? DEFAULT_POSITION.y,
+                    chatMessage: null,
+                    cursorColor: att.cursorColor,
+                    inMenu: false,
+                    tabbedOut: att.tabbedOut ?? false,
+                    inGame: att.inGame ?? null,
+                    gameMetadata: att.gameMetadata,
+                });
+            }
+        }
+    }
+
     async fetch(request: Request): Promise<Response> {
         const url = new URL(request.url);
 
@@ -296,20 +321,28 @@ export class PresenceRoom extends DurableObject<Env> {
     }
 
     async webSocketClose(ws: WebSocket, _code: number, _reason: string): Promise<void> {
+        this.hydrateVisitorsFromSockets();
         this.detachVisitor(ws);
     }
 
     async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
         console.error("[DO] WebSocket error:", error);
+        this.hydrateVisitorsFromSockets();
         this.detachVisitor(ws);
     }
 
     private handleJoin(ws: WebSocket, data: Extract<PresenceMessage, { type: "join" }>) {
+        this.hydrateVisitorsFromSockets();
+
         const existingAttachment = ws.deserializeAttachment() as WebSocketAttachment | null;
         if (existingAttachment && existingAttachment.visitorId !== data.visitorId) {
             ws.close(1008, "Visitor already bound");
             return;
         }
+
+        const existingVisitor = this.visitors.get(data.visitorId);
+        const x = existingVisitor?.x ?? DEFAULT_POSITION.x;
+        const y = existingVisitor?.y ?? DEFAULT_POSITION.y;
 
         const attachment: WebSocketAttachment = {
             visitorId: data.visitorId,
@@ -317,8 +350,10 @@ export class PresenceRoom extends DurableObject<Env> {
             isOwner: data.isOwner,
             cursorColor: data.cursorColor,
             tabbedOut: data.tabbedOut,
-            inGame: null,
-            gameMetadata: undefined,
+            inGame: existingVisitor?.inGame ?? null,
+            gameMetadata: existingVisitor?.gameMetadata,
+            x,
+            y,
         };
 
         ws.serializeAttachment(attachment);
@@ -327,13 +362,14 @@ export class PresenceRoom extends DurableObject<Env> {
             visitorId: data.visitorId,
             displayName: data.displayName,
             isOwner: data.isOwner,
-            x: DEFAULT_POSITION.x,
-            y: DEFAULT_POSITION.y,
-            chatMessage: null,
+            x,
+            y,
+            chatMessage: existingVisitor?.chatMessage ?? null,
             cursorColor: data.cursorColor,
-            inMenu: false,
+            inMenu: existingVisitor?.inMenu ?? false,
             tabbedOut: Boolean(data.tabbedOut),
-            inGame: null,
+            inGame: existingVisitor?.inGame ?? null,
+            gameMetadata: existingVisitor?.gameMetadata,
         });
 
         const stateMsg: PresenceMessage = {
@@ -353,8 +389,8 @@ export class PresenceRoom extends DurableObject<Env> {
             visitorId: attachment.visitorId,
             displayName: attachment.displayName,
             isOwner: attachment.isOwner,
-            x: DEFAULT_POSITION.x,
-            y: DEFAULT_POSITION.y,
+            x: attachment.x ?? DEFAULT_POSITION.x,
+            y: attachment.y ?? DEFAULT_POSITION.y,
             chatMessage: null,
             cursorColor: attachment.cursorColor,
             inMenu: false,
@@ -379,7 +415,10 @@ export class PresenceRoom extends DurableObject<Env> {
         visitor.x = data.x;
         visitor.y = data.y;
 
-        const attachmentPatch: Partial<Omit<WebSocketAttachment, "visitorId">> = {};
+        const attachmentPatch: Partial<Omit<WebSocketAttachment, "visitorId">> = {
+            x: data.x,
+            y: data.y,
+        };
 
         if (data.cursorColor) {
             visitor.cursorColor = data.cursorColor;
@@ -408,9 +447,7 @@ export class PresenceRoom extends DurableObject<Env> {
             attachmentPatch.gameMetadata = data.gameMetadata ?? undefined;
         }
 
-        if (Object.keys(attachmentPatch).length > 0) {
-            this.updateAttachment(ws, attachmentPatch);
-        }
+        this.updateAttachment(ws, attachmentPatch);
 
         this.broadcast(ws, data);
     }
@@ -462,8 +499,18 @@ export class PresenceRoom extends DurableObject<Env> {
     }
 
     private handleLeave(visitorId: string, excludeWs: WebSocket): void {
+        this.ensureVisitorFromAttachment(excludeWs, visitorId);
+
         if (!this.visitors.has(visitorId)) {
             return;
+        }
+
+        for (const socket of this.ctx.getWebSockets()) {
+            if (socket === excludeWs) continue;
+            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            if (att?.visitorId === visitorId) {
+                return;
+            }
         }
 
         this.visitors.delete(visitorId);
