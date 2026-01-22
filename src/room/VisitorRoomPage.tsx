@@ -10,7 +10,7 @@ import { LocalCursor } from "@/presence/LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
@@ -111,7 +111,7 @@ function VisitorRoomPageContent({
     const [guestCursorColor] = useState(() => randomBrightColor());
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [activeMusicItemId, setActiveMusicItemId] = useState<string | null>(null);
-    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
+    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<Shortcut[] | null>(null);
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
@@ -319,7 +319,7 @@ function VisitorRoomPageContent({
     const overlayShortcuts = useMemo(() => {
         if (!isSignedIn) return guestShortcutsNormalized;
         if (visitorShortcutsOverride) return visitorShortcutsOverride;
-        return (computerState?.shortcuts as ComputerShortcut[] | undefined) ?? [];
+        return (computerState?.shortcuts as Shortcut[] | undefined) ?? [];
     }, [computerState?.shortcuts, guestShortcutsNormalized, isSignedIn, visitorShortcutsOverride]);
 
     const overlayCurrency = isSignedIn ? authedUser?.currency ?? 0 : guestCoins;

@@ -35,7 +35,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
         if (!catalogItems) return null;
         return (
             catalogItems.find(
-                (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase().includes("computer")
+                (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase() === "computers"
             ) ?? catalogItems.find((c: (typeof catalogItems)[number]) => c.isStarterItem) ?? null
         );
     }, [catalogItems]);

@@ -6,6 +6,7 @@ import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
 import { useEditableField } from "./hooks/useEditableField";
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@/types";
 
 export function CatalogItemsTab() {
     const catalogItems = useQuery(api.catalog.list);
@@ -16,7 +17,13 @@ export function CatalogItemsTab() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const [newItem, setNewItem] = useState({
+    const [newItem, setNewItem] = useState<{
+        name: string;
+        category: CatalogItemCategory;
+        basePrice: number;
+        assetUrl: string;
+        defaultWidth: number;
+    }>({
         name: "",
         category: "furniture",
         basePrice: 0,
@@ -102,12 +109,15 @@ export function CatalogItemsTab() {
                         </div>
                         <div>
                             <label className="block text-sm text-[var(--ink-muted)] mb-1">Category</label>
-                            <input
-                                type="text"
+                            <select
                                 value={newItem.category}
-                                onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value }))}
+                                onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value as CatalogItemCategory }))}
                                 className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
-                            />
+                            >
+                                {CATALOG_ITEM_CATEGORIES.map((cat) => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm text-[var(--ink-muted)] mb-1">Price</label>

@@ -99,9 +99,9 @@ export function ItemNode({
     }, [isDragging, item, onChange, scale, onDragEnd]);
 
     const category = catalogItem?.category?.toLowerCase();
-    const isComputerCategory = category?.includes("computer");
-    const isMusicCategory = category?.includes("music");
-    const isGameCategory = category?.includes("game");
+    const isComputerCategory = category === "computers";
+    const isMusicCategory = category === "music";
+    const isGameCategory = category === "games";
     const hasUrl = Boolean(item.url);
     const isInteractable =
         mode === "view" &&

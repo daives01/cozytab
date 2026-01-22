@@ -12,26 +12,22 @@ import { useIsUSLocation } from "@/hooks/useIsUSLocation";
 
 type ShopTab = "items" | "rooms";
 
-const CATEGORY_ORDER = ["music", "decor", "furniture", "computer"] as const;
-const CATEGORY_DISPLAY_NAMES: Record<string, string> = {
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@/types";
+
+const CATEGORY_DISPLAY_NAMES: Record<CatalogItemCategory, string> = {
     music: "Music",
     decor: "Decorations",
     furniture: "Furniture",
-    computer: "Computers",
+    computers: "Computers",
+    games: "Games",
 };
-const CATEGORY_COLORS: Record<string, string> = {
+const CATEGORY_COLORS: Record<CatalogItemCategory, string> = {
     music: "from-purple-500 to-pink-600",
     decor: "from-emerald-500 to-teal-600",
     furniture: "from-amber-500 to-orange-600",
-    computer: "from-blue-500 to-indigo-600",
+    computers: "from-blue-500 to-indigo-600",
+    games: "from-red-500 to-rose-600",
 };
-
-function normalizeCategory(category: string) {
-    const key = category.trim().toLowerCase();
-    if (key === "computers") return "computer";
-    if (key === "decoration" || key === "decorations") return "decor";
-    return key;
-}
 
 interface ShopProps {
     userCurrency: number;
@@ -48,41 +44,28 @@ interface ShopProps {
 }
 
 function groupByCategory(items: Doc<"catalogItems">[]) {
-    return items.reduce<Record<string, Doc<"catalogItems">[]>>((groups, item) => {
-        const key = normalizeCategory(item.category);
-        if (!groups[key]) {
-            groups[key] = [];
+    return items.reduce<Record<CatalogItemCategory, Doc<"catalogItems">[]>>((groups, item) => {
+        if (!groups[item.category]) {
+            groups[item.category] = [];
         }
-        groups[key].push(item);
+        groups[item.category].push(item);
         return groups;
-    }, {});
+    }, {} as Record<CatalogItemCategory, Doc<"catalogItems">[]>);
 }
 
-function getCategoryDisplayName(category: string): string {
-    const key = normalizeCategory(category);
-    return CATEGORY_DISPLAY_NAMES[key] || key.charAt(0).toUpperCase() + key.slice(1);
+function getCategoryDisplayName(category: CatalogItemCategory): string {
+    return CATEGORY_DISPLAY_NAMES[category];
 }
 
-function getCategoryColor(category: string): string {
-    const key = normalizeCategory(category);
-    return CATEGORY_COLORS[key] || "from-gray-500 to-gray-600";
+function getCategoryColor(category: CatalogItemCategory): string {
+    return CATEGORY_COLORS[category];
 }
 
-function sortCategories(categories: string[]) {
+function sortCategories(categories: CatalogItemCategory[]) {
     return categories.sort((a, b) => {
-        const keyA = normalizeCategory(a) as typeof CATEGORY_ORDER[number];
-        const keyB = normalizeCategory(b) as typeof CATEGORY_ORDER[number];
-        const orderA = CATEGORY_ORDER.indexOf(keyA);
-        const orderB = CATEGORY_ORDER.indexOf(keyB);
-
-        if (orderA !== -1 || orderB !== -1) {
-            const resolvedA = orderA === -1 ? CATEGORY_ORDER.length : orderA;
-            const resolvedB = orderB === -1 ? CATEGORY_ORDER.length : orderB;
-            if (resolvedA !== resolvedB) {
-                return resolvedA - resolvedB;
-            }
-        }
-
+        const orderA = CATALOG_ITEM_CATEGORIES.indexOf(a);
+        const orderB = CATALOG_ITEM_CATEGORIES.indexOf(b);
+        if (orderA !== orderB) return orderA - orderB;
         return a.localeCompare(b);
     });
 }
@@ -264,8 +247,8 @@ export function Shop({
         return counts;
     }, [guestOwnedCounts, ownedInventory]);
     const ownedTemplateSet = new Set<Id<"roomTemplates">>(ownedTemplateIds || []);
-    const groupedItems = catalogItems ? groupByCategory(catalogItems) : {};
-    const categories = sortCategories(Object.keys(groupedItems));
+    const groupedItems = catalogItems ? groupByCategory(catalogItems) : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
+    const categories = sortCategories(Object.keys(groupedItems) as CatalogItemCategory[]);
     const highlightItemId =
         highlightFirstMusicItem && groupedItems.music?.length
             ? groupedItems.music[0]._id

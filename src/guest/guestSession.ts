@@ -7,7 +7,7 @@ import {
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
     GUEST_CURSOR_COLOR_STORAGE_KEY,
-    type GuestRoomItem,
+    type RoomItem,
     type GuestSessionState,
     type GuestShortcut,
 } from "@shared/guestTypes";
@@ -124,9 +124,9 @@ function parseJson<T>(raw: string | null, fallback: T): T {
     }
 }
 
-function sanitizeRoomItems(items: GuestRoomItem[]): GuestRoomItem[] {
+function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
     return items
-        .filter((item): item is GuestRoomItem => typeof item === "object" && item !== null)
+        .filter((item): item is RoomItem => typeof item === "object" && item !== null)
         .map((item) => ({
             ...item,
             id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
@@ -193,7 +193,7 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     const shortcutsRaw = safeRead(GUEST_SHORTCUTS_STORAGE_KEY);
     const cursorColorRaw = safeRead(GUEST_CURSOR_COLOR_STORAGE_KEY);
 
-    const parsedRoom = parseJson<{ items?: GuestRoomItem[] }>(roomRaw, { items: [] });
+    const parsedRoom = parseJson<{ items?: RoomItem[] }>(roomRaw, { items: [] });
     const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
 
     const parsedInventory = parseJson<Id<"catalogItems">[]>(inventoryRaw, []);
@@ -219,7 +219,7 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     );
 }
 
-export function saveGuestRoomItems(items: GuestRoomItem[]) {
+export function saveRoomItems(items: RoomItem[]) {
     safeWrite(GUEST_ROOM_STORAGE_KEY, JSON.stringify({ items }));
 }
 
@@ -294,7 +294,7 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
 
     saveGuestCoins(next.coins);
     saveGuestInventory(next.inventoryIds);
-    saveGuestRoomItems(next.roomItems);
+    saveRoomItems(next.roomItems);
     saveGuestShortcuts(next.shortcuts);
     saveGuestCursorColor(next.cursorColor);
     if (next.onboardingCompleted) {

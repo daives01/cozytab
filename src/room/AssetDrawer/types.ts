@@ -1,12 +1,13 @@
 import type React from "react";
 import type { Id } from "@convex/_generated/dataModel";
+import type { CatalogItemCategory } from "@/types";
 
 export type GuestDrawerItem = {
     inventoryId: Id<"inventory"> | Id<"catalogItems"> | string;
     catalogItemId: Id<"catalogItems">;
     name: string;
     assetUrl: string;
-    category: string;
+    category: CatalogItemCategory;
     hidden?: boolean;
     count: number;
     remaining: number;

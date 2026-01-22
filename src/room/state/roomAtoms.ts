@@ -3,7 +3,7 @@ import { selectAtom } from "jotai/utils";
 import type { Getter, Setter } from "jotai/vanilla";
 import { atom, createStore } from "jotai/vanilla";
 import React, { type PropsWithChildren, useMemo } from "react";
-import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 
 export type Mode = "view" | "edit";
@@ -17,7 +17,7 @@ type RoomUiState = {
     draggedItemId: string | null;
     computerOpen: boolean;
     shareModalOpen: boolean;
-    shortcuts: ComputerShortcut[];
+    shortcuts: Shortcut[];
     cursorColor: string | null;
     musicPlayerItemId: string | null;
     musicAutoplay: MusicAutoplayState;
@@ -116,10 +116,10 @@ export const shareModalOpenAtom = atom(
 
 export const shortcutsAtom = atom(
     (get) => get(roomStateAtom).shortcuts,
-    (get, set, next: ComputerShortcut[] | ((prev: ComputerShortcut[]) => ComputerShortcut[])) => {
+    (get, set, next: Shortcut[] | ((prev: Shortcut[]) => Shortcut[])) => {
         const current = get(roomStateAtom).shortcuts;
         patchState(get, set, {
-            shortcuts: typeof next === "function" ? (next as (p: ComputerShortcut[]) => ComputerShortcut[])(current) : next,
+            shortcuts: typeof next === "function" ? (next as (p: Shortcut[]) => Shortcut[])(current) : next,
         });
     }
 );

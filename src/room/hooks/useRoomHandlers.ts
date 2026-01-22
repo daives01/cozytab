@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { DragEvent } from "react";
-import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { OnboardingStep } from "../Onboarding";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
@@ -33,8 +33,8 @@ type HandlersArgs = {
     setMode: (next: "view" | "edit") => void;
     updateCursor: (x: number, y: number, clientX: number, clientY: number, hasVisitors: boolean) => void;
     saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
-    updateGuestShortcuts: (next: ComputerShortcut[]) => void;
-    saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void;
+    updateGuestShortcuts: (next: Shortcut[]) => void;
+    saveComputer: (args: { shortcuts: Shortcut[]; cursorColor: string }) => void;
     cursorColor: string;
     canPlaceItem: (catalogItemId: Id<"catalogItems">) => boolean;
 };
@@ -169,7 +169,7 @@ export function useRoomHandlers({
     );
 
     const handleUpdateShortcuts = useCallback(
-        (shortcuts: ComputerShortcut[]) => {
+        (shortcuts: Shortcut[]) => {
             if (isGuest) {
                 updateGuestShortcuts(shortcuts);
             } else {

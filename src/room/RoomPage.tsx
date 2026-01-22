@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
-import type { RoomItem, ComputerShortcut } from "@/types";
+import type { RoomItem, Shortcut } from "@/types";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
 import type { DailyRewardToastPayload } from "./types";
@@ -157,7 +157,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     );
 
     const updateGuestShortcuts = useCallback(
-        (next: ComputerShortcut[]) => roomState.setLocalShortcuts(next),
+        (next: Shortcut[]) => roomState.setLocalShortcuts(next),
         [roomState]
     );
 

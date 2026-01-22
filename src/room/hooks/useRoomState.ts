@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 import type { GuestSessionState } from "@shared/guestTypes";
 import {
     coinsAtom,
@@ -55,7 +55,7 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         return null;
     }, [guestSession, isGuest, catalogLookup]);
 
-    const authedShortcutsRef = useRef<ComputerShortcut[]>(normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? []));
+    const authedShortcutsRef = useRef<Shortcut[]>(normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? []));
     const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
     const guestSessionLoadedRef = useRef(false);
 
@@ -151,7 +151,7 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     const isShareModalOpen = isGuest ? guestShareModalOpen : authedShareModalOpen;
     const setIsShareModalOpen = isGuest ? setGuestShareModalOpen : setAuthedShareModalOpen;
 
-    const localShortcuts: ComputerShortcut[] = isGuest ? guestShortcuts : authedShortcuts;
+    const localShortcuts: Shortcut[] = isGuest ? guestShortcuts : authedShortcuts;
     const setLocalShortcuts = isGuest ? setGuestShortcuts : setAuthedShortcuts;
 
     const musicPlayerItemId = isGuest ? guestMusicPlayerItemId : authedMusicPlayerItemId;

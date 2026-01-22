@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { catalogItemCategoryValidator } from "./lib/categories";
 
 export default defineSchema({
     users: defineTable({
@@ -69,7 +70,7 @@ export default defineSchema({
 
     catalogItems: defineTable({
         name: v.string(),
-        category: v.string(),
+        category: catalogItemCategoryValidator,
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),

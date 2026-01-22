@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { catalogItemCategoryValidator } from "./lib/categories";
 
 // Helper to check if the current user is an admin
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -41,7 +42,7 @@ export const getByName = query({
 export const addItem = mutation({
     args: {
         name: v.string(),
-        category: v.string(),
+        category: catalogItemCategoryValidator,
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
@@ -71,7 +72,7 @@ export const updateItem = mutation({
     args: {
         id: v.id("catalogItems"),
         name: v.optional(v.string()),
-        category: v.optional(v.string()),
+        category: v.optional(catalogItemCategoryValidator),
         basePrice: v.optional(v.number()),
         assetUrl: v.optional(v.string()),
         defaultWidth: v.optional(v.number()),
@@ -89,14 +90,7 @@ export const updateItem = mutation({
 
         const filteredUpdates = Object.fromEntries(
             Object.entries(updates).filter(([, value]) => value !== undefined)
-        ) as Partial<{
-            name: string;
-            category: string;
-            basePrice: number;
-            assetUrl: string;
-            defaultWidth: number;
-            isStarterItem: boolean;
-        }>;
+        ) as Partial<typeof updates>;
 
         if (Object.keys(filteredUpdates).length === 0) {
             return { success: true };

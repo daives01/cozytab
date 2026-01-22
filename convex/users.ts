@@ -2,7 +2,7 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
-import { GUEST_STARTING_COINS, type GuestRoomItem, type GuestSessionState, type GuestShortcut } from "@shared/guestTypes";
+import { GUEST_STARTING_COINS, type RoomItem, type GuestSessionState, type GuestShortcut } from "@shared/guestTypes";
 import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
 import { applyCurrencyChange } from "./lib/currency";
 
@@ -303,13 +303,13 @@ async function importInventoryWithinBudget(
     };
 }
 
-function sanitizeGuestRoomItems(
-    items: GuestRoomItem[] | undefined,
+function sanitizeRoomItems(
+    items: RoomItem[] | undefined,
     catalogByName: Map<string, Id<"catalogItems">>,
     catalogIds: Set<Id<"catalogItems">>
-): Array<GuestRoomItem & { catalogItemId: Id<"catalogItems"> }> {
+): Array<RoomItem & { catalogItemId: Id<"catalogItems"> }> {
     if (!items) return [];
-    const sanitized: Array<GuestRoomItem & { catalogItemId: Id<"catalogItems"> }> = [];
+    const sanitized: Array<RoomItem & { catalogItemId: Id<"catalogItems"> }> = [];
     for (const item of items.slice(0, MAX_GUEST_ITEMS)) {
         const asId = item.catalogItemId as Id<"catalogItems">;
         const catalogId = catalogIds.has(asId) ? asId : catalogByName.get(item.catalogItemId);
@@ -348,11 +348,11 @@ async function seedRoomFromGuest(
     userId: Id<"users">,
     templateId: Id<"roomTemplates">,
     templateName: string,
-    guestItems: GuestRoomItem[] | undefined,
+    guestItems: RoomItem[] | undefined,
     catalogByName: Map<string, Id<"catalogItems">>,
     catalogIds: Set<Id<"catalogItems">>
 ) {
-    const sanitizedItems = sanitizeGuestRoomItems(guestItems, catalogByName, catalogIds);
+    const sanitizedItems = sanitizeRoomItems(guestItems, catalogByName, catalogIds);
 
     await ctx.db.insert("rooms", {
         userId,
@@ -423,7 +423,7 @@ export const ensureUser = mutation({
             : Array.isArray(args.guestInventory)
                 ? args.guestInventory
                 : [];
-        const rawGuestRoomItems = (guestSession?.roomItems ?? args.guestRoomItems) as GuestRoomItem[] | undefined;
+        const rawRoomItems = (guestSession?.roomItems ?? args.guestRoomItems) as RoomItem[] | undefined;
         const rawGuestShortcuts = (guestSession?.shortcuts ?? args.guestShortcuts) as GuestShortcut[] | undefined;
 
         const guestCursorColor =
@@ -435,7 +435,7 @@ export const ensureUser = mutation({
         const guestSessionState: GuestSessionState = {
             coins: reportedGuestCoins,
             inventoryIds: rawGuestInventory as unknown as Id<"catalogItems">[],
-            roomItems: rawGuestRoomItems ?? [],
+            roomItems: rawRoomItems ?? [],
             shortcuts: rawGuestShortcuts ?? [],
             onboardingCompleted: Boolean(guestSession?.onboardingCompleted),
             cursorColor:

@@ -1,4 +1,4 @@
-import type { RoomItem, ComputerShortcut } from "@/types";
+import type { RoomItem, Shortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
@@ -48,8 +48,8 @@ export interface OnboardingCallbacksProps {
 export interface ComputerProps {
     isOpen: boolean;
     onClose: () => void;
-    shortcuts: ComputerShortcut[];
-    onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    shortcuts: Shortcut[];
+    onUpdateShortcuts: (shortcuts: Shortcut[]) => void;
     economy: EconomyProps;
     profile: ProfileProps;
     time: TimeProps;
