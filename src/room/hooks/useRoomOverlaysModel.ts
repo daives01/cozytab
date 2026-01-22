@@ -71,8 +71,8 @@ interface UseRoomOverlaysModelArgs {
         activeGameItemId: string | null;
         setActiveGameItemId: (id: string | null) => void;
         handleGameActiveChange: (gameItemId: string | null) => void;
-        visitorId: string | null;
-        ownerName: string;
+        visitorId: string;
+        setGameMetadata: (metadata: Record<string, unknown> | null) => void;
     };
 
     room: { _id: Id<"rooms"> } | null | undefined;
@@ -211,13 +211,9 @@ export function useRoomOverlaysModel({
             activeGameItemId: game.activeGameItemId,
             onClose: () => game.setActiveGameItemId(null),
             onGameActiveChange: game.handleGameActiveChange,
-            identity: {
-                id: game.visitorId ?? "owner",
-                displayName: game.ownerName,
-                cursorColor: profile.cursorColor,
-            },
-            wsRef: presence.wsRef,
+            visitorId: game.visitorId,
             visitors: presence.visitors,
+            setGameMetadata: game.setGameMetadata,
         };
 
         return {

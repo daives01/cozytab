@@ -4,13 +4,19 @@ import type { ChessboardOptions } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
-import type { GameState, GamePlayer } from "../hooks/useGamePresence";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { RotateCcw, Crown, X, Users, LogOut } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
 
 const HOLD_DURATION_MS = 800;
+
+export type GamePlayer = {
+  visitorId: string;
+  displayName: string;
+  cursorColor?: string;
+  side?: "white" | "black" | null;
+};
 
 function HoldToResetButton({ onReset }: { onReset: () => void }) {
   const [progress, setProgress] = useState(0);
@@ -67,7 +73,7 @@ function HoldToResetButton({ onReset }: { onReset: () => void }) {
 }
 
 interface ChessGameProps {
-  gameState: GameState | null;
+  playersInGame: VisitorState[];
   fen: string;
   lastMove?: { from: string; to: string };
   visitorId: string;
@@ -135,7 +141,7 @@ function PlayerBadge({
 }
 
 export function ChessGame({
-  gameState,
+  playersInGame,
   fen,
   lastMove,
   visitorId,
@@ -319,54 +325,70 @@ export function ChessGame({
 
   const getCursorOwnerSide = useCallback(
     (cursorVisitorId: string): "white" | "black" | null => {
-      const cursor = gameState?.cursors[cursorVisitorId];
-      const side = cursor?.gameMetadata?.side;
+      const player = playersInGame.find((p) => p.visitorId === cursorVisitorId);
+      const side = player?.gameMetadata?.side;
       if (side === "white" || side === "black") return side;
       return null;
     },
-    [gameState]
+    [playersInGame]
   );
 
   const otherCursors = useMemo(() => {
-    if (!gameState) return [];
-    const gamePlayerIds = new Set(gameState.players.map((p) => p.visitorId));
-    return Object.values(gameState.cursors)
-      .filter((c) => c.visitorId !== visitorId && gamePlayerIds.has(c.visitorId))
-      .map((cursor) => {
-        const ownerSide = getCursorOwnerSide(cursor.visitorId);
+    return playersInGame
+      .filter((p) => p.visitorId !== visitorId)
+      .map((player) => {
+        const rawX = player.gameMetadata?.gameCursorX;
+        const rawY = player.gameMetadata?.gameCursorY;
+        const gameCursorX = typeof rawX === "number" && Number.isFinite(rawX) ? rawX : 50;
+        const gameCursorY = typeof rawY === "number" && Number.isFinite(rawY) ? rawY : 50;
+        const ownerSide = getCursorOwnerSide(player.visitorId);
         const ownerViewsAsBlack = ownerSide === "black";
         const iViewAsBlack = mySide === "black";
         const needsFlip = ownerViewsAsBlack !== iViewAsBlack;
 
         return {
-          ...cursor,
-          displayX: needsFlip ? 100 - cursor.x : cursor.x,
-          displayY: needsFlip ? 100 - cursor.y : cursor.y,
+          visitorId: player.visitorId,
+          x: gameCursorX,
+          y: gameCursorY,
+          cursorColor: player.cursorColor,
+          displayX: needsFlip ? 100 - gameCursorX : gameCursorX,
+          displayY: needsFlip ? 100 - gameCursorY : gameCursorY,
           needsFlip,
         };
       });
-  }, [gameState, visitorId, mySide, getCursorOwnerSide]);
+  }, [playersInGame, visitorId, mySide, getCursorOwnerSide]);
 
-  // Derive white/black players from cursor metadata
+  // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
   const whitePlayerId = useMemo(() => {
-    if (!gameState) return null;
-    for (const cursor of Object.values(gameState.cursors)) {
-      if (cursor.gameMetadata?.side === "white") return cursor.visitorId;
-    }
-    return null;
-  }, [gameState]);
+    const claimants = playersInGame
+      .filter((p) => p.gameMetadata?.side === "white")
+      .map((p) => p.visitorId)
+      .sort();
+    return claimants[0] ?? null;
+  }, [playersInGame]);
 
   const blackPlayerId = useMemo(() => {
-    if (!gameState) return null;
-    for (const cursor of Object.values(gameState.cursors)) {
-      if (cursor.gameMetadata?.side === "black") return cursor.visitorId;
-    }
-    return null;
-  }, [gameState]);
+    const claimants = playersInGame
+      .filter((p) => p.gameMetadata?.side === "black")
+      .map((p) => p.visitorId)
+      .sort();
+    return claimants[0] ?? null;
+  }, [playersInGame]);
 
-  const whitePlayer = gameState?.players.find((p) => p.visitorId === whitePlayerId);
-  const blackPlayer = gameState?.players.find((p) => p.visitorId === blackPlayerId);
-  const spectators = gameState?.players.filter((p) => p.visitorId !== whitePlayerId && p.visitorId !== blackPlayerId) ?? [];
+  const whitePlayer: GamePlayer | undefined = useMemo(() => {
+    const p = playersInGame.find((p) => p.visitorId === whitePlayerId);
+    return p ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "white" } : undefined;
+  }, [playersInGame, whitePlayerId]);
+
+  const blackPlayer: GamePlayer | undefined = useMemo(() => {
+    const p = playersInGame.find((p) => p.visitorId === blackPlayerId);
+    return p ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" } : undefined;
+  }, [playersInGame, blackPlayerId]);
+
+  const spectators = useMemo(
+    () => playersInGame.filter((p) => p.visitorId !== whitePlayerId && p.visitorId !== blackPlayerId),
+    [playersInGame, whitePlayerId, blackPlayerId]
+  );
 
   // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
   const otherPlayerExists = (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);

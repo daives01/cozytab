@@ -1,9 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useCallback, useRef } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Chessboard } from "react-chessboard";
 import { ChessGame } from "../chess/ChessGame";
-import { useGamePresence, type GameIdentity } from "../hooks/useGamePresence";
 import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
@@ -11,41 +10,105 @@ interface GameOverlayProps {
   isOpen: boolean;
   gameType: "chess";
   itemId: string;
-  identity: GameIdentity;
-  wsRef: React.RefObject<WebSocket | null>;
+  visitorId: string;
   visitors: VisitorState[];
+  setGameMetadata: (metadata: Record<string, unknown> | null) => void;
   onClose: () => void;
   onPointerMove?: (clientX: number, clientY: number) => void;
   onGameActiveChange?: (gameItemId: string | null) => void;
 }
 
+const THROTTLE_MS = 50;
+
 export function GameOverlay({
   isOpen,
   gameType,
   itemId,
-  identity,
-  wsRef,
+  visitorId,
   visitors,
+  setGameMetadata,
   onClose,
   onPointerMove,
   onGameActiveChange,
 }: GameOverlayProps) {
-  const { gameState, myMetadata, updateGameCursor, setGameMetadata } = useGamePresence({
-    wsRef,
-    itemId,
-    identity,
-    isOpen,
-  });
+  const lastCursorSendRef = useRef(0);
+  const gameMetadataRef = useRef<Record<string, unknown>>({});
+  const hasInitializedRef = useRef(false);
 
-  const claimSide = (side: "white" | "black") => {
-    setGameMetadata({ side });
-  };
+  // Derive players in this game from visitors with matching inGame
+  const playersInGame = useMemo(
+    () => visitors.filter((v) => v.inGame === itemId),
+    [visitors, itemId]
+  );
 
-  const leaveSide = () => {
-    setGameMetadata({});
-  };
+  // Get my metadata from my visitor state (for display/logic only)
+  const myVisitor = useMemo(
+    () => visitors.find((v) => v.visitorId === visitorId),
+    [visitors, visitorId]
+  );
+  const myMetadata = myVisitor?.gameMetadata ?? {};
+
+  // Sync gameMetadataRef from visitor state on open/itemId change to prevent wiping side claim
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset on close to avoid cross-game leakage
+      gameMetadataRef.current = {};
+      hasInitializedRef.current = false;
+      return;
+    }
+    // Only initialize once per game session to avoid overwriting local changes
+    if (hasInitializedRef.current) return;
+    const serverMetadata = myVisitor?.gameMetadata;
+    if (serverMetadata && typeof serverMetadata === "object") {
+      gameMetadataRef.current = serverMetadata as Record<string, unknown>;
+    } else {
+      gameMetadataRef.current = {};
+    }
+    hasInitializedRef.current = true;
+  }, [isOpen, itemId, myVisitor?.gameMetadata]);
+
+  // Merge metadata helper - always use local ref to avoid race conditions
+  // between local changes and server echo-back
+  const mergeGameMetadata = useCallback(
+    (partial: Record<string, unknown>) => {
+      const merged = { ...gameMetadataRef.current, ...partial };
+      gameMetadataRef.current = merged;
+      setGameMetadata(merged);
+    },
+    [setGameMetadata]
+  );
+
+  const claimSide = useCallback(
+    (side: "white" | "black") => {
+      mergeGameMetadata({ side });
+    },
+    [mergeGameMetadata]
+  );
+
+  const leaveSide = useCallback(() => {
+    gameMetadataRef.current = {};
+    setGameMetadata(null);
+  }, [setGameMetadata]);
 
   const mySide = (myMetadata.side as "white" | "black" | undefined) ?? null;
+
+  // Deterministic tie-break: smallest visitorId wins a contested side
+  // Self-heal effect: if I claimed a side but lost the tie-break, clear my claim
+  useEffect(() => {
+    if (!mySide || !isOpen) return;
+    const claimants = playersInGame
+      .filter((p) => p.gameMetadata?.side === mySide)
+      .map((p) => p.visitorId)
+      .sort();
+    const winner = claimants[0];
+    if (winner && winner !== visitorId) {
+      // Only clear if we haven't already
+      if (gameMetadataRef.current.side) {
+        gameMetadataRef.current = {};
+        setGameMetadata(null);
+      }
+    }
+  }, [playersInGame, mySide, visitorId, isOpen, setGameMetadata]);
 
   const chessBoardState = useQuery(api.games.getChessBoardState, isOpen ? { itemId } : "skip");
   const makeChessMove = useMutation(api.games.makeChessMove);
@@ -56,15 +119,23 @@ export function GameOverlay({
   const lastMove = chessBoardState?.lastMove ?? undefined;
 
   const handleMove = async (move: { from: string; to: string; promotion?: string }, newFen: string) => {
-    await makeChessMove({
-      itemId,
-      fen: newFen,
-      lastMove: { from: move.from, to: move.to },
-    });
+    try {
+      await makeChessMove({
+        itemId,
+        fen: newFen,
+        lastMove: { from: move.from, to: move.to },
+      });
+    } catch (e) {
+      console.error("makeChessMove failed", e);
+    }
   };
 
   const handleReset = async () => {
-    await resetChessBoard({ itemId });
+    try {
+      await resetChessBoard({ itemId });
+    } catch (e) {
+      console.error("resetChessBoard failed", e);
+    }
   };
 
   useEffect(() => {
@@ -81,6 +152,18 @@ export function GameOverlay({
   useEffect(() => {
     onGameActiveChange?.(isOpen ? itemId : null);
   }, [isOpen, itemId, onGameActiveChange]);
+
+  // Throttled game cursor update - uses ref to avoid stale closure
+  const updateGameCursor = useCallback(
+    (x: number, y: number) => {
+      const now = Date.now();
+      if (now - lastCursorSendRef.current < THROTTLE_MS) return;
+      lastCursorSendRef.current = now;
+      // Merge cursor position into metadata using ref for fresh values
+      mergeGameMetadata({ gameCursorX: x, gameCursorY: y });
+    },
+    [mergeGameMetadata]
+  );
 
   if (!isOpen) return null;
 
@@ -122,10 +205,10 @@ export function GameOverlay({
       >
         {gameType === "chess" && (
           <ChessGame
-            gameState={gameState}
+            playersInGame={playersInGame}
             fen={fen}
             lastMove={lastMove}
-            visitorId={identity.id}
+            visitorId={visitorId}
             mySide={mySide}
             visitors={visitors}
             onMove={handleMove}

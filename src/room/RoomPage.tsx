@@ -206,6 +206,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         visitorCount,
         setInMenu,
         setInGame,
+        setGameMetadata,
         connectionState,
         wsRef,
     } = usePresenceAndChat({
@@ -384,7 +385,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         profile: { cursorColor, handleCursorColorChange },
         time: { timeOfDay: computed.timeOfDay, overrideTimeOfDay: computed.overrideTimeOfDay, setOverrideTimeOfDay },
         toasts: { dailyRewardToast, showStripeSuccessToast, setShowStripeSuccessToast },
-        game: { activeGameItemId, setActiveGameItemId, handleGameActiveChange, visitorId, ownerName },
+        game: { activeGameItemId, setActiveGameItemId, handleGameActiveChange, visitorId: visitorId ?? "owner", setGameMetadata },
         room,
         saveRoom,
     });

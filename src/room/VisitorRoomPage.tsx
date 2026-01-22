@@ -217,8 +217,8 @@ function VisitorRoomPageContent({
         localChatMessage,
         setInMenu,
         setInGame,
+        setGameMetadata,
         connectionState,
-        wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: {
@@ -490,13 +490,9 @@ function VisitorRoomPageContent({
                 isOpen={!!activeGameItemId}
                 gameType="chess"
                 itemId={activeGameItemId ?? ""}
-                identity={{
-                    id: visitorIdentity.id,
-                    displayName: visitorIdentity.name,
-                    cursorColor: visitorIdentity.cursorColor,
-                }}
-                wsRef={wsRef}
+                visitorId={visitorIdentity.id}
                 visitors={visitors}
+                setGameMetadata={setGameMetadata}
                 onClose={() => setActiveGameItemId(null)}
                 onPointerMove={updateCursorFromClient}
                 onGameActiveChange={handleGameActiveChange}

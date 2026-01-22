@@ -88,9 +88,9 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 isOpen={!!game.activeGameItemId}
                 gameType="chess"
                 itemId={game.activeGameItemId ?? ""}
-                identity={game.identity}
-                wsRef={game.wsRef}
+                visitorId={game.visitorId}
                 visitors={game.visitors}
+                setGameMetadata={game.setGameMetadata}
                 onClose={game.onClose}
                 onPointerMove={computer.onPointerMove}
                 onGameActiveChange={game.onGameActiveChange}

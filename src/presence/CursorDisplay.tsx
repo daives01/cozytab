@@ -48,7 +48,7 @@ export function CursorDisplay({
     const chatBubbleClasses =
         "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[220px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
-    const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
+    const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : rotated ? "ml-2 -mt-10" : "ml-8 mb-2";
     const handwritingFont = {
         fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
         fontWeight: 400,
@@ -85,6 +85,7 @@ export function CursorDisplay({
                         color: pointerColor,
                         filter: `drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))`,
                         transform: rotated ? "rotate(180deg)" : undefined,
+                        transformOrigin: rotated ? `${POINTER_HOTSPOT.x}px ${POINTER_HOTSPOT.y}px` : undefined,
                     }}
                 >
                     <path

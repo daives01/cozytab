@@ -23,6 +23,7 @@ type PresenceMessage =
           inMenu?: boolean;
           tabbedOut?: boolean;
           inGame?: string | null;
+          gameMetadata?: Record<string, unknown> | null;
       }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -38,6 +39,7 @@ export type VisitorState = {
     inMenu: boolean;
     tabbedOut: boolean;
     inGame?: string | null;
+    gameMetadata?: Record<string, unknown> | null;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
@@ -120,6 +122,7 @@ export function useWebSocketPresence(
         typeof document !== "undefined" ? document.visibilityState === "hidden" : false
     );
     const inGameRef = useRef<string | null>(null);
+    const gameMetadataRef = useRef<Record<string, unknown> | null>(null);
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
     const setVisitorsAndStore = useCallback(
         (updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
@@ -236,6 +239,8 @@ export function useWebSocketPresence(
                             cursorColor: data.cursorColor,
                             inMenu: false,
                             tabbedOut: Boolean(data.tabbedOut),
+                            inGame: null,
+                            gameMetadata: undefined,
                         },
                     ];
                     return next;
@@ -264,6 +269,7 @@ export function useWebSocketPresence(
                                   tabbedOut:
                                       typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
                                   inGame: data.inGame !== undefined ? data.inGame : v.inGame,
+                                  gameMetadata: data.gameMetadata !== undefined ? data.gameMetadata : v.gameMetadata,
                               }
                             : v
                     )
@@ -407,7 +413,7 @@ export function useWebSocketPresence(
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
-        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean, inGame?: string | null): PresenceMessage => ({
+        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean, inGame?: string | null, gameMetadata?: Record<string, unknown> | null): PresenceMessage => ({
             type: "cursor",
             visitorId,
             x,
@@ -416,6 +422,7 @@ export function useWebSocketPresence(
             inMenu: inMenu ?? inMenuRef.current,
             tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : tabbedOutRef.current,
             inGame: inGame !== undefined ? inGame : inGameRef.current,
+            gameMetadata: gameMetadata !== undefined ? gameMetadata : gameMetadataRef.current,
         }),
         [visitorId]
     );
@@ -425,7 +432,7 @@ export function useWebSocketPresence(
             x: number,
             y: number,
             color?: string,
-            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null }
+            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null; gameMetadata?: Record<string, unknown> | null }
         ): boolean => {
             const ws = wsRef.current;
             if (!visitorId || !ws || ws.readyState !== WebSocket.OPEN) return false;
@@ -435,7 +442,7 @@ export function useWebSocketPresence(
             const transmit = (nextX: number, nextY: number) => {
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: nextX, y: nextY };
-                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame));
+                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame, opts?.gameMetadata));
             };
 
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
@@ -507,10 +514,41 @@ export function useWebSocketPresence(
             if (inGameRef.current === gameItemId) return;
 
             inGameRef.current = gameItemId;
+            // Clear gameMetadata when switching games or leaving a game to avoid cross-game leakage
+            // Send null explicitly so it propagates over JSON
+            gameMetadataRef.current = null;
             const { x, y } = lastBroadcastCursorRef.current;
-            sendCursor(x, y, latestCursorColorRef.current, { inGame: gameItemId, force: true });
+            sendCursor(x, y, latestCursorColorRef.current, { inGame: gameItemId, gameMetadata: null, force: true });
+
+            // Optimistically update local visitor state (server excludes sender from broadcast)
+            setVisitorsAndStore((prev) =>
+                prev.map((v) =>
+                    v.visitorId === visitorId
+                        ? { ...v, inGame: gameItemId, gameMetadata: null }
+                        : v
+                )
+            );
         },
-        [sendCursor, visitorId]
+        [sendCursor, visitorId, setVisitorsAndStore]
+    );
+
+    const setGameMetadata = useCallback(
+        (metadata: Record<string, unknown> | null) => {
+            if (!visitorId) return;
+            gameMetadataRef.current = metadata;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { gameMetadata: metadata, force: true });
+
+            // Optimistically update local visitor state (server excludes sender from broadcast)
+            setVisitorsAndStore((prev) =>
+                prev.map((v) =>
+                    v.visitorId === visitorId
+                        ? { ...v, gameMetadata: metadata }
+                        : v
+                )
+            );
+        },
+        [sendCursor, visitorId, setVisitorsAndStore]
     );
 
     useEffect(() => {
@@ -553,6 +591,7 @@ export function useWebSocketPresence(
         localChatMessage,
         setInMenu,
         setInGame,
+        setGameMetadata,
         connectionState,
         reconnectNow,
         // No batchInterval needed - direct updates

@@ -89,9 +89,9 @@ export interface GameProps {
     activeGameItemId: string | null;
     onClose: () => void;
     onGameActiveChange: (gameItemId: string | null) => void;
-    identity: { id: string; displayName: string; cursorColor?: string };
-    wsRef: React.RefObject<WebSocket | null>;
+    visitorId: string;
     visitors: VisitorState[];
+    setGameMetadata: (metadata: Record<string, unknown> | null) => void;
 }
 
 export interface UIProps {
