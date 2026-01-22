@@ -200,6 +200,14 @@ export function useRoomHandlers({
         [setLocalItems]
     );
 
+    const handleDeleteItem = useCallback(
+        (itemId: string) => {
+            setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
+            setSelectedId(null);
+        },
+        [setLocalItems, setSelectedId]
+    );
+
     return {
         handleMusicToggle,
         handleModeToggle,
@@ -216,6 +224,7 @@ export function useRoomHandlers({
         handleDragEnd,
         handleBringToFront,
         handleSendToBack,
+        handleDeleteItem,
     };
 }
 

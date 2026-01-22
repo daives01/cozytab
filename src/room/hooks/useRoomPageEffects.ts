@@ -451,3 +451,24 @@ export function useOnboardingAssetPrefetch(
         computerPrefetchedRef.current = true;
     }, [resolvedComputerAssetUrl, onboardingActive, computerPrefetchedRef]);
 }
+
+export function useEscapeToExitEditMode(mode: "view" | "edit", onExit: () => void) {
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            const target = event.target as HTMLElement | null;
+            const isTypingTarget =
+                target &&
+                (target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.getAttribute("contenteditable") === "true");
+            if (isTypingTarget) return;
+            if (mode === "edit") {
+                event.preventDefault();
+                onExit();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [mode, onExit]);
+}
