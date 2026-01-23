@@ -10,7 +10,7 @@ import { LocalCursor } from "@/presence/LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import type { Shortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem, GameType } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
@@ -101,6 +101,7 @@ function VisitorRoomPageContent({
     );
     const { user: clerkUser, isSignedIn } = useUser();
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
+    const catalogItems = useQuery(api.catalog.list);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
     const { scale } = useRoomViewportScale();
@@ -229,6 +230,13 @@ function VisitorRoomPageContent({
         isOwner: false,
     });
     const [activeGameItemId, setActiveGameItemId] = useState<string | null>(null);
+    const activeGameType = useMemo((): GameType | null => {
+        if (!activeGameItemId || !items || !catalogItems) return null;
+        const roomItem = items.find((i) => i.id === activeGameItemId);
+        if (!roomItem) return null;
+        const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
+        return catalogItem?.gameType ?? null;
+    }, [activeGameItemId, items, catalogItems]);
     const isInMenu = isComputerOpen || Boolean(activeMusicItem) || Boolean(activeGameItemId);
     useEffect(() => {
         setInMenu(isInMenu);
@@ -374,11 +382,13 @@ function VisitorRoomPageContent({
                           musicStartedAt: item.musicStartedAt ?? 0,
                           musicPositionAtStart: item.musicPositionAtStart ?? 0,
                       };
+                const catalogItem = catalogItems?.find((c) => c._id === item.catalogItemId);
 
                 return (
                     <ItemNode
                         key={item.id}
                         item={localMusicItem}
+                        catalogItem={catalogItem}
                         isSelected={false}
                         mode="view"
                         scale={scale}
@@ -487,8 +497,8 @@ function VisitorRoomPageContent({
             ) : null}
 
             <GameOverlay
-                isOpen={!!activeGameItemId}
-                gameType="chess"
+                isOpen={!!activeGameItemId && !!activeGameType}
+                gameType={activeGameType ?? "chess"}
                 itemId={activeGameItemId ?? ""}
                 visitorId={visitorIdentity.id}
                 visitors={visitors}

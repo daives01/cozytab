@@ -20,7 +20,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
         isGuest ? {} : "skip"
     ) as { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
-    const catalogItems = useQuery(api.catalog.list, isGuest ? {} : "skip");
+    const catalogItems = useQuery(api.catalog.list);
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
 
     const roomTemplateBackgroundUrl = useMemo(() => {

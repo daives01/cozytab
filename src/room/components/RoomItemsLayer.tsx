@@ -3,6 +3,7 @@ import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
 import type { RoomItem } from "@/types";
+import type { Doc } from "@convex/_generated/dataModel";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
@@ -11,6 +12,7 @@ type Mode = "view" | "edit";
 
 interface RoomItemsLayerProps {
     items: RoomItem[];
+    catalogItems?: Doc<"catalogItems">[];
     selectedId: string | null;
     mode: Mode;
     scale: number;
@@ -35,6 +37,7 @@ interface RoomItemsLayerProps {
 
 export function RoomItemsLayer({
     items,
+    catalogItems,
     selectedId,
     mode,
     scale,
@@ -61,11 +64,13 @@ export function RoomItemsLayer({
             {items.map((item, index) => {
                 const isAtBack = index === 0;
                 const isAtFront = index === items.length - 1;
+                const catalogItem = catalogItems?.find((c) => c._id === item.catalogItemId);
 
                 return (
                     <ItemNode
                         key={item.id}
                         item={item}
+                        catalogItem={catalogItem}
                         isSelected={item.id === selectedId}
                         mode={mode}
                         scale={scale}

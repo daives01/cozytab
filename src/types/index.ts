@@ -1,4 +1,4 @@
-export { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@convex/lib/categories";
+export { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory, GAME_TYPES, type GameType } from "@convex/lib/categories";
 
 export type { RoomItem, Shortcut, GuestShortcut, GuestSessionState } from "@shared/guestTypes";
 export type { TimeOfDay, DailyRewardState, DailyRewardToastPayload, RewardPayload } from "../room/types";

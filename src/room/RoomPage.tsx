@@ -361,6 +361,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         computed,
         handlers,
         localItems,
+        catalogItems,
         placedCatalogItemIds,
         layout: { toolbarOffset, drawerOrientation },
         onboarding: { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete },
@@ -395,6 +396,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
     const roomContent = (
         <RoomItemsLayer
             items={localItems}
+            catalogItems={catalogItems ?? undefined}
             selectedId={roomState.selectedId}
             mode={roomState.mode}
             scale={scale}

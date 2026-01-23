@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { catalogItemCategoryValidator } from "./lib/categories";
+import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
 
 export default defineSchema({
     users: defineTable({
@@ -75,6 +75,7 @@ export default defineSchema({
         assetUrl: v.string(),
         defaultWidth: v.number(),
         isStarterItem: v.optional(v.boolean()),
+        gameType: v.optional(gameTypeValidator),
     }).index("by_name", ["name"]),
 
     inventory: defineTable({

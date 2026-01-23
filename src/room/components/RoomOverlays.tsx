@@ -85,8 +85,8 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
             })()}
 
             <GameOverlay
-                isOpen={!!game.activeGameItemId}
-                gameType="chess"
+                isOpen={!!game.activeGameItemId && !!game.gameType}
+                gameType={game.gameType ?? "chess"}
                 itemId={game.activeGameItemId ?? ""}
                 visitorId={game.visitorId}
                 visitors={game.visitors}

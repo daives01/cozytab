@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import type { RoomItem } from "@/types";
-import type { Id } from "@convex/_generated/dataModel";
+import type { RoomItem, GameType } from "@/types";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
@@ -16,6 +16,7 @@ interface UseRoomOverlaysModelArgs {
     computed: ReturnType<typeof useRoomComputed>;
     handlers: ReturnType<typeof useRoomHandlers>;
     localItems: RoomItem[];
+    catalogItems: Doc<"catalogItems">[] | undefined;
     placedCatalogItemIds: Id<"catalogItems">[];
 
     layout: {
@@ -85,6 +86,7 @@ export function useRoomOverlaysModel({
     computed,
     handlers,
     localItems,
+    catalogItems,
     placedCatalogItemIds,
     layout,
     onboarding,
@@ -207,8 +209,18 @@ export function useRoomOverlaysModel({
             connectionState: presence.connectionState,
         };
 
+        let gameType: GameType | null = null;
+        if (game.activeGameItemId && catalogItems) {
+            const roomItem = localItems.find((i) => i.id === game.activeGameItemId);
+            if (roomItem) {
+                const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
+                gameType = catalogItem?.gameType ?? null;
+            }
+        }
+
         const gameProps: RoomOverlaysProps["game"] = {
             activeGameItemId: game.activeGameItemId,
+            gameType,
             onClose: () => game.setActiveGameItemId(null),
             onGameActiveChange: game.handleGameActiveChange,
             visitorId: game.visitorId,
@@ -230,6 +242,7 @@ export function useRoomOverlaysModel({
         computed,
         handlers,
         localItems,
+        catalogItems,
         placedCatalogItemIds,
         layout,
         onboarding,

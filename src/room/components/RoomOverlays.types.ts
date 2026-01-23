@@ -1,4 +1,4 @@
-import type { RoomItem, Shortcut } from "@/types";
+import type { RoomItem, Shortcut, GameType } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
@@ -87,6 +87,7 @@ export interface PresenceProps {
 
 export interface GameProps {
     activeGameItemId: string | null;
+    gameType: GameType | null;
     onClose: () => void;
     onGameActiveChange: (gameItemId: string | null) => void;
     visitorId: string;
