@@ -6,10 +6,8 @@ import type { Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
-import { RotateCcw, Crown, X, Users, LogOut } from "lucide-react";
+import { Crown, X, Users, LogOut, Flag, Handshake } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
-
-const HOLD_DURATION_MS = 800;
 
 export type GamePlayer = {
   visitorId: string;
@@ -18,59 +16,7 @@ export type GamePlayer = {
   side?: "white" | "black" | null;
 };
 
-function HoldToResetButton({ onReset }: { onReset: () => void }) {
-  const [progress, setProgress] = useState(0);
-  const [isHolding, setIsHolding] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(0);
-
-  const startHold = useCallback(() => {
-    setIsHolding(true);
-    startTimeRef.current = Date.now();
-    intervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-      const newProgress = Math.min(elapsed / HOLD_DURATION_MS, 1);
-      setProgress(newProgress);
-      if (newProgress >= 1) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        onReset();
-        setProgress(0);
-        setIsHolding(false);
-      }
-    }, 16);
-  }, [onReset]);
-
-  const cancelHold = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setProgress(0);
-    setIsHolding(false);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
-
-  return (
-    <button
-      type="button"
-      onMouseDown={startHold}
-      onMouseUp={cancelHold}
-      onMouseLeave={cancelHold}
-      onTouchStart={startHold}
-      onTouchEnd={cancelHold}
-      onTouchCancel={cancelHold}
-      className={`relative flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] overflow-hidden text-xs font-medium select-none ${isHolding ? "scale-95" : ""} transition-transform`}
-    >
-      <div
-        className="absolute inset-0 bg-red-400/40 origin-left transition-transform"
-        style={{ transform: `scaleX(${progress})` }}
-      />
-      <RotateCcw className={`w-3 h-3 relative z-10 ${isHolding ? "animate-spin" : ""}`} style={{ animationDuration: "0.8s" }} />
-    </button>
-  );
-}
+export type GameSignal = "resign" | "drawOffer" | "drawAccept" | "drawDecline" | null;
 
 interface ChessGameProps {
   playersInGame: VisitorState[];
@@ -79,10 +25,12 @@ interface ChessGameProps {
   visitorId: string;
   mySide: "white" | "black" | null;
   visitors: VisitorState[];
+  resultOverlay: string | null;
   onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
   onClaimSide: (side: "white" | "black") => void;
   onLeaveSide: () => void;
-  onReset: () => void;
+  onSignal: (signal: GameSignal) => void;
+  onGameEnd: (message: string) => void;
   onCursorMove: (x: number, y: number) => void;
   onClose: () => void;
 }
@@ -147,14 +95,17 @@ export function ChessGame({
   visitorId,
   mySide,
   visitors,
+  resultOverlay,
   onMove,
   onClaimSide,
   onLeaveSide,
-  onReset,
+  onSignal,
+  onGameEnd,
   onCursorMove,
   onClose,
 }: ChessGameProps) {
   const boardRef = useRef<HTMLDivElement>(null);
+  const handledResultRef = useRef<string | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
@@ -208,6 +159,48 @@ export function ChessGame({
     if (chess.isCheck()) return "Check!";
     return null;
   }, [chess]);
+
+  // Extract signals from players: { visitorId, side, signal }
+  const playerSignals = useMemo(() => {
+    return playersInGame
+      .filter((p) => p.gameMetadata?.side && p.gameMetadata?.gameSignal)
+      .map((p) => ({
+        visitorId: p.visitorId,
+        side: p.gameMetadata?.side as "white" | "black",
+        signal: p.gameMetadata?.gameSignal as GameSignal,
+      }));
+  }, [playersInGame]);
+
+  // Check for resign (anyone with "resign" signal)
+  const resignedPlayer = playerSignals.find((p) => p.signal === "resign");
+
+  // Check for draw offer from opponent (hide if we've declined)
+  const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
+  const opponentDrawOffer = playerSignals.find(
+    (p) => p.signal === "drawOffer" && p.side !== mySide && mySignal !== "drawDecline"
+  );
+
+  // Check for mutual draw accept
+  const drawAccepted = playerSignals.some((p) => p.signal === "drawAccept");
+
+  // Derive result key to detect unique game-ending events
+  const resultKey = resignedPlayer
+    ? `resign:${resignedPlayer.visitorId}`
+    : drawAccepted
+      ? "draw"
+      : null;
+
+  // Notify parent of game-ending signals (resign or draw accept)
+  useEffect(() => {
+    if (!resultKey || handledResultRef.current === resultKey) return;
+    handledResultRef.current = resultKey;
+
+    const message = resignedPlayer
+      ? `${resignedPlayer.side === "white" ? "Black" : "White"} wins by resignation!`
+      : "Draw agreed!";
+
+    onGameEnd(message);
+  }, [resultKey, resignedPlayer, onGameEnd]);
 
   const clearSelection = useCallback(() => {
     setSelectedSquare(null);
@@ -434,7 +427,27 @@ export function ChessGame({
               <span>{spectators.length}</span>
             </div>
           )}
-          <HoldToResetButton onReset={onReset} />
+          {mySide && (
+            <>
+              <button
+                type="button"
+                onClick={() => onSignal("resign")}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-red-100 text-xs font-medium transition-colors"
+                title="Resign"
+              >
+                <Flag className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onSignal("drawOffer")}
+                disabled={!!opponentDrawOffer}
+                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-amber-100 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Offer draw"
+              >
+                <Handshake className="w-3 h-3" />
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -524,6 +537,40 @@ export function ChessGame({
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Draw offer prompt */}
+      {opponentDrawOffer && mySide && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
+            <p className="text-center font-bold mb-3">Opponent offers a draw</p>
+            <div className="flex gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => onSignal("drawAccept")}
+                className="px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-green-500 text-white font-medium shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                onClick={() => onSignal("drawDecline")}
+                className="px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] font-medium shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Result overlay */}
+      {resultOverlay && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pointer-events-none">
+          <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
+            <p className="text-xl font-bold text-center">{resultOverlay}</p>
           </div>
         </div>
       )}

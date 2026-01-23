@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, useRef } from "react";
+import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Chessboard } from "react-chessboard";
@@ -34,6 +34,9 @@ export function GameOverlay({
   const lastCursorSendRef = useRef(0);
   const gameMetadataRef = useRef<Record<string, unknown>>({});
   const hasInitializedRef = useRef(false);
+  const [gameKey, setGameKey] = useState(0);
+  const [resultOverlay, setResultOverlay] = useState<string | null>(null);
+  const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Derive players in this game from visitors with matching inGame
   const playersInGame = useMemo(
@@ -94,6 +97,21 @@ export function GameOverlay({
 
   const mySide = (myMetadata.side as "white" | "black" | undefined) ?? null;
 
+  const sendSignal = useCallback(
+    (signal: "resign" | "drawOffer" | "drawAccept" | "drawDecline" | null) => {
+      if (signal === null) {
+        const rest = Object.fromEntries(
+          Object.entries(gameMetadataRef.current).filter(([k]) => k !== "gameSignal")
+        );
+        gameMetadataRef.current = rest;
+        setGameMetadata(Object.keys(rest).length > 0 ? rest : null);
+      } else {
+        mergeGameMetadata({ gameSignal: signal });
+      }
+    },
+    [mergeGameMetadata, setGameMetadata]
+  );
+
   // Deterministic tie-break: smallest visitorId wins a contested side
   // Self-heal effect: if I claimed a side but lost the tie-break, clear my claim
   useEffect(() => {
@@ -132,13 +150,34 @@ export function GameOverlay({
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = useCallback(async () => {
     try {
       await resetChessBoard({ itemId });
+      setGameKey((k) => k + 1);
     } catch (e) {
       console.error("resetChessBoard failed", e);
     }
-  };
+  }, [resetChessBoard, itemId]);
+
+  const handleGameEnd = useCallback(
+    (message: string) => {
+      if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
+      setResultOverlay(message);
+      resultTimeoutRef.current = setTimeout(() => {
+        setResultOverlay(null);
+        sendSignal(null);
+        handleReset();
+      }, 1500);
+    },
+    [sendSignal, handleReset]
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -207,16 +246,19 @@ export function GameOverlay({
       >
         {gameType === "chess" && (
           <ChessGame
+            key={gameKey}
             playersInGame={playersInGame}
             fen={fen}
             lastMove={lastMove}
             visitorId={visitorId}
             mySide={mySide}
             visitors={visitors}
+            resultOverlay={resultOverlay}
             onMove={handleMove}
             onClaimSide={claimSide}
             onLeaveSide={leaveSide}
-            onReset={handleReset}
+            onSignal={sendSignal}
+            onGameEnd={handleGameEnd}
             onCursorMove={updateGameCursor}
             onClose={onClose}
           />
