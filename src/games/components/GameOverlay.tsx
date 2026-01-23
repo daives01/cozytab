@@ -37,6 +37,7 @@ export function GameOverlay({
   const [gameKey, setGameKey] = useState(0);
   const [resultOverlay, setResultOverlay] = useState<string | null>(null);
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleGameEndRef = useRef<((message: string) => void) | null>(null);
 
   // Derive players in this game from visitors with matching inGame
   const playersInGame = useMemo(
@@ -105,11 +106,28 @@ export function GameOverlay({
         );
         gameMetadataRef.current = rest;
         setGameMetadata(Object.keys(rest).length > 0 ? rest : null);
-      } else {
-        mergeGameMetadata({ gameSignal: signal });
+        return;
+      }
+
+      mergeGameMetadata({ gameSignal: signal });
+
+      // Immediately show game-end UI for the initiator (don't wait for presence echo)
+      if (signal === "drawAccept") {
+        handleGameEndRef.current?.("Draw agreed!");
+        return;
+      }
+      if (signal === "resign") {
+        const msg =
+          mySide === "white"
+            ? "Black wins by resignation!"
+            : mySide === "black"
+              ? "White wins by resignation!"
+              : "Game over by resignation!";
+        handleGameEndRef.current?.(msg);
+        return;
       }
     },
-    [mergeGameMetadata, setGameMetadata]
+    [mergeGameMetadata, setGameMetadata, mySide]
   );
 
   // Deterministic tie-break: smallest visitorId wins a contested side
@@ -131,7 +149,18 @@ export function GameOverlay({
   }, [playersInGame, mySide, visitorId, isOpen, setGameMetadata]);
 
   const chessBoardState = useQuery(api.games.getChessBoardState, isOpen ? { itemId } : "skip");
-  const makeChessMove = useMutation(api.games.makeChessMove);
+  const makeChessMove = useMutation(api.games.makeChessMove).withOptimisticUpdate(
+    (localStore, args) => {
+      const current = localStore.getQuery(api.games.getChessBoardState, { itemId: args.itemId });
+      if (current) {
+        localStore.setQuery(api.games.getChessBoardState, { itemId: args.itemId }, {
+          ...current,
+          fen: args.fen,
+          lastMove: args.lastMove,
+        });
+      }
+    }
+  );
   const resetChessBoard = useMutation(api.games.resetChessBoard);
 
   const isLoading = chessBoardState === undefined;
@@ -161,6 +190,8 @@ export function GameOverlay({
 
   const handleGameEnd = useCallback(
     (message: string) => {
+      // Prevent double-trigger if presence echo calls this after local immediate end
+      if (resultOverlay) return;
       if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
       setResultOverlay(message);
       resultTimeoutRef.current = setTimeout(() => {
@@ -169,8 +200,13 @@ export function GameOverlay({
         handleReset();
       }, 1500);
     },
-    [sendSignal, handleReset]
+    [sendSignal, handleReset, resultOverlay]
   );
+
+  // Keep ref in sync so sendSignal can call handleGameEnd without circular deps
+  useEffect(() => {
+    handleGameEndRef.current = handleGameEnd;
+  }, [handleGameEnd]);
 
   // Cleanup timeout on unmount
   useEffect(() => {

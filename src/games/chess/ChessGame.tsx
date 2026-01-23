@@ -6,7 +6,7 @@ import type { Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
-import { Crown, X, Users, LogOut, Flag, Handshake } from "lucide-react";
+import { Crown, X, LogOut, Flag, Handshake } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
 
 export type GamePlayer = {
@@ -35,6 +35,36 @@ interface ChessGameProps {
   onClose: () => void;
 }
 
+function DrawOfferBanner({
+  onAccept,
+  onDecline,
+}: {
+  onAccept: () => void;
+  onDecline: () => void;
+}) {
+  return (
+    <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium whitespace-nowrap">Draw offer</span>
+        <button
+          type="button"
+          onClick={onAccept}
+          className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-share-accent)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+        >
+          Accept
+        </button>
+        <button
+          type="button"
+          onClick={onDecline}
+          className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+        >
+          Decline
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PlayerBadge({
   side,
   player,
@@ -51,8 +81,8 @@ function PlayerBadge({
   onLeave: () => void;
 }) {
   const colors = side === "black"
-    ? "bg-gray-800 text-white"
-    : "bg-gray-100 text-gray-900";
+    ? "bg-[var(--color-foreground)] text-[var(--color-background)]"
+    : "bg-[var(--color-background)] text-[var(--color-foreground)]";
 
   const baseClasses = `flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-2)] ${colors}`;
 
@@ -65,7 +95,7 @@ function PlayerBadge({
           <button
             type="button"
             onClick={onLeave}
-            className={`p-1 rounded-md -mr-1 transition-colors ${side === "black" ? "hover:bg-white/20" : "hover:bg-black/10"}`}
+            className={`p-1 rounded-md -mr-1 transition-colors ${side === "black" ? "hover:bg-[var(--color-background)]/20" : "hover:bg-[var(--color-foreground)]/10"}`}
             title="Leave side"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -83,7 +113,7 @@ function PlayerBadge({
       className={`${baseClasses} ${!canJoin ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
     >
       <Crown className="w-4 h-4 shrink-0" />
-      <span className={`text-sm font-medium ${side === "black" ? "text-gray-400" : "text-gray-500"}`}>Join</span>
+      <span className="text-sm font-medium opacity-60">Join</span>
     </button>
   );
 }
@@ -112,11 +142,16 @@ export function ChessGame({
   const { playMoveSound } = useChessSounds();
   const prevFenRef = useRef(serverFen);
 
-  const [pendingOptimistic, setPendingOptimistic] = useState<{ fen: string; lastMove: { from: string; to: string } } | null>(null);
+  const [isLandscape, setIsLandscape] = useState(() => typeof window !== "undefined" && window.innerWidth > window.innerHeight);
 
-  const optimistic = pendingOptimistic && pendingOptimistic.fen !== serverFen ? pendingOptimistic : null;
-  const fen = optimistic?.fen ?? serverFen;
-  const lastMove = optimistic?.lastMove ?? serverLastMove;
+  useEffect(() => {
+    const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const fen = serverFen;
+  const lastMove = serverLastMove;
 
   const chess = useMemo(() => {
     const c = new Chess();
@@ -210,10 +245,10 @@ export function ChessGame({
   const tryMove = useCallback(
     (from: Square, to: Square, promotion?: string) => {
       try {
-        const move = chess.move({ from, to, promotion });
+        const tempChess = new Chess(fen);
+        const move = tempChess.move({ from, to, promotion });
         if (move) {
-          const newFen = chess.fen();
-          setPendingOptimistic({ fen: newFen, lastMove: { from, to } });
+          const newFen = tempChess.fen();
           onMove({ from, to, promotion }, newFen);
           clearSelection();
           return true;
@@ -223,7 +258,7 @@ export function ChessGame({
       }
       return false;
     },
-    [chess, onMove, clearSelection]
+    [fen, onMove, clearSelection]
   );
 
   const needsPromotion = useCallback(
@@ -386,11 +421,6 @@ export function ChessGame({
     return p ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" } : undefined;
   }, [playersInGame, blackPlayerId]);
 
-  const spectators = useMemo(
-    () => playersInGame.filter((p) => p.visitorId !== whitePlayerId && p.visitorId !== blackPlayerId),
-    [playersInGame, whitePlayerId, blackPlayerId]
-  );
-
   // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
   const otherPlayerExists = (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
   const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
@@ -408,9 +438,141 @@ export function ChessGame({
   const canJoinTop = topBadgeSide === "white" ? canJoinWhite : canJoinBlack;
   const canJoinBottom = bottomBadgeSide === "white" ? canJoinWhite : canJoinBlack;
 
+  const BOARD_SIZE = "min(85vw, 85vh, 700px)";
+
+  const controlButtons = (
+    <div className="flex items-center gap-2 h-8">
+      <button
+        type="button"
+        onClick={() => onSignal("resign")}
+        disabled={!mySide}
+        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
+        title="Resign"
+      >
+        <Flag className="w-3 h-3" />
+      </button>
+      <button
+        type="button"
+        onClick={() => onSignal("drawOffer")}
+        disabled={!mySide || !!opponentDrawOffer}
+        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
+        title="Offer draw"
+      >
+        <Handshake className="w-3 h-3" />
+      </button>
+      <button
+        type="button"
+        onClick={onClose}
+        className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </div>
+  );
+
+  const statusIndicator = (
+    <div className="h-10 flex items-center justify-center min-w-[100px]">
+      {gameStatus ? (
+        <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
+          {gameStatus}
+        </div>
+      ) : (
+        <div
+          className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-colors ${
+            !mySide ? "opacity-0" : isMyTurn ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" : "bg-[var(--color-muted)] text-[var(--color-foreground)]"
+          }`}
+        >
+          {isMyTurn ? "Your turn!" : "Waiting..."}
+        </div>
+      )}
+    </div>
+  );
+
+  if (isLandscape) {
+    return (
+      <div
+        className="relative flex items-center justify-center select-none"
+        style={{ "--board-size": BOARD_SIZE } as React.CSSProperties}
+      >
+        {/* Left panel - player badges aligned to board edges */}
+        <div
+          className="absolute flex flex-col justify-between items-end pr-4"
+          style={{ height: `var(--board-size)`, right: `calc(50% + var(--board-size) / 2)` }}
+        >
+          <PlayerBadge
+            side={topBadgeSide}
+            player={topPlayer}
+            isMe={mySide === topBadgeSide}
+            canJoin={canJoinTop}
+            onJoin={() => onClaimSide(topBadgeSide)}
+            onLeave={onLeaveSide}
+          />
+          <PlayerBadge
+            side={bottomBadgeSide}
+            player={bottomPlayer}
+            isMe={mySide === bottomBadgeSide}
+            canJoin={canJoinBottom}
+            onJoin={() => onClaimSide(bottomBadgeSide)}
+            onLeave={onLeaveSide}
+          />
+        </div>
+
+        {/* Board - always centered */}
+        <div
+          ref={boardRef}
+          className="relative aspect-square"
+          style={{ width: `var(--board-size)` }}
+          onMouseMove={handleMouseMove}
+        >
+          <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
+            <Chessboard
+              options={{
+                position: fen,
+                onPieceDrop: handleDrop,
+                onSquareClick: handleSquareClick,
+                boardOrientation,
+                squareStyles,
+                allowDragging: !!mySide && isMyTurn,
+                boardStyle: { borderRadius: "0" },
+                darkSquareStyle: { backgroundColor: "#b58863" },
+                lightSquareStyle: { backgroundColor: "#f0d9b5" },
+              } satisfies ChessboardOptions}
+            />
+          </div>
+          {otherCursors.map((cursor) => (
+            <div
+              key={cursor.visitorId}
+              className="absolute pointer-events-none transition-all duration-75"
+              style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
+            >
+              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} rotated={cursor.needsFlip} />
+            </div>
+          ))}
+          {opponentDrawOffer && mySide && (
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+              <DrawOfferBanner
+                onAccept={() => onSignal("drawAccept")}
+                onDecline={() => onSignal("drawDecline")}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Right panel - controls top, status bottom */}
+        <div
+          className="absolute flex flex-col justify-between items-start pl-4"
+          style={{ height: `var(--board-size)`, left: `calc(50% + var(--board-size) / 2)` }}
+        >
+          {controlButtons}
+          {statusIndicator}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center gap-3 select-none">
-      {/* Top controls */}
+    <div className="flex flex-col items-center gap-3 select-none" style={{ width: BOARD_SIZE }}>
+      {/* Top controls - portrait */}
       <div className="flex items-center justify-between w-full">
         <PlayerBadge
           side={topBadgeSide}
@@ -420,51 +582,15 @@ export function ChessGame({
           onJoin={() => onClaimSide(topBadgeSide)}
           onLeave={onLeaveSide}
         />
-        <div className="flex items-center gap-2">
-          {spectators.length > 0 && (
-            <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-black/20 text-white/70 text-xs">
-              <Users className="w-3 h-3" />
-              <span>{spectators.length}</span>
-            </div>
-          )}
-          {mySide && (
-            <>
-              <button
-                type="button"
-                onClick={() => onSignal("resign")}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-red-100 text-xs font-medium transition-colors"
-                title="Resign"
-              >
-                <Flag className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onSignal("drawOffer")}
-                disabled={!!opponentDrawOffer}
-                className="flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-amber-100 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Offer draw"
-              >
-                <Handshake className="w-3 h-3" />
-              </button>
-            </>
-          )}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+        {controlButtons}
       </div>
 
       {/* Board */}
       <div
         ref={boardRef}
-        className="relative aspect-square w-[min(85vw,85vh,500px)]"
+        className="relative aspect-square w-full"
         onMouseMove={handleMouseMove}
       >
-        {/* Board wrapper with clipping for rounded corners */}
         <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
           <Chessboard
             options={{
@@ -480,7 +606,6 @@ export function ChessGame({
             } satisfies ChessboardOptions}
           />
         </div>
-        {/* Cursor layer outside clipping container so chat bubbles can overflow */}
         {otherCursors.map((cursor) => (
           <div
             key={cursor.visitorId}
@@ -490,9 +615,17 @@ export function ChessGame({
             <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} rotated={cursor.needsFlip} />
           </div>
         ))}
+        {opponentDrawOffer && mySide && (
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+            <DrawOfferBanner
+              onAccept={() => onSignal("drawAccept")}
+              onDecline={() => onSignal("drawDecline")}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Bottom controls */}
+      {/* Bottom controls - portrait */}
       <div className="flex items-center justify-between w-full">
         <PlayerBadge
           side={bottomBadgeSide}
@@ -502,22 +635,7 @@ export function ChessGame({
           onJoin={() => onClaimSide(bottomBadgeSide)}
           onLeave={onLeaveSide}
         />
-        {/* Status - fixed height to prevent layout shift */}
-        <div className="h-10 flex items-center justify-center">
-          {gameStatus ? (
-            <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
-              {gameStatus}
-            </div>
-          ) : mySide ? (
-            <div
-              className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-colors ${
-                isMyTurn ? "bg-green-500 text-white" : "bg-[var(--color-muted)] text-[var(--color-foreground)]"
-              }`}
-            >
-              {isMyTurn ? "Your turn!" : "Waiting..."}
-            </div>
-          ) : null}
-        </div>
+        {statusIndicator}
       </div>
 
       {/* Promotion modal */}
@@ -536,31 +654,6 @@ export function ChessGame({
                   {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
                 </button>
               ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Draw offer prompt */}
-      {opponentDrawOffer && mySide && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
-            <p className="text-center font-bold mb-3">Opponent offers a draw</p>
-            <div className="flex gap-2 justify-center">
-              <button
-                type="button"
-                onClick={() => onSignal("drawAccept")}
-                className="px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-green-500 text-white font-medium shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              >
-                Accept
-              </button>
-              <button
-                type="button"
-                onClick={() => onSignal("drawDecline")}
-                className="px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] font-medium shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              >
-                Decline
-              </button>
             </div>
           </div>
         </div>
