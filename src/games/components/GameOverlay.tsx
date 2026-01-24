@@ -116,17 +116,19 @@ export function GameOverlay({
         return;
       }
       if (signal === "resign") {
+        // Use local ref for side to avoid stale closure from presence delay
+        const currentSide = gameMetadataRef.current.side as "white" | "black" | undefined;
         const msg =
-          mySide === "white"
+          currentSide === "white"
             ? "Black wins by resignation!"
-            : mySide === "black"
+            : currentSide === "black"
               ? "White wins by resignation!"
               : "Game over by resignation!";
         handleGameEndRef.current?.(msg);
         return;
       }
     },
-    [mergeGameMetadata, setGameMetadata, mySide]
+    [mergeGameMetadata, setGameMetadata]
   );
 
   // Deterministic tie-break: smallest visitorId wins a contested side
@@ -282,6 +284,7 @@ export function GameOverlay({
             onLeaveSide={leaveSide}
             onSignal={sendSignal}
             onGameEnd={handleGameEnd}
+            onReset={handleReset}
             onCursorMove={updateGameCursor}
             onClose={onClose}
           />

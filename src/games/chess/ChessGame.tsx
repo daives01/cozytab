@@ -7,7 +7,7 @@ import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { useChatFade } from "@/hooks/useChatFade";
-import { Crown, X, LogOut, Flag, Handshake } from "lucide-react";
+import { Crown, X, LogOut, Flag, Handshake, RotateCcw } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
 
 interface ChessCursorProps {
@@ -62,6 +62,7 @@ interface ChessGameProps {
   onLeaveSide: () => void;
   onSignal: (signal: GameSignal) => void;
   onGameEnd: (message: string) => void;
+  onReset: () => void;
   onCursorMove: (x: number, y: number) => void;
   onClose: () => void;
 }
@@ -162,6 +163,7 @@ export function ChessGame({
   onLeaveSide,
   onSignal,
   onGameEnd,
+  onReset,
   onCursorMove,
   onClose,
 }: ChessGameProps) {
@@ -470,17 +472,17 @@ export function ChessGame({
     <div className="flex items-center gap-2 h-8">
       <button
         type="button"
-        onClick={() => onSignal("resign")}
+        onClick={() => (otherPlayerExists ? onSignal("resign") : onReset())}
         disabled={!mySide}
         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
-        title="Resign"
+        title={otherPlayerExists ? "Resign" : "Reset"}
       >
-        <Flag className="w-3 h-3" />
+        {otherPlayerExists ? <Flag className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
       </button>
       <button
         type="button"
         onClick={() => onSignal("drawOffer")}
-        disabled={!mySide || !!opponentDrawOffer}
+        disabled={!otherPlayerExists || !!opponentDrawOffer || mySignal === "drawOffer"}
         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
         title="Offer draw"
       >
