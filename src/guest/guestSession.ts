@@ -145,10 +145,11 @@ function normalizeGuestSession(
 
     const filteredInventoryIds = filterIds(raw.inventoryIds);
     const inventoryIds = [...filteredInventoryIds];
+    const inventorySet = new Set(filteredInventoryIds);
 
     // Ensure each starter item is granted once without collapsing purchased duplicates.
     for (const starterId of starterIds) {
-        if (!filteredInventoryIds.includes(starterId)) {
+        if (!inventorySet.has(starterId)) {
             inventoryIds.push(starterId);
         }
     }

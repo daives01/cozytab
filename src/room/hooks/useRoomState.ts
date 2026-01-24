@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 import type { GuestSessionState } from "@shared/guestTypes";
 import {
     coinsAtom,
@@ -37,7 +37,7 @@ import {
     guestShortcutsAtom,
     guestOnboardingCompletedAtom,
     normalizeGuestShortcuts,
-} from "@/guest/state";
+} from "@/guest/state/guestAtoms";
 import { readGuestSession, buildCatalogLookup } from "@/guest/guestSession";
 import type { Doc } from "@convex/_generated/dataModel";
 

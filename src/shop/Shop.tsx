@@ -10,9 +10,9 @@ import { RoomsTab } from "./shop/RoomsTab";
 import { purchaseWithBudget } from "@/room/utils/sessionGuards";
 import { useIsUSLocation } from "@/hooks/useIsUSLocation";
 
-type ShopTab = "items" | "rooms";
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@convex/lib/categories";
 
-import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@/types";
+type ShopTab = "items" | "rooms";
 
 const CATEGORY_DISPLAY_NAMES: Record<CatalogItemCategory, string> = {
     music: "Music",
@@ -246,7 +246,7 @@ export function Shop({
         });
         return counts;
     }, [guestOwnedCounts, ownedInventory]);
-    const ownedTemplateSet = new Set<Id<"roomTemplates">>(ownedTemplateIds || []);
+    const ownedTemplateSet = useMemo(() => new Set<Id<"roomTemplates">>(ownedTemplateIds || []), [ownedTemplateIds]);
     const groupedItems = catalogItems ? groupByCategory(catalogItems) : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
     const categories = sortCategories(Object.keys(groupedItems) as CatalogItemCategory[]);
     const highlightItemId =

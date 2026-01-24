@@ -1,5 +1,5 @@
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
-import type { RoomItem } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
 import { PresenceCursor } from "./PresenceCursor";
 
 interface PresenceLayerProps {

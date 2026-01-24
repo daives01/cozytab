@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { RoomItem, GameType } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
+import type { GameType } from "@convex/lib/categories";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";
@@ -40,6 +41,7 @@ interface UseRoomOverlaysModelArgs {
         connectionState: "connecting" | "connected" | "reconnecting";
         wsRef: React.RefObject<WebSocket | null>;
         visitors: VisitorState[];
+        activeInvites?: Doc<"roomInvites">[] | null;
     };
 
     economy: {
@@ -207,6 +209,7 @@ export function useRoomOverlaysModel({
             localChatMessage: presence.localChatMessage,
             screenCursor: presence.screenCursor,
             connectionState: presence.connectionState,
+            activeInvites: presence.activeInvites,
         };
 
         let gameType: GameType | null = null;

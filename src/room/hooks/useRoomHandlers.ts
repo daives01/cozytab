@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { DragEvent } from "react";
-import type { Shortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import type { OnboardingStep } from "../Onboarding";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";

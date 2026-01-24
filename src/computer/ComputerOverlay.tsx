@@ -1,4 +1,4 @@
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -7,7 +7,7 @@ import {
     guestInventoryAtom,
     guestShortcutsAtom,
     guestNormalizedShortcutsAtom,
-} from "@/guest/state";
+} from "@/guest/state/guestAtoms";
 import type { TimeOfDay } from "../room/types";
 
 export interface ComputerOverlayProps {

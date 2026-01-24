@@ -1,5 +1,6 @@
-import type { RoomItem, Shortcut, GameType } from "@/types";
-import type { Id } from "@convex/_generated/dataModel";
+import type { RoomItem, Shortcut } from "@shared/guestTypes";
+import type { GameType } from "@convex/lib/categories";
+import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
@@ -83,6 +84,7 @@ export interface PresenceProps {
     localChatMessage: string | null;
     screenCursor: { x: number; y: number };
     connectionState: "connecting" | "connected" | "reconnecting";
+    activeInvites?: Doc<"roomInvites">[] | null;
 }
 
 export interface GameProps {

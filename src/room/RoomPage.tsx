@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
-import type { RoomItem, Shortcut } from "@/types";
+import type { RoomItem, Shortcut } from "@shared/guestTypes";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
 import type { DailyRewardToastPayload } from "./types";
@@ -374,6 +374,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
             connectionState,
             wsRef,
             visitors,
+            activeInvites,
         },
         economy: {
             userCurrency: user?.currency ?? roomState.guestCoinsValue ?? 0,

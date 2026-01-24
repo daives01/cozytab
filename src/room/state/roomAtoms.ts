@@ -3,7 +3,7 @@ import { selectAtom } from "jotai/utils";
 import type { Getter, Setter } from "jotai/vanilla";
 import { atom, createStore } from "jotai/vanilla";
 import React, { type PropsWithChildren, useMemo } from "react";
-import type { Shortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 
 export type Mode = "view" | "edit";

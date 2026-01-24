@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Globe } from "lucide-react";
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 
 interface DesktopGridProps {
     orderedShortcuts: Shortcut[];

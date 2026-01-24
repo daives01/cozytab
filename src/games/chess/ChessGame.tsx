@@ -171,7 +171,7 @@ export function ChessGame({
   const handledResultRef = useRef<string | null>(null);
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
-  const [possibleMoves, setPossibleMoves] = useState<Square[]>([]);
+  const [possibleMoves, setPossibleMoves] = useState<Set<Square>>(new Set());
   const { playMoveSound } = useChessSounds();
   const prevFenRef = useRef(serverFen);
 
@@ -286,7 +286,7 @@ export function ChessGame({
       /* eslint-disable react-hooks/set-state-in-effect -- intentional reset on game restart */
       setPendingPromotion(null);
       setSelectedSquare(null);
-      setPossibleMoves([]);
+      setPossibleMoves(new Set());
       /* eslint-enable react-hooks/set-state-in-effect */
       handledResultRef.current = null;
     }
@@ -333,7 +333,7 @@ export function ChessGame({
 
   const clearSelection = useCallback(() => {
     setSelectedSquare(null);
-    setPossibleMoves([]);
+    setPossibleMoves(new Set());
   }, []);
 
   const tryMove = useCallback(
@@ -387,7 +387,7 @@ export function ChessGame({
       const sq = square as Square;
 
       if (selectedSquare) {
-        if (possibleMoves.includes(sq)) {
+        if (possibleMoves.has(sq)) {
           if (needsPromotion(selectedSquare, sq)) {
             setPendingPromotion({ from: selectedSquare, to: sq });
             return;
@@ -402,7 +402,7 @@ export function ChessGame({
       const myColor = mySide === "white" ? "w" : "b";
       if (piece?.color === myColor) {
         setSelectedSquare(sq);
-        setPossibleMoves(chess.moves({ square: sq, verbose: true }).map((m) => m.to as Square));
+        setPossibleMoves(new Set(chess.moves({ square: sq, verbose: true }).map((m) => m.to as Square)));
       }
     },
     [chess, mySide, isMyTurn, resultOverlay, selectedSquare, possibleMoves, needsPromotion, tryMove, clearSelection]

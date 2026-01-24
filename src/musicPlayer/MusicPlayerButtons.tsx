@@ -19,8 +19,8 @@ export interface MusicPlayerButtonsProps {
 export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = false }: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const [isReady, setIsReady] = useState(false);
-    // Hosts are treated as having interacted so state-driven playback can start.
-    const [hasInteracted, setHasInteracted] = useState(() => !isVisitor);
+    // Everyone must interact first due to browser autoplay restrictions.
+    const [hasInteracted, setHasInteracted] = useState(false);
     const [muted, setMuted] = useState(false);
     const { musicVolume } = useKeyboardSoundPreferences();
     const playing = item.musicPlaying ?? false;
@@ -31,8 +31,9 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
 
+    const origin = typeof window !== "undefined" ? encodeURIComponent(window.location.origin) : "";
     const embedUrl = videoId
-        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${window.location.origin}`
+        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1${origin ? `&origin=${origin}` : ""}`
         : null;
 
     const computeLivePositionSeconds = useCallback(() => {
@@ -129,10 +130,10 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
 
     const handlePlayPause = () => {
         void ensureAudioReady();
-        if (!isReady) return;
 
         // Visitors only toggle local mute; host controls playback.
         if (isVisitor) {
+            if (!isReady) return;
             setHasInteracted(true);
             setMuted((prev) => {
                 const next = !prev;
@@ -147,23 +148,24 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
             return;
         }
 
+        // Host controls global playback state
         if (playing) {
-            sendCommand("pauseVideo");
+            if (isReady) sendCommand("pauseVideo");
             onToggle?.(false);
         } else {
             setHasInteracted(true);
-            sendCommand("playVideo");
+            if (isReady) sendCommand("playVideo");
             onToggle?.(true);
         }
     };
 
     const handleResume = () => {
         void ensureAudioReady();
-        if (!isReady) return;
         setHasInteracted(true);
         setMuted(false);
-        sendCommand("playVideo");
-        onToggle?.(true);
+        if (isReady) {
+            sendCommand("playVideo");
+        }
     };
 
     if (!item.musicUrl || item.musicType !== "youtube" || !videoId || !embedUrl) {
@@ -175,8 +177,8 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
             <iframe
                 ref={iframeRef}
                 src={embedUrl}
-                style={{ width: 1, height: 1, opacity: 0, position: "absolute", left: -9999, top: -9999 }}
-                allow="autoplay"
+                style={{ width: 1, height: 1, opacity: 0, position: "absolute", left: 0, top: 0, pointerEvents: "none" }}
+                allow="autoplay; encrypted-media"
                 onLoad={handleIframeLoad}
             />
 
@@ -190,7 +192,6 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
                             handleResume();
                         }}
                         onTouchStart={(e) => e.stopPropagation()}
-                        disabled={!isReady}
                     >
                         Listen in
                     </button>
@@ -206,7 +207,6 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
                         }}
                         onTouchStart={(e) => e.stopPropagation()}
                         title={isVisitor ? (muted ? "Unmute" : "Mute") : playing ? "Pause" : "Play"}
-                        disabled={!isReady}
                     >
                         {isVisitor
                             ? muted

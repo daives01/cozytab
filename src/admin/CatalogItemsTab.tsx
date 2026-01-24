@@ -6,7 +6,7 @@ import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
 import { useEditableField } from "./hooks/useEditableField";
-import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory, GAME_TYPES, type GameType } from "@/types";
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory, GAME_TYPES, type GameType } from "@convex/lib/categories";
 
 export function CatalogItemsTab() {
     const catalogItems = useQuery(api.catalog.list);

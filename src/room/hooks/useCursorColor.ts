@@ -34,8 +34,12 @@ function resolveColor(color: string | undefined): string {
     return resolved?.trim() || DEFAULT_CURSOR_COLOR;
 }
 
-// Kick off a prefetch as soon as the module loads so subsequent calls do not wait.
-void ensureTemplates();
+// Defer prefetch to idle time so it doesn't compete with app startup.
+if (isBrowser && typeof requestIdleCallback !== "undefined") {
+    requestIdleCallback(() => void ensureTemplates());
+} else if (isBrowser) {
+    setTimeout(() => void ensureTemplates(), 0);
+}
 
 async function ensureTemplates() {
     if (!isBrowser) return null;

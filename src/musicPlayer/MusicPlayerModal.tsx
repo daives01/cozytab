@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Trash2, Save, Disc, Link as LinkIcon, Music } from "lucide-react";
-import type { RoomItem } from "../types";
+import type { RoomItem } from "@shared/guestTypes";
 import { extractYouTubeId } from "../lib/youtube";
 import { RetroVolumeFader } from "../computer/VolumeSlider";
 import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
+
+const titleCache = new Map<string, string>();
 
 export interface MusicPlayerModalProps {
     item: RoomItem;
@@ -15,62 +17,64 @@ export interface MusicPlayerModalProps {
 
 export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProps) {
     const [musicUrl, setMusicUrl] = useState(item.musicUrl || "");
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [title, setTitle] = useState<string | null>(null);
     const [isFetchingTitle, setIsFetchingTitle] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [cacheVersion, setCacheVersion] = useState(0);
+    const [saveError, setSaveError] = useState<string | null>(null);
     const { musicVolume, setMusicVolume } = useKeyboardSoundPreferences();
     const percent = Math.round(musicVolume * 100);
     const originalUrl = item.musicUrl?.trim() ?? "";
 
-    useEffect(() => {
-        const trimmedUrl = musicUrl.trim();
-        let cancelled = false;
-        const resetPreview = () => {
-            if (cancelled) return;
-            setPreviewUrl(null);
-            setTitle(null);
-            setIsFetchingTitle(false);
-        };
+    const abortRef = useRef<AbortController | null>(null);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-        if (!trimmedUrl) {
-            resetPreview();
-            setError(null);
+    const trimmedUrl = musicUrl.trim();
+    const videoId = useMemo(() => extractYouTubeId(trimmedUrl), [trimmedUrl]);
+    const previewUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
+    const validationError = trimmedUrl && !videoId ? "Invalid YouTube URL" : null;
+
+    void cacheVersion; // Force re-read of titleCache after fetch
+    const cachedTitle = videoId ? titleCache.get(videoId) ?? null : null;
+
+    useEffect(() => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        if (abortRef.current) abortRef.current.abort();
+
+        if (!videoId || titleCache.has(videoId)) {
             return;
         }
 
-        const videoId = extractYouTubeId(trimmedUrl);
-        if (videoId) {
-            setPreviewUrl(`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`);
-            setTitle(null);
-            const fetchTitle = async () => {
-                setIsFetchingTitle(true);
-                try {
-                    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
-                    if (!response.ok) throw new Error("Unable to fetch title");
-                    const data = await response.json();
-                    if (!cancelled) {
-                        setTitle(typeof data?.title === "string" ? data.title : null);
-                    }
-                } catch {
-                    if (!cancelled) setTitle(null);
-                } finally {
-                    if (!cancelled) setIsFetchingTitle(false);
-                }
-            };
-            fetchTitle();
-            setError(null);
-        } else {
-            resetPreview();
-            setError("Invalid YouTube URL");
-        }
+        debounceRef.current = setTimeout(() => {
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            setIsFetchingTitle(true);
+            fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`, {
+                signal: controller.signal,
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error("Unable to fetch title");
+                    return res.json();
+                })
+                .then((data) => {
+                    const t = typeof data?.title === "string" ? data.title : null;
+                    if (t) titleCache.set(videoId, t);
+                    setCacheVersion((v) => v + 1);
+                })
+                .catch(() => {
+                    // Ignore errors - title just won't be displayed
+                })
+                .finally(() => setIsFetchingTitle(false));
+        }, 300);
+
         return () => {
-            cancelled = true;
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            if (abortRef.current) abortRef.current.abort();
         };
-    }, [musicUrl]);
+    }, [videoId]);
+
+    const displayTitle = cachedTitle;
 
     const handleSave = () => {
-        const trimmedUrl = musicUrl.trim();
         const unchanged = trimmedUrl === originalUrl;
 
         if (unchanged) {
@@ -79,11 +83,11 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
         }
 
         if (!trimmedUrl) {
-            setError("Please enter a YouTube URL.");
+            setSaveError("Please enter a YouTube URL.");
             return;
         }
-        if (!extractYouTubeId(trimmedUrl)) {
-            setError("Invalid YouTube URL.");
+        if (!videoId) {
+            setSaveError("Invalid YouTube URL.");
             return;
         }
 
@@ -108,13 +112,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             musicStartedAt: undefined,
             musicPositionAtStart: undefined,
         };
-        // Persist cleared state externally but keep the modal open
         onSave(updatedItem);
-        // Clear only the input/UI state, not close the modal
         setMusicUrl("");
-        setPreviewUrl(null);
-        setTitle(null);
-        setError(null);
+        setSaveError(null);
     };
 
     useEffect(() => {
@@ -180,7 +180,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                             previewUrl ? "-rotate-2" : "rotate-0"
                                         }`}
                                     >
-                                        {previewUrl && !error ? (
+                                        {previewUrl && !validationError ? (
                                             <img
                                                 src={previewUrl}
                                                 alt="Track cover"
@@ -202,7 +202,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
                             <div className="space-y-3 text-center px-2 sm:px-4">
                                 <div className="text-xl sm:text-2xl font-black text-[var(--color-foreground)] leading-snug line-clamp-2">
-                                    {title ? title : isFetchingTitle ? "Finding title..." : "Enter a YouTube link below"}
+                                    {displayTitle ? displayTitle : isFetchingTitle ? "Finding title..." : "Enter a YouTube link below"}
                                 </div>
                             </div>
 
@@ -227,10 +227,10 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                         />
                                     </div>
                                 </div>
-                                {error && (
+                                {(validationError || saveError) && (
                                     <div className="ml-2 flex items-center gap-1 text-xs font-bold text-[var(--color-destructive)]">
                                         <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-destructive)]" />
-                                        {error}
+                                        {validationError || saveError}
                                     </div>
                                 )}
                             </div>
@@ -248,7 +248,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 )}
                                 <Button
                                     onClick={handleSave}
-                                    disabled={!musicUrl.trim() || !!error}
+                                    disabled={!musicUrl.trim() || !!validationError}
                                     className="h-10 sm:h-11 flex-[2] border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] font-black text-sm sm:text-base uppercase tracking-wide shadow-[var(--shadow-4-strong)] transition-all hover:translate-x-[4px] hover:translate-y-[4px] hover:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none cursor-pointer"
                                 >
                                     <Save className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 w-5" />

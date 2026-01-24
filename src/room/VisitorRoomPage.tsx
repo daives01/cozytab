@@ -10,7 +10,8 @@ import { LocalCursor } from "@/presence/LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import type { Shortcut, RoomItem, GameType } from "@/types";
+import type { Shortcut, RoomItem } from "@shared/guestTypes";
+import type { GameType } from "@convex/lib/categories";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
@@ -22,7 +23,6 @@ import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
-import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
 import {
@@ -31,13 +31,14 @@ import {
     guestInventoryAtom,
     guestNormalizedShortcutsAtom,
     guestShortcutsAtom,
-} from "@/guest/state";
+} from "@/guest/state/guestAtoms";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import { RoomShell } from "./components/RoomShell";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
-import { GameOverlay } from "@/games/components/GameOverlay";
 import { ChatHint } from "./components/ChatHint";
+import { ComputerOverlay } from "@/computer/ComputerOverlay";
+import { GameOverlay } from "@/games/components/GameOverlay";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";

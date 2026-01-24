@@ -1,4 +1,4 @@
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 
 export type ContextMenuState =
     | { target: "shortcut"; id: string; x: number; y: number }

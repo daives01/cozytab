@@ -1,13 +1,26 @@
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleSwitch } from "@/components/ui/toggle";
 import { X, Copy, Check, Share2, RefreshCw, Lock, Globe, Link as LinkIcon } from "lucide-react";
+import type { Doc } from "@convex/_generated/dataModel";
 
-export function ShareModal({ onClose }: { onClose: () => void }) {
-    const activeInvites = useQuery(api.invites.getMyActiveInvites);
+const handwritingFont = {
+    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+    fontWeight: 400,
+    fontStyle: "normal",
+    fontSynthesis: "none" as const,
+    fontOpticalSizing: "none" as const,
+};
+
+interface ShareModalProps {
+    onClose: () => void;
+    activeInvites?: Doc<"roomInvites">[] | null;
+}
+
+export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
     const enableInvite = useMutation(api.invites.enableInvite);
     const revokeInvite = useMutation(api.invites.revokeInvite);
     const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
@@ -23,21 +36,17 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
     const shareUrl = inviteCode ? `${window.location.origin}/visit/${inviteCode}` : null;
 
     useEffect(() => {
-        if (!expiresAt) {
-            setNow(Date.now());
-            return;
-        }
+        if (!expiresAt) return;
 
-        const nowTs = Date.now();
-        const remaining = expiresAt - nowTs;
+        const remaining = expiresAt - Date.now();
         if (remaining <= 0) {
-            setNow(nowTs);
+            setNow(Date.now());
             return;
         }
 
         const id = setTimeout(() => setNow(Date.now()), remaining + 10);
         return () => clearTimeout(id);
-    }, [expiresAt, now]);
+    }, [expiresAt]);
 
     const handleResetCode = async () => {
         setIsRotating(true);
@@ -64,14 +73,6 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
             return;
         }
         await enableInvite();
-    };
-
-    const handwritingFont = {
-        fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-        fontWeight: 400,
-        fontStyle: "normal",
-        fontSynthesis: "none" as const,
-        fontOpticalSizing: "none" as const,
     };
 
     return (
