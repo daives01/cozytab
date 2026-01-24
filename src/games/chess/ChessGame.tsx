@@ -517,7 +517,7 @@ export function ChessGame({
   if (isLandscape) {
     return (
       <div
-        className="relative flex items-center justify-center select-none"
+        className="relative flex items-center justify-center select-none animate-in fade-in duration-150"
         style={{ "--board-size": BOARD_SIZE } as React.CSSProperties}
       >
         {/* Left panel - player badges aligned to board edges */}
@@ -598,7 +598,7 @@ export function ChessGame({
   }
 
   return (
-    <div className="flex flex-col items-center gap-3 select-none" style={{ width: BOARD_SIZE }}>
+    <div className="flex flex-col items-center gap-3 select-none animate-in fade-in duration-150" style={{ width: BOARD_SIZE }}>
       {/* Top controls - portrait */}
       <div className="flex items-center justify-between w-full">
         <PlayerBadge
