@@ -300,19 +300,36 @@ export function ChessGame({
     ? `resign:${resignedPlayer.visitorId}`
     : drawAccepted
       ? "draw"
-      : null;
+      : chess.isCheckmate()
+        ? `checkmate:${fen}`
+        : chess.isStalemate()
+          ? `stalemate:${fen}`
+          : chess.isDraw()
+            ? `draw:${fen}`
+            : null;
 
-  // Notify parent of game-ending signals (resign or draw accept)
+  // Notify parent of game-ending signals (resign, draw accept, checkmate, stalemate)
   useEffect(() => {
     if (!resultKey || handledResultRef.current === resultKey) return;
     handledResultRef.current = resultKey;
 
-    const message = resignedPlayer
-      ? `${resignedPlayer.side === "white" ? "Black" : "White"} wins by resignation!`
-      : "Draw agreed!";
+    let message: string;
+    if (resignedPlayer) {
+      message = `${resignedPlayer.side === "white" ? "Black" : "White"} wins by resignation!`;
+    } else if (drawAccepted) {
+      message = "Draw agreed!";
+    } else if (chess.isCheckmate()) {
+      message = `Checkmate! ${chess.turn() === "w" ? "Black" : "White"} wins!`;
+    } else if (chess.isStalemate()) {
+      message = "Stalemate!";
+    } else if (chess.isDraw()) {
+      message = "Draw!";
+    } else {
+      return;
+    }
 
     onGameEnd(message);
-  }, [resultKey, resignedPlayer, onGameEnd]);
+  }, [resultKey, resignedPlayer, drawAccepted, chess, onGameEnd]);
 
   const clearSelection = useCallback(() => {
     setSelectedSquare(null);
