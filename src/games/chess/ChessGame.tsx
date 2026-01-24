@@ -242,11 +242,55 @@ export function ChessGame({
   // Check for resign (anyone with "resign" signal)
   const resignedPlayer = playerSignals.find((p) => p.signal === "resign");
 
-  // Check for draw offer from opponent (hide if we've declined)
+  // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
   const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
-  const opponentDrawOffer = playerSignals.find(
-    (p) => p.signal === "drawOffer" && p.side !== mySide && mySignal !== "drawDecline"
-  );
+  const opponent = mySide
+    ? playerSignals.find((p) => p.visitorId !== visitorId && p.side !== mySide)
+    : undefined;
+  const opponentSignal = opponent?.signal;
+  const opponentDrawOffer =
+    mySide && opponentSignal === "drawOffer" && mySignal !== "drawDecline" && mySignal !== "drawOffer"
+      ? opponent
+      : undefined;
+
+  // Signal handshake lifecycle:
+  // 1. Offerer clears their "drawOffer" when opponent declines
+  // 2. Decliner clears their "drawDecline" when offerer's offer is gone (or new offer arrives)
+  const prevOpponentSignalRef = useRef<GameSignal | undefined>(undefined);
+  useEffect(() => {
+    const prev = prevOpponentSignalRef.current;
+    prevOpponentSignalRef.current = opponentSignal;
+
+    if (!mySide) return;
+
+    // Offerer: clear my offer when opponent declines
+    if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
+      onSignal(null);
+      return;
+    }
+
+    // Decliner: clear my decline when offer is gone OR a new offer arrives
+    if (mySignal === "drawDecline") {
+      const opponentNowOffering = opponentSignal === "drawOffer";
+      const opponentWasOffering = prev === "drawOffer";
+      // Clear if: offer gone, or new offer detected (heals missed transitions)
+      if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
+        onSignal(null);
+      }
+    }
+  }, [mySide, mySignal, opponentSignal, onSignal]);
+
+  // Clear local UI state when game resets to starting position
+  useEffect(() => {
+    if (fen === STARTING_FEN) {
+      /* eslint-disable react-hooks/set-state-in-effect -- intentional reset on game restart */
+      setPendingPromotion(null);
+      setSelectedSquare(null);
+      setPossibleMoves([]);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      handledResultRef.current = null;
+    }
+  }, [fen]);
 
   // Check for mutual draw accept
   const drawAccepted = playerSignals.some((p) => p.signal === "drawAccept");
@@ -306,7 +350,7 @@ export function ChessGame({
 
   const handleDrop = useCallback(
     ({ sourceSquare, targetSquare }: { piece: unknown; sourceSquare: string; targetSquare: string | null }): boolean => {
-      if (!targetSquare || !mySide || !isMyTurn) return false;
+      if (!targetSquare || !mySide || !isMyTurn || resultOverlay) return false;
       const from = sourceSquare as Square;
       const to = targetSquare as Square;
 
@@ -317,12 +361,12 @@ export function ChessGame({
 
       return tryMove(from, to);
     },
-    [mySide, isMyTurn, needsPromotion, tryMove]
+    [mySide, isMyTurn, resultOverlay, needsPromotion, tryMove]
   );
 
   const handleSquareClick = useCallback(
     ({ square }: { piece: unknown; square: string }) => {
-      if (!mySide || !isMyTurn) return;
+      if (!mySide || !isMyTurn || resultOverlay) return;
       const sq = square as Square;
 
       if (selectedSquare) {
@@ -344,7 +388,7 @@ export function ChessGame({
         setPossibleMoves(chess.moves({ square: sq, verbose: true }).map((m) => m.to as Square));
       }
     },
-    [chess, mySide, isMyTurn, selectedSquare, possibleMoves, needsPromotion, tryMove, clearSelection]
+    [chess, mySide, isMyTurn, resultOverlay, selectedSquare, possibleMoves, needsPromotion, tryMove, clearSelection]
   );
 
   const handlePromotion = useCallback(
@@ -560,7 +604,7 @@ export function ChessGame({
                 onSquareClick: handleSquareClick,
                 boardOrientation,
                 squareStyles,
-                allowDragging: !!mySide && isMyTurn,
+                allowDragging: !!mySide && isMyTurn && !resultOverlay,
                 boardStyle: { borderRadius: "0" },
                 darkSquareStyle: { backgroundColor: "#b58863" },
                 lightSquareStyle: { backgroundColor: "#f0d9b5" },
@@ -595,6 +639,36 @@ export function ChessGame({
           {controlButtons}
           {statusIndicator}
         </div>
+
+        {/* Promotion modal */}
+        {pendingPromotion && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
+              <p className="text-center font-bold mb-3">Promote to:</p>
+              <div className="flex gap-2">
+                {(["q", "r", "b", "n"] as const).map((piece) => (
+                  <button
+                    key={piece}
+                    type="button"
+                    onClick={() => handlePromotion(piece)}
+                    className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                  >
+                    {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Result overlay */}
+        {resultOverlay && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
+              <p className="text-xl font-bold text-center">{resultOverlay}</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -628,7 +702,7 @@ export function ChessGame({
               onSquareClick: handleSquareClick,
               boardOrientation,
               squareStyles,
-              allowDragging: !!mySide && isMyTurn,
+              allowDragging: !!mySide && isMyTurn && !resultOverlay,
               boardStyle: { borderRadius: "0" },
               darkSquareStyle: { backgroundColor: "#b58863" },
               lightSquareStyle: { backgroundColor: "#f0d9b5" },
@@ -691,7 +765,7 @@ export function ChessGame({
 
       {/* Result overlay */}
       {resultOverlay && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 pointer-events-none">
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
             <p className="text-xl font-bold text-center">{resultOverlay}</p>
           </div>

@@ -33,7 +33,6 @@ export function GameOverlay({
   const lastCursorSendRef = useRef(0);
   const gameMetadataRef = useRef<Record<string, unknown>>({});
   const hasInitializedRef = useRef(false);
-  const [gameKey, setGameKey] = useState(0);
   const [resultOverlay, setResultOverlay] = useState<string | null>(null);
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleGameEndRef = useRef<((message: string) => void) | null>(null);
@@ -183,7 +182,6 @@ export function GameOverlay({
   const handleReset = useCallback(async () => {
     try {
       await resetChessBoard({ itemId });
-      setGameKey((k) => k + 1);
     } catch (e) {
       console.error("resetChessBoard failed", e);
     }
@@ -271,7 +269,7 @@ export function GameOverlay({
       >
         {gameType === "chess" && (
           <ChessGame
-            key={gameKey}
+            key={itemId}
             playersInGame={playersInGame}
             fen={fen}
             lastMove={lastMove}
