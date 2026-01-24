@@ -9,9 +9,11 @@
  */
 
 import type * as catalog from "../catalog.js";
+import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as invites from "../invites.js";
+import type * as lib_categories from "../lib/categories.js";
 import type * as lib_currency from "../lib/currency.js";
 import type * as lib_id from "../lib/id.js";
 import type * as lib_time from "../lib/time.js";
@@ -28,9 +30,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
+  games: typeof games;
   http: typeof http;
   inventory: typeof inventory;
   invites: typeof invites;
+  "lib/categories": typeof lib_categories;
   "lib/currency": typeof lib_currency;
   "lib/id": typeof lib_id;
   "lib/time": typeof lib_time;

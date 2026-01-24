@@ -1,4 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
+
+export interface Env {
+    PRESENCE_ROOM: DurableObjectNamespace;
+}
+
 export type PresenceMessage =
     | {
           type: "join";
@@ -18,6 +23,8 @@ export type PresenceMessage =
           cursorColor?: string;
           inMenu?: boolean;
           tabbedOut?: boolean;
+          inGame?: string | null;
+          gameMetadata?: Record<string, unknown> | null;
       }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -32,20 +39,27 @@ export type VisitorState = {
     cursorColor?: string;
     inMenu: boolean;
     tabbedOut: boolean;
+    inGame?: string | null;
+    gameMetadata?: Record<string, unknown> | null;
 };
 
 type WebSocketAttachment = {
     visitorId: string;
     displayName: string;
     isOwner: boolean;
+    cursorColor?: string;
+    tabbedOut?: boolean;
+    inGame?: string | null;
+    gameMetadata?: Record<string, unknown> | null;
+    x?: number;
+    y?: number;
 };
 
 const DEFAULT_POSITION = { x: 960, y: 540 };
-
-const MAX_MESSAGE_SIZE_BYTES = 4096; // keep WebSocket payloads bounded
+const MAX_MESSAGE_SIZE_BYTES = 8192;
 const MAX_NAME_LENGTH = 64;
 const MAX_CHAT_LENGTH = 500;
-const MAX_COORDINATE = 10000; // generous guardrail for coordinates
+const MAX_COORDINATE = 10000;
 const textEncoder = new TextEncoder();
 
 function isFiniteNumber(value: unknown): value is number {
@@ -68,6 +82,41 @@ function isValidBoolean(value: unknown): value is boolean | undefined {
     return value === undefined || typeof value === "boolean";
 }
 
+function isValidInGame(value: unknown): value is string | null | undefined {
+    return value === undefined || value === null || (typeof value === "string" && value.length <= 128);
+}
+
+const MAX_GAME_METADATA_KEYS = 16;
+const MAX_GAME_METADATA_SIZE = 1024;
+
+function isValidGameMetadata(value: unknown): value is Record<string, unknown> | null | undefined {
+    if (value === undefined || value === null) return true;
+    if (typeof value !== "object" || Array.isArray(value)) return false;
+
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    if (keys.length > MAX_GAME_METADATA_KEYS) return false;
+
+    // Shallow validation: primitives only, bounded size
+    for (const key of keys) {
+        if (key.length > 32) return false;
+        const v = obj[key];
+        if (v === null || v === undefined) continue;
+        if (typeof v === "string" && v.length > 128) return false;
+        if (typeof v === "number" && !Number.isFinite(v)) return false;
+        if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") return false;
+    }
+
+    // Final size check to catch many small keys
+    try {
+        if (JSON.stringify(obj).length > MAX_GAME_METADATA_SIZE) return false;
+    } catch {
+        return false;
+    }
+
+    return true;
+}
+
 function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
     if (
         !isValidId(data.visitorId) ||
@@ -81,6 +130,8 @@ function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
     if (!isValidCursorColor(data.cursorColor)) return false;
     if (!isValidBoolean(data.inMenu)) return false;
     if (!isValidBoolean(data.tabbedOut)) return false;
+    if (!isValidInGame(data.inGame)) return false;
+    if (!isValidGameMetadata(data.gameMetadata)) return false;
     return true;
 }
 
@@ -129,13 +180,15 @@ function validateMessage(raw: unknown): PresenceMessage | null {
         }
         case "cursor": {
             if (!isValidCursorPayload(data)) return null;
-            const { visitorId, x, y, cursorColor, inMenu, tabbedOut } = data as unknown as {
+            const { visitorId, x, y, cursorColor, inMenu, tabbedOut, inGame, gameMetadata } = data as unknown as {
                 visitorId: string;
                 x: number;
                 y: number;
                 cursorColor?: string;
                 inMenu?: boolean;
                 tabbedOut?: boolean;
+                inGame?: string | null;
+                gameMetadata?: Record<string, unknown> | null;
             };
             return {
                 type: "cursor",
@@ -145,6 +198,8 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 cursorColor,
                 inMenu,
                 tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : undefined,
+                inGame: inGame !== undefined ? inGame : undefined,
+                gameMetadata: gameMetadata !== undefined ? gameMetadata : undefined,
             };
         }
         case "chat": {
@@ -152,7 +207,6 @@ function validateMessage(raw: unknown): PresenceMessage | null {
             return { type: "chat", visitorId: data.visitorId, text: clampChatMessage(data.text) };
         }
         case "state": {
-            // State is only emitted server-side; do not accept from clients.
             return null;
         }
         default:
@@ -160,11 +214,35 @@ function validateMessage(raw: unknown): PresenceMessage | null {
     }
 }
 
-export class PresenceRoom extends DurableObject {
+export class PresenceRoom extends DurableObject<Env> {
     private visitors: Map<string, VisitorState> = new Map();
 
-    constructor(ctx: DurableObjectState, env: object) {
+    constructor(ctx: DurableObjectState, env: Env) {
         super(ctx, env);
+        this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+    }
+
+    private hydrateVisitorsFromSockets() {
+        for (const socket of this.ctx.getWebSockets()) {
+            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            if (!att?.visitorId) continue;
+
+            if (!this.visitors.has(att.visitorId)) {
+                this.visitors.set(att.visitorId, {
+                    visitorId: att.visitorId,
+                    displayName: att.displayName,
+                    isOwner: att.isOwner,
+                    x: att.x ?? DEFAULT_POSITION.x,
+                    y: att.y ?? DEFAULT_POSITION.y,
+                    chatMessage: null,
+                    cursorColor: att.cursorColor,
+                    inMenu: false,
+                    tabbedOut: att.tabbedOut ?? false,
+                    inGame: att.inGame ?? null,
+                    gameMetadata: att.gameMetadata,
+                });
+            }
+        }
     }
 
     async fetch(request: Request): Promise<Response> {
@@ -198,7 +276,6 @@ export class PresenceRoom extends DurableObject {
             return;
         }
 
-        // Some clients send keepalive pings as plain text; avoid JSON parse failures.
         if (message === "ping") {
             try {
                 ws.send("pong");
@@ -244,40 +321,55 @@ export class PresenceRoom extends DurableObject {
     }
 
     async webSocketClose(ws: WebSocket, _code: number, _reason: string): Promise<void> {
+        this.hydrateVisitorsFromSockets();
         this.detachVisitor(ws);
     }
 
     async webSocketError(ws: WebSocket, error: unknown): Promise<void> {
         console.error("[DO] WebSocket error:", error);
+        this.hydrateVisitorsFromSockets();
         this.detachVisitor(ws);
     }
 
     private handleJoin(ws: WebSocket, data: Extract<PresenceMessage, { type: "join" }>) {
+        this.hydrateVisitorsFromSockets();
+
         const existingAttachment = ws.deserializeAttachment() as WebSocketAttachment | null;
         if (existingAttachment && existingAttachment.visitorId !== data.visitorId) {
             ws.close(1008, "Visitor already bound");
             return;
         }
 
+        const existingVisitor = this.visitors.get(data.visitorId);
+        const x = existingVisitor?.x ?? DEFAULT_POSITION.x;
+        const y = existingVisitor?.y ?? DEFAULT_POSITION.y;
+
         const attachment: WebSocketAttachment = {
             visitorId: data.visitorId,
             displayName: data.displayName,
             isOwner: data.isOwner,
+            cursorColor: data.cursorColor,
+            tabbedOut: data.tabbedOut,
+            inGame: existingVisitor?.inGame ?? null,
+            gameMetadata: existingVisitor?.gameMetadata,
+            x,
+            y,
         };
 
-        this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
         ws.serializeAttachment(attachment);
 
         this.visitors.set(data.visitorId, {
             visitorId: data.visitorId,
             displayName: data.displayName,
             isOwner: data.isOwner,
-            x: DEFAULT_POSITION.x,
-            y: DEFAULT_POSITION.y,
-            chatMessage: null,
+            x,
+            y,
+            chatMessage: existingVisitor?.chatMessage ?? null,
             cursorColor: data.cursorColor,
-            inMenu: false,
+            inMenu: existingVisitor?.inMenu ?? false,
             tabbedOut: Boolean(data.tabbedOut),
+            inGame: existingVisitor?.inGame ?? null,
+            gameMetadata: existingVisitor?.gameMetadata,
         });
 
         const stateMsg: PresenceMessage = {
@@ -293,20 +385,27 @@ export class PresenceRoom extends DurableObject {
         const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
         if (!attachment || attachment.visitorId !== visitorId) return null;
 
-        // Rehydrate minimal state for hibernated sockets; do not allow spoofed IDs.
         const visitor: VisitorState = {
             visitorId: attachment.visitorId,
             displayName: attachment.displayName,
             isOwner: attachment.isOwner,
-            x: DEFAULT_POSITION.x,
-            y: DEFAULT_POSITION.y,
+            x: attachment.x ?? DEFAULT_POSITION.x,
+            y: attachment.y ?? DEFAULT_POSITION.y,
             chatMessage: null,
-            cursorColor: undefined,
+            cursorColor: attachment.cursorColor,
             inMenu: false,
-            tabbedOut: false,
+            tabbedOut: attachment.tabbedOut ?? false,
+            inGame: attachment.inGame ?? null,
+            gameMetadata: attachment.gameMetadata,
         };
         this.visitors.set(visitorId, visitor);
         return visitor;
+    }
+
+    private updateAttachment(ws: WebSocket, patch: Partial<Omit<WebSocketAttachment, "visitorId">>) {
+        const prev = ws.deserializeAttachment() as WebSocketAttachment | null;
+        if (!prev) return;
+        ws.serializeAttachment({ ...prev, ...patch });
     }
 
     private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket) {
@@ -315,15 +414,40 @@ export class PresenceRoom extends DurableObject {
 
         visitor.x = data.x;
         visitor.y = data.y;
+
+        const attachmentPatch: Partial<Omit<WebSocketAttachment, "visitorId">> = {
+            x: data.x,
+            y: data.y,
+        };
+
         if (data.cursorColor) {
             visitor.cursorColor = data.cursorColor;
+            attachmentPatch.cursorColor = data.cursorColor;
         }
         if (typeof data.inMenu === "boolean") {
             visitor.inMenu = data.inMenu;
         }
         if (typeof data.tabbedOut === "boolean") {
             visitor.tabbedOut = data.tabbedOut;
+            attachmentPatch.tabbedOut = data.tabbedOut;
         }
+        if (data.inGame !== undefined) {
+            const prevInGame = visitor.inGame;
+            visitor.inGame = data.inGame;
+            attachmentPatch.inGame = data.inGame;
+            // Auto-clear gameMetadata when leaving a game
+            if (prevInGame && !data.inGame) {
+                visitor.gameMetadata = undefined;
+                attachmentPatch.gameMetadata = undefined;
+            }
+        }
+        if (data.gameMetadata !== undefined) {
+            // null explicitly clears, object sets, undefined is no-op (already handled by !== undefined check)
+            visitor.gameMetadata = data.gameMetadata ?? undefined;
+            attachmentPatch.gameMetadata = data.gameMetadata ?? undefined;
+        }
+
+        this.updateAttachment(ws, attachmentPatch);
 
         this.broadcast(ws, data);
     }
@@ -342,9 +466,14 @@ export class PresenceRoom extends DurableObject {
         if (!visitor) return;
 
         visitor.displayName = data.displayName;
+        const attachmentPatch: Partial<Omit<WebSocketAttachment, "visitorId">> = {
+            displayName: data.displayName,
+        };
         if (data.cursorColor) {
             visitor.cursorColor = data.cursorColor;
+            attachmentPatch.cursorColor = data.cursorColor;
         }
+        this.updateAttachment(ws, attachmentPatch);
 
         this.broadcast(ws, data);
     }
@@ -370,8 +499,18 @@ export class PresenceRoom extends DurableObject {
     }
 
     private handleLeave(visitorId: string, excludeWs: WebSocket): void {
+        this.ensureVisitorFromAttachment(excludeWs, visitorId);
+
         if (!this.visitors.has(visitorId)) {
             return;
+        }
+
+        for (const socket of this.ctx.getWebSockets()) {
+            if (socket === excludeWs) continue;
+            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            if (att?.visitorId === visitorId) {
+                return;
+            }
         }
 
         this.visitors.delete(visitorId);
@@ -391,4 +530,5 @@ export class PresenceRoom extends DurableObject {
             }
         }
     }
+
 }

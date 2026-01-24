@@ -542,6 +542,17 @@ body.cozy-cursor-drag [draggable] {
   cursor: var(--cozy-cursor-drag);
 }
 
+/* Chess pieces - override react-chessboard cursor */
+html.cozy-cursor-root [data-piece],
+body.cozy-cursor-root [data-piece] {
+  cursor: var(--cozy-cursor-click) !important;
+}
+
+html.cozy-cursor-drag [data-piece],
+body.cozy-cursor-drag [data-piece] {
+  cursor: var(--cozy-cursor-drag) !important;
+}
+
 /* Common interactive elements */
 html.cozy-cursor-root button,
 body.cozy-cursor-root button,

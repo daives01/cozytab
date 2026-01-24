@@ -1,4 +1,4 @@
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -14,8 +14,8 @@ export interface ComputerOverlayProps {
     isGuest: boolean;
     isComputerOpen: boolean;
     onCloseComputer: () => void;
-    shortcuts: ComputerShortcut[];
-    onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    shortcuts: Shortcut[];
+    onUpdateShortcuts: (shortcuts: Shortcut[]) => void;
     userCurrency: number;
     nextRewardAt?: number;
     loginStreak?: number;

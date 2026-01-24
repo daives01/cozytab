@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
 
 export default defineSchema({
     users: defineTable({
@@ -69,11 +70,12 @@ export default defineSchema({
 
     catalogItems: defineTable({
         name: v.string(),
-        category: v.string(),
+        category: catalogItemCategoryValidator,
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
         isStarterItem: v.optional(v.boolean()),
+        gameType: v.optional(gameTypeValidator),
     }).index("by_name", ["name"]),
 
     inventory: defineTable({
@@ -108,4 +110,11 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_idempotencyKey", ["idempotencyKey"]),
+
+    chessBoardStates: defineTable({
+        itemId: v.string(), // UUID of the room item (from rooms.items[].id), not a catalogItem ID
+        fen: v.string(),
+        lastMove: v.optional(v.object({ from: v.string(), to: v.string() })),
+    })
+        .index("by_itemId", ["itemId"]),
 });

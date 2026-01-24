@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
 import type { RoomItem } from "@/types";
 import type { Doc } from "@convex/_generated/dataModel";
 import type React from "react";
@@ -9,6 +7,7 @@ import { ArrowDown, ArrowUp, FlipHorizontal2 } from "lucide-react";
 
 interface ItemNodeProps {
     item: RoomItem;
+    catalogItem?: Doc<"catalogItems">;
     isSelected: boolean;
     mode: "view" | "edit";
     scale: number;
@@ -18,6 +17,7 @@ interface ItemNodeProps {
     onDragEnd?: () => void;
     onComputerClick?: () => void;
     onMusicPlayerClick?: () => void;
+    onGameClick?: () => void;
     isOnboardingComputerTarget?: boolean;
     isVisitor?: boolean;
     overlay?: React.ReactNode;
@@ -29,6 +29,7 @@ interface ItemNodeProps {
 
 export function ItemNode({
     item,
+    catalogItem,
     isSelected,
     mode,
     scale,
@@ -38,6 +39,7 @@ export function ItemNode({
     onDragEnd,
     onComputerClick,
     onMusicPlayerClick,
+    onGameClick,
     isOnboardingComputerTarget: _isOnboardingComputerTarget,
     isVisitor = false,
     overlay,
@@ -49,10 +51,7 @@ export function ItemNode({
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
-    const catalogItems = useQuery(api.catalog.list);
-    const isCatalogLoading = catalogItems === undefined;
-    const catalogItem = catalogItems?.find((ci: Doc<"catalogItems">) => ci._id === item.catalogItemId || ci.name === item.catalogItemId);
-    const imageUrl = catalogItem?.assetUrl || "";
+    const imageUrl = catalogItem?.assetUrl ?? "";
     const resolvedWidth = catalogItem?.defaultWidth ?? 150;
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -97,8 +96,9 @@ export function ItemNode({
     }, [isDragging, item, onChange, scale, onDragEnd]);
 
     const category = catalogItem?.category?.toLowerCase();
-    const isComputerCategory = category?.includes("computer");
-    const isMusicCategory = category?.includes("music");
+    const isComputerCategory = category === "computers";
+    const isMusicCategory = category === "music";
+    const isGameCategory = category === "games";
     const hasUrl = Boolean(item.url);
     const isInteractable =
         mode === "view" &&
@@ -106,11 +106,13 @@ export function ItemNode({
             ? Boolean(
                 hasUrl ||
                 (isComputerCategory && onComputerClick) ||
-                (isMusicCategory && onMusicPlayerClick)
+                (isMusicCategory && onMusicPlayerClick) ||
+                (isGameCategory && onGameClick)
             )
             : Boolean(
                 (isComputerCategory && onComputerClick) ||
                 (isMusicCategory && onMusicPlayerClick) ||
+                (isGameCategory && onGameClick) ||
                 hasUrl
             ));
 
@@ -139,6 +141,11 @@ export function ItemNode({
 
                 if (isMusicCategory && onMusicPlayerClick) {
                     onMusicPlayerClick();
+                    return;
+                }
+
+                if (isGameCategory && onGameClick) {
+                    onGameClick();
                     return;
                 }
 
@@ -173,8 +180,6 @@ export function ItemNode({
                                 filter: isSelected && mode === "edit" ? "drop-shadow(0 0 4px var(--chart-4))" : "none",
                             }}
                         />
-                    ) : isCatalogLoading ? (
-                        <div className="w-full h-24" aria-hidden />
                     ) : (
                         <div className="w-full h-24 bg-gray-200 rounded flex items-center justify-center text-gray-400 text-sm">
                             No Image

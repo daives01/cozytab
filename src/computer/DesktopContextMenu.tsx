@@ -1,4 +1,4 @@
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 
 export type ContextMenuState =
     | { target: "shortcut"; id: string; x: number; y: number }
@@ -7,8 +7,8 @@ export type ContextMenuState =
 
 interface DesktopContextMenuProps {
     contextMenu: ContextMenuState;
-    shortcuts: ComputerShortcut[];
-    onOpen: (shortcut: ComputerShortcut) => void;
+    shortcuts: Shortcut[];
+    onOpen: (shortcut: Shortcut) => void;
     onRename: (id: string) => void;
     onDelete: (id: string) => void;
     onStartAdd: (row: number, col: number, x: number, y: number) => void;

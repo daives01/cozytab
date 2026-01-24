@@ -70,9 +70,3 @@
 - Convex dev server auto-runs codegen; agents do NOT run `convex:codegen`. Deploy with `bun run convex:deploy` only when asked.
 - Worker deploy: `bun run --filter presence-worker deploy`.
 - Env: `.env.local` needs `VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_ISSUER_DOMAIN`.
-
-## Status
-- Tests: none committed.
-- Last Updated: 2025-12-07
-- Maintainer: Agent-generated documentation
-- Project Status: Active Development

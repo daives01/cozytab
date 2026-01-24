@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { playKeyDown, playKeyUp } from "../lib/typingAudio";
 import { isAudioUnlocked } from "@/lib/audio";
 import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
+import { PRESENCE_THROTTLE_MS } from "@shared/gameTypes";
 
 type PresenceMessage =
     | {
@@ -22,6 +23,8 @@ type PresenceMessage =
           cursorColor?: string;
           inMenu?: boolean;
           tabbedOut?: boolean;
+          inGame?: string | null;
+          gameMetadata?: Record<string, unknown> | null;
       }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: VisitorState[] };
@@ -36,10 +39,12 @@ export type VisitorState = {
     cursorColor?: string;
     inMenu: boolean;
     tabbedOut: boolean;
+    inGame?: string | null;
+    gameMetadata?: Record<string, unknown> | null;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
-const THROTTLE_MS = 50;
+const THROTTLE_MS = PRESENCE_THROTTLE_MS;
 const DEFAULT_POSITION = { x: 960, y: 540 };
 const INITIAL_RETRY_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;
@@ -117,6 +122,8 @@ export function useWebSocketPresence(
     const tabbedOutRef = useRef<boolean>(
         typeof document !== "undefined" ? document.visibilityState === "hidden" : false
     );
+    const inGameRef = useRef<string | null>(null);
+    const gameMetadataRef = useRef<Record<string, unknown> | null>(null);
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
     const setVisitorsAndStore = useCallback(
         (updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
@@ -159,7 +166,17 @@ export function useWebSocketPresence(
             const sendPing = () => {
                 if (ws.readyState !== WebSocket.OPEN) return;
 
-                ws.send("ping");
+                try {
+                    ws.send("ping");
+                } catch (e) {
+                    console.error("[Presence] Ping failed, closing socket:", e);
+                    try {
+                        ws.close();
+                    } catch {
+                        // Ignore close errors
+                    }
+                    return;
+                }
 
                 resetHeartbeat();
                 heartbeatTimeoutRef.current = setTimeout(() => {
@@ -223,6 +240,8 @@ export function useWebSocketPresence(
                             cursorColor: data.cursorColor,
                             inMenu: false,
                             tabbedOut: Boolean(data.tabbedOut),
+                            inGame: null,
+                            gameMetadata: undefined,
                         },
                     ];
                     return next;
@@ -231,23 +250,33 @@ export function useWebSocketPresence(
             case "leave":
                 setVisitorsAndStore((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
                 break;
-            case "cursor":
+            case "cursor": {
+                const myInMenu = inMenuRef.current;
+                const myInGame = inGameRef.current;
+                const theirInMenu = typeof data.inMenu === "boolean" ? data.inMenu : false;
+                const theirInGame = data.inGame ?? null;
+
+                const inSameContext =
+                    myInGame === theirInGame && (myInMenu === theirInMenu || (myInGame !== null && theirInGame !== null));
+
                 setVisitorsAndStore((prev) =>
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
                                   ...v,
-                                  x: data.x,
-                                  y: data.y,
+                                  ...(inSameContext && { x: data.x, y: data.y }),
                                   cursorColor: data.cursorColor ?? v.cursorColor,
                                   inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
                                   tabbedOut:
                                       typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
+                                  inGame: data.inGame !== undefined ? data.inGame : v.inGame,
+                                  gameMetadata: data.gameMetadata !== undefined ? data.gameMetadata : v.gameMetadata,
                               }
                             : v
                     )
                 );
                 break;
+            }
             case "rename":
                 setVisitorsAndStore((prev) =>
                     prev.map((v) =>
@@ -385,7 +414,7 @@ export function useWebSocketPresence(
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
-        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean): PresenceMessage => ({
+        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean, inGame?: string | null, gameMetadata?: Record<string, unknown> | null): PresenceMessage => ({
             type: "cursor",
             visitorId,
             x,
@@ -393,6 +422,8 @@ export function useWebSocketPresence(
             cursorColor: color ?? latestCursorColorRef.current,
             inMenu: inMenu ?? inMenuRef.current,
             tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : tabbedOutRef.current,
+            inGame: inGame !== undefined ? inGame : inGameRef.current,
+            gameMetadata: gameMetadata !== undefined ? gameMetadata : gameMetadataRef.current,
         }),
         [visitorId]
     );
@@ -402,22 +433,23 @@ export function useWebSocketPresence(
             x: number,
             y: number,
             color?: string,
-            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean }
-        ) => {
-            if (!visitorId) return;
+            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null; gameMetadata?: Record<string, unknown> | null }
+        ): boolean => {
+            const ws = wsRef.current;
+            if (!visitorId || !ws || ws.readyState !== WebSocket.OPEN) return false;
 
             const now = Date.now();
             const timeSinceLastSend = now - lastSendTimeRef.current;
             const transmit = (nextX: number, nextY: number) => {
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: nextX, y: nextY };
-                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut));
+                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame, opts?.gameMetadata));
             };
 
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
                 transmit(x, y);
                 pendingCursorRef.current = null;
-                return;
+                return true;
             }
 
             pendingCursorRef.current = { x, y };
@@ -431,6 +463,7 @@ export function useWebSocketPresence(
                     }
                 }, THROTTLE_MS - timeSinceLastSend);
             }
+            return true;
         },
         [buildCursorMessage, sendMessage, visitorId]
     );
@@ -448,8 +481,8 @@ export function useWebSocketPresence(
             const shouldSend = shouldBroadcast || !hasSentCursorRef.current;
             if (!shouldSend) return;
 
-            sendCursor(roomX, roomY, latestCursorColorRef.current);
-            hasSentCursorRef.current = true;
+            const didSend = sendCursor(roomX, roomY, latestCursorColorRef.current);
+            if (didSend) hasSentCursorRef.current = true;
         },
         [sendCursor]
     );
@@ -476,6 +509,49 @@ export function useWebSocketPresence(
         [sendCursor, visitorId]
     );
 
+    const setInGame = useCallback(
+        (gameItemId: string | null) => {
+            if (!visitorId) return;
+            if (inGameRef.current === gameItemId) return;
+
+            inGameRef.current = gameItemId;
+            // Clear gameMetadata when switching games or leaving a game to avoid cross-game leakage
+            // Send null explicitly so it propagates over JSON
+            gameMetadataRef.current = null;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { inGame: gameItemId, gameMetadata: null, force: true });
+
+            // Optimistically update local visitor state (server excludes sender from broadcast)
+            setVisitorsAndStore((prev) =>
+                prev.map((v) =>
+                    v.visitorId === visitorId
+                        ? { ...v, inGame: gameItemId, gameMetadata: null }
+                        : v
+                )
+            );
+        },
+        [sendCursor, visitorId, setVisitorsAndStore]
+    );
+
+    const setGameMetadata = useCallback(
+        (metadata: Record<string, unknown> | null) => {
+            if (!visitorId) return;
+            gameMetadataRef.current = metadata;
+            const { x, y } = lastBroadcastCursorRef.current;
+            sendCursor(x, y, latestCursorColorRef.current, { gameMetadata: metadata, force: true });
+
+            // Optimistically update local visitor state (server excludes sender from broadcast)
+            setVisitorsAndStore((prev) =>
+                prev.map((v) =>
+                    v.visitorId === visitorId
+                        ? { ...v, gameMetadata: metadata }
+                        : v
+                )
+            );
+        },
+        [sendCursor, visitorId, setVisitorsAndStore]
+    );
+
     useEffect(() => {
         if (!roomId) return;
         if (typeof document === "undefined") return;
@@ -488,7 +564,11 @@ export function useWebSocketPresence(
 
             const ws = wsRef.current;
             if (hidden && ws?.readyState === WebSocket.OPEN) {
-                ws.send("ping");
+                try {
+                    ws.send("ping");
+                } catch {
+                    // Ignore send errors when tab is hidden
+                }
             }
         };
 
@@ -511,9 +591,12 @@ export function useWebSocketPresence(
         screenCursor,
         localChatMessage,
         setInMenu,
+        setInGame,
+        setGameMetadata,
         connectionState,
         reconnectNow,
         // No batchInterval needed - direct updates
         batchInterval: 0,
+        wsRef,
     };
 }

@@ -6,6 +6,7 @@ import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
 import { useEditableField } from "./hooks/useEditableField";
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory, GAME_TYPES, type GameType } from "@/types";
 
 export function CatalogItemsTab() {
     const catalogItems = useQuery(api.catalog.list);
@@ -16,12 +17,20 @@ export function CatalogItemsTab() {
     const [showAddForm, setShowAddForm] = useState(false);
     const [error, setError] = useState<string | undefined>(undefined);
 
-    const [newItem, setNewItem] = useState({
+    const [newItem, setNewItem] = useState<{
+        name: string;
+        category: CatalogItemCategory;
+        basePrice: number;
+        assetUrl: string;
+        defaultWidth: number;
+        gameType?: GameType;
+    }>({
         name: "",
         category: "furniture",
         basePrice: 0,
         assetUrl: "",
         defaultWidth: 150,
+        gameType: undefined,
     });
 
     const { editing, editValue, startEdit, saveEdit, cancelEdit, setEditValue } = useEditableField<"catalogItems">({
@@ -63,6 +72,7 @@ export function CatalogItemsTab() {
             basePrice: 0,
             assetUrl: "",
             defaultWidth: 150,
+            gameType: undefined,
         });
         setShowAddForm(false);
     };
@@ -102,12 +112,15 @@ export function CatalogItemsTab() {
                         </div>
                         <div>
                             <label className="block text-sm text-[var(--ink-muted)] mb-1">Category</label>
-                            <input
-                                type="text"
+                            <select
                                 value={newItem.category}
-                                onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value }))}
+                                onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value as CatalogItemCategory }))}
                                 className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
-                            />
+                            >
+                                {CATALOG_ITEM_CATEGORIES.map((cat) => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm text-[var(--ink-muted)] mb-1">Price</label>
@@ -151,6 +164,21 @@ export function CatalogItemsTab() {
                                 </label>
                             </div>
                         </div>
+                        {newItem.category === "games" && (
+                            <div>
+                                <label className="block text-sm text-[var(--ink-muted)] mb-1">Game Type</label>
+                                <select
+                                    value={newItem.gameType ?? ""}
+                                    onChange={(e) => setNewItem((p) => ({ ...p, gameType: (e.target.value as GameType) || undefined }))}
+                                    className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
+                                >
+                                    <option value="">None</option>
+                                    {GAME_TYPES.map((type) => (
+                                        <option key={type} value={type}>{type}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
                     </div>
                     <div className="mt-4 flex gap-2">
                         <button
@@ -176,6 +204,7 @@ export function CatalogItemsTab() {
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Image</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Name</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Category</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Game Type</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Price</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Width</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Asset URL</th>
@@ -227,6 +256,25 @@ export function CatalogItemsTab() {
                                         onSave={saveEdit}
                                         onCancel={cancelEdit}
                                     />
+                                </td>
+                                <td className="px-4 py-3">
+                                    {item.category === "games" ? (
+                                        <select
+                                            value={item.gameType ?? ""}
+                                            onChange={async (e) => {
+                                                const value = e.target.value;
+                                                await updateItem({ id: item._id, gameType: value ? (value as GameType) : null });
+                                            }}
+                                            className="px-2 py-1 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm text-sm"
+                                        >
+                                            <option value="">None</option>
+                                            {GAME_TYPES.map((type) => (
+                                                <option key={type} value={type}>{type}</option>
+                                            ))}
+                                        </select>
+                                    ) : (
+                                        <span className="text-[var(--ink-subtle)]">—</span>
+                                    )}
                                 </td>
                                 <td className="px-4 py-3">
                                     <EditableCell

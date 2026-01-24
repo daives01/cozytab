@@ -27,5 +27,6 @@ export function usePresenceAndChat({ roomId, identity, isOwner }: PresenceChatAr
         hasVisitors: visitorCount > 0,
         connectionState: presence.connectionState,
         reconnectNow: presence.reconnectNow,
+        wsRef: presence.wsRef,
     };
 }

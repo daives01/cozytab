@@ -2,17 +2,18 @@ import { Package, Coins, Check } from "lucide-react";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { ItemCountBadge } from "@/room/components/ItemCountBadge";
+import type { CatalogItemCategory } from "@/types";
 
 interface ItemsTabProps {
-    groupedItems: Record<string, Doc<"catalogItems">[]>;
-    categories: string[];
+    groupedItems: Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>;
+    categories: CatalogItemCategory[];
     ownedCounts: Map<Id<"catalogItems">, number>;
     userCurrency: number;
     purchasing: Id<"catalogItems"> | null;
     lastResult: { itemId: Id<"catalogItems">; message: string; success: boolean } | null;
     onPurchase: (itemId: Id<"catalogItems">) => void;
-    getCategoryDisplayName: (category: string) => string;
-    getCategoryColor: (category: string) => string;
+    getCategoryDisplayName: (category: CatalogItemCategory) => string;
+    getCategoryColor: (category: CatalogItemCategory) => string;
     highlightItemId?: Id<"catalogItems"> | null;
 }
 
@@ -54,7 +55,7 @@ export function ItemsTab({
                         </div>
 
                         <div className="flex flex-wrap gap-2.5 md:gap-3 justify-center md:justify-start">
-                            {groupedItems[category].map((item) => {
+                            {groupedItems[category]?.map((item) => {
                                 const ownedCount = ownedCounts.get(item._id) ?? 0;
                                 const isOwned = ownedCount > 0;
                                 const canAfford = userCurrency >= item.basePrice;

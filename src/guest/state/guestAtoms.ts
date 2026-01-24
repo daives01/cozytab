@@ -3,15 +3,15 @@ import { atom, createStore } from "jotai/vanilla";
 import React, { type PropsWithChildren } from "react";
 import {
     GUEST_STARTING_COINS,
-    type GuestRoomItem,
+    type RoomItem,
     type GuestSessionState,
     type GuestShortcut,
+    type Shortcut,
 } from "@shared/guestTypes";
-import type { ComputerShortcut } from "@/types";
 import {
     readGuestSession,
     saveGuestSession,
-    saveGuestRoomItems,
+    saveRoomItems,
     saveGuestShortcuts,
     markGuestOnboardingComplete as persistGuestOnboarding,
 } from "../guestSession";
@@ -33,7 +33,7 @@ const baseSessionAtom = atom<GuestSessionState>(startFallback);
 
 const NORMALIZE_COLUMNS = 6;
 
-export const normalizeGuestShortcuts = (shortcuts: GuestShortcut[]): ComputerShortcut[] =>
+export const normalizeGuestShortcuts = (shortcuts: GuestShortcut[]): Shortcut[] =>
     shortcuts.map((shortcut, index) => {
         const row =
             typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
@@ -75,10 +75,10 @@ export const guestInventoryAtom = atom(
 
 export const guestRoomItemsAtom = atom(
     (get) => get(baseSessionAtom).roomItems,
-    (get, set, next: GuestRoomItem[] | ((prev: GuestRoomItem[]) => GuestRoomItem[])) => {
+    (get, set, next: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => {
         const current = get(baseSessionAtom);
-        const value = typeof next === "function" ? (next as (p: GuestRoomItem[]) => GuestRoomItem[])(current.roomItems) : next;
-        saveGuestRoomItems(value);
+        const value = typeof next === "function" ? (next as (p: RoomItem[]) => RoomItem[])(current.roomItems) : next;
+        saveRoomItems(value);
         set(baseSessionAtom, { ...current, roomItems: value });
     }
 );
@@ -156,7 +156,7 @@ export function GuestStateProvider({ store, children }: PropsWithChildren<GuestS
 // Convenience hooks to keep components small
 export const useGuestCoins = () => useAtomValue(guestCoinsAtom);
 export const useGuestInventory = () => useAtomValue(guestInventoryAtom);
-export const useGuestRoomItems = () => useAtomValue(guestRoomItemsAtom);
+export const useRoomItems = () => useAtomValue(guestRoomItemsAtom);
 export const useGuestShortcutsNormalized = () => useAtomValue(guestNormalizedShortcutsAtom);
 export const useSetGuestShortcuts = () => useSetAtom(guestShortcutsAtom);
 export const useGuestCursorColor = () => useAtomValue(guestCursorColorAtom);

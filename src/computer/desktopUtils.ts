@@ -1,5 +1,5 @@
 import type React from "react";
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 import type { ComputerWindowApp } from "./computerTypes";
 
 export const GRID_COLUMNS = 6;
@@ -39,7 +39,7 @@ export function deriveShortcutName(url: string) {
     }
 }
 
-export function normalizeShortcuts(shortcuts: ComputerShortcut[]) {
+export function normalizeShortcuts(shortcuts: Shortcut[]) {
     const occupied = new Set<string>();
     const clamp = (value: number) => Math.max(0, Math.round(value));
 

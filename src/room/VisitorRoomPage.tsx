@@ -10,15 +10,14 @@ import { LocalCursor } from "@/presence/LocalCursor";
 import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home, Users } from "lucide-react";
-import type { ComputerShortcut, RoomItem } from "@/types";
+import type { Shortcut, RoomItem, GameType } from "@/types";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
 import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
-import { useRoomScale } from "./hooks/useRoomScale";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
-import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
+import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
 import { isMusicItem } from "./roomUtils";
 import { randomBrightColor } from "./utils/cursorColor";
@@ -35,9 +34,9 @@ import {
 } from "@/guest/state";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
 import { PresenceLayer } from "@/presence/PresenceLayer";
-import { RoomCanvas } from "./RoomCanvas";
-import { useViewportSize } from "./hooks/useRoomPageEffects";
+import { RoomShell } from "./components/RoomShell";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
+import { GameOverlay } from "@/games/components/GameOverlay";
 import { ChatHint } from "./components/ChatHint";
 
 const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
@@ -102,14 +101,10 @@ function VisitorRoomPageContent({
     );
     const { user: clerkUser, isSignedIn } = useUser();
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
+    const catalogItems = useQuery(api.catalog.list);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
-    const { width: viewportWidth, height: viewportHeight } = useViewportSize();
-    const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT, {
-        viewportWidth,
-        viewportHeight,
-        maxScale: 1.25,
-    });
+    const { scale } = useRoomViewportScale();
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
@@ -117,7 +112,7 @@ function VisitorRoomPageContent({
     const [guestCursorColor] = useState(() => randomBrightColor());
     const [isComputerOpen, setIsComputerOpen] = useState(false);
     const [activeMusicItemId, setActiveMusicItemId] = useState<string | null>(null);
-    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<ComputerShortcut[] | null>(null);
+    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<Shortcut[] | null>(null);
     const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
     const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
@@ -222,6 +217,8 @@ function VisitorRoomPageContent({
         screenCursor,
         localChatMessage,
         setInMenu,
+        setInGame,
+        setGameMetadata,
         connectionState,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
@@ -232,10 +229,21 @@ function VisitorRoomPageContent({
         },
         isOwner: false,
     });
-    const isInMenu = isComputerOpen || Boolean(activeMusicItem);
+    const [activeGameItemId, setActiveGameItemId] = useState<string | null>(null);
+    const activeGameType = useMemo((): GameType | null => {
+        if (!activeGameItemId || !items || !catalogItems) return null;
+        const roomItem = items.find((i) => i.id === activeGameItemId);
+        if (!roomItem) return null;
+        const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
+        return catalogItem?.gameType ?? null;
+    }, [activeGameItemId, items, catalogItems]);
+    const isInMenu = isComputerOpen || Boolean(activeMusicItem) || Boolean(activeGameItemId);
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
+    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
+        setInGame(gameItemId);
+    }, [setInGame]);
     const handleDismissChatOnboarding = useCallback(() => {
         setVisitorChatOnboardingDismissed(true);
         if (typeof window !== "undefined") {
@@ -319,7 +327,7 @@ function VisitorRoomPageContent({
     const overlayShortcuts = useMemo(() => {
         if (!isSignedIn) return guestShortcutsNormalized;
         if (visitorShortcutsOverride) return visitorShortcutsOverride;
-        return (computerState?.shortcuts as ComputerShortcut[] | undefined) ?? [];
+        return (computerState?.shortcuts as Shortcut[] | undefined) ?? [];
     }, [computerState?.shortcuts, guestShortcutsNormalized, isSignedIn, visitorShortcutsOverride]);
 
     const overlayCurrency = isSignedIn ? authedUser?.currency ?? 0 : guestCoins;
@@ -374,11 +382,13 @@ function VisitorRoomPageContent({
                           musicStartedAt: item.musicStartedAt ?? 0,
                           musicPositionAtStart: item.musicPositionAtStart ?? 0,
                       };
+                const catalogItem = catalogItems?.find((c) => c._id === item.catalogItemId);
 
                 return (
                     <ItemNode
                         key={item.id}
                         item={localMusicItem}
+                        catalogItem={catalogItem}
                         isSelected={false}
                         mode="view"
                         scale={scale}
@@ -388,6 +398,7 @@ function VisitorRoomPageContent({
                         onDragEnd={() => {}}
                         onComputerClick={handleOpenComputer}
                         onMusicPlayerClick={() => setActiveMusicItemId(item.id)}
+                        onGameClick={() => setActiveGameItemId(item.id)}
                         isVisitor={true}
                         overlay={
                             isMusicItem(item) ? (
@@ -411,7 +422,13 @@ function VisitorRoomPageContent({
                 );
             })}
 
-            <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} />
+            <PresenceLayer
+                visitors={visitors}
+                currentVisitorId={visitorIdentity.id}
+                scale={scale}
+                currentGameId={activeGameItemId}
+                items={items}
+            />
         </>
     );
 
@@ -485,12 +502,23 @@ function VisitorRoomPageContent({
                 <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
             ) : null}
 
+            <GameOverlay
+                isOpen={!!activeGameItemId && !!activeGameType}
+                gameType={activeGameType ?? "chess"}
+                itemId={activeGameItemId ?? ""}
+                visitorId={visitorIdentity.id}
+                visitors={visitors}
+                setGameMetadata={setGameMetadata}
+                onClose={() => setActiveGameItemId(null)}
+                onPointerMove={updateCursorFromClient}
+                onGameActiveChange={handleGameActiveChange}
+            />
+
             <LocalCursor
                 x={screenCursor.x}
                 y={screenCursor.y}
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
-                inMenu={isInMenu}
             />
 
             <ComputerOverlay
@@ -540,17 +568,15 @@ function VisitorRoomPageContent({
     );
 
     return (
-        <div className="h-screen w-screen">
-            <RoomCanvas
-                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
-                scale={scale}
-                timeOfDay={timeOfDay}
-                containerRef={containerRef}
-                onMouseMove={handleMouseEvent}
-                onMouseEnter={handleMouseEvent}
-                roomContent={roomContent}
-                overlays={overlays}
-            />
-        </div>
+        <RoomShell
+            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+            scale={scale}
+            timeOfDay={timeOfDay}
+            containerRef={containerRef}
+            onMouseMove={handleMouseEvent}
+            onMouseEnter={handleMouseEvent}
+            roomContent={roomContent}
+            overlays={overlays}
+        />
     );
 }

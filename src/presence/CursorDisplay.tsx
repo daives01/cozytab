@@ -13,6 +13,8 @@ interface CursorDisplayProps {
     cursorColor?: string;
     inMenu?: boolean;
     tabbedOut?: boolean;
+    dimmed?: boolean;
+    rotated?: boolean;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -37,6 +39,8 @@ export function CursorDisplay({
     cursorColor,
     inMenu = false,
     tabbedOut = false,
+    dimmed = false,
+    rotated = false,
 }: CursorDisplayProps) {
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
@@ -44,7 +48,7 @@ export function CursorDisplay({
     const chatBubbleClasses =
         "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[220px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
     // Keep name badge + chat bubble aligned and nudged away from the cursor
-    const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : "ml-8 mb-2";
+    const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : rotated ? "ml-2 -mt-10" : "ml-8 mb-2";
     const handwritingFont = {
         fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
         fontWeight: 400,
@@ -54,7 +58,7 @@ export function CursorDisplay({
         fontSize: "1.07em",
     };
 
-    const presenceOpacity = tabbedOut ? 0.25 : inMenu ? 0.3 : 1;
+    const presenceOpacity = dimmed ? 0.3 : tabbedOut ? 0.25 : inMenu ? 0.3 : 1;
     const cursorStyle = {
         position: useFixedPosition ? "fixed" : "absolute",
         left: x,
@@ -80,6 +84,8 @@ export function CursorDisplay({
                         display: "block",
                         color: pointerColor,
                         filter: `drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))`,
+                        transform: rotated ? "rotate(180deg)" : undefined,
+                        transformOrigin: rotated ? `${POINTER_HOTSPOT.x}px ${POINTER_HOTSPOT.y}px` : undefined,
                     }}
                 >
                     <path

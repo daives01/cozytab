@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useClerk } from "@clerk/clerk-react";
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { clearGuestSession } from "../guest/guestSession";
@@ -44,9 +44,9 @@ interface ComputerWindow {
 }
 
 export interface ComputerScreenProps {
-    shortcuts: ComputerShortcut[];
+    shortcuts: Shortcut[];
     onClose: () => void;
-    onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    onUpdateShortcuts: (shortcuts: Shortcut[]) => void;
     userCurrency: number;
     nextRewardAt?: number;
     loginStreak?: number;
@@ -277,7 +277,7 @@ export function ComputerScreen({
     );
 
     const normalizeAndSave = useCallback(
-        (next: ComputerShortcut[]) => {
+        (next: Shortcut[]) => {
             const normalized = normalizeShortcuts(next);
             onUpdateShortcuts(normalized);
         },
@@ -526,7 +526,7 @@ export function ComputerScreen({
         const { row, col } = pendingShortcutPosition;
         const newId = crypto.randomUUID();
         const initialName = deriveShortcutName(url);
-        const newShortcut: ComputerShortcut = {
+        const newShortcut: Shortcut = {
             id: newId,
             name: initialName,
             url,
@@ -639,7 +639,7 @@ export function ComputerScreen({
         setRenameValue(target.name);
     };
 
-    const handleOpenShortcut = (shortcut: ComputerShortcut) => {
+    const handleOpenShortcut = (shortcut: Shortcut) => {
         window.open(shortcut.url, "_blank", "noopener,noreferrer");
     };
 
@@ -686,7 +686,7 @@ export function ComputerScreen({
 
     const startShortcutDrag = (
         event: React.DragEvent<HTMLDivElement>,
-        shortcut: ComputerShortcut
+        shortcut: Shortcut
     ) => {
         event.dataTransfer.setData("text/plain", shortcut.id);
         event.dataTransfer.effectAllowed = "move";
@@ -730,7 +730,7 @@ export function ComputerScreen({
 
     const handleContextMenuOpen = (
         event: React.MouseEvent,
-        shortcut: ComputerShortcut
+        shortcut: Shortcut
     ) => {
         event.preventDefault();
         event.stopPropagation();

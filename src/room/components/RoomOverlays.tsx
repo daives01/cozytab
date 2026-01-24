@@ -5,274 +5,151 @@ import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
 import { Heart } from "lucide-react";
-import type { OnboardingStep } from "../Onboarding";
 import { DailyRewardToast } from "./DailyRewardToast";
 import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
 import { LocalCursor } from "@/presence/LocalCursor";
-import type { RoomItem, ComputerShortcut } from "@/types";
-import type { Id } from "@convex/_generated/dataModel";
-import type { DailyRewardToastPayload, TimeOfDay } from "../types";
-import type { GuestDrawerItem } from "../AssetDrawer/types";
+import { GameOverlay } from "@/games/components/GameOverlay";
+import type { RoomOverlaysProps } from "./RoomOverlays.types";
 
-interface RoomOverlaysProps {
-    isGuest: boolean;
-    mode: "view" | "edit";
-    shareAllowed: boolean;
-    visitorCount: number;
-    drawerOffset: number;
-    drawerOrientation: "left" | "bottom";
-    isDrawerOpen: boolean;
-    draggedItemId: string | null;
-    highlightComputer: boolean;
-    guestItems?: GuestDrawerItem[];
-    placedCatalogItemIds: Id<"catalogItems">[];
-    onToggleMode: () => void;
-    onShareClick: () => void;
-    onDrawerToggle: () => void;
-    onDeleteItem: (id: string) => void;
-
-    // Computer overlay
-    isComputerOpen: boolean;
-    onCloseComputer: () => void;
-    shortcuts: ComputerShortcut[];
-    onUpdateShortcuts: (shortcuts: ComputerShortcut[]) => void;
-    userCurrency: number;
-    nextRewardAt?: number;
-    loginStreak?: number;
-    onShopOpened: () => void;
-    onOnboardingPurchase: () => void;
-    isOnboardingShopStep: boolean;
-    onPointerMove: (x: number, y: number) => void;
-    guestCoins: number;
-    onGuestCoinsChange: (coins: number | ((prev: number) => number)) => void;
-    startingCoins: number;
-    guestInventory: Id<"catalogItems">[];
-    onGuestPurchase: (itemId: Id<"catalogItems">) => void;
-    onOnboardingShortcutAdded: () => void;
-    highlightFirstMusicItem: boolean;
-    displayName?: string;
-    username?: string;
-    onDisplayNameUpdated?: (next: string | null) => void;
-    cursorColor: string;
-    onCursorColorChange: (next: string) => void;
-    timeOfDay: TimeOfDay;
-    devTimeOfDay: TimeOfDay | null;
-    onSetDevTimeOfDay: (next: TimeOfDay | null) => void;
-
-    // Music modal
-    musicPlayerItemId: string | null;
-    localItems: RoomItem[];
-    onMusicSave: (updatedItem: RoomItem, updatedItems: RoomItem[]) => void;
-    onCloseMusic: () => void;
-
-    // Onboarding / reward
-    onboardingActive: boolean;
-    onboardingStep: OnboardingStep | null;
-    onAdvanceOnboarding: () => void;
-    onCompleteOnboarding: () => void;
-    dailyRewardToast: DailyRewardToastPayload | null;
-    stripeSuccessToast?: boolean;
-    onCloseStripeSuccessToast?: () => void;
-
-    // Chat / cursors
-    hasVisitors: boolean;
-    isComputerOpenState: boolean;
-    isShareModalOpen: boolean;
-    onCloseShareModal: () => void;
-    updateChatMessage: (msg: string | null) => void;
-    localChatMessage: string | null;
-    screenCursor: { x: number; y: number };
-    connectionState: "connecting" | "connected" | "reconnecting";
-}
-
-export function RoomOverlays({
-    isGuest,
-    mode,
-    shareAllowed,
-    visitorCount,
-    drawerOffset,
-    drawerOrientation,
-    isDrawerOpen,
-    draggedItemId,
-    highlightComputer,
-    guestItems,
-    placedCatalogItemIds,
-    onToggleMode,
-    onShareClick,
-    onDrawerToggle,
-    onDeleteItem,
-    isComputerOpen,
-    onCloseComputer,
-    shortcuts,
-    onUpdateShortcuts,
-    userCurrency,
-    nextRewardAt,
-    loginStreak,
-    onShopOpened,
-    onOnboardingPurchase,
-    isOnboardingShopStep,
-    onPointerMove,
-    guestCoins,
-    onGuestCoinsChange,
-    startingCoins,
-    guestInventory,
-    onGuestPurchase,
-    onOnboardingShortcutAdded,
-    highlightFirstMusicItem,
-    displayName,
-    username,
-    onDisplayNameUpdated,
-    cursorColor,
-    onCursorColorChange,
-    timeOfDay,
-    devTimeOfDay,
-    onSetDevTimeOfDay,
-    musicPlayerItemId,
-    localItems,
-    onMusicSave,
-    onCloseMusic,
-    onboardingActive,
-    onboardingStep,
-    onAdvanceOnboarding,
-    onCompleteOnboarding,
-    dailyRewardToast,
-    stripeSuccessToast,
-    onCloseStripeSuccessToast,
-    hasVisitors,
-    isComputerOpenState,
-    isShareModalOpen,
-    onCloseShareModal,
-    updateChatMessage,
-    localChatMessage,
-    screenCursor,
-    connectionState,
-}: RoomOverlaysProps) {
+export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
     return (
         <>
             <RoomToolbar
-                isGuest={isGuest}
-                mode={mode}
-                onToggleMode={onToggleMode}
-                shareAllowed={shareAllowed}
-                visitorCount={visitorCount}
-                onShareClick={onShareClick}
-                drawerOffset={drawerOffset}
-                drawerOrientation={drawerOrientation}
+                isGuest={ui.isGuest}
+                mode={ui.mode}
+                onToggleMode={ui.onToggleMode}
+                shareAllowed={ui.shareAllowed}
+                visitorCount={ui.visitorCount}
+                onShareClick={ui.onShareClick}
+                drawerOffset={ui.drawer.offset}
+                drawerOrientation={ui.drawer.orientation}
             />
 
             <EditDrawer
-                mode={mode}
-                isDrawerOpen={isDrawerOpen}
-                onDrawerToggle={onDrawerToggle}
-                draggedItemId={draggedItemId}
-                onDeleteItem={onDeleteItem}
-                highlightComputer={highlightComputer}
-                isGuest={isGuest}
-                guestItems={guestItems}
-                placedCatalogItemIds={placedCatalogItemIds}
-                orientation={drawerOrientation}
+                mode={ui.mode}
+                isDrawerOpen={ui.drawer.isOpen}
+                onDrawerToggle={ui.drawer.onToggle}
+                draggedItemId={ui.draggedItemId}
+                onDeleteItem={ui.onDeleteItem}
+                highlightComputer={ui.highlightComputer}
+                isGuest={ui.isGuest}
+                guestItems={ui.guestItems}
+                placedCatalogItemIds={ui.placedCatalogItemIds}
+                orientation={ui.drawer.orientation}
             />
 
             <ComputerOverlay
-                isGuest={isGuest}
-                isComputerOpen={isComputerOpen}
-                onCloseComputer={onCloseComputer}
-                shortcuts={shortcuts}
-                onUpdateShortcuts={onUpdateShortcuts}
-                userCurrency={userCurrency}
-                nextRewardAt={nextRewardAt}
-                loginStreak={loginStreak}
-                onShopOpened={onShopOpened}
-                onOnboardingPurchase={onOnboardingPurchase}
-                isOnboardingShopStep={isOnboardingShopStep}
-                onPointerMove={onPointerMove}
-                guestCoins={guestCoins}
-                onGuestCoinsChange={onGuestCoinsChange}
-                startingCoins={startingCoins}
-                guestInventory={guestInventory}
-                onGuestPurchase={onGuestPurchase}
-                onOnboardingShortcutAdded={onOnboardingShortcutAdded}
-                highlightFirstMusicItem={highlightFirstMusicItem}
-                displayName={displayName}
-                username={username}
-                onDisplayNameUpdated={onDisplayNameUpdated}
-                cursorColor={cursorColor}
-                onCursorColorChange={onCursorColorChange}
-                timeOfDay={timeOfDay}
-                devTimeOfDay={devTimeOfDay}
-                onSetDevTimeOfDay={onSetDevTimeOfDay}
+                isGuest={ui.isGuest}
+                isComputerOpen={computer.isOpen}
+                onCloseComputer={computer.onClose}
+                shortcuts={computer.shortcuts}
+                onUpdateShortcuts={computer.onUpdateShortcuts}
+                userCurrency={computer.economy.userCurrency}
+                nextRewardAt={computer.economy.nextRewardAt}
+                loginStreak={computer.economy.loginStreak}
+                onShopOpened={computer.onboardingCallbacks.onShopOpened}
+                onOnboardingPurchase={computer.onboardingCallbacks.onOnboardingPurchase}
+                isOnboardingShopStep={computer.onboardingCallbacks.isOnboardingShopStep}
+                onPointerMove={computer.onPointerMove}
+                guestCoins={computer.economy.guestCoins}
+                onGuestCoinsChange={computer.economy.onGuestCoinsChange}
+                startingCoins={computer.economy.startingCoins}
+                guestInventory={computer.economy.guestInventory}
+                onGuestPurchase={computer.economy.onGuestPurchase}
+                onOnboardingShortcutAdded={computer.onboardingCallbacks.onOnboardingShortcutAdded}
+                highlightFirstMusicItem={computer.onboardingCallbacks.highlightFirstMusicItem}
+                displayName={computer.profile.displayName}
+                username={computer.profile.username}
+                onDisplayNameUpdated={computer.profile.onDisplayNameUpdated}
+                cursorColor={computer.profile.cursorColor}
+                onCursorColorChange={computer.profile.onCursorColorChange}
+                timeOfDay={computer.time.timeOfDay}
+                devTimeOfDay={computer.time.devTimeOfDay}
+                onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
             />
 
-            {musicPlayerItemId && (() => {
-                const item = localItems.find((i) => i.id === musicPlayerItemId);
+            {music.musicPlayerItemId && (() => {
+                const item = music.localItems.find((i) => i.id === music.musicPlayerItemId);
                 return item ? (
                     <MusicPlayerModal
                         item={item}
-                        onClose={onCloseMusic}
+                        onClose={music.onClose}
                         onSave={(updatedItem) => {
-                            const updatedItems = localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
-                            onMusicSave(updatedItem, updatedItems);
+                            const updatedItems = music.localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
+                            music.onSave(updatedItem, updatedItems);
                         }}
                     />
                 ) : null;
             })()}
 
-            {!isGuest && isShareModalOpen && <ShareModal onClose={onCloseShareModal} />}
+            <GameOverlay
+                isOpen={!!game.activeGameItemId && !!game.gameType}
+                gameType={game.gameType ?? "chess"}
+                itemId={game.activeGameItemId ?? ""}
+                visitorId={game.visitorId}
+                visitors={game.visitors}
+                setGameMetadata={game.setGameMetadata}
+                onClose={game.onClose}
+                onPointerMove={computer.onPointerMove}
+                onGameActiveChange={game.onGameActiveChange}
+            />
 
-            {onboardingActive && onboardingStep && (
+            {!ui.isGuest && presence.isShareModalOpen && <ShareModal onClose={presence.onCloseShareModal} />}
+
+            {onboarding.active && onboarding.step && (
                 <Onboarding
-                    currentStep={onboardingStep}
-                    onComplete={onCompleteOnboarding}
-                    onNext={onAdvanceOnboarding}
-                    onSkip={onCompleteOnboarding}
-                    isGuest={isGuest}
+                    currentStep={onboarding.step}
+                    onComplete={onboarding.onComplete}
+                    onNext={onboarding.onAdvance}
+                    onSkip={onboarding.onComplete}
+                    isGuest={ui.isGuest}
                 />
             )}
 
-            {!isGuest && dailyRewardToast && <DailyRewardToast toast={dailyRewardToast} />}
+            {!ui.isGuest && onboarding.dailyRewardToast && <DailyRewardToast toast={onboarding.dailyRewardToast} />}
 
-            {stripeSuccessToast && (
+            {onboarding.stripeSuccessToast && (
                 <Toast
                     tone="success"
                     icon={<Heart className="h-5 w-5" />}
                     title="Purchase successful!"
                     description="Thank you for your support!"
-                    onClose={onCloseStripeSuccessToast}
+                    onClose={onboarding.onCloseStripeSuccessToast}
                 />
             )}
 
-            {!isGuest && hasVisitors && (
+            {!ui.isGuest && presence.hasVisitors && (
                 <ChatInput
-                    onMessageChange={updateChatMessage}
+                    onMessageChange={presence.updateChatMessage}
                     disabled={
-                        isComputerOpenState ||
-                        musicPlayerItemId !== null ||
-                        isShareModalOpen ||
-                        connectionState !== "connected"
+                        presence.isComputerOpenState ||
+                        music.musicPlayerItemId !== null ||
+                        presence.isShareModalOpen ||
+                        presence.connectionState !== "connected"
                     }
                 />
             )}
 
-            {!isGuest && hasVisitors && !isComputerOpenState && !musicPlayerItemId && !isShareModalOpen && <ChatHint />}
+            {!ui.isGuest && presence.hasVisitors && !presence.isComputerOpenState && !music.musicPlayerItemId && !presence.isShareModalOpen && <ChatHint />}
 
-            {!isGuest && connectionState !== "connected" && (
+            {!ui.isGuest && presence.connectionState !== "connected" && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
                     <div className="rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] px-4 py-3 flex items-center gap-3">
                         <div className="h-4 w-4 border-2 border-[var(--color-foreground)] border-t-transparent rounded-full animate-spin" />
                         <span className="text-sm font-medium">
-                            {connectionState === "connecting" ? "Connecting..." : "Reconnecting..."}
+                            {presence.connectionState === "connecting" ? "Connecting..." : "Reconnecting..."}
                         </span>
                     </div>
                 </div>
             )}
 
             <LocalCursor
-                x={screenCursor.x}
-                y={screenCursor.y}
-                chatMessage={!isGuest && hasVisitors ? localChatMessage : null}
-                cursorColor={cursorColor}
+                x={presence.screenCursor.x}
+                y={presence.screenCursor.y}
+                chatMessage={!ui.isGuest && presence.hasVisitors ? presence.localChatMessage : null}
+                cursorColor={computer.profile.cursorColor}
             />
         </>
     );

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, startTransition, useCallback } from "react";
 import type React from "react";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import type { RoomItem, ComputerShortcut } from "@/types";
+import type { RoomItem, Shortcut } from "@/types";
 import type { DailyRewardToastPayload } from "../types";
 import { debounce } from "@/lib/debounce";
 import { clampItems } from "../utils/roomActions";
@@ -9,8 +9,8 @@ import { clampItems } from "../utils/roomActions";
 type RoomRecord = Pick<Doc<"rooms">, "_id" | "items" | "userId">;
 
 export function useCursorColorSaver(
-    saveComputer: (args: { shortcuts: ComputerShortcut[]; cursorColor: string }) => void,
-    authedShortcutsRef: React.MutableRefObject<ComputerShortcut[]>,
+    saveComputer: (args: { shortcuts: Shortcut[]; cursorColor: string }) => void,
+    authedShortcutsRef: React.MutableRefObject<Shortcut[]>,
     saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>
 ) {
     const debouncedSaveRef = useRef<((next: string) => void) | null>(null);
@@ -385,8 +385,8 @@ export function useSyncComputerState({
     userCursorColor,
 }: {
     isGuest: boolean;
-    computerState: { shortcuts: ComputerShortcut[]; cursorColor?: string } | null | undefined;
-    setLocalShortcuts: (shortcuts: ComputerShortcut[]) => void;
+    computerState: { shortcuts: Shortcut[]; cursorColor?: string } | null | undefined;
+    setLocalShortcuts: (shortcuts: Shortcut[]) => void;
     setAuthedCursorColor: (color: string) => void;
     userCursorColor?: string;
 }) {
@@ -450,4 +450,25 @@ export function useOnboardingAssetPrefetch(
         img.src = resolvedComputerAssetUrl;
         computerPrefetchedRef.current = true;
     }, [resolvedComputerAssetUrl, onboardingActive, computerPrefetchedRef]);
+}
+
+export function useEscapeToExitEditMode(mode: "view" | "edit", onExit: () => void) {
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key !== "Escape") return;
+            const target = event.target as HTMLElement | null;
+            const isTypingTarget =
+                target &&
+                (target.tagName === "INPUT" ||
+                    target.tagName === "TEXTAREA" ||
+                    target.getAttribute("contenteditable") === "true");
+            if (isTypingTarget) return;
+            if (mode === "edit") {
+                event.preventDefault();
+                onExit();
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [mode, onExit]);
 }

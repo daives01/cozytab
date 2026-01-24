@@ -3,6 +3,7 @@ import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
 import type { RoomItem } from "@/types";
+import type { Doc } from "@convex/_generated/dataModel";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
@@ -11,6 +12,7 @@ type Mode = "view" | "edit";
 
 interface RoomItemsLayerProps {
     items: RoomItem[];
+    catalogItems?: Doc<"catalogItems">[];
     selectedId: string | null;
     mode: Mode;
     scale: number;
@@ -20,6 +22,7 @@ interface RoomItemsLayerProps {
     onDragEnd: () => void;
     onComputerClick: () => void;
     onMusicPlayerClick: (id: string) => void;
+    onGameClick: (id: string) => void;
     bringItemToFront: (id: string) => void;
     sendItemToBack: (id: string) => void;
     onboardingStep: OnboardingStep | null;
@@ -29,10 +32,12 @@ interface RoomItemsLayerProps {
     visitors: VisitorState[];
     visitorId: string | null;
     isGuest: boolean;
+    currentGameId?: string | null;
 }
 
 export function RoomItemsLayer({
     items,
+    catalogItems,
     selectedId,
     mode,
     scale,
@@ -42,6 +47,7 @@ export function RoomItemsLayer({
     onDragEnd,
     onComputerClick,
     onMusicPlayerClick,
+    onGameClick,
     bringItemToFront,
     sendItemToBack,
     onboardingStep,
@@ -51,17 +57,20 @@ export function RoomItemsLayer({
     visitors,
     visitorId,
     isGuest,
+    currentGameId,
 }: RoomItemsLayerProps) {
     return (
         <>
             {items.map((item, index) => {
                 const isAtBack = index === 0;
                 const isAtFront = index === items.length - 1;
+                const catalogItem = catalogItems?.find((c) => c._id === item.catalogItemId);
 
                 return (
                     <ItemNode
                         key={item.id}
                         item={item}
+                        catalogItem={catalogItem}
                         isSelected={item.id === selectedId}
                         mode={mode}
                         scale={scale}
@@ -71,6 +80,7 @@ export function RoomItemsLayer({
                         onDragEnd={onDragEnd}
                         onComputerClick={onComputerClick}
                         onMusicPlayerClick={() => onMusicPlayerClick(item.id)}
+                        onGameClick={() => onGameClick(item.id)}
                         onBringToFront={() => bringItemToFront(item.id)}
                         onSendToBack={() => sendItemToBack(item.id)}
                         canBringToFront={!isAtFront}
@@ -97,7 +107,13 @@ export function RoomItemsLayer({
             })}
 
             {!isGuest && presenceRoomId && (
-                <PresenceLayer visitors={visitors} currentVisitorId={visitorId} scale={scale} />
+                <PresenceLayer
+                    visitors={visitors}
+                    currentVisitorId={visitorId}
+                    scale={scale}
+                    currentGameId={currentGameId}
+                    items={items}
+                />
             )}
         </>
     );

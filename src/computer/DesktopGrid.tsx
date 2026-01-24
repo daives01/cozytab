@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Globe } from "lucide-react";
-import type { ComputerShortcut } from "@/types";
+import type { Shortcut } from "@/types";
 
 interface DesktopGridProps {
-    orderedShortcuts: ComputerShortcut[];
+    orderedShortcuts: Shortcut[];
     selectedId: string | null;
     draggingId: string | null;
     renamingId: string | null;
@@ -13,9 +13,9 @@ interface DesktopGridProps {
     columns: number;
     rowHeight: number;
     onSelect: (id: string) => void;
-    onDoubleClick: (shortcut: ComputerShortcut) => void;
-    onContextMenu: (event: React.MouseEvent, shortcut: ComputerShortcut) => void;
-    onDragStart: (event: React.DragEvent<HTMLDivElement>, shortcut: ComputerShortcut) => void;
+    onDoubleClick: (shortcut: Shortcut) => void;
+    onContextMenu: (event: React.MouseEvent, shortcut: Shortcut) => void;
+    onDragStart: (event: React.DragEvent<HTMLDivElement>, shortcut: Shortcut) => void;
     onDragEnd: () => void;
     onRenameChange: (value: string) => void;
     onCommitRename: (id: string) => void;

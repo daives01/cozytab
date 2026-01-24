@@ -16,8 +16,7 @@ export function ItemCard({
     onToggleHidden,
     compact = false,
 }: ItemCardProps) {
-    const categoryKey = item.category.toLowerCase();
-    const isComputer = categoryKey.includes("computer");
+    const isComputer = item.category === "computers";
     const highlightClass =
         highlightComputer && isComputer
             ? "outline outline-2 outline-dotted outline-[var(--color-accent)] outline-offset-4"

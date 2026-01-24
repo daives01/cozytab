@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
 
 // Helper to check if the current user is an admin
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
@@ -41,11 +42,12 @@ export const getByName = query({
 export const addItem = mutation({
     args: {
         name: v.string(),
-        category: v.string(),
+        category: catalogItemCategoryValidator,
         basePrice: v.number(),
         assetUrl: v.string(),
         defaultWidth: v.number(),
         isStarterItem: v.optional(v.boolean()),
+        gameType: v.optional(gameTypeValidator),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
@@ -71,38 +73,38 @@ export const updateItem = mutation({
     args: {
         id: v.id("catalogItems"),
         name: v.optional(v.string()),
-        category: v.optional(v.string()),
+        category: v.optional(catalogItemCategoryValidator),
         basePrice: v.optional(v.number()),
         assetUrl: v.optional(v.string()),
         defaultWidth: v.optional(v.number()),
         isStarterItem: v.optional(v.boolean()),
+        gameType: v.optional(v.union(gameTypeValidator, v.null())),
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
 
-        const { id, ...updates } = args;
+        const { id, gameType, ...otherUpdates } = args;
 
         const existing = await ctx.db.get(id);
         if (!existing) {
             return { success: false, message: "Item not found" };
         }
 
-        const filteredUpdates = Object.fromEntries(
-            Object.entries(updates).filter(([, value]) => value !== undefined)
-        ) as Partial<{
-            name: string;
-            category: string;
-            basePrice: number;
-            assetUrl: string;
-            defaultWidth: number;
-            isStarterItem: boolean;
-        }>;
+        const patch: Record<string, unknown> = {};
 
-        if (Object.keys(filteredUpdates).length === 0) {
+        for (const [key, value] of Object.entries(otherUpdates)) {
+            if (value !== undefined) patch[key] = value;
+        }
+
+        if (gameType !== undefined) {
+            patch.gameType = gameType === null ? undefined : gameType;
+        }
+
+        if (Object.keys(patch).length === 0) {
             return { success: true };
         }
 
-        await ctx.db.patch(id, filteredUpdates);
+        await ctx.db.patch(id, patch);
         return { success: true };
     },
 });
