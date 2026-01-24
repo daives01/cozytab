@@ -6,8 +6,39 @@ import type { Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
+import { useChatFade } from "@/hooks/useChatFade";
 import { Crown, X, LogOut, Flag, Handshake } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
+
+interface ChessCursorProps {
+  displayX: number;
+  displayY: number;
+  cursorColor?: string;
+  chatMessage: string | null;
+  rotated: boolean;
+}
+
+function ChessCursor({ displayX, displayY, cursorColor, chatMessage, rotated }: ChessCursorProps) {
+  const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
+
+  return (
+    <div
+      className="absolute pointer-events-none transition-all duration-75"
+      style={{ left: `${displayX}%`, top: `${displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
+    >
+      <CursorDisplay
+        x={0}
+        y={0}
+        cursorColor={cursorColor}
+        chatMessage={displayedMessage}
+        chatOpacity={chatOpacity}
+        hidePointer={false}
+        scale={1}
+        rotated={rotated}
+      />
+    </div>
+  );
+}
 
 export type GamePlayer = {
   visitorId: string;
@@ -381,18 +412,18 @@ export function ChessGame({
         const ownerViewsAsBlack = ownerSide === "black";
         const iViewAsBlack = mySide === "black";
         const needsFlip = ownerViewsAsBlack !== iViewAsBlack;
+        const visitor = visitors.find((v) => v.visitorId === player.visitorId);
 
         return {
           visitorId: player.visitorId,
-          x: gameCursorX,
-          y: gameCursorY,
           cursorColor: player.cursorColor,
           displayX: needsFlip ? 100 - gameCursorX : gameCursorX,
           displayY: needsFlip ? 100 - gameCursorY : gameCursorY,
           needsFlip,
+          chatMessage: visitor?.chatMessage ?? null,
         };
       });
-  }, [playersInGame, visitorId, mySide, getCursorOwnerSide]);
+  }, [playersInGame, visitorId, mySide, getCursorOwnerSide, visitors]);
 
   // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
   const whitePlayerId = useMemo(() => {
@@ -425,11 +456,6 @@ export function ChessGame({
   const otherPlayerExists = (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
   const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
   const canJoinBlack = !blackPlayer && (!mySide || !otherPlayerExists);
-
-  const getPlayerChat = useCallback((playerId: string): string | null | undefined => {
-    const visitor = visitors.find((v) => v.visitorId === playerId);
-    return visitor?.chatMessage;
-  }, [visitors]);
 
   const topBadgeSide = boardOrientation === "white" ? "black" : "white";
   const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
@@ -540,13 +566,14 @@ export function ChessGame({
             />
           </div>
           {otherCursors.map((cursor) => (
-            <div
+            <ChessCursor
               key={cursor.visitorId}
-              className="absolute pointer-events-none transition-all duration-75"
-              style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
-            >
-              <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} rotated={cursor.needsFlip} />
-            </div>
+              displayX={cursor.displayX}
+              displayY={cursor.displayY}
+              cursorColor={cursor.cursorColor}
+              chatMessage={cursor.chatMessage}
+              rotated={cursor.needsFlip}
+            />
           ))}
           {opponentDrawOffer && mySide && (
             <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
@@ -607,13 +634,14 @@ export function ChessGame({
           />
         </div>
         {otherCursors.map((cursor) => (
-          <div
+          <ChessCursor
             key={cursor.visitorId}
-            className="absolute pointer-events-none transition-all duration-75"
-            style={{ left: `${cursor.displayX}%`, top: `${cursor.displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
-          >
-            <CursorDisplay x={0} y={0} cursorColor={cursor.cursorColor} chatMessage={getPlayerChat(cursor.visitorId)} hidePointer={false} scale={1} rotated={cursor.needsFlip} />
-          </div>
+            displayX={cursor.displayX}
+            displayY={cursor.displayY}
+            cursorColor={cursor.cursorColor}
+            chatMessage={cursor.chatMessage}
+            rotated={cursor.needsFlip}
+          />
         ))}
         {opponentDrawOffer && mySide && (
           <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">

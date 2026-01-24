@@ -422,7 +422,13 @@ function VisitorRoomPageContent({
                 );
             })}
 
-            <PresenceLayer visitors={visitors} currentVisitorId={visitorIdentity.id} scale={scale} currentGameId={activeGameItemId} />
+            <PresenceLayer
+                visitors={visitors}
+                currentVisitorId={visitorIdentity.id}
+                scale={scale}
+                currentGameId={activeGameItemId}
+                items={items}
+            />
         </>
     );
 

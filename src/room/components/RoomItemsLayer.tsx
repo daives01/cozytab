@@ -107,7 +107,13 @@ export function RoomItemsLayer({
             })}
 
             {!isGuest && presenceRoomId && (
-                <PresenceLayer visitors={visitors} currentVisitorId={visitorId} scale={scale} currentGameId={currentGameId} />
+                <PresenceLayer
+                    visitors={visitors}
+                    currentVisitorId={visitorId}
+                    scale={scale}
+                    currentGameId={currentGameId}
+                    items={items}
+                />
             )}
         </>
     );
