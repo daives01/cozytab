@@ -17,8 +17,8 @@ export interface MusicPlayerModalProps {
 
 export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProps) {
     const [musicUrl, setMusicUrl] = useState(item.musicUrl || "");
+    const [title, setTitle] = useState<string | null>(null);
     const [isFetchingTitle, setIsFetchingTitle] = useState(false);
-    const [cacheVersion, setCacheVersion] = useState(0);
     const [saveError, setSaveError] = useState<string | null>(null);
     const { musicVolume, setMusicVolume } = useKeyboardSoundPreferences();
     const percent = Math.round(musicVolume * 100);
@@ -26,22 +26,43 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
     const abortRef = useRef<AbortController | null>(null);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const requestIdRef = useRef(0);
 
     const trimmedUrl = musicUrl.trim();
     const videoId = useMemo(() => extractYouTubeId(trimmedUrl), [trimmedUrl]);
     const previewUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
     const validationError = trimmedUrl && !videoId ? "Invalid YouTube URL" : null;
 
-    void cacheVersion; // Force re-read of titleCache after fetch
-    const cachedTitle = videoId ? titleCache.get(videoId) ?? null : null;
+    // Handle state updates when videoId changes (React pattern: update state during render, not in effect)
+    const [prevVideoId, setPrevVideoId] = useState(videoId);
+    if (videoId !== prevVideoId) {
+        setPrevVideoId(videoId);
+        if (!videoId) {
+            setTitle(null);
+            setIsFetchingTitle(false);
+        } else {
+            const cached = titleCache.get(videoId);
+            if (cached) {
+                setTitle(cached);
+                setIsFetchingTitle(false);
+            }
+        }
+    }
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
         if (abortRef.current) abortRef.current.abort();
 
-        if (!videoId || titleCache.has(videoId)) {
+        if (!videoId) {
             return;
         }
+
+        const cached = titleCache.get(videoId);
+        if (cached) {
+            return;
+        }
+
+        const requestId = ++requestIdRef.current;
 
         debounceRef.current = setTimeout(() => {
             const controller = new AbortController();
@@ -56,14 +77,19 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                     return res.json();
                 })
                 .then((data) => {
+                    if (requestIdRef.current !== requestId || controller.signal.aborted) return;
                     const t = typeof data?.title === "string" ? data.title : null;
                     if (t) titleCache.set(videoId, t);
-                    setCacheVersion((v) => v + 1);
+                    setTitle(t);
                 })
                 .catch(() => {
-                    // Ignore errors - title just won't be displayed
+                    if (requestIdRef.current !== requestId || controller.signal.aborted) return;
+                    setTitle(null);
                 })
-                .finally(() => setIsFetchingTitle(false));
+                .finally(() => {
+                    if (requestIdRef.current !== requestId || controller.signal.aborted) return;
+                    setIsFetchingTitle(false);
+                });
         }, 300);
 
         return () => {
@@ -72,7 +98,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
         };
     }, [videoId]);
 
-    const displayTitle = cachedTitle;
+    const displayTitle = title;
 
     const handleSave = () => {
         const unchanged = trimmedUrl === originalUrl;
@@ -161,9 +187,8 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                             <div className="relative flex flex-1 min-h-[16rem] sm:min-h-[20rem] items-center justify-center">
                                 <div className="relative flex items-center justify-center scale-75 sm:scale-100">
                                     <div
-                                        className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-                                            previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
-                                        }`}
+                                        className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
+                                            }`}
                                     >
                                         <div className="flex h-52 w-52 animate-[spin_6s_linear_infinite] items-center justify-center rounded-full border-4 border-[var(--color-foreground)] bg-[var(--vinyl-primary)] shadow-[var(--shadow-6-soft)]">
                                             <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent" />
@@ -176,9 +201,8 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                     </div>
 
                                     <div
-                                        className={`relative z-20 flex h-[19rem] w-[19rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${
-                                            previewUrl ? "-rotate-2" : "rotate-0"
-                                        }`}
+                                        className={`relative z-20 flex h-[19rem] w-[19rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${previewUrl ? "-rotate-2" : "rotate-0"
+                                            }`}
                                     >
                                         {previewUrl && !validationError ? (
                                             <img

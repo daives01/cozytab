@@ -21,6 +21,7 @@ export function MusicPlayerButtons({
     interactionGranted = false,
 }: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const iframeLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isReady, setIsReady] = useState(false);
     const [localInteracted, setLocalInteracted] = useState(false);
     const [muted, setMuted] = useState(false);
@@ -31,6 +32,20 @@ export function MusicPlayerButtons({
     const hasInteracted = localInteracted || interactionGranted;
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
+
+    // Reset state when videoId changes (React pattern: update state during render, not in effect)
+    const [prevVideoId, setPrevVideoId] = useState(videoId);
+    if (videoId !== prevVideoId) {
+        setPrevVideoId(videoId);
+        setIsReady(false);
+        setLocalInteracted(false);
+        setMuted(false);
+    }
+
+    // Reset ref when videoId changes (refs must be updated in effects, not during render)
+    useEffect(() => {
+        lastSeekRef.current = 0;
+    }, [videoId]);
 
     const embedUrl = videoId
         ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`
@@ -83,12 +98,16 @@ export function MusicPlayerButtons({
     }, []);
 
     const handleIframeLoad = useCallback(() => {
-        setTimeout(() => setIsReady(true), 400);
+        if (iframeLoadTimeoutRef.current) clearTimeout(iframeLoadTimeoutRef.current);
+        iframeLoadTimeoutRef.current = setTimeout(() => setIsReady(true), 400);
     }, []);
 
+
     useEffect(() => {
-        lastSeekRef.current = 0;
-    }, [videoId]);
+        return () => {
+            if (iframeLoadTimeoutRef.current) clearTimeout(iframeLoadTimeoutRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (!isReady || !videoId) return;
