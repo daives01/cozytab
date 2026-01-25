@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 import type { ComputerWindowApp } from "./computerTypes";
 
 export const GRID_COLUMNS = 6;

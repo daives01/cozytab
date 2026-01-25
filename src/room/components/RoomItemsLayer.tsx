@@ -2,7 +2,7 @@ import { ItemNode } from "../ItemNode";
 import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
 import { isMusicItem } from "../roomUtils";
-import type { RoomItem } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
 import type { Doc } from "@convex/_generated/dataModel";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
@@ -27,7 +27,7 @@ interface RoomItemsLayerProps {
     sendItemToBack: (id: string) => void;
     onboardingStep: OnboardingStep | null;
     handleMusicToggle: (id: string, playing: boolean) => void;
-    musicAutoplay: { itemId: string; token: string } | null;
+    musicInteractionToken: number;
     presenceRoomId: string | null;
     visitors: VisitorState[];
     visitorId: string | null;
@@ -52,7 +52,7 @@ export function RoomItemsLayer({
     sendItemToBack,
     onboardingStep,
     handleMusicToggle,
-    musicAutoplay,
+    musicInteractionToken,
     presenceRoomId,
     visitors,
     visitorId,
@@ -94,9 +94,7 @@ export function RoomItemsLayer({
                                         key={item.id}
                                         item={item}
                                         onToggle={(playing) => handleMusicToggle(item.id, playing)}
-                                        autoPlayToken={
-                                            musicAutoplay && musicAutoplay.itemId === item.id ? musicAutoplay.token : null
-                                        }
+                                        interactionGranted={musicInteractionToken > 0}
                                         isVisitor={false}
                                     />
                                 </>

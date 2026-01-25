@@ -1,7 +1,9 @@
+import { useMemo, useCallback } from "react";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
+import { GameOverlay } from "@/games/components/GameOverlay";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
 import { Heart } from "lucide-react";
@@ -10,10 +12,22 @@ import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
 import { LocalCursor } from "@/presence/LocalCursor";
-import { GameOverlay } from "@/games/components/GameOverlay";
 import type { RoomOverlaysProps } from "./RoomOverlays.types";
+import type { RoomItem } from "@shared/guestTypes";
 
 export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
+    const activeMusicItem = useMemo(
+        () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
+        [music.localItems, music.musicPlayerItemId]
+    );
+
+    const handleMusicSave = useCallback(
+        (updatedItem: RoomItem) => {
+            const updatedItems = music.localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
+            music.onSave(updatedItem, updatedItems);
+        },
+        [music]
+    );
     return (
         <>
             <RoomToolbar
@@ -70,19 +84,9 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
             />
 
-            {music.musicPlayerItemId && (() => {
-                const item = music.localItems.find((i) => i.id === music.musicPlayerItemId);
-                return item ? (
-                    <MusicPlayerModal
-                        item={item}
-                        onClose={music.onClose}
-                        onSave={(updatedItem) => {
-                            const updatedItems = music.localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
-                            music.onSave(updatedItem, updatedItems);
-                        }}
-                    />
-                ) : null;
-            })()}
+            {activeMusicItem && (
+                <MusicPlayerModal item={activeMusicItem} onClose={music.onClose} onSave={handleMusicSave} />
+            )}
 
             <GameOverlay
                 isOpen={!!game.activeGameItemId && !!game.gameType}
@@ -96,7 +100,9 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 onGameActiveChange={game.onGameActiveChange}
             />
 
-            {!ui.isGuest && presence.isShareModalOpen && <ShareModal onClose={presence.onCloseShareModal} />}
+            {!ui.isGuest && presence.isShareModalOpen && (
+                <ShareModal onClose={presence.onCloseShareModal} activeInvites={presence.activeInvites} />
+            )}
 
             {onboarding.active && onboarding.step && (
                 <Onboarding

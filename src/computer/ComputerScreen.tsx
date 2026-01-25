@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useClerk } from "@clerk/clerk-react";
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { clearGuestSession } from "../guest/guestSession";

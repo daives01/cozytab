@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { RoomItem } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
 import type { Doc } from "@convex/_generated/dataModel";
 import type React from "react";
 import { AssetImage } from "../components/AssetImage";

@@ -60,8 +60,8 @@ export function RetroVolumeFader({ value, onChange, muted = false, height }: Vol
 
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
-        window.addEventListener("touchmove", onTouchMove);
-        window.addEventListener("touchend", onTouchEnd);
+        window.addEventListener("touchmove", onTouchMove, { passive: true });
+        window.addEventListener("touchend", onTouchEnd, { passive: true });
 
         return () => {
             window.removeEventListener("mousemove", onMove);

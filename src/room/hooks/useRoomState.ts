@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useCallback } from "react";
 import { useAtomValue, useSetAtom } from "jotai";
-import type { Shortcut } from "@/types";
+import type { Shortcut } from "@shared/guestTypes";
 import type { GuestSessionState } from "@shared/guestTypes";
 import {
     coinsAtom,
@@ -12,7 +12,7 @@ import {
     inventoryAtom,
     itemsAtom,
     modeAtom,
-    musicAutoplayAtom,
+    musicInteractionTokenAtom,
     musicPlayerItemIdAtom,
     onboardingCompletedAtom,
     selectedIdAtom,
@@ -37,7 +37,7 @@ import {
     guestShortcutsAtom,
     guestOnboardingCompletedAtom,
     normalizeGuestShortcuts,
-} from "@/guest/state";
+} from "@/guest/state/guestAtoms";
 import { readGuestSession, buildCatalogLookup } from "@/guest/guestSession";
 import type { Doc } from "@convex/_generated/dataModel";
 
@@ -108,8 +108,8 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     const setAuthedCursorColor = useSetAtom(cursorColorAtom);
     const authedMusicPlayerItemId = useAtomValue(musicPlayerItemIdAtom);
     const setAuthedMusicPlayerItemId = useSetAtom(musicPlayerItemIdAtom);
-    const musicAutoplay = useAtomValue(musicAutoplayAtom);
-    const setMusicAutoplay = useSetAtom(musicAutoplayAtom);
+    const musicInteractionToken = useAtomValue(musicInteractionTokenAtom);
+    const setMusicInteractionToken = useSetAtom(musicInteractionTokenAtom);
     const guestOnboardingCompletedState = useAtomValue(onboardingCompletedAtom);
     const setGuestOnboardingCompletedState = useSetAtom(onboardingCompletedAtom);
     const guestCoinsState = useAtomValue(coinsAtom);
@@ -209,8 +209,8 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         saveAuthedCursorColorRef,
         musicPlayerItemId,
         setMusicPlayerItemId,
-        musicAutoplay,
-        setMusicAutoplay,
+        musicInteractionToken,
+        setMusicInteractionToken,
         guestOnboardingCompletedValue,
         setGuestOnboardingCompletedValue,
         guestCoinsValue,

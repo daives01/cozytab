@@ -1,19 +1,45 @@
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleSwitch } from "@/components/ui/toggle";
-import { X, Copy, Check, Share2, RefreshCw, Lock, Globe, Link as LinkIcon } from "lucide-react";
+import { X, Copy, Check, Share2, RefreshCw, Lock, Globe, Link as LinkIcon, Loader2 } from "lucide-react";
+import type { Doc } from "@convex/_generated/dataModel";
 
-export function ShareModal({ onClose }: { onClose: () => void }) {
-    const activeInvites = useQuery(api.invites.getMyActiveInvites);
+const handwritingFont = {
+    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+    fontWeight: 400,
+    fontStyle: "normal",
+    fontSynthesis: "none" as const,
+    fontOpticalSizing: "none" as const,
+};
+
+interface ShareModalProps {
+    onClose: () => void;
+    activeInvites?: Doc<"roomInvites">[] | null;
+}
+
+export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
     const enableInvite = useMutation(api.invites.enableInvite);
-    const revokeInvite = useMutation(api.invites.revokeInvite);
+    const revokeInvite = useMutation(api.invites.revokeInvite).withOptimisticUpdate(
+        (localStore, { inviteId }) => {
+            const current = localStore.getQuery(api.invites.getMyActiveInvites, {});
+            if (!current) return;
+            localStore.setQuery(
+                api.invites.getMyActiveInvites,
+                {},
+                current.map((inv) =>
+                    inv._id === inviteId ? { ...inv, expiresAt: Date.now() } : inv
+                )
+            );
+        }
+    );
     const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
 
     const [copied, setCopied] = useState(false);
     const [isRotating, setIsRotating] = useState(false);
+    const [isEnabling, setIsEnabling] = useState(false);
     const [now, setNow] = useState(() => Date.now());
 
     const activeInvite = activeInvites?.[0];
@@ -21,23 +47,20 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
     const inviteIsLive = !!activeInvite && expiresAt > now;
     const inviteCode = inviteIsLive ? activeInvite.code : null;
     const shareUrl = inviteCode ? `${window.location.origin}/visit/${inviteCode}` : null;
+    const showLiveState = inviteIsLive || isEnabling;
 
     useEffect(() => {
-        if (!expiresAt) {
-            setNow(Date.now());
-            return;
-        }
+        if (!expiresAt) return;
 
-        const nowTs = Date.now();
-        const remaining = expiresAt - nowTs;
+        const remaining = expiresAt - Date.now();
         if (remaining <= 0) {
-            setNow(nowTs);
+            setNow(Date.now());
             return;
         }
 
         const id = setTimeout(() => setNow(Date.now()), remaining + 10);
         return () => clearTimeout(id);
-    }, [expiresAt, now]);
+    }, [expiresAt]);
 
     const handleResetCode = async () => {
         setIsRotating(true);
@@ -63,15 +86,12 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
             setCopied(false);
             return;
         }
-        await enableInvite();
-    };
-
-    const handwritingFont = {
-        fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-        fontWeight: 400,
-        fontStyle: "normal",
-        fontSynthesis: "none" as const,
-        fontOpticalSizing: "none" as const,
+        setIsEnabling(true);
+        try {
+            await enableInvite();
+        } finally {
+            setIsEnabling(false);
+        }
     };
 
     return (
@@ -112,20 +132,20 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                             <div className="space-y-1">
                                 <div className="text-size-lg font-bold text-[var(--color-foreground)] flex items-center gap-2">
                                     Public Access
-                                    {shareUrl && (
+                                    {showLiveState && (
                                         <span className="inline-flex items-center rounded-full border border-[var(--color-foreground)] bg-[var(--color-share-accent)] px-2 py-0.5 text-size-sm uppercase font-bold tracking-wider">
                                             Live
                                         </span>
                                     )}
                                 </div>
                                 <div className="text-size-sm font-medium text-[var(--color-muted-foreground)]">
-                                    {shareUrl ? "Room is visible to visitors" : "Room is currently hidden"}
+                                    {showLiveState ? "Room is visible to visitors" : "Room is currently hidden"}
                                 </div>
                             </div>
                             
                             <ToggleSwitch
                                 aria-label="Toggle public access"
-                                checked={!!shareUrl}
+                                checked={showLiveState}
                                 onCheckedChange={() => handleToggleAccess()}
                                 activeClassName="bg-[var(--color-share-accent)]"
                                 inactiveClassName="bg-[var(--color-muted)]"
@@ -133,8 +153,8 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                         </div>
 
                         <div className="relative h-[200px] w-full">
-                            {shareUrl ? (
-                                <div className="absolute inset-0 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {showLiveState ? (
+                                <div className="absolute inset-0 flex flex-col gap-4 animate-in fade-in duration-200">
                                     <div className="flex items-center justify-between px-1">
                                         <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-foreground)] flex items-center gap-2">
                                             <Globe className="h-3 w-3" />
@@ -142,7 +162,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         </label>
                                         <button 
                                             onClick={handleResetCode}
-                                            disabled={isRotating}
+                                            disabled={isRotating || isEnabling}
                                             className="group flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors disabled:opacity-50"
                                         >
                                             <RefreshCw className={`h-3 w-3 ${isRotating ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
@@ -156,14 +176,21 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                         </div>
                                         <Input
                                             readOnly
-                                            value={shareUrl}
+                                            value={shareUrl ?? ""}
+                                            placeholder={isEnabling ? "Generating link..." : ""}
                                             className="h-14 border-2 border-[var(--color-foreground)] bg-[var(--color-background)] pl-12 pr-4 font-mono text-size-sm text-[var(--color-foreground)] shadow-[var(--shadow-4-soft)] focus-visible:ring-0 focus-visible:border-[var(--color-share-accent)]"
                                         />
+                                        {isEnabling && (
+                                            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
+                                                <Loader2 className="h-5 w-5 animate-spin text-[var(--color-muted-foreground)]" />
+                                            </div>
+                                        )}
                                     </div>
 
                                     <Button
                                         onClick={handleCopyLink}
-                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-size-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] ${
+                                        disabled={!shareUrl}
+                                        className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-size-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] disabled:opacity-50 ${
                                             copied 
                                             ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" 
                                             : "bg-[var(--color-foreground)] text-[var(--color-background)]"
@@ -183,7 +210,7 @@ export function ShareModal({ onClose }: { onClose: () => void }) {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-muted-foreground)] bg-[var(--color-muted)]/10 animate-in fade-in zoom-in-95 duration-300">
+                                <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-muted-foreground)] bg-[var(--color-muted)]/10 opacity-100 transition-opacity duration-200">
                                     <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-muted)]/20 text-[var(--color-muted-foreground)]">
                                         <Lock className="h-8 w-8" />
                                     </div>

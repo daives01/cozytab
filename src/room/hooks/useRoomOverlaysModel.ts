@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import type { RoomItem, GameType } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
+import type { GameType } from "@convex/lib/categories";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";
@@ -40,6 +41,7 @@ interface UseRoomOverlaysModelArgs {
         connectionState: "connecting" | "connected" | "reconnecting";
         wsRef: React.RefObject<WebSocket | null>;
         visitors: VisitorState[];
+        activeInvites?: Doc<"roomInvites">[] | null;
     };
 
     economy: {
@@ -174,11 +176,12 @@ export function useRoomOverlaysModel({
         const music: RoomOverlaysProps["music"] = {
             musicPlayerItemId: roomState.musicPlayerItemId,
             localItems,
+            musicInteractionToken: roomState.musicInteractionToken,
             onSave: async (updatedItem, updatedItems) => {
                 roomState.setLocalItems(() => updatedItems);
 
-                if (updatedItem.musicUrl) {
-                    roomState.setMusicAutoplay({ itemId: updatedItem.id, token: `${updatedItem.id}-${Date.now()}` });
+                if (updatedItem.musicUrl && updatedItem.musicPlaying) {
+                    roomState.setMusicInteractionToken(Date.now());
                 }
 
                 if (!isGuest && room) {
@@ -207,6 +210,7 @@ export function useRoomOverlaysModel({
             localChatMessage: presence.localChatMessage,
             screenCursor: presence.screenCursor,
             connectionState: presence.connectionState,
+            activeInvites: presence.activeInvites,
         };
 
         let gameType: GameType | null = null;

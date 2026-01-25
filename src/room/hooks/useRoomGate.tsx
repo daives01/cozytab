@@ -1,5 +1,5 @@
 import type { Doc } from "@convex/_generated/dataModel";
-import type { RoomItem } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
 import type { GuestSessionState } from "@shared/guestTypes";
 
 type HydratedRoom = (Doc<"rooms"> & { template?: Doc<"roomTemplates"> | null }) | null | undefined;

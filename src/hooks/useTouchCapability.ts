@@ -47,7 +47,7 @@ export function useTouchCapability() {
     const mql = matchMediaQuery("(pointer: coarse)");
 
     // Re-evaluate on first touch and pointer capability changes
-    window.addEventListener("touchstart", update, { once: true });
+    window.addEventListener("touchstart", update, { once: true, passive: true });
     if (mql) {
       if (typeof mql.addEventListener === "function") {
         mql.addEventListener("change", update);

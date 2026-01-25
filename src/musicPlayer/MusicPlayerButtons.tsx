@@ -5,45 +5,51 @@ import { extractYouTubeId } from "../lib/youtube";
 import { ensureAudioReady } from "@/lib/audio";
 import { useKeyboardSoundPreferences } from "../hooks/useKeyboardSoundSetting";
 
-// When a visitor unmutes, jump slightly ahead to counteract accumulated lag.
-const VISITOR_UNMUTE_AHEAD_SECONDS = .1;
-const PLAY_KICK_DELAY_MS = 1000;
+const VISITOR_UNMUTE_AHEAD_SECONDS = 0.1;
 
 export interface MusicPlayerButtonsProps {
     item: RoomItem;
     onToggle?: (playing: boolean) => void;
-    autoPlayToken?: string | null;
     isVisitor?: boolean;
+    interactionGranted?: boolean;
 }
 
-export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = false }: MusicPlayerButtonsProps) {
+export function MusicPlayerButtons({
+    item,
+    onToggle,
+    isVisitor = false,
+    interactionGranted = false,
+}: MusicPlayerButtonsProps) {
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const iframeLoadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isReady, setIsReady] = useState(false);
-    // Hosts are treated as having interacted so state-driven playback can start.
-    const [hasInteracted, setHasInteracted] = useState(() => !isVisitor);
+    const [localInteracted, setLocalInteracted] = useState(false);
     const [muted, setMuted] = useState(false);
     const { musicVolume } = useKeyboardSoundPreferences();
     const playing = item.musicPlaying ?? false;
-    // Host: require explicit interaction to auto-play after refresh; ignore token.
-    // Visitor: require first interaction; token only helps after interaction is granted.
-    const needsResume = playing && !hasInteracted;
-    const lastSeekSecondsRef = useRef<number>(0);
+    const lastSeekRef = useRef<number>(0);
+
+    const hasInteracted = localInteracted || interactionGranted;
 
     const videoId = item.musicUrl && item.musicType === "youtube" ? extractYouTubeId(item.musicUrl) : null;
 
-    const embedUrl = videoId
-        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${window.location.origin}`
-        : null;
+    // Reset state when videoId changes (React pattern: update state during render, not in effect)
+    const [prevVideoId, setPrevVideoId] = useState(videoId);
+    if (videoId !== prevVideoId) {
+        setPrevVideoId(videoId);
+        setIsReady(false);
+        setLocalInteracted(false);
+        setMuted(false);
+    }
 
-    const computeLivePositionSeconds = useCallback(() => {
-        const positionAtStart = item.musicPositionAtStart ?? 0;
-        const startedAt = item.musicStartedAt ?? 0;
-        const nowSeconds =
-            item.musicPlaying && startedAt
-                ? (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000
-                : positionAtStart / 1000;
-        return nowSeconds;
-    }, [item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt]);
+    // Reset ref when videoId changes (refs must be updated in effects, not during render)
+    useEffect(() => {
+        lastSeekRef.current = 0;
+    }, [videoId]);
+
+    const embedUrl = videoId
+        ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&autoplay=0&controls=0&rel=0&fs=0&iv_load_policy=3&cc_load_policy=0&playsinline=1&origin=${encodeURIComponent(window.location.origin)}`
+        : null;
 
     const sendCommand = useCallback(
         (command: string, args?: unknown) => {
@@ -56,51 +62,64 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
         [isReady]
     );
 
-    const handleIframeLoad = useCallback(() => {
-        setTimeout(() => setIsReady(true), 500);
-    }, []);
+    const computeLivePositionSeconds = useCallback(() => {
+        const positionAtStart = item.musicPositionAtStart ?? 0;
+        const startedAt = item.musicStartedAt ?? 0;
+        if (item.musicPlaying && startedAt) {
+            return (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000;
+        }
+        return positionAtStart / 1000;
+    }, [item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt]);
 
     const seekTo = useCallback(
         (seconds: number, force = false) => {
             if (!isReady || !videoId) return;
-            const delta = Math.abs(seconds - lastSeekSecondsRef.current);
-            if (!force && delta < 0.25) return;
+            if (!force && Math.abs(seconds - lastSeekRef.current) < 0.5) return;
             sendCommand("seekTo", [seconds, true]);
-            lastSeekSecondsRef.current = seconds;
+            lastSeekRef.current = seconds;
         },
         [isReady, sendCommand, videoId]
     );
 
     useEffect(() => {
-        lastSeekSecondsRef.current = 0;
-        if (isReady) {
-            sendCommand("pauseVideo");
-        }
-    }, [isReady, sendCommand, videoId]);
+        const handleMessage = (event: MessageEvent) => {
+            if (event.origin !== "https://www.youtube.com") return;
+            try {
+                const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+                if (data.event === "onReady" || data.info?.playerState !== undefined) {
+                    setIsReady(true);
+                }
+            } catch {
+                // Ignore non-JSON messages
+            }
+        };
+        window.addEventListener("message", handleMessage);
+        return () => window.removeEventListener("message", handleMessage);
+    }, []);
+
+    const handleIframeLoad = useCallback(() => {
+        if (iframeLoadTimeoutRef.current) clearTimeout(iframeLoadTimeoutRef.current);
+        iframeLoadTimeoutRef.current = setTimeout(() => setIsReady(true), 400);
+    }, []);
+
+
+    useEffect(() => {
+        return () => {
+            if (iframeLoadTimeoutRef.current) clearTimeout(iframeLoadTimeoutRef.current);
+        };
+    }, []);
 
     useEffect(() => {
         if (!isReady || !videoId) return;
-        const nowSeconds = computeLivePositionSeconds();
-        seekTo(nowSeconds);
-    }, [computeLivePositionSeconds, isReady, seekTo, videoId]);
+        seekTo(computeLivePositionSeconds(), true);
+    }, [isReady, videoId, item.musicStartedAt, item.musicPositionAtStart, seekTo, computeLivePositionSeconds]);
 
-    // When a new track is requested, wait a beat before attempting play so the iframe is settled.
-    useEffect(() => {
-        if (!playing || !isReady || !videoId) return;
-        if (isVisitor && muted) return;
-        if (!hasInteracted) return;
-        const timer = window.setTimeout(() => {
-            sendCommand("playVideo");
-        }, PLAY_KICK_DELAY_MS);
-        return () => window.clearTimeout(timer);
-    }, [hasInteracted, isReady, isVisitor, muted, playing, sendCommand, videoId]);
+    const shouldPlay = isReady && playing && hasInteracted && (!isVisitor || !muted);
 
     useEffect(() => {
-        const canPlay = hasInteracted && playing && (!isVisitor || !muted);
-        if (isReady && canPlay) {
-            sendCommand("playVideo");
-        }
-    }, [hasInteracted, isVisitor, isReady, muted, playing, sendCommand]);
+        if (!isReady || !videoId) return;
+        sendCommand(shouldPlay ? "playVideo" : "pauseVideo");
+    }, [isReady, videoId, shouldPlay, sendCommand]);
 
     useEffect(() => {
         if (!isReady) return;
@@ -108,75 +127,57 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
     }, [isReady, musicVolume, sendCommand]);
 
     useEffect(() => {
-        if (isReady && !playing) {
-            sendCommand("pauseVideo");
-        }
-    }, [isReady, playing, sendCommand]);
-
-    useEffect(() => {
         if (!isReady) return;
         sendCommand(muted ? "mute" : "unMute");
     }, [isReady, muted, sendCommand]);
 
-    // Token-based autoplay only applies for visitors after interaction (host ignores it) and only when unmuted.
-    useEffect(() => {
-        if (!isVisitor) return;
-        if (!hasInteracted) return;
-        if (!autoPlayToken || !playing || !isReady) return;
-        if (muted) return;
-        sendCommand("playVideo");
-    }, [autoPlayToken, hasInteracted, isReady, isVisitor, muted, playing, sendCommand]);
-
     const handlePlayPause = () => {
         void ensureAudioReady();
-        if (!isReady) return;
 
-        // Visitors only toggle local mute; host controls playback.
         if (isVisitor) {
-            setHasInteracted(true);
+            if (!isReady) return;
+            setLocalInteracted(true);
             setMuted((prev) => {
                 const next = !prev;
-                if (next) {
-                    sendCommand("mute");
-                } else {
+                if (!next) {
                     seekTo(computeLivePositionSeconds() + VISITOR_UNMUTE_AHEAD_SECONDS, true);
-                    sendCommand("unMute");
                 }
                 return next;
             });
             return;
         }
 
-        if (playing) {
-            sendCommand("pauseVideo");
-            onToggle?.(false);
-        } else {
-            setHasInteracted(true);
-            sendCommand("playVideo");
-            onToggle?.(true);
-        }
+        setLocalInteracted(true);
+        onToggle?.(!playing);
     };
 
     const handleResume = () => {
         void ensureAudioReady();
-        if (!isReady) return;
-        setHasInteracted(true);
+        setLocalInteracted(true);
         setMuted(false);
-        sendCommand("playVideo");
-        onToggle?.(true);
     };
 
     if (!item.musicUrl || item.musicType !== "youtube" || !videoId || !embedUrl) {
         return null;
     }
 
+    const needsResume = playing && !hasInteracted;
+
     return (
         <>
             <iframe
                 ref={iframeRef}
                 src={embedUrl}
-                style={{ width: 1, height: 1, opacity: 0, position: "absolute", left: -9999, top: -9999 }}
-                allow="autoplay"
+                style={{
+                    width: 1,
+                    height: 1,
+                    opacity: 0,
+                    position: "absolute",
+                    left: 0,
+                    top: 0,
+                    pointerEvents: "none",
+                }}
+                allow="autoplay; encrypted-media; picture-in-picture"
                 onLoad={handleIframeLoad}
             />
 
@@ -190,7 +191,6 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
                             handleResume();
                         }}
                         onTouchStart={(e) => e.stopPropagation()}
-                        disabled={!isReady}
                     >
                         Listen in
                     </button>
@@ -206,15 +206,18 @@ export function MusicPlayerButtons({ item, onToggle, autoPlayToken, isVisitor = 
                         }}
                         onTouchStart={(e) => e.stopPropagation()}
                         title={isVisitor ? (muted ? "Unmute" : "Mute") : playing ? "Pause" : "Play"}
-                        disabled={!isReady}
                     >
-                        {isVisitor
-                            ? muted
-                                ? <VolumeX className="h-7 w-7" />
-                                : <Volume2 className="h-7 w-7 ml-0.5" />
-                            : playing
-                                ? <Pause className="h-7 w-7" />
-                                : <Play className="h-7 w-7 ml-0.5" />}
+                        {isVisitor ? (
+                            muted ? (
+                                <VolumeX className="h-7 w-7" />
+                            ) : (
+                                <Volume2 className="h-7 w-7 ml-0.5" />
+                            )
+                        ) : playing ? (
+                            <Pause className="h-7 w-7" />
+                        ) : (
+                            <Play className="h-7 w-7 ml-0.5" />
+                        )}
                     </button>
                 </div>
             )}

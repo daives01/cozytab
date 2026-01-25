@@ -1,5 +1,5 @@
 import type { Id } from "@convex/_generated/dataModel";
-import type { RoomItem } from "@/types";
+import type { RoomItem } from "@shared/guestTypes";
 
 type CatalogId = Id<"catalogItems"> | string;
 
