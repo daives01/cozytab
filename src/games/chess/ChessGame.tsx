@@ -97,6 +97,26 @@ function DrawOfferBanner({
   );
 }
 
+function DrawDeclinedBanner() {
+  return (
+    <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+      <span className="text-xs font-medium whitespace-nowrap">Draw declined</span>
+    </div>
+  );
+}
+
+function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
+  return (
+    <div className="relative group">
+      {children}
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[var(--color-foreground)] text-[var(--color-background)] text-xs font-medium rounded-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
+        {text}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-foreground)]" />
+      </div>
+    </div>
+  );
+}
+
 function PlayerBadge({
   side,
   player,
@@ -174,6 +194,7 @@ export function ChessGame({
   const [possibleMoves, setPossibleMoves] = useState<Set<Square>>(new Set());
   const { playMoveSound } = useChessSounds();
   const prevFenRef = useRef(serverFen);
+  const [drawDeclinedAt, setDrawDeclinedAt] = useState<number | null>(null);
 
   const [isLandscape, setIsLandscape] = useState(() => typeof window !== "undefined" && window.innerWidth > window.innerHeight);
 
@@ -258,13 +279,14 @@ export function ChessGame({
   // 2. Decliner clears their "drawDecline" when offerer's offer is gone (or new offer arrives)
   const prevOpponentSignalRef = useRef<GameSignal | undefined>(undefined);
   useEffect(() => {
-    const prev = prevOpponentSignalRef.current;
+    const prevOpponent = prevOpponentSignalRef.current;
     prevOpponentSignalRef.current = opponentSignal;
 
     if (!mySide) return;
 
-    // Offerer: clear my offer when opponent declines
+    // Offerer: clear my offer when opponent declines, show declined message
     if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
+      queueMicrotask(() => setDrawDeclinedAt(Date.now()));
       onSignal(null);
       return;
     }
@@ -272,13 +294,22 @@ export function ChessGame({
     // Decliner: clear my decline when offer is gone OR a new offer arrives
     if (mySignal === "drawDecline") {
       const opponentNowOffering = opponentSignal === "drawOffer";
-      const opponentWasOffering = prev === "drawOffer";
+      const opponentWasOffering = prevOpponent === "drawOffer";
       // Clear if: offer gone, or new offer detected (heals missed transitions)
       if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
         onSignal(null);
       }
     }
   }, [mySide, mySignal, opponentSignal, onSignal]);
+
+  // Auto-clear draw declined message after 2 seconds
+  useEffect(() => {
+    if (drawDeclinedAt === null) return;
+    const timer = setTimeout(() => setDrawDeclinedAt(null), 2000);
+    return () => clearTimeout(timer);
+  }, [drawDeclinedAt]);
+
+  const showDrawDeclined = drawDeclinedAt !== null;
 
   // Clear local UI state when game resets to starting position
   useEffect(() => {
@@ -531,24 +562,26 @@ export function ChessGame({
 
   const controlButtons = (
     <div className="flex items-center gap-2 h-8">
-      <button
-        type="button"
-        onClick={() => (otherPlayerExists ? onSignal("resign") : onReset())}
-        disabled={!mySide}
-        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
-        title={otherPlayerExists ? "Resign" : "Reset"}
-      >
-        {otherPlayerExists ? <Flag className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
-      </button>
-      <button
-        type="button"
-        onClick={() => onSignal("drawOffer")}
-        disabled={!otherPlayerExists || !!opponentDrawOffer || mySignal === "drawOffer"}
-        className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
-        title="Offer draw"
-      >
-        <Handshake className="w-3 h-3" />
-      </button>
+      <Tooltip text={otherPlayerExists ? "Resign" : "Reset"}>
+        <button
+          type="button"
+          onClick={() => (otherPlayerExists ? onSignal("resign") : onReset())}
+          disabled={!mySide}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
+        >
+          {otherPlayerExists ? <Flag className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+        </button>
+      </Tooltip>
+      <Tooltip text="Offer draw">
+        <button
+          type="button"
+          onClick={() => onSignal("drawOffer")}
+          disabled={!otherPlayerExists || !!opponentDrawOffer || mySignal === "drawOffer"}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
+        >
+          <Handshake className="w-3 h-3" />
+        </button>
+      </Tooltip>
       <button
         type="button"
         onClick={onClose}
@@ -644,6 +677,11 @@ export function ChessGame({
                 onAccept={() => onSignal("drawAccept")}
                 onDecline={() => onSignal("drawDecline")}
               />
+            </div>
+          )}
+          {showDrawDeclined && (
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+              <DrawDeclinedBanner />
             </div>
           )}
         </div>
@@ -742,6 +780,11 @@ export function ChessGame({
               onAccept={() => onSignal("drawAccept")}
               onDecline={() => onSignal("drawDecline")}
             />
+          </div>
+        )}
+        {showDrawDeclined && (
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+            <DrawDeclinedBanner />
           </div>
         )}
       </div>
