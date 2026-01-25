@@ -29,8 +29,8 @@ export function ItemCard({
     const toggleVisibilityClass = isPending ? "opacity-60" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
     const togglePositionClass = compact ? "right-1.5 top-1.5 h-8 w-8 shadow-[var(--shadow-3)]" : "";
     const titleClass = compact
-        ? "line-clamp-2 text-size-sm font-black uppercase tracking-[0.12em] text-[var(--color-foreground)] leading-snug"
-        : "line-clamp-2 text-size-lg font-black uppercase tracking-[0.12em] text-[var(--color-foreground)] leading-tight";
+        ? "line-clamp-2 text-size-sm font-black uppercase tracking-normal text-[var(--color-foreground)] leading-snug"
+        : "line-clamp-2 text-size-lg font-black uppercase tracking-normal text-[var(--color-foreground)] leading-tight";
     const titleRowClass = compact ? "flex items-start justify-between gap-1.5" : "flex items-start justify-between gap-2";
 
     return (

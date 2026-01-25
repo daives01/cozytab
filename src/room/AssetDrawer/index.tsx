@@ -108,7 +108,7 @@ export function AssetDrawer({
     const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
     const isBottom = orientation === "bottom";
     const gridClass = isBottom
-        ? "grid grid-cols-[repeat(auto-fit,minmax(120px,150px))] auto-rows-min justify-center gap-3"
+        ? "grid grid-cols-[repeat(auto-fit,minmax(130px,160px))] auto-rows-min justify-center gap-3"
         : "grid grid-cols-2 gap-3";
 
     return (
