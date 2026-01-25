@@ -409,11 +409,6 @@ function VisitorRoomPageContent({
                                         key={item.id}
                                         item={localMusicItem}
                                         onToggle={(playing) => handleMusicToggle(item.id, playing, musicUrlKey(item))}
-                                        autoPlayToken={
-                                            visitorMusicState[item.id]?.playing
-                                                ? `${visitorMusicState[item.id].urlKey}-${visitorMusicState[item.id].startedAt}`
-                                                : null
-                                        }
                                         isVisitor={true}
                                     />
                                 </>

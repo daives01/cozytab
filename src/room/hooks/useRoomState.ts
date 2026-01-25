@@ -12,7 +12,7 @@ import {
     inventoryAtom,
     itemsAtom,
     modeAtom,
-    musicAutoplayAtom,
+    musicInteractionTokenAtom,
     musicPlayerItemIdAtom,
     onboardingCompletedAtom,
     selectedIdAtom,
@@ -108,8 +108,8 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     const setAuthedCursorColor = useSetAtom(cursorColorAtom);
     const authedMusicPlayerItemId = useAtomValue(musicPlayerItemIdAtom);
     const setAuthedMusicPlayerItemId = useSetAtom(musicPlayerItemIdAtom);
-    const musicAutoplay = useAtomValue(musicAutoplayAtom);
-    const setMusicAutoplay = useSetAtom(musicAutoplayAtom);
+    const musicInteractionToken = useAtomValue(musicInteractionTokenAtom);
+    const setMusicInteractionToken = useSetAtom(musicInteractionTokenAtom);
     const guestOnboardingCompletedState = useAtomValue(onboardingCompletedAtom);
     const setGuestOnboardingCompletedState = useSetAtom(onboardingCompletedAtom);
     const guestCoinsState = useAtomValue(coinsAtom);
@@ -209,8 +209,8 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         saveAuthedCursorColorRef,
         musicPlayerItemId,
         setMusicPlayerItemId,
-        musicAutoplay,
-        setMusicAutoplay,
+        musicInteractionToken,
+        setMusicInteractionToken,
         guestOnboardingCompletedValue,
         setGuestOnboardingCompletedValue,
         guestCoinsValue,

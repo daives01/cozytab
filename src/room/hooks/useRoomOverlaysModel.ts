@@ -176,11 +176,12 @@ export function useRoomOverlaysModel({
         const music: RoomOverlaysProps["music"] = {
             musicPlayerItemId: roomState.musicPlayerItemId,
             localItems,
+            musicInteractionToken: roomState.musicInteractionToken,
             onSave: async (updatedItem, updatedItems) => {
                 roomState.setLocalItems(() => updatedItems);
 
-                if (updatedItem.musicUrl) {
-                    roomState.setMusicAutoplay({ itemId: updatedItem.id, token: `${updatedItem.id}-${Date.now()}` });
+                if (updatedItem.musicUrl && updatedItem.musicPlaying) {
+                    roomState.setMusicInteractionToken(Date.now());
                 }
 
                 if (!isGuest && room) {

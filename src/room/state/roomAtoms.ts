@@ -7,7 +7,6 @@ import type { Shortcut, RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 
 export type Mode = "view" | "edit";
-export type MusicAutoplayState = { itemId: string; token: string } | null;
 
 type RoomUiState = {
     mode: Mode;
@@ -20,7 +19,7 @@ type RoomUiState = {
     shortcuts: Shortcut[];
     cursorColor: string | null;
     musicPlayerItemId: string | null;
-    musicAutoplay: MusicAutoplayState;
+    musicInteractionToken: number;
     displayName: string | null;
     onboardingCompleted: boolean;
     coins: number;
@@ -39,7 +38,7 @@ const defaultState: RoomUiState = {
     shortcuts: [],
     cursorColor: null,
     musicPlayerItemId: null,
-    musicAutoplay: null,
+    musicInteractionToken: 0,
     displayName: null,
     onboardingCompleted: false,
     coins: 0,
@@ -144,12 +143,12 @@ export const musicPlayerItemIdAtom = atom(
     }
 );
 
-export const musicAutoplayAtom = atom(
-    (get) => get(roomStateAtom).musicAutoplay,
-    (get, set, next: MusicAutoplayState | ((prev: MusicAutoplayState) => MusicAutoplayState)) => {
-        const current = get(roomStateAtom).musicAutoplay;
+export const musicInteractionTokenAtom = atom(
+    (get) => get(roomStateAtom).musicInteractionToken,
+    (get, set, next: number | ((prev: number) => number)) => {
+        const current = get(roomStateAtom).musicInteractionToken;
         patchState(get, set, {
-            musicAutoplay: typeof next === "function" ? (next as (p: MusicAutoplayState) => MusicAutoplayState)(current) : next,
+            musicInteractionToken: typeof next === "function" ? (next as (p: number) => number)(current) : next,
         });
     }
 );

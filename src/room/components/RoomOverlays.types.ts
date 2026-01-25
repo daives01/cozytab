@@ -61,6 +61,7 @@ export interface ComputerProps {
 export interface MusicProps {
     musicPlayerItemId: string | null;
     localItems: RoomItem[];
+    musicInteractionToken: number;
     onSave: (updatedItem: RoomItem, updatedItems: RoomItem[]) => void;
     onClose: () => void;
 }
