@@ -8,7 +8,8 @@ export type CurrencyReason =
     | "purchase"
     | "room_purchase"
     | "guest_import"
-    | "admin_adjustment";
+    | "admin_adjustment"
+    | "gift";
 
 type ApplyCurrencyChangeArgs = {
     ctx: MutationCtx;

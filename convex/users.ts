@@ -961,3 +961,36 @@ export const saveMusicPlayerVolume = mutation({
     },
 });
 
+export const giftCoins = internalMutation({
+    args: {
+        userId: v.id("users"),
+        amount: v.number(),
+        note: v.optional(v.string()),
+    },
+    handler: async (ctx, args) => {
+        if (args.amount <= 0) {
+            throw new Error("Gift amount must be positive");
+        }
+
+        const user = await ctx.db.get(args.userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        const result = await applyCurrencyChange({
+            ctx,
+            userId: args.userId,
+            delta: args.amount,
+            reason: "gift",
+            idempotencyKey: `gift:${args.userId}:${Date.now()}`,
+            metadata: args.note ? { note: args.note } : undefined,
+        });
+
+        return {
+            applied: result.applied,
+            newBalance: result.balance,
+            username: user.username,
+        };
+    },
+});
+
