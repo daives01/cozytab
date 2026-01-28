@@ -9,6 +9,7 @@ import {
     guestNormalizedShortcutsAtom,
 } from "@/guest/state/guestAtoms";
 import type { TimeOfDay } from "../room/types";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 export interface ComputerOverlayProps {
     isGuest: boolean;
@@ -38,6 +39,7 @@ export interface ComputerOverlayProps {
     timeOfDay: TimeOfDay;
     devTimeOfDay: TimeOfDay | null;
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
+    inRoomVisitors?: VisitorState[];
 }
 
 export function ComputerOverlay({
@@ -68,6 +70,7 @@ export function ComputerOverlay({
     timeOfDay,
     devTimeOfDay,
     onSetDevTimeOfDay,
+    inRoomVisitors,
 }: ComputerOverlayProps) {
     const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
     const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
@@ -117,6 +120,7 @@ export function ComputerOverlay({
             timeOfDay={timeOfDay}
             devTimeOfDay={devTimeOfDay}
             onSetDevTimeOfDay={onSetDevTimeOfDay}
+            inRoomVisitors={inRoomVisitors}
         />
     );
 }

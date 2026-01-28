@@ -70,6 +70,7 @@ export interface ComputerScreenProps {
     timeOfDay: TimeOfDay;
     devTimeOfDay: TimeOfDay | null;
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
+    inRoomVisitors?: import("@/hooks/useWebSocketPresence").VisitorState[];
 }
 
 const DISPLAY_NAME_MAX_LENGTH = 50;
@@ -101,6 +102,7 @@ export function ComputerScreen({
     timeOfDay,
     devTimeOfDay,
     onSetDevTimeOfDay,
+    inRoomVisitors,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -908,6 +910,7 @@ export function ComputerScreen({
                                                     }
                                                     : undefined
                                             }
+                                            inRoomVisitors={inRoomVisitors}
                                         />
                                     </WindowFrame>
                                 ))}

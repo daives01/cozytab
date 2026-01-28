@@ -337,6 +337,7 @@ function FriendVisitContent({
                 timeOfDay={timeOfDay}
                 devTimeOfDay={overrideTimeOfDay}
                 onSetDevTimeOfDay={setOverrideTimeOfDay}
+                inRoomVisitors={visitors.filter((v) => v.convexUserId && v.visitorId !== visitorIdentity.id)}
             />
         </>
     );

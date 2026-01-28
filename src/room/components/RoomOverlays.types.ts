@@ -88,6 +88,7 @@ export interface PresenceProps {
     screenCursor: { x: number; y: number };
     connectionState: "connecting" | "connected" | "reconnecting";
     activeInvites?: Doc<"roomInvites">[] | null;
+    visitors: VisitorState[];
 }
 
 export interface GameProps {

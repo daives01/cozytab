@@ -215,6 +215,7 @@ export function useRoomOverlaysModel({
             screenCursor: presence.screenCursor,
             connectionState: presence.connectionState,
             activeInvites: presence.activeInvites,
+            visitors: presence.visitors,
         };
 
         let gameType: GameType | null = null;

@@ -6,6 +6,7 @@ import { CustomizePanel } from "./CustomizePanel";
 import { FriendsPanel } from "./FriendsPanel";
 import type { ComputerWindowApp } from "./types";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 type ShopWindowProps = ComponentProps<typeof Shop>;
 
@@ -32,9 +33,10 @@ interface ComputerWindowContentProps {
         allowColorChange?: boolean;
     };
     isGuest?: boolean;
+    inRoomVisitors?: VisitorState[];
 }
 
-export function ComputerWindowContent({ app, shopProps, roomsProps, customizeProps, isGuest }: ComputerWindowContentProps) {
+export function ComputerWindowContent({ app, shopProps, roomsProps, customizeProps, isGuest, inRoomVisitors }: ComputerWindowContentProps) {
     if (app === "shop") {
         return <Shop {...shopProps} />;
     }
@@ -53,6 +55,7 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, customizePro
         return (
             <FriendsPanel
                 isGuest={isGuest}
+                inRoomVisitors={inRoomVisitors}
             />
         );
     }
