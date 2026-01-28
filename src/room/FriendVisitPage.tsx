@@ -59,7 +59,9 @@ export function FriendVisitPage() {
         );
     }
 
-    if (!friendUserId) {
+    // Convex IDs are non-empty alphanumeric-ish strings; reject obvious garbage early
+    const isPlausibleId = friendUserId && /^[a-zA-Z0-9_-]+$/.test(friendUserId);
+    if (!isPlausibleId) {
         return (
             <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
                 <p>Invalid friend link</p>
