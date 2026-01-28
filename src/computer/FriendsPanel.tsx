@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,12 @@ function FriendsTab() {
     const friends = useQuery(api.friends.getMyFriends);
     const removeFriend = useMutation(api.friends.removeFriend);
     const [confirmRemove, setConfirmRemove] = useState<Id<"friendships"> | null>(null);
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => setNow(Date.now()), 30_000);
+        return () => clearInterval(interval);
+    }, []);
 
     if (friends === undefined) {
         return (
@@ -78,8 +84,6 @@ function FriendsTab() {
             </div>
         );
     }
-
-    const now = Date.now();
 
     return (
         <div className="divide-y divide-stone-100">
