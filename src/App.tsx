@@ -21,7 +21,7 @@ import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
 /** Backwards-compat: /ref/:code and /addfriend/:code both redirect to /?friendRef=code */
 function LegacyRedirect() {
   const { code } = useParams<{ code: string }>();
-  return <Navigate to={code ? `/?friendRef=${code}` : "/"} replace />;
+  return <Navigate to={code ? `/?friendRef=${encodeURIComponent(code)}` : "/"} replace />;
 }
 
 function App() {

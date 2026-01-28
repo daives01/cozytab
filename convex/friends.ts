@@ -230,7 +230,7 @@ export const getMyFriends = query({
             })
         );
 
-        return friends.filter(Boolean);
+        return friends.filter((f): f is NonNullable<typeof f> => f !== null);
     },
 });
 

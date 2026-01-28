@@ -9,7 +9,7 @@ type MusicState = {
     positionAtStart: number;
 };
 
-const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
+export const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 
 export function useVisitorMusic(items: RoomItem[] | undefined) {
     const [activeMusicItemId, setActiveMusicItemId] = useState<string | null>(null);

@@ -6,6 +6,7 @@ import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import { isMusicItem } from "../roomUtils";
+import { musicUrlKey } from "../hooks/useVisitorMusic";
 
 type MusicState = {
     urlKey: string;
@@ -27,8 +28,6 @@ interface VisitorRoomItemsProps {
     currentVisitorId: string;
     currentGameId: string | null;
 }
-
-const musicUrlKey = (item: RoomItem) => `${item.musicType ?? ""}:${item.musicUrl ?? ""}`;
 
 export function VisitorRoomItems({
     items,
