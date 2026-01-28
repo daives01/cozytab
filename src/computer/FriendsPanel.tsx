@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { api } from "@convex/_generated/api";
@@ -85,10 +85,24 @@ function TabButton({ label, icon, active, onClick, badge }: { label: string; ico
 type FriendsQuery = ReturnType<typeof useQuery<typeof api.friends.getMyFriends>>;
 type PendingRequestsQuery = ReturnType<typeof useQuery<typeof api.friends.getMyPendingRequests>>;
 
+type FriendshipStatusMap = Record<string, { status: "pending" | "accepted"; isInitiator: boolean } | null>;
+
 function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoomVisitors: VisitorState[] }) {
     const removeFriend = useMutation(api.friends.removeFriend);
     const [confirmRemove, setConfirmRemove] = useState<Id<"friendships"> | null>(null);
     const [now, setNow] = useState(() => Date.now());
+
+    // Batch fetch friendship status for all visitors with convexUserId
+    const visitorUserIds = useMemo(() => {
+        return inRoomVisitors
+            .map((v) => v.convexUserId as Id<"users"> | undefined)
+            .filter((id): id is Id<"users"> => !!id);
+    }, [inRoomVisitors]);
+
+    const friendshipStatusBatch = useQuery(
+        api.friends.getFriendshipStatusBatch,
+        visitorUserIds.length > 0 ? { userIds: visitorUserIds } : "skip"
+    );
 
     useEffect(() => {
         if (!friends) return;
@@ -140,7 +154,11 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
                         In Your Room
                     </div>
                     {inRoomVisitors.map((visitor) => (
-                        <InRoomVisitorRow key={visitor.visitorId} visitor={visitor} />
+                        <InRoomVisitorRow
+                            key={visitor.visitorId}
+                            visitor={visitor}
+                            friendshipStatusMap={friendshipStatusBatch ?? {}}
+                        />
                     ))}
                 </div>
             )}
@@ -217,17 +235,15 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
     );
 }
 
-function InRoomVisitorRow({ visitor }: { visitor: VisitorState }) {
+function InRoomVisitorRow({ visitor, friendshipStatusMap }: { visitor: VisitorState; friendshipStatusMap: FriendshipStatusMap }) {
     const convexUserId = visitor.convexUserId as Id<"users"> | undefined;
-    const friendshipStatus = useQuery(
-        api.friends.getFriendshipWith,
-        convexUserId ? { userId: convexUserId } : "skip"
-    );
     const sendRequest = useMutation(api.friends.sendFriendRequestByUserId);
     const [sending, setSending] = useState(false);
     const [result, setResult] = useState<{ type: "sent" | "autoAccepted" | "alreadyPending" | "alreadyFriends" } | null>(null);
 
     if (!convexUserId) return null;
+
+    const friendshipStatus = friendshipStatusMap[convexUserId];
 
     const handleSend = async () => {
         setSending(true);
@@ -389,9 +405,13 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
 
     const handleCopyLink = async () => {
         if (!friendLink) return;
-        await navigator.clipboard.writeText(friendLink);
-        setLinkCopied(true);
-        setTimeout(() => setLinkCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(friendLink);
+            setLinkCopied(true);
+            setTimeout(() => setLinkCopied(false), 2000);
+        } catch {
+            // Clipboard API may fail (permissions, non-HTTPS) - silent fail
+        }
     };
 
     const handleSend = async () => {

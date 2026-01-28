@@ -496,9 +496,11 @@ export const closeInviteSession = mutation({
 
 export const heartbeatPresence = mutation({
     args: {},
+    returns: v.null(),
     handler: async (ctx) => {
         const user = await requireAuth(ctx);
         await ctx.db.patch(user._id, { lastSeenAt: Date.now() });
+        return null;
     },
 });
 
