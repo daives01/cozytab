@@ -314,10 +314,10 @@ function FriendVisitContent({
                 loginStreak={overlayLoginStreak}
                 onPointerMove={updateCursorFromClient}
                 guestCoins={0}
-                onGuestCoinsChange={() => {}}
+                onGuestCoinsChange={() => { }}
                 startingCoins={GUEST_STARTING_COINS}
                 guestInventory={[]}
-                onGuestPurchase={() => {}}
+                onGuestPurchase={() => { }}
                 isOnboardingShopStep={false}
                 displayName={overlayDisplayName}
                 username={overlayUsername}

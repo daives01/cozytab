@@ -335,10 +335,14 @@ export const getFriendshipWith = query({
 });
 
 export const getFriendRoom = query({
-    args: { friendUserId: v.id("users") },
+    args: { friendUserId: v.string() },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return null;
+
+        // Validate the ID format before using it
+        const friendUserId = ctx.db.normalizeId("users", args.friendUserId);
+        if (!friendUserId) return null;
 
         const me = await ctx.db
             .query("users")
@@ -347,17 +351,17 @@ export const getFriendRoom = query({
         if (!me) return null;
 
         // Validate friendship
-        const friendship = await findFriendship(ctx, me._id, args.friendUserId);
+        const friendship = await findFriendship(ctx, me._id, friendUserId);
         if (!friendship || friendship.status !== "accepted") return null;
 
-        const friend = await ctx.db.get(args.friendUserId);
+        const friend = await ctx.db.get(friendUserId);
         if (!friend) return null;
 
         // Find friend's active room
         const activeRooms = await ctx.db
             .query("rooms")
             .withIndex("by_user_active", (q) =>
-                q.eq("userId", args.friendUserId).eq("isActive", true)
+                q.eq("userId", friendUserId).eq("isActive", true)
             )
             .collect();
         const room = activeRooms[0];
