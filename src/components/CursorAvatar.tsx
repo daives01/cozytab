@@ -1,0 +1,54 @@
+interface CursorAvatarProps {
+    color: string;
+    size?: number;
+    width?: number;
+    height?: number;
+    filter?: string;
+    rotated?: boolean;
+    hotspot?: { x: number; y: number };
+}
+
+export function CursorAvatar({ color, size, width, height, filter, rotated, hotspot }: CursorAvatarProps) {
+    const w = width ?? size ?? 32;
+    const h = height ?? (size ? size * 1.3 : 42);
+    return (
+        <svg
+            width={w}
+            height={h}
+            viewBox="0 0 100 130"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{
+                display: "block",
+                filter,
+                transform: rotated ? "rotate(180deg)" : undefined,
+                transformOrigin: rotated && hotspot ? `${hotspot.x}px ${hotspot.y}px` : undefined,
+            }}
+        >
+            <path
+                d="M23.5 11.2C25.8 7.8 29.9 7.1 33.2 9.5L88.2 50.1C93.4 54.0 92.5 62.1 86.6 64.8L69.3 72.7L80.1 99.4C82.1 104.3 79.5 110 74.5 112L63.8 116.3C58.8 118.3 53.2 115.8 51.1 110.8L40.2 84.1L20.4 89.6C14.3 91.3 8.7 85.3 11.2 79.4L23.5 11.2Z"
+                fill={color}
+                stroke={color}
+                strokeWidth="12"
+                strokeLinejoin="round"
+            />
+            <ellipse
+                cx="22"
+                cy="46"
+                rx="12.5"
+                ry="18"
+                transform="rotate(-15 22 46)"
+                fill="white"
+            />
+            <circle cx="24" cy="51" r="5.5" fill="black" />
+            <ellipse
+                cx="50"
+                cy="38"
+                rx="12"
+                ry="18"
+                transform="rotate(-10 50 38)"
+                fill="white"
+            />
+            <circle cx="49" cy="45" r="5.5" fill="black" />
+        </svg>
+    );
+}

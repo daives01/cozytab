@@ -20,6 +20,7 @@ interface CursorDisplayProps {
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
 import { getReadableTextColor } from "@/room/utils/cursorColor";
+import { CursorAvatar } from "@/components/CursorAvatar";
 
 const POINTER_HOTSPOT = { x: 6, y: 3 };
 const POINTER_SIZE = { width: 38, height: 48 };
@@ -77,45 +78,14 @@ export function CursorDisplay({
     return (
         <div className={onClick ? "pointer-events-auto cursor-pointer" : "pointer-events-none"} style={cursorStyle} onClick={onClick}>
             {!hidePointer && (
-                <svg
+                <CursorAvatar
+                    color={pointerColor}
                     width={POINTER_SIZE.width}
                     height={POINTER_SIZE.height}
-                    viewBox="0 0 100 130"
-                    xmlns="http://www.w3.org/2000/svg"
-                    style={{
-                        display: "block",
-                        color: pointerColor,
-                        filter: `drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))`,
-                        transform: rotated ? "rotate(180deg)" : undefined,
-                        transformOrigin: rotated ? `${POINTER_HOTSPOT.x}px ${POINTER_HOTSPOT.y}px` : undefined,
-                    }}
-                >
-                    <path
-                        d="M23.5 11.2C25.8 7.8 29.9 7.1 33.2 9.5L88.2 50.1C93.4 54 92.5 62.1 86.6 64.8L69.3 72.7L80.1 99.4C82.1 104.3 79.5 110 74.5 112L63.8 116.3C58.8 118.3 53.2 115.8 51.1 110.8L40.2 84.1L20.4 89.6C14.3 91.3 8.7 85.3 11.2 79.4L23.5 11.2Z"
-                        fill="currentColor"
-                        stroke="currentColor"
-                        strokeWidth="12"
-                        strokeLinejoin="round"
-                    />
-                    <ellipse
-                        cx="22"
-                        cy="46"
-                        rx="12.5"
-                        ry="18"
-                        transform="rotate(-15 22 46)"
-                        fill="white"
-                    />
-                    <circle cx="24" cy="51" r="5.5" fill="black" />
-                    <ellipse
-                        cx="50"
-                        cy="38"
-                        rx="12"
-                        ry="18"
-                        transform="rotate(-10 50 38)"
-                        fill="white"
-                    />
-                    <circle cx="49" cy="45" r="5.5" fill="black" />
-                </svg>
+                    filter="drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))"
+                    rotated={rotated}
+                    hotspot={POINTER_HOTSPOT}
+                />
             )}
 
             <div className={`${textStackOffsetClasses} flex flex-col gap-1 items-start`}>
