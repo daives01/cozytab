@@ -295,8 +295,18 @@ export const getPendingRequestCount = query({
             .unique();
         if (!me) return 0;
 
-        const all = await getAllFriendships(ctx, me._id);
-        return all.filter((f) => f.status === "pending" && f.initiator !== me._id).length;
+        // Use status indexes to fetch only pending friendships
+        const pendingAsUser1 = await ctx.db
+            .query("friendships")
+            .withIndex("by_user1_status", (q) => q.eq("user1", me._id).eq("status", "pending"))
+            .collect();
+        const pendingAsUser2 = await ctx.db
+            .query("friendships")
+            .withIndex("by_user2_status", (q) => q.eq("user2", me._id).eq("status", "pending"))
+            .collect();
+
+        // Only count incoming requests (where someone else is the initiator)
+        return [...pendingAsUser1, ...pendingAsUser2].filter((f) => f.initiator !== me._id).length;
     },
 });
 
