@@ -18,6 +18,7 @@ import { useVisitorMusic } from "./hooks/useVisitorMusic";
 import { useVisitorGameState } from "./hooks/useVisitorGameState";
 import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { randomBrightColor } from "./utils/cursorColor";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
@@ -121,6 +122,8 @@ function FriendVisitContent({
     authedUser: NonNullable<ReturnType<typeof useQuery<typeof api.users.getMe>>>;
     clerkUser: ReturnType<typeof useUser>["user"];
 }) {
+    usePresenceHeartbeat(true);
+
     const roomData = useQuery(api.friends.getFriendRoom, { friendUserId });
     const computerState = useQuery(api.users.getMyComputer);
     const catalogItems = useQuery(api.catalog.list);

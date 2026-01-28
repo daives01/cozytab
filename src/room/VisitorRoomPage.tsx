@@ -19,6 +19,7 @@ import { useVisitorMusic } from "./hooks/useVisitorMusic";
 import { useVisitorGameState } from "./hooks/useVisitorGameState";
 import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
@@ -100,6 +101,7 @@ function VisitorRoomPageContent({
         roomData?.room?._id ? { roomId: roomData.room._id } : "skip"
     );
     const { user: clerkUser, isSignedIn } = useUser();
+    usePresenceHeartbeat(isSignedIn === true);
     const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
     const catalogItems = useQuery(api.catalog.list);
     const saveComputer = useMutation(api.users.saveMyComputer);

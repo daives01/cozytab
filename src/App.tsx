@@ -17,6 +17,7 @@ import {
 import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
 import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
+import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 
 /** Backwards-compat: /ref/:code and /addfriend/:code both redirect to /?friendRef=code */
 function LegacyRedirect() {
@@ -49,6 +50,8 @@ function HomeRoute() {
   const user = useQuery(api.users.getMe, shouldFetchAuthedUser ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
   const isUserLoading = shouldFetchAuthedUser && user === undefined;
+
+  usePresenceHeartbeat(user !== undefined && user !== null);
 
   // Read ?friendRef= from URL, save as referral code, and clean URL
   const [friendRefCode] = useState(() => {

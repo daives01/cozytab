@@ -72,9 +72,27 @@ function FriendsTab() {
     const [now, setNow] = useState(() => Date.now());
 
     useEffect(() => {
-        const interval = setInterval(() => setNow(Date.now()), 30_000);
-        return () => clearInterval(interval);
-    }, []);
+        if (!friends) return;
+
+        const currentNow = Date.now();
+        setNow(currentNow);
+
+        // Find the earliest time an online friend should flip to offline
+        let nextFlipAt: number | null = null;
+        for (const f of friends) {
+            if (!f?.lastSeenAt) continue;
+            const offlineAt = f.lastSeenAt + ONLINE_THRESHOLD_MS;
+            if (offlineAt > currentNow && (nextFlipAt === null || offlineAt < nextFlipAt)) {
+                nextFlipAt = offlineAt;
+            }
+        }
+
+        if (nextFlipAt === null) return;
+
+        const delay = Math.max(nextFlipAt - currentNow, 0) + 50;
+        const timeout = setTimeout(() => setNow(Date.now()), delay);
+        return () => clearTimeout(timeout);
+    }, [friends]);
 
     if (friends === undefined) {
         return (
