@@ -15,6 +15,7 @@ interface CursorDisplayProps {
     tabbedOut?: boolean;
     dimmed?: boolean;
     rotated?: boolean;
+    onClick?: () => void;
 }
 
 import { CHAT_FADE_DURATION_MS } from "../hooks/useChatFade";
@@ -41,6 +42,7 @@ export function CursorDisplay({
     tabbedOut = false,
     dimmed = false,
     rotated = false,
+    onClick,
 }: CursorDisplayProps) {
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
@@ -73,7 +75,7 @@ export function CursorDisplay({
     } as const;
 
     return (
-        <div className="pointer-events-none" style={cursorStyle}>
+        <div className={onClick ? "pointer-events-auto cursor-pointer" : "pointer-events-none"} style={cursorStyle} onClick={onClick}>
             {!hidePointer && (
                 <svg
                     width={POINTER_SIZE.width}

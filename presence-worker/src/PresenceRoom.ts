@@ -12,6 +12,7 @@ export type PresenceMessage =
           isOwner: boolean;
           cursorColor?: string;
           tabbedOut?: boolean;
+          convexUserId?: string;
       }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
@@ -41,6 +42,7 @@ export type VisitorState = {
     tabbedOut: boolean;
     inGame?: string | null;
     gameMetadata?: Record<string, unknown> | null;
+    convexUserId?: string;
 };
 
 type WebSocketAttachment = {
@@ -51,6 +53,7 @@ type WebSocketAttachment = {
     tabbedOut?: boolean;
     inGame?: string | null;
     gameMetadata?: Record<string, unknown> | null;
+    convexUserId?: string;
     x?: number;
     y?: number;
 };
@@ -155,6 +158,9 @@ function validateMessage(raw: unknown): PresenceMessage | null {
             }
             if (!isValidCursorColor(data.cursorColor)) return null;
             if (!isValidBoolean(data.tabbedOut)) return null;
+            const convexUserId = typeof data.convexUserId === "string" && data.convexUserId.length <= 128
+                ? data.convexUserId
+                : undefined;
             return {
                 type: "join",
                 visitorId: data.visitorId,
@@ -162,6 +168,7 @@ function validateMessage(raw: unknown): PresenceMessage | null {
                 isOwner: data.isOwner,
                 cursorColor: data.cursorColor,
                 tabbedOut: typeof data.tabbedOut === "boolean" ? data.tabbedOut : undefined,
+                convexUserId,
             };
         }
         case "leave": {
@@ -240,6 +247,7 @@ export class PresenceRoom extends DurableObject<Env> {
                     tabbedOut: att.tabbedOut ?? false,
                     inGame: att.inGame ?? null,
                     gameMetadata: att.gameMetadata,
+                    convexUserId: att.convexUserId,
                 });
             }
         }
@@ -352,6 +360,7 @@ export class PresenceRoom extends DurableObject<Env> {
             tabbedOut: data.tabbedOut,
             inGame: existingVisitor?.inGame ?? null,
             gameMetadata: existingVisitor?.gameMetadata,
+            convexUserId: data.convexUserId,
             x,
             y,
         };
@@ -370,6 +379,7 @@ export class PresenceRoom extends DurableObject<Env> {
             tabbedOut: Boolean(data.tabbedOut),
             inGame: existingVisitor?.inGame ?? null,
             gameMetadata: existingVisitor?.gameMetadata,
+            convexUserId: data.convexUserId,
         });
 
         const stateMsg: PresenceMessage = {
@@ -397,6 +407,7 @@ export class PresenceRoom extends DurableObject<Env> {
             tabbedOut: attachment.tabbedOut ?? false,
             inGame: attachment.inGame ?? null,
             gameMetadata: attachment.gameMetadata,
+            convexUserId: attachment.convexUserId,
         };
         this.visitors.set(visitorId, visitor);
         return visitor;

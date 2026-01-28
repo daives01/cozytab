@@ -1,9 +1,9 @@
 import type { ComponentProps } from "react";
-import { InvitePanel } from "./InvitePanel";
 import { RoomsPanel } from "./RoomsPanel";
 import { Shop } from "@/shop/Shop";
 import { AboutPanel } from "./AboutPanel";
 import { CustomizePanel } from "./CustomizePanel";
+import { FriendsPanel } from "./FriendsPanel";
 import type { ComputerWindowApp } from "./types";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 
@@ -15,18 +15,10 @@ interface RoomsWindowProps {
     onSwitchRoom: (roomId: Id<"rooms">) => Promise<void>;
 }
 
-interface InviteWindowProps {
-    referralUrl: string | null;
-    copied: boolean;
-    onCopyReferral: () => void;
-    isGuest: boolean;
-}
-
 interface ComputerWindowContentProps {
     app: ComputerWindowApp;
     shopProps: ShopWindowProps;
     roomsProps?: RoomsWindowProps;
-    inviteProps?: InviteWindowProps;
     customizeProps?: {
         displayNameProps?: {
             currentDisplayName: string;
@@ -39,9 +31,10 @@ interface ComputerWindowContentProps {
         onColorChange: (next: string) => void;
         allowColorChange?: boolean;
     };
+    isGuest?: boolean;
 }
 
-export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps, customizeProps }: ComputerWindowContentProps) {
+export function ComputerWindowContent({ app, shopProps, roomsProps, customizeProps, isGuest }: ComputerWindowContentProps) {
     if (app === "shop") {
         return <Shop {...shopProps} />;
     }
@@ -56,13 +49,10 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, inviteProps,
         );
     }
 
-    if (app === "invite" && inviteProps) {
+    if (app === "friends") {
         return (
-            <InvitePanel
-                referralUrl={inviteProps.referralUrl}
-                copied={inviteProps.copied}
-                onCopyReferral={inviteProps.onCopyReferral}
-                isGuest={inviteProps.isGuest}
+            <FriendsPanel
+                isGuest={isGuest}
             />
         );
     }

@@ -5,6 +5,7 @@ interface PresenceIdentity {
     id: string;
     name: string;
     cursorColor: string;
+    convexUserId?: string;
 }
 
 interface PresenceChatArgs {
@@ -14,7 +15,7 @@ interface PresenceChatArgs {
 }
 
 export function usePresenceAndChat({ roomId, identity, isOwner }: PresenceChatArgs) {
-    const presence = useWebSocketPresence(roomId, identity.id, identity.name, isOwner, identity.cursorColor);
+    const presence = useWebSocketPresence(roomId, identity.id, identity.name, isOwner, identity.cursorColor, identity.convexUserId);
 
     const visitorCount = useMemo(
         () => presence.visitors.filter((visitor: VisitorState) => !visitor.isOwner).length,

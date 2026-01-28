@@ -48,6 +48,7 @@ const MOBILE_MAX_WIDTH = 640;
 interface RoomPageProps {
     isGuest?: boolean;
     guestSession?: GuestSessionState;
+    friendRefCode?: string | null;
 }
 
 export function RoomPage(props: RoomPageProps) {
@@ -62,7 +63,7 @@ export function RoomPage(props: RoomPageProps) {
     );
 }
 
-function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
+function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomPageProps) {
     const { user: clerkUser } = useUser();
     useAudioUnlock();
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
@@ -106,6 +107,8 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         const params = new URLSearchParams(window.location.search);
         return params.get("success") === "stripe";
     });
+    const [friendRefToast, setFriendRefToast] = useState<{ message: string; tone: "success" | "default" } | null>(null);
+    const sendFriendRequest = useMutation(api.friends.sendFriendRequest);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const lastRoomPositionRef = useRef({ x: ROOM_WIDTH / 2, y: ROOM_HEIGHT / 2 });
     const computerPrefetchedRef = useRef(false);
@@ -211,7 +214,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
-        identity: { id: visitorId ?? "owner", name: ownerName, cursorColor },
+        identity: { id: visitorId ?? "owner", name: ownerName, cursorColor, convexUserId: user?._id },
         isOwner: true,
     });
 
@@ -284,6 +287,41 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         const timer = window.setTimeout(() => setShowStripeSuccessToast(false), 5000);
         return () => window.clearTimeout(timer);
     }, [showStripeSuccessToast]);
+
+    // Handle ?friendRef= code: send friend request if logged in, or prompt to sign up
+    const friendRefHandled = useRef(false);
+    useEffect(() => {
+        if (!friendRefCode || friendRefHandled.current) return;
+        friendRefHandled.current = true;
+
+        if (isGuest) {
+            setFriendRefToast({ message: "Create an account to add your friend!", tone: "default" });
+            return;
+        }
+
+        sendFriendRequest({ friendCode: friendRefCode })
+            .then((result) => {
+                if (result.alreadyFriends) {
+                    setFriendRefToast({ message: "You're already friends!", tone: "success" });
+                } else if (result.alreadyPending) {
+                    setFriendRefToast({ message: "Friend request already sent!", tone: "success" });
+                } else if (result.autoAccepted) {
+                    setFriendRefToast({ message: "You're now friends!", tone: "success" });
+                } else {
+                    setFriendRefToast({ message: "Friend request sent!", tone: "success" });
+                }
+            })
+            .catch((err) => {
+                const msg = err instanceof Error ? err.message : "Failed to send friend request";
+                setFriendRefToast({ message: msg, tone: "default" });
+            });
+    }, [friendRefCode, isGuest, sendFriendRequest]);
+
+    useEffect(() => {
+        if (!friendRefToast) return;
+        const timer = window.setTimeout(() => setFriendRefToast(null), 5000);
+        return () => window.clearTimeout(timer);
+    }, [friendRefToast]);
 
     const { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete } = useOnboarding({
         user,
@@ -386,7 +424,7 @@ function RoomPageContent({ isGuest = false, guestSession }: RoomPageProps) {
         },
         profile: { cursorColor, handleCursorColorChange },
         time: { timeOfDay: computed.timeOfDay, overrideTimeOfDay: computed.overrideTimeOfDay, setOverrideTimeOfDay },
-        toasts: { dailyRewardToast, showStripeSuccessToast, setShowStripeSuccessToast },
+        toasts: { dailyRewardToast, showStripeSuccessToast, setShowStripeSuccessToast, friendRefToast, setFriendRefToast },
         game: { activeGameItemId, setActiveGameItemId, handleGameActiveChange, visitorId: visitorId ?? "owner", setGameMetadata },
         room,
         saveRoom,

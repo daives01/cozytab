@@ -12,6 +12,7 @@ type PresenceMessage =
           isOwner: boolean;
           cursorColor?: string;
           tabbedOut?: boolean;
+          convexUserId?: string;
       }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
@@ -41,6 +42,7 @@ export type VisitorState = {
     tabbedOut: boolean;
     inGame?: string | null;
     gameMetadata?: Record<string, unknown> | null;
+    convexUserId?: string;
 };
 
 const DEFAULT_WS_URL = "ws://localhost:8787";
@@ -96,11 +98,13 @@ export function useWebSocketPresence(
     visitorId: string,
     displayName: string,
     isOwner: boolean,
-    cursorColor?: string
+    cursorColor?: string,
+    convexUserId?: string
 ) {
     const wsRef = useRef<WebSocket | null>(null);
     const latestDisplayNameRef = useRef(displayName);
     const latestCursorColorRef = useRef<string | undefined>(cursorColor);
+    const latestConvexUserIdRef = useRef<string | undefined>(convexUserId);
     const previousDisplayNameRef = useRef(displayName);
     const [visitors, setVisitors] = useState<VisitorState[]>([]);
     const visitorsRef = useRef<VisitorState[]>([]);
@@ -221,6 +225,7 @@ export function useWebSocketPresence(
                         ...visitor,
                         inMenu: Boolean(visitor.inMenu),
                         tabbedOut: Boolean(visitor.tabbedOut),
+                        convexUserId: (visitor as { convexUserId?: string }).convexUserId,
                     }))
                 );
                 break;
@@ -242,6 +247,7 @@ export function useWebSocketPresence(
                             tabbedOut: Boolean(data.tabbedOut),
                             inGame: null,
                             gameMetadata: undefined,
+                            convexUserId: (data as { convexUserId?: string }).convexUserId,
                         },
                     ];
                     return next;
@@ -308,6 +314,10 @@ export function useWebSocketPresence(
     }, [cursorColor]);
 
     useEffect(() => {
+        latestConvexUserIdRef.current = convexUserId;
+    }, [convexUserId]);
+
+    useEffect(() => {
         latestDisplayNameRef.current = displayName;
     }, [displayName]);
 
@@ -364,6 +374,7 @@ export function useWebSocketPresence(
                     isOwner,
                     cursorColor: latestCursorColorRef.current,
                     tabbedOut: tabbedOutRef.current,
+                    convexUserId: latestConvexUserIdRef.current,
                 });
             };
 

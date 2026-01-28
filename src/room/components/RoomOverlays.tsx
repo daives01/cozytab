@@ -6,7 +6,7 @@ import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { GameOverlay } from "@/games/components/GameOverlay";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
-import { Heart } from "lucide-react";
+import { Heart, UserPlus } from "lucide-react";
 import { DailyRewardToast } from "./DailyRewardToast";
 import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
@@ -123,6 +123,15 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                     title="Purchase successful!"
                     description="Thank you for your support!"
                     onClose={onboarding.onCloseStripeSuccessToast}
+                />
+            )}
+
+            {onboarding.friendRefToast && (
+                <Toast
+                    tone={onboarding.friendRefToast.tone}
+                    icon={<UserPlus className="h-5 w-5" />}
+                    title={onboarding.friendRefToast.message}
+                    onClose={onboarding.onCloseFriendRefToast}
                 />
             )}
 

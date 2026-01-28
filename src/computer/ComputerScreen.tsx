@@ -103,7 +103,6 @@ export function ComputerScreen({
     onSetDevTimeOfDay,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
-    const [copied, setCopied] = useState(false);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -156,8 +155,8 @@ export function ComputerScreen({
     const isDevEnv = import.meta.env.DEV;
     const devDeleteMyAccount = useMutation(api.users.devDeleteMyAccount);
     const updateDisplayNameMutation = useMutation(api.users.updateDisplayName);
-    const referralCode = useQuery(api.users.getMyReferralCode, isGuest ? "skip" : undefined);
-    const referralUrl = referralCode ? `${window.location.origin}/ref/${referralCode}` : null;
+    const pendingFriendRequestCount = useQuery(api.friends.getPendingRequestCount, isGuest ? "skip" : undefined);
+
     const myRooms = useQuery(api.rooms.getMyRooms, isGuest ? "skip" : undefined);
     const setActiveRoom = useMutation(api.rooms.setActiveRoom);
     const [switchingRoom, setSwitchingRoom] = useState<Id<"rooms"> | null>(null);
@@ -226,13 +225,6 @@ export function ComputerScreen({
         },
         [onPointerMove]
     );
-
-    const handleCopyReferral = async () => {
-        if (!referralUrl) return;
-        await navigator.clipboard.writeText(referralUrl);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     const handleDevDeleteUser = async () => {
         try {
@@ -353,9 +345,9 @@ export function ComputerScreen({
         const titleMap: Record<ComputerWindowApp, string> = {
             shop: "Shop",
             rooms: "My Rooms",
-            invite: "Invite Friends",
             about: "About Cozytab",
             customize: "Customize",
+            friends: "Friends",
         };
 
         const newWindow: ComputerWindow = {
@@ -891,17 +883,12 @@ export function ComputerScreen({
                                     >
                                         <ComputerWindowContent
                                             app={win.app}
+                                            isGuest={isGuest}
                                             shopProps={shopWindowProps}
                                             roomsProps={{
                                                 myRooms: myRooms ?? [],
                                                 switchingRoom,
                                                 onSwitchRoom: (roomId) => handleSwitchRoom(roomId, win.id),
-                                            }}
-                                            inviteProps={{
-                                                referralUrl,
-                                                copied,
-                                                onCopyReferral: handleCopyReferral,
-                                                isGuest,
                                             }}
                                             customizeProps={
                                                 win.app === "customize"
@@ -939,8 +926,9 @@ export function ComputerScreen({
                             onCloseStartMenu={closeStartMenu}
                             onOpenShop={() => openWindow("shop")}
                             onOpenRooms={() => openWindow("rooms")}
-                            onOpenInvite={() => openWindow("invite")}
                             onOpenAbout={() => openWindow("about")}
+                            onOpenFriends={() => openWindow("friends")}
+                            pendingFriendRequests={pendingFriendRequestCount ?? 0}
                             onOpenCustomize={() => openWindow("customize")}
                             onLogout={() => {
                                 closeStartMenu();

@@ -416,6 +416,9 @@ async function heartbeatRoom(
     assertRoomActive(room);
 
     const now = Date.now();
+
+    // Update lastSeenAt for online status
+    await ctx.db.patch(user._id, { lastSeenAt: now });
     const expiresAt = now + LEASE_TTL_MS;
     const hasGuests = args.hasGuests ?? false;
 
@@ -488,6 +491,14 @@ export const closeInviteSession = mutation({
         }
 
         return { closed: true as const, expiresAt: now };
+    },
+});
+
+export const heartbeatPresence = mutation({
+    args: {},
+    handler: async (ctx) => {
+        const user = await requireAuth(ctx);
+        await ctx.db.patch(user._id, { lastSeenAt: Date.now() });
     },
 });
 

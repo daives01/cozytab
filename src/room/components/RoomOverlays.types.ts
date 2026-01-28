@@ -74,6 +74,8 @@ export interface OnboardingProps {
     dailyRewardToast: DailyRewardToastPayload | null;
     stripeSuccessToast?: boolean;
     onCloseStripeSuccessToast?: () => void;
+    friendRefToast?: { message: string; tone: "success" | "default" } | null;
+    onCloseFriendRefToast?: () => void;
 }
 
 export interface PresenceProps {
