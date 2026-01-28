@@ -8,7 +8,6 @@ import { ChatInput } from "./ChatInput";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import type { Shortcut, RoomItem } from "@shared/guestTypes";
-import type { GameType } from "@convex/lib/categories";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { RoomPage } from "./RoomPage";
@@ -17,6 +16,8 @@ import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
 import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
 import { useVisitorMusic } from "./hooks/useVisitorMusic";
+import { useVisitorGameState } from "./hooks/useVisitorGameState";
+import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
 import { randomBrightColor } from "./utils/cursorColor";
 import { getReferralCode, saveReferralCode } from "../referralStorage";
@@ -181,21 +182,19 @@ function VisitorRoomPageContent({
         },
         isOwner: false,
     });
-    const [activeGameItemId, setActiveGameItemId] = useState<string | null>(null);
-    const activeGameType = useMemo((): GameType | null => {
-        if (!activeGameItemId || !items || !catalogItems) return null;
-        const roomItem = items.find((i) => i.id === activeGameItemId);
-        if (!roomItem) return null;
-        const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
-        return catalogItem?.gameType ?? null;
-    }, [activeGameItemId, items, catalogItems]);
-    const isInMenu = isComputerOpen || Boolean(activeMusicItem) || Boolean(activeGameItemId);
-    useEffect(() => {
-        setInMenu(isInMenu);
-    }, [isInMenu, setInMenu]);
-    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
-        setInGame(gameItemId);
-    }, [setInGame]);
+    const {
+        activeGameItemId,
+        setActiveGameItemId,
+        activeGameType,
+        handleGameActiveChange,
+    } = useVisitorGameState({
+        items,
+        catalogItems,
+        isComputerOpen,
+        activeMusicItem,
+        setInMenu,
+        setInGame,
+    });
     const handleDismissChatOnboarding = useCallback(() => {
         setVisitorChatOnboardingDismissed(true);
         if (typeof window !== "undefined") {
@@ -237,21 +236,11 @@ function VisitorRoomPageContent({
         return () => clearTimeout(timer);
     }, [roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
-    const updateCursorFromClient = useCallback(
-        (clientX: number, clientY: number) => {
-            if (!containerRef.current) return;
-
-            const rect = containerRef.current.getBoundingClientRect();
-            const roomX = (clientX - rect.left) / scale;
-            const roomY = (clientY - rect.top) / scale;
-            updateCursor(roomX, roomY, clientX, clientY);
-        },
-        [scale, updateCursor]
-    );
-
-    const handleMouseEvent = (e: React.MouseEvent) => {
-        updateCursorFromClient(e.clientX, e.clientY);
-    };
+    const { updateCursorFromClient, handleMouseEvent } = useVisitorCursorTracking({
+        containerRef,
+        scale,
+        updateCursor,
+    });
 
     const handleOpenComputer = useCallback(() => {
         setIsComputerOpen(true);

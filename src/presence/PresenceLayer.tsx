@@ -1,12 +1,20 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "@convex/_generated/api";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import type { RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import { PresenceCursor } from "./PresenceCursor";
 import { UserPlus, Check, Clock, Users } from "lucide-react";
+
+function getErrorMessage(err: unknown): string {
+    if (err instanceof ConvexError) {
+        return err.data as string;
+    }
+    return "Something went wrong";
+}
 
 interface PresenceLayerProps {
     visitors: VisitorState[];
@@ -139,7 +147,7 @@ function FriendPopup({
                 setResultMessage("You're now friends!");
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed");
+            setError(getErrorMessage(err));
         } finally {
             setSending(false);
         }

@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 
 // ── Helpers ──
 
@@ -97,8 +97,8 @@ export const sendFriendRequest = mutation({
             .withIndex("by_referralCode", (q) => q.eq("referralCode", code))
             .unique();
 
-        if (!target) throw new Error("No user found with that code");
-        if (target._id === me._id) throw new Error("You can't add yourself");
+        if (!target) throw new ConvexError("No user found with that code");
+        if (target._id === me._id) throw new ConvexError("You can't add yourself");
 
         return createOrUpdateFriendship(ctx, me._id, target._id);
     },
@@ -108,10 +108,10 @@ export const sendFriendRequestByUserId = mutation({
     args: { userId: v.id("users") },
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
-        if (args.userId === me._id) throw new Error("You can't add yourself");
+        if (args.userId === me._id) throw new ConvexError("You can't add yourself");
 
         const target = await ctx.db.get(args.userId);
-        if (!target) throw new Error("User not found");
+        if (!target) throw new ConvexError("User not found");
 
         return createOrUpdateFriendship(ctx, me._id, args.userId);
     },
@@ -122,13 +122,13 @@ export const acceptFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
-        if (!friendship) throw new Error("Request not found");
-        if (friendship.status !== "pending") throw new Error("Request is not pending");
-        if (friendship.initiator === me._id) throw new Error("Cannot accept your own request");
+        if (!friendship) throw new ConvexError("Request not found");
+        if (friendship.status !== "pending") throw new ConvexError("Request is no longer pending");
+        if (friendship.initiator === me._id) throw new ConvexError("Cannot accept your own request");
 
         // Verify the current user is the recipient
         const isRecipient = friendship.user1 === me._id || friendship.user2 === me._id;
-        if (!isRecipient) throw new Error("Not your request");
+        if (!isRecipient) throw new ConvexError("Not your request");
 
         await ctx.db.patch(args.friendshipId, {
             status: "accepted",
@@ -144,13 +144,13 @@ export const declineFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
-        if (!friendship) throw new Error("Request not found");
-        if (friendship.status !== "pending") throw new Error("Request is not pending");
+        if (!friendship) throw new ConvexError("Request not found");
+        if (friendship.status !== "pending") throw new ConvexError("Request is no longer pending");
 
         const isRecipient =
             (friendship.user1 === me._id || friendship.user2 === me._id) &&
             friendship.initiator !== me._id;
-        if (!isRecipient) throw new Error("Not your request to decline");
+        if (!isRecipient) throw new ConvexError("Not your request to decline");
 
         await ctx.db.delete(args.friendshipId);
         return { success: true };
@@ -162,9 +162,9 @@ export const cancelFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
-        if (!friendship) throw new Error("Request not found");
-        if (friendship.status !== "pending") throw new Error("Request is not pending");
-        if (friendship.initiator !== me._id) throw new Error("Not your request to cancel");
+        if (!friendship) throw new ConvexError("Request not found");
+        if (friendship.status !== "pending") throw new ConvexError("Request is no longer pending");
+        if (friendship.initiator !== me._id) throw new ConvexError("Not your request to cancel");
 
         await ctx.db.delete(args.friendshipId);
         return { success: true };
@@ -176,10 +176,10 @@ export const removeFriend = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
-        if (!friendship) throw new Error("Friendship not found");
+        if (!friendship) throw new ConvexError("Friendship not found");
 
         const isParticipant = friendship.user1 === me._id || friendship.user2 === me._id;
-        if (!isParticipant) throw new Error("Not your friendship");
+        if (!isParticipant) throw new ConvexError("Not your friendship");
 
         await ctx.db.delete(args.friendshipId);
         return { success: true };

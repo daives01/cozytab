@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Copy, Check, UserPlus, Users, Clock, X, ExternalLink, Gift } from "lucide-react";
 import type { Id } from "@convex/_generated/dataModel";
+
+function getErrorMessage(err: unknown): string {
+    if (err instanceof ConvexError) {
+        return err.data as string;
+    }
+    return "Something went wrong";
+}
 
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;
 
@@ -282,7 +290,7 @@ function AddFriendTab() {
             }
             setInputCode("");
         } catch (err) {
-            setSendResult({ success: false, message: err instanceof Error ? err.message : "Failed to send request" });
+            setSendResult({ success: false, message: getErrorMessage(err) });
         } finally {
             setSending(false);
         }

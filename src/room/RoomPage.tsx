@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
@@ -323,7 +324,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
             .catch((err) => {
                 // Clear on failure so user can retry
                 sessionStorage.removeItem(storageKey);
-                const msg = err instanceof Error ? err.message : "Failed to send friend request";
+                const msg = err instanceof ConvexError ? (err.data as string) : "Failed to send friend request";
                 setFriendRefToast({ message: msg, tone: "default" });
             });
     }, [friendRefCode, isGuest, sendFriendRequest]);
