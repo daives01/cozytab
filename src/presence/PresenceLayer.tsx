@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -99,6 +99,18 @@ function FriendPopup({
     scale: number;
     onClose: () => void;
 }) {
+    const popupRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+                onClose();
+            }
+        };
+        document.addEventListener("pointerdown", handleClickOutside);
+        return () => document.removeEventListener("pointerdown", handleClickOutside);
+    }, [onClose]);
+
     const { isSignedIn } = useUser();
     const convexUserId = visitor.convexUserId as Id<"users"> | undefined;
     const friendshipStatus = useQuery(
@@ -184,6 +196,7 @@ function FriendPopup({
 
     return (
         <div
+            ref={popupRef}
             style={popupStyle}
             className="pointer-events-auto"
             onClick={(e) => e.stopPropagation()}
