@@ -25,6 +25,7 @@ export default defineSchema({
             })
         ),
         lastDailyRewardDay: v.optional(v.string()),
+        nextRewardAt: v.optional(v.number()),
         loginStreak: v.optional(v.number()),
         onboardingCompleted: v.optional(v.boolean()),
         referralCode: v.string(),
