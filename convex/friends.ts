@@ -7,13 +7,13 @@ import { v, ConvexError } from "convex/values";
 
 async function requireUser(ctx: QueryCtx | MutationCtx) {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    if (!identity) throw new ConvexError("Not authenticated");
 
     const user = await ctx.db
         .query("users")
         .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
         .unique();
-    if (!user) throw new Error("User not found");
+    if (!user) throw new ConvexError("User not found");
 
     return user;
 }
@@ -206,17 +206,16 @@ export const getMyFriends = query({
         const friends = await Promise.all(
             accepted.map(async (f) => {
                 const friendId = f.user1 === me._id ? f.user2 : f.user1;
-                const friendUser = await ctx.db.get(friendId);
+                const [friendUser, activeRoom] = await Promise.all([
+                    ctx.db.get(friendId),
+                    ctx.db
+                        .query("rooms")
+                        .withIndex("by_user_active", (q) =>
+                            q.eq("userId", friendId).eq("isActive", true)
+                        )
+                        .first(),
+                ]);
                 if (!friendUser) return null;
-
-                // Find friend's active room
-                const activeRooms = await ctx.db
-                    .query("rooms")
-                    .withIndex("by_user_active", (q) =>
-                        q.eq("userId", friendId).eq("isActive", true)
-                    )
-                    .collect();
-                const activeRoom = activeRooms[0] ?? null;
 
                 return {
                     friendshipId: f._id,
@@ -249,26 +248,23 @@ export const getMyPendingRequests = query({
         const all = await getAllFriendships(ctx, me._id);
         const pending = all.filter((f) => f.status === "pending");
 
-        const incoming = [];
-        const outgoing = [];
+        const enriched = await Promise.all(
+            pending.map(async (f) => {
+                const otherId = f.user1 === me._id ? f.user2 : f.user1;
+                const otherUser = await ctx.db.get(otherId);
+                return {
+                    friendshipId: f._id,
+                    userId: otherId,
+                    displayName: otherUser?.displayName ?? otherUser?.username ?? "Unknown",
+                    cursorColor: otherUser?.cursorColor,
+                    createdAt: f.createdAt,
+                    isOutgoing: f.initiator === me._id,
+                };
+            })
+        );
 
-        for (const f of pending) {
-            const otherId = f.user1 === me._id ? f.user2 : f.user1;
-            const otherUser = await ctx.db.get(otherId);
-            const entry = {
-                friendshipId: f._id,
-                userId: otherId,
-                displayName: otherUser?.displayName ?? otherUser?.username ?? "Unknown",
-                cursorColor: otherUser?.cursorColor,
-                createdAt: f.createdAt,
-            };
-
-            if (f.initiator === me._id) {
-                outgoing.push(entry);
-            } else {
-                incoming.push(entry);
-            }
-        }
+        const incoming = enriched.filter((e) => !e.isOutgoing);
+        const outgoing = enriched.filter((e) => e.isOutgoing);
 
         return { incoming, outgoing };
     },
@@ -371,6 +367,10 @@ export const getFriendRoom = query({
 export const getUserByExternalId = query({
     args: { externalId: v.string() },
     handler: async (ctx, args) => {
+        // Require authentication to prevent user enumeration
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) return null;
+
         const user = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
