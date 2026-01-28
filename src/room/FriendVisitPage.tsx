@@ -75,10 +75,24 @@ export function FriendVisitPage() {
         );
     }
 
-    if (authedUser === undefined || authedUser === null) {
+    if (authedUser === undefined) {
         return (
             <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
                 Loading...
+            </div>
+        );
+    }
+
+    if (authedUser === null) {
+        return (
+            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
+                <p>Unable to load your profile</p>
+                <Link to="/">
+                    <Button>
+                        <Home className="mr-2 h-4 w-4" />
+                        Go Home
+                    </Button>
+                </Link>
             </div>
         );
     }

@@ -289,18 +289,27 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     }, [showStripeSuccessToast]);
 
     // Handle ?friendRef= code: send friend request if logged in, or prompt to sign up
-    const friendRefHandled = useRef(false);
+    // Use sessionStorage to persist handled state across HMR/strict mode remounts
     useEffect(() => {
-        if (!friendRefCode || friendRefHandled.current) return;
-        friendRefHandled.current = true;
+        if (!friendRefCode) return;
+
+        const storageKey = `friendRef_handled_${friendRefCode}`;
+        if (sessionStorage.getItem(storageKey)) return;
 
         if (isGuest) {
-            setFriendRefToast({ message: "Create an account to add your friend!", tone: "default" });
+            sessionStorage.setItem(storageKey, "guest");
+            queueMicrotask(() => {
+                setFriendRefToast({ message: "Create an account to add your friend!", tone: "default" });
+            });
             return;
         }
 
+        // Mark as in-progress to prevent duplicate requests
+        sessionStorage.setItem(storageKey, "pending");
+
         sendFriendRequest({ friendCode: friendRefCode })
             .then((result) => {
+                sessionStorage.setItem(storageKey, "done");
                 if (result.alreadyFriends) {
                     setFriendRefToast({ message: "You're already friends!", tone: "success" });
                 } else if (result.alreadyPending) {
@@ -312,6 +321,8 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
                 }
             })
             .catch((err) => {
+                // Clear on failure so user can retry
+                sessionStorage.removeItem(storageKey);
                 const msg = err instanceof Error ? err.message : "Failed to send friend request";
                 setFriendRefToast({ message: msg, tone: "default" });
             });

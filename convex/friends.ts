@@ -23,6 +23,47 @@ function sortedPair(a: Id<"users">, b: Id<"users">): [Id<"users">, Id<"users">] 
     return a < b ? [a, b] : [b, a];
 }
 
+type FriendRequestResult = {
+    success: true;
+    autoAccepted?: boolean;
+    alreadyFriends?: boolean;
+    alreadyPending?: boolean;
+};
+
+/** Shared logic for creating or updating a friendship between two users. */
+async function createOrUpdateFriendship(
+    ctx: MutationCtx,
+    meId: Id<"users">,
+    targetId: Id<"users">
+): Promise<FriendRequestResult> {
+    const existing = await findFriendship(ctx, meId, targetId);
+    if (existing) {
+        if (existing.status === "accepted") {
+            return { success: true, alreadyFriends: true };
+        }
+        // If the other person already sent us a request, auto-accept
+        if (existing.initiator !== meId) {
+            await ctx.db.patch(existing._id, {
+                status: "accepted",
+                acceptedAt: Date.now(),
+            });
+            return { success: true, autoAccepted: true };
+        }
+        return { success: true, alreadyPending: true };
+    }
+
+    const [user1, user2] = sortedPair(meId, targetId);
+    await ctx.db.insert("friendships", {
+        user1,
+        user2,
+        status: "pending",
+        initiator: meId,
+        createdAt: Date.now(),
+    });
+
+    return { success: true };
+}
+
 async function findFriendship(ctx: QueryCtx | MutationCtx, a: Id<"users">, b: Id<"users">) {
     const [user1, user2] = sortedPair(a, b);
     return await ctx.db
@@ -59,32 +100,7 @@ export const sendFriendRequest = mutation({
         if (!target) throw new Error("No user found with that code");
         if (target._id === me._id) throw new Error("You can't add yourself");
 
-        const existing = await findFriendship(ctx, me._id, target._id);
-        if (existing) {
-            if (existing.status === "accepted") {
-                return { success: true, autoAccepted: false, alreadyFriends: true };
-            }
-            // If the other person already sent us a request, auto-accept
-            if (existing.initiator !== me._id) {
-                await ctx.db.patch(existing._id, {
-                    status: "accepted",
-                    acceptedAt: Date.now(),
-                });
-                return { success: true, autoAccepted: true };
-            }
-            return { success: true, autoAccepted: false, alreadyPending: true };
-        }
-
-        const [user1, user2] = sortedPair(me._id, target._id);
-        await ctx.db.insert("friendships", {
-            user1,
-            user2,
-            status: "pending",
-            initiator: me._id,
-            createdAt: Date.now(),
-        });
-
-        return { success: true, autoAccepted: false };
+        return createOrUpdateFriendship(ctx, me._id, target._id);
     },
 });
 
@@ -97,32 +113,7 @@ export const sendFriendRequestByUserId = mutation({
         const target = await ctx.db.get(args.userId);
         if (!target) throw new Error("User not found");
 
-        const existing = await findFriendship(ctx, me._id, args.userId);
-        if (existing) {
-            if (existing.status === "accepted") {
-                return { success: true, autoAccepted: false, alreadyFriends: true };
-            }
-            // If the other person already sent us a request, auto-accept
-            if (existing.initiator !== me._id) {
-                await ctx.db.patch(existing._id, {
-                    status: "accepted",
-                    acceptedAt: Date.now(),
-                });
-                return { success: true, autoAccepted: true };
-            }
-            return { success: true, autoAccepted: false, alreadyPending: true };
-        }
-
-        const [user1, user2] = sortedPair(me._id, args.userId);
-        await ctx.db.insert("friendships", {
-            user1,
-            user2,
-            status: "pending",
-            initiator: me._id,
-            createdAt: Date.now(),
-        });
-
-        return { success: true, autoAccepted: false };
+        return createOrUpdateFriendship(ctx, me._id, args.userId);
     },
 });
 
