@@ -20,6 +20,10 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
         [music.localItems, music.musicPlayerItemId]
     );
+    const visibleRoomVisitors = useMemo(
+        () => presence.visitors.filter((visitor) => visitor.visitorId !== game.visitorId),
+        [presence.visitors, game.visitorId]
+    );
 
     const handleMusicSave = useCallback(
         (updatedItem: RoomItem) => {
@@ -82,7 +86,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 timeOfDay={computer.time.timeOfDay}
                 devTimeOfDay={computer.time.devTimeOfDay}
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
-                inRoomVisitors={presence.visitors}
+                inRoomVisitors={visibleRoomVisitors}
             />
 
             {activeMusicItem && (
