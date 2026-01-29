@@ -259,6 +259,7 @@ async function importInventoryWithinBudget(
 ) {
     const inventoryNames = new Set<string>();
     const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
+    const starterItems = catalogItems.filter((item) => item.isStarterItem);
     const totalBudget = GUEST_STARTING_COINS;
     const safeReportedCoins = Math.max(0, reportedCoins);
     const maxSpend = Math.max(0, totalBudget - safeReportedCoins);
@@ -285,6 +286,13 @@ async function importInventoryWithinBudget(
         counts.set(catalogKey, (counts.get(catalogKey) ?? 0) + 1);
     }
 
+    for (const starterItem of starterItems) {
+        const catalogKey = starterItem._id as unknown as string;
+        if (counts.has(catalogKey)) continue;
+        counts.set(catalogKey, 1);
+        inventoryNames.add(starterItem.name);
+    }
+
     for (const [catalogKey, count] of counts.entries()) {
         const catalogItem = catalogItems.find((c) => (c._id as unknown as string) === catalogKey);
         if (!catalogItem) continue;
@@ -301,6 +309,49 @@ async function importInventoryWithinBudget(
         inventoryNames,
         catalogItems,
     };
+}
+
+async function ensureStarterInventory(ctx: MutationCtx, userId: Id<"users">) {
+    const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
+    const starterItems = catalogItems.filter((item) => item.isStarterItem);
+
+    if (starterItems.length === 0) {
+        return { catalogItems, ensured: false };
+    }
+
+    const inventoryItems = await ctx.db
+        .query("inventory")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+
+    const inventoryByCatalog = new Map<Id<"catalogItems">, Doc<"inventory">>();
+    for (const item of inventoryItems) {
+        inventoryByCatalog.set(item.catalogItemId, item);
+    }
+
+    let ensured = false;
+    for (const starterItem of starterItems) {
+        const existing = inventoryByCatalog.get(starterItem._id);
+        if (existing) {
+            const count = existing.count ?? 1;
+            if (count <= 0) {
+                await ctx.db.patch(existing._id, { count: 1 });
+                ensured = true;
+            }
+            continue;
+        }
+
+        await ctx.db.insert("inventory", {
+            userId,
+            catalogItemId: starterItem._id,
+            purchasedAt: Date.now(),
+            hidden: false,
+            count: 1,
+        });
+        ensured = true;
+    }
+
+    return { catalogItems, ensured };
 }
 
 function sanitizeRoomItems(
@@ -584,8 +635,13 @@ export const ensureUser = mutation({
             if (!user.displayName) {
                 updates.displayName = derivedDisplayName;
             }
-            if (!user.cursorColor && guestCursorColor) {
-                updates.cursorColor = guestCursorColor;
+            if (!user.cursorColor) {
+                updates.cursorColor = guestSessionState.cursorColor;
+            }
+            if (!user.computer) {
+                updates.computer = {
+                    shortcuts: normalizedGuestShortcuts,
+                };
             }
             if (Object.keys(updates).length > 0) {
                 await ctx.db.patch(user._id, updates);
@@ -601,6 +657,20 @@ export const ensureUser = mutation({
                     cursorColor: guestCursorColor,
                 });
             }
+
+            const starting = await applyCurrencyChange({
+                ctx,
+                userId: user._id,
+                delta: reportedGuestCoins,
+                reason: "starting_balance",
+                idempotencyKey: `starting:${user._id}`,
+                metadata: { source: "ensure_user_backfill", reportedGuestCoins },
+            });
+            if (starting.applied) {
+                user = { ...user, currency: starting.balance };
+            }
+
+            await ensureStarterInventory(ctx, user._id);
         }
 
         return user;
@@ -1008,4 +1078,3 @@ export const giftCoins = internalMutation({
         };
     },
 });
-
