@@ -1,18 +1,18 @@
 import { useMemo } from "react";
 
 const PIECE_SVGS: Record<string, string> = {
-  K: "/chess/Chess_klt45.svg",
-  Q: "/chess/Chess_qlt45.svg",
-  R: "/chess/Chess_rlt45.svg",
-  B: "/chess/Chess_blt45.svg",
-  N: "/chess/Chess_nlt45.svg",
-  P: "/chess/Chess_plt45.svg",
-  k: "/chess/Chess_kdt45.svg",
-  q: "/chess/Chess_qdt45.svg",
-  r: "/chess/Chess_rdt45.svg",
-  b: "/chess/Chess_bdt45.svg",
-  n: "/chess/Chess_ndt45.svg",
-  p: "/chess/Chess_pdt45.svg",
+  K: "/chess/white_king.svg",
+  Q: "/chess/white_queen.svg",
+  R: "/chess/white_rook.svg",
+  B: "/chess/white_bishop.svg",
+  N: "/chess/white_knight.svg",
+  P: "/chess/white_pawn.svg",
+  k: "/chess/black_king.svg",
+  q: "/chess/black_queen.svg",
+  r: "/chess/black_rook.svg",
+  b: "/chess/black_bishop.svg",
+  n: "/chess/black_knight.svg",
+  p: "/chess/black_pawn.svg",
 };
 
 // ============ TWEAK THESE CONSTANTS ============
@@ -21,18 +21,18 @@ const PIECE_SVGS: Record<string, string> = {
 
 // Where the a8 square (top-left from white's view) center is
 const ORIGIN_X = 50; // % from left
-const ORIGIN_Y = 0;  // % from top
+const ORIGIN_Y = 8;  // % from top
 
 // How much to move per column (going right = a->h)
-const COL_STEP_X = 6.3;  // % rightward per column
+const COL_STEP_X = 6.2;  // % rightward per column
 const COL_STEP_Y = 6;   // % downward per column
 
 // How much to move per row (going down = 8->1)
-const ROW_STEP_X = -6.3; // % leftward per row
-const ROW_STEP_Y = 5.8;   // % downward per row
+const ROW_STEP_X = -6.2; // % leftward per row
+const ROW_STEP_Y = 5.7;   // % downward per row
 
 // Piece sizing
-const PIECE_SIZE = 8; // % of container width
+const PIECE_SIZE = 6; // % of container width
 // ===============================================
 
 interface ChessBoardPreviewProps {
@@ -90,10 +90,10 @@ export function ChessBoardPreview({ fen, width, height }: ChessBoardPreviewProps
               className="absolute pointer-events-none"
               style={{
                 width: pieceWidth,
-                height: pieceWidth,
+                height: "auto",
                 left: `${xPercent}%`,
                 top: `${yPercent}%`,
-                transform: "translate(-50%, -50%)",
+                transform: "translate(-50%, -100%)",
               }}
             />
           );
