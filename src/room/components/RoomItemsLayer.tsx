@@ -1,6 +1,7 @@
 import { ItemNode } from "../ItemNode";
 import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
+import { ChessBoardPreviewOverlay } from "@/games/chess/ChessBoardPreviewOverlay";
 import { isMusicItem } from "../roomUtils";
 import type { RoomItem } from "@shared/guestTypes";
 import type { Doc } from "@convex/_generated/dataModel";
@@ -98,6 +99,8 @@ export function RoomItemsLayer({
                                         isVisitor={false}
                                     />
                                 </>
+                            ) : catalogItem?.gameType === "chess" ? (
+                                <ChessBoardPreviewOverlay itemId={item.id} />
                             ) : null
                         }
                     />

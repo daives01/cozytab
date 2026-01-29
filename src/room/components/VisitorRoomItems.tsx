@@ -4,6 +4,7 @@ import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { ItemNode } from "../ItemNode";
 import { MusicPlayerButtons } from "@/musicPlayer/MusicPlayerButtons";
 import { MusicNotesOverlay } from "@/musicPlayer/MusicNotesOverlay";
+import { ChessBoardPreviewOverlay } from "@/games/chess/ChessBoardPreviewOverlay";
 import { PresenceLayer } from "@/presence/PresenceLayer";
 import { isMusicItem } from "../roomUtils";
 import { musicUrlKey } from "../hooks/useVisitorMusic";
@@ -88,6 +89,8 @@ export function VisitorRoomItems({
                                         isVisitor={true}
                                     />
                                 </>
+                            ) : catalogItem?.gameType === "chess" ? (
+                                <ChessBoardPreviewOverlay itemId={item.id} />
                             ) : null
                         }
                     />
