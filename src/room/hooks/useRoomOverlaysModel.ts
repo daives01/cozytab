@@ -68,6 +68,8 @@ interface UseRoomOverlaysModelArgs {
         dailyRewardToast: DailyRewardToastPayload | null;
         showStripeSuccessToast: boolean;
         setShowStripeSuccessToast: (next: boolean) => void;
+        friendRefToast: { message: string; tone: "success" | "default" } | null;
+        setFriendRefToast: (next: { message: string; tone: "success" | "default" } | null) => void;
     };
 
     game: {
@@ -199,6 +201,8 @@ export function useRoomOverlaysModel({
             dailyRewardToast: toasts.dailyRewardToast,
             stripeSuccessToast: toasts.showStripeSuccessToast,
             onCloseStripeSuccessToast: () => toasts.setShowStripeSuccessToast(false),
+            friendRefToast: toasts.friendRefToast,
+            onCloseFriendRefToast: () => toasts.setFriendRefToast(null),
         };
 
         const presenceProps: RoomOverlaysProps["presence"] = {
@@ -211,6 +215,7 @@ export function useRoomOverlaysModel({
             screenCursor: presence.screenCursor,
             connectionState: presence.connectionState,
             activeInvites: presence.activeInvites,
+            visitors: presence.visitors,
         };
 
         let gameType: GameType | null = null;

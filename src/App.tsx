@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
 import { VisitorRoomPage } from "./room/VisitorRoomPage";
+import { FriendVisitPage } from "./room/FriendVisitPage";
 import { AdminPage } from "./admin/AdminPage";
 import { clearGuestSession, readGuestSession } from "./guest/guestSession";
 import { createGuestStore, GuestStateProvider } from "./guest/state";
@@ -16,17 +17,12 @@ import {
 import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
 import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
+import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 
-function ReferralCapture() {
+/** Backwards-compat: /ref/:code and /addfriend/:code both redirect to /?friendRef=code */
+function LegacyRedirect() {
   const { code } = useParams<{ code: string }>();
-
-  useEffect(() => {
-    if (code) {
-      saveReferralCode(code);
-    }
-  }, [code]);
-
-  return <Navigate to="/" replace />;
+  return <Navigate to={code ? `/?friendRef=${encodeURIComponent(code)}` : "/"} replace />;
 }
 
 function App() {
@@ -38,7 +34,9 @@ function App() {
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/visit/:token" element={<VisitorRoomPage />} />
-        <Route path="/ref/:code" element={<ReferralCapture />} />
+        <Route path="/friend/:friendUserId" element={<FriendVisitPage />} />
+        <Route path="/addfriend/:code" element={<LegacyRedirect />} />
+        <Route path="/ref/:code" element={<LegacyRedirect />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
@@ -52,6 +50,22 @@ function HomeRoute() {
   const user = useQuery(api.users.getMe, shouldFetchAuthedUser ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
   const isUserLoading = shouldFetchAuthedUser && user === undefined;
+
+  usePresenceHeartbeat(user !== undefined && user !== null);
+
+  // Read ?friendRef= from URL, save as referral code, and clean URL
+  const [friendRefCode] = useState(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("friendRef");
+    if (code) {
+      saveReferralCode(code);
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("friendRef");
+      window.history.replaceState({}, "", newUrl.pathname + newUrl.search);
+    }
+    return code;
+  });
 
   useEffect(() => {
     if (!shouldFetchAuthedUser) return;
@@ -100,12 +114,12 @@ function HomeRoute() {
   if (isGuestView && guestStore) {
     return (
       <GuestStateProvider store={guestStore}>
-        <RoomPage isGuest guestSession={guestSession} />
+        <RoomPage isGuest guestSession={guestSession} friendRefCode={friendRefCode} />
       </GuestStateProvider>
     );
   }
 
-  return <RoomPage isGuest={false} guestSession={guestSession} />;
+  return <RoomPage isGuest={false} guestSession={guestSession} friendRefCode={friendRefCode} />;
 }
 
 function TouchWarningGate() {

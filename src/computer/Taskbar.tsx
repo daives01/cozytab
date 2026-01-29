@@ -7,7 +7,7 @@ import {
     ShoppingBag,
     User,
     UserCircle,
-    UserPlus,
+    Users,
     Volume1,
     Volume2,
     VolumeX,
@@ -26,9 +26,10 @@ interface TaskbarProps {
     onCloseStartMenu: () => void;
     onOpenShop: () => void;
     onOpenRooms: () => void;
-    onOpenInvite: () => void;
     onOpenAbout: () => void;
     onOpenCustomize: () => void;
+    onOpenFriends: () => void;
+    pendingFriendRequests?: number;
     onLogout: () => void;
     onShutdown: () => void;
     onResetStorage: () => void;
@@ -93,9 +94,10 @@ export function Taskbar({
     onCloseStartMenu,
     onOpenShop,
     onOpenRooms,
-    onOpenInvite,
     onOpenAbout,
     onOpenCustomize,
+    onOpenFriends,
+    pendingFriendRequests,
     onLogout,
     onShutdown,
     onResetStorage,
@@ -165,14 +167,21 @@ export function Taskbar({
                     </TaskbarIconButton>
 
                     <TaskbarIconButton
-                        label="Invite"
-                        ariaLabel="Invite"
+                        label="Friends"
+                        ariaLabel="Friends"
                         onClick={() => {
                             onCloseStartMenu();
-                            onOpenInvite();
+                            onOpenFriends();
                         }}
                     >
-                        <UserPlus className="h-5 w-5 text-[var(--chart-5)]" />
+                        <div className="relative">
+                            <Users className="h-5 w-5 text-purple-500" />
+                            {(pendingFriendRequests ?? 0) > 0 && (
+                                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5 leading-none">
+                                    {pendingFriendRequests}
+                                </span>
+                            )}
+                        </div>
                     </TaskbarIconButton>
 
                     <TaskbarIconButton

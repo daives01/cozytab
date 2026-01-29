@@ -6,7 +6,7 @@ import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
 import { GameOverlay } from "@/games/components/GameOverlay";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
-import { Heart } from "lucide-react";
+import { Heart, UserPlus } from "lucide-react";
 import { DailyRewardToast } from "./DailyRewardToast";
 import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
@@ -19,6 +19,10 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
     const activeMusicItem = useMemo(
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
         [music.localItems, music.musicPlayerItemId]
+    );
+    const visibleRoomVisitors = useMemo(
+        () => presence.visitors.filter((visitor) => visitor.visitorId !== game.visitorId),
+        [presence.visitors, game.visitorId]
     );
 
     const handleMusicSave = useCallback(
@@ -82,6 +86,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 timeOfDay={computer.time.timeOfDay}
                 devTimeOfDay={computer.time.devTimeOfDay}
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
+                inRoomVisitors={visibleRoomVisitors}
             />
 
             {activeMusicItem && (
@@ -123,6 +128,15 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                     title="Purchase successful!"
                     description="Thank you for your support!"
                     onClose={onboarding.onCloseStripeSuccessToast}
+                />
+            )}
+
+            {onboarding.friendRefToast && (
+                <Toast
+                    tone={onboarding.friendRefToast.tone}
+                    icon={<UserPlus className="h-5 w-5" />}
+                    title={onboarding.friendRefToast.message}
+                    onClose={onboarding.onCloseFriendRefToast}
                 />
             )}
 

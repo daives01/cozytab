@@ -25,11 +25,13 @@ export default defineSchema({
             })
         ),
         lastDailyRewardDay: v.optional(v.string()),
+        nextRewardAt: v.optional(v.number()),
         loginStreak: v.optional(v.number()),
         onboardingCompleted: v.optional(v.boolean()),
         referralCode: v.string(),
         referredBy: v.optional(v.id("users")),
         admin: v.optional(v.boolean()),
+        lastSeenAt: v.optional(v.number()),
     })
         .index("by_externalId", ["externalId"])
         .index("by_referralCode", ["referralCode"])
@@ -110,6 +112,20 @@ export default defineSchema({
     })
         .index("by_user", ["userId"])
         .index("by_idempotencyKey", ["idempotencyKey"]),
+
+    friendships: defineTable({
+        user1: v.id("users"),       // lexicographically lower ID
+        user2: v.id("users"),       // lexicographically higher ID
+        status: v.union(v.literal("pending"), v.literal("accepted")),
+        initiator: v.id("users"),   // who sent the request
+        createdAt: v.number(),
+        acceptedAt: v.optional(v.number()),
+    })
+        .index("by_user1", ["user1"])
+        .index("by_user2", ["user2"])
+        .index("by_pair", ["user1", "user2"])
+        .index("by_user1_status", ["user1", "status"])
+        .index("by_user2_status", ["user2", "status"]),
 
     chessBoardStates: defineTable({
         itemId: v.string(), // UUID of the room item (from rooms.items[].id), not a catalogItem ID

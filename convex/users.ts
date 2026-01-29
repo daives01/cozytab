@@ -495,6 +495,21 @@ export const ensureUser = mutation({
                 referredBy: referrerId,
             });
             user = await ctx.db.get(id);
+
+            // Auto-send friend request from new user to the referrer
+            if (referrerId && user) {
+                const [user1, user2] = referrerId < user._id
+                    ? [referrerId, user._id] as const
+                    : [user._id, referrerId] as const;
+                await ctx.db.insert("friendships", {
+                    user1,
+                    user2,
+                    status: "pending",
+                    initiator: user._id,
+                    createdAt: Date.now(),
+                });
+            }
+
             if (user) {
                 const starting = await applyCurrencyChange({
                     ctx,

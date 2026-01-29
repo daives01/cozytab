@@ -12,6 +12,7 @@ interface PresenceCursorProps {
     inMenu?: boolean;
     tabbedOut?: boolean;
     dimmed?: boolean;
+    onClick?: () => void;
 }
 
 export function PresenceCursor({
@@ -25,6 +26,7 @@ export function PresenceCursor({
     inMenu,
     tabbedOut,
     dimmed,
+    onClick,
 }: PresenceCursorProps) {
     const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
@@ -42,6 +44,7 @@ export function PresenceCursor({
             inMenu={inMenu}
             tabbedOut={tabbedOut}
             dimmed={dimmed}
+            onClick={onClick}
         />
     );
 }

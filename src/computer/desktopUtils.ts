@@ -11,17 +11,17 @@ export const MIN_WINDOW_HEIGHT = 280;
 export const WINDOW_DEFAULTS: Record<ComputerWindowApp, { width: number; height: number }> = {
     shop: { width: 920, height: 560 },
     rooms: { width: 480, height: 440 },
-    invite: { width: 420, height: 340 },
     about: { width: 520, height: 360 },
     customize: { width: 600, height: 460 },
+    friends: { width: 480, height: 500 },
 };
 
 export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
     shop: "from-amber-400 to-orange-500",
     rooms: "from-emerald-500 to-green-600",
-    invite: "from-pink-400 to-rose-500",
     about: "from-indigo-400 to-sky-500",
     customize: "from-amber-500 to-amber-600",
+    friends: "from-violet-400 to-purple-500",
 };
 
 export function deriveShortcutName(url: string) {

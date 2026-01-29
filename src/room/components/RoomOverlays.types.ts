@@ -74,6 +74,8 @@ export interface OnboardingProps {
     dailyRewardToast: DailyRewardToastPayload | null;
     stripeSuccessToast?: boolean;
     onCloseStripeSuccessToast?: () => void;
+    friendRefToast?: { message: string; tone: "success" | "default" } | null;
+    onCloseFriendRefToast?: () => void;
 }
 
 export interface PresenceProps {
@@ -86,6 +88,7 @@ export interface PresenceProps {
     screenCursor: { x: number; y: number };
     connectionState: "connecting" | "connected" | "reconnecting";
     activeInvites?: Doc<"roomInvites">[] | null;
+    visitors: VisitorState[];
 }
 
 export interface GameProps {
