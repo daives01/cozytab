@@ -25,7 +25,7 @@ const ORIGIN_Y = 8;  // % from top
 
 // How much to move per column (going right = a->h)
 const COL_STEP_X = 6.2;  // % rightward per column
-const COL_STEP_Y = 6;   // % downward per column
+const COL_STEP_Y = 5.8;   // % downward per column
 
 // How much to move per row (going down = 8->1)
 const ROW_STEP_X = -6.2; // % leftward per row
@@ -37,48 +37,53 @@ const PIECE_SIZE = 6; // % of container width
 
 interface ChessBoardPreviewProps {
   fen: string;
-  width: number;
-  height: number;
 }
+
+const EMPTY_BOARD: (string | null)[][] = Array.from({ length: 8 }, () =>
+  Array.from({ length: 8 }, () => null)
+);
 
 function parseFenBoard(fen: string): (string | null)[][] {
-  const boardPart = fen.split(" ")[0];
-  const rows = boardPart.split("/");
-  const board: (string | null)[][] = [];
+  try {
+    const boardPart = fen.split(" ")[0];
+    const rows = boardPart.split("/");
 
-  for (const row of rows) {
-    const boardRow: (string | null)[] = [];
-    for (const char of row) {
-      if (/[1-8]/.test(char)) {
-        for (let i = 0; i < parseInt(char, 10); i++) {
-          boardRow.push(null);
+    if (rows.length !== 8) return EMPTY_BOARD;
+
+    const board: (string | null)[][] = [];
+
+    for (const row of rows) {
+      const boardRow: (string | null)[] = [];
+      for (const char of row) {
+        if (/[1-8]/.test(char)) {
+          for (let i = 0; i < parseInt(char, 10); i++) {
+            boardRow.push(null);
+          }
+        } else {
+          boardRow.push(char);
         }
-      } else {
-        boardRow.push(char);
       }
+      if (boardRow.length !== 8) return EMPTY_BOARD;
+      board.push(boardRow);
     }
-    board.push(boardRow);
-  }
 
-  return board;
+    return board;
+  } catch {
+    return EMPTY_BOARD;
+  }
 }
 
-export function ChessBoardPreview({ fen, width, height }: ChessBoardPreviewProps) {
+export function ChessBoardPreview({ fen }: ChessBoardPreviewProps) {
   const board = useMemo(() => parseFenBoard(fen), [fen]);
-  const pieceWidth = (PIECE_SIZE / 100) * width;
 
   return (
-    <div
-      className="absolute inset-0 pointer-events-none"
-      style={{ width, height }}
-    >
+    <div className="absolute inset-0 w-full h-full pointer-events-none">
       {board.map((row, rowIdx) =>
         row.map((piece, colIdx) => {
           if (!piece) return null;
           const svg = PIECE_SVGS[piece];
           if (!svg) return null;
 
-          // Calculate position based on row/col
           const xPercent = ORIGIN_X + colIdx * COL_STEP_X + rowIdx * ROW_STEP_X;
           const yPercent = ORIGIN_Y + colIdx * COL_STEP_Y + rowIdx * ROW_STEP_Y;
 
@@ -89,7 +94,7 @@ export function ChessBoardPreview({ fen, width, height }: ChessBoardPreviewProps
               alt={piece}
               className="absolute pointer-events-none"
               style={{
-                width: pieceWidth,
+                width: `${PIECE_SIZE}%`,
                 height: "auto",
                 left: `${xPercent}%`,
                 top: `${yPercent}%`,

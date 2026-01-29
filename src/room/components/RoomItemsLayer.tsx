@@ -100,10 +100,7 @@ export function RoomItemsLayer({
                                     />
                                 </>
                             ) : catalogItem?.gameType === "chess" ? (
-                                <ChessBoardPreviewOverlay
-                                    itemId={item.id}
-                                    width={catalogItem.defaultWidth}
-                                />
+                                <ChessBoardPreviewOverlay itemId={item.id} />
                             ) : null
                         }
                     />

@@ -5,15 +5,18 @@ import { STARTING_FEN } from "@shared/gameTypes";
 
 interface ChessBoardPreviewOverlayProps {
   itemId: string;
-  width: number;
 }
 
-export function ChessBoardPreviewOverlay({ itemId, width }: ChessBoardPreviewOverlayProps) {
+export function ChessBoardPreviewOverlay({ itemId }: ChessBoardPreviewOverlayProps) {
   const chessBoardState = useQuery(api.games.getChessBoardState, { itemId });
+
+  if (chessBoardState === undefined) return null;
+
   const fen = chessBoardState?.fen ?? STARTING_FEN;
 
-  // Board SVG aspect ratio is 1404:751
-  const height = (width * 751) / 1404;
-
-  return <ChessBoardPreview fen={fen} width={width} height={height} />;
+  return (
+    <div className="absolute top-0 left-0 w-full aspect-[1404/751]">
+      <ChessBoardPreview fen={fen} />
+    </div>
+  );
 }

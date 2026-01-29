@@ -90,10 +90,7 @@ export function VisitorRoomItems({
                                     />
                                 </>
                             ) : catalogItem?.gameType === "chess" ? (
-                                <ChessBoardPreviewOverlay
-                                    itemId={item.id}
-                                    width={catalogItem.defaultWidth}
-                                />
+                                <ChessBoardPreviewOverlay itemId={item.id} />
                             ) : null
                         }
                     />
