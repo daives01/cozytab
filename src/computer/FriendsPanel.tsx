@@ -415,8 +415,17 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
     };
 
     const handleSend = async () => {
-        const code = inputCode.trim();
+        let code = inputCode.trim();
         if (!code) return;
+        // Extract code from full URL if pasted (e.g., https://www.cozytab.club/?friendRef=JWJT2GVB)
+        try {
+            const url = new URL(code);
+            const refCode = url.searchParams.get("friendRef");
+            if (refCode) code = refCode;
+        } catch {
+            // Not a URL, use as-is
+        }
+        code = code.toUpperCase();
         setSending(true);
         setSendResult(null);
         try {
@@ -475,14 +484,13 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
                         placeholder="Enter friend code"
                         value={inputCode}
                         onChange={(e) => {
-                            setInputCode(e.target.value.toUpperCase());
+                            setInputCode(e.target.value);
                             setSendResult(null);
                         }}
                         onKeyDown={(e) => {
                             if (e.key === "Enter") handleSend();
                         }}
                         className="h-8 text-sm font-mono tracking-wider bg-white border-stone-300"
-                        maxLength={8}
                     />
                     <Button
                         size="sm"
