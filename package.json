@@ -14,7 +14,7 @@
     "convex:deploy": "bunx convex deploy",
     "worker": "bun run --filter presence-worker dev",
     "worker:deploy": "bun run --filter presence-worker deploy",
-    "all": "bunx concurrently \"bun run web\" \"bun run convex\" \"bun run worker\"",
+    "all": "bunx concurrently \"bun run web --host\" \"bun run convex\" \"bun run worker\"",
     "test": "bun test ./tests ./src",
     "build": "bunx tsc -b && bunx vite build",
     "lint": "bunx eslint .",

@@ -122,6 +122,11 @@ export function useRoomOverlaysModel({
             onToggleMode: handlers.handleModeToggle,
             onShareClick: () => roomState.setIsShareModalOpen(true),
             onDeleteItem: handlers.handleDeleteItem,
+            onTouchPlaceItem: handlers.handlePlaceCatalogItem
+                ? (catalogItemId, event) => {
+                      handlers.handlePlaceCatalogItem(catalogItemId, event.clientX, event.clientY);
+                  }
+                : undefined,
         };
 
         const computer: RoomOverlaysProps["computer"] = {

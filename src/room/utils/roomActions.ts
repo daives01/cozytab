@@ -1,6 +1,7 @@
 import { ROOM_ITEM_MAX_X, ROOM_ITEM_MAX_Y } from "@/time/roomConstants";
 import type { RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
+import { createId } from "@/utils/id";
 
 const MIN_POSITION = 0;
 
@@ -80,7 +81,7 @@ export function addDroppedItem(
     const clampedY = clampCoordinate(y, ROOM_ITEM_MAX_Y);
     const catalogId = catalogItemId;
     const newItem: RoomItem = {
-        id: crypto.randomUUID(),
+        id: createId(),
         catalogItemId: catalogId,
         x: clampedX,
         y: clampedY,
@@ -115,4 +116,3 @@ export function clampCursorToRoom({
     }
     return lastPosition;
 }
-

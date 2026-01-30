@@ -64,6 +64,32 @@ export function useRoomHandlers({
     cursorColor,
     canPlaceItem,
 }: HandlersArgs) {
+    const handlePlaceCatalogItem = useCallback(
+        (catalogItemId: Id<"catalogItems">, clientX: number, clientY: number) => {
+            if (mode !== "edit") return;
+            if (!containerRef.current) return;
+            if (!canPlaceItem(catalogItemId)) return;
+
+            const rect = containerRef.current.getBoundingClientRect();
+            const relativeX = clientX - rect.left;
+            const relativeY = clientY - rect.top;
+            const isInsideRoom =
+                relativeX >= 0 && relativeX <= rect.width && relativeY >= 0 && relativeY <= rect.height;
+
+            if (!isInsideRoom) return;
+
+            const x = relativeX / scale;
+            const y = relativeY / scale;
+
+            setLocalItems((prev) => addDroppedItem(prev, catalogItemId, x, y));
+
+            if (onboardingStep === "place-computer") {
+                advanceOnboarding();
+            }
+        },
+        [advanceOnboarding, canPlaceItem, containerRef, mode, onboardingStep, scale, setLocalItems]
+    );
+
     const handleMusicToggle = useCallback(
         (itemId: string, playing: boolean) => {
             const now = Date.now();
@@ -107,27 +133,9 @@ export function useRoomHandlers({
 
             const catalogItemId = e.dataTransfer.getData("catalogItemId");
             if (!catalogItemId) return;
-            if (!containerRef.current) return;
-            if (!canPlaceItem(catalogItemId as Id<"catalogItems">)) return;
-
-            const rect = containerRef.current.getBoundingClientRect();
-            const relativeX = e.clientX - rect.left;
-            const relativeY = e.clientY - rect.top;
-            const isInsideRoom =
-                relativeX >= 0 && relativeX <= rect.width && relativeY >= 0 && relativeY <= rect.height;
-
-            if (!isInsideRoom) return;
-
-            const x = relativeX / scale;
-            const y = relativeY / scale;
-
-            setLocalItems((prev) => addDroppedItem(prev, catalogItemId as Id<"catalogItems">, x, y));
-
-            if (onboardingStep === "place-computer") {
-                advanceOnboarding();
-            }
+            handlePlaceCatalogItem(catalogItemId as Id<"catalogItems">, e.clientX, e.clientY);
         },
-        [advanceOnboarding, canPlaceItem, containerRef, mode, onboardingStep, scale, setLocalItems]
+        [handlePlaceCatalogItem, mode]
     );
 
     const handleCursorMove = useCallback(
@@ -209,6 +217,7 @@ export function useRoomHandlers({
     );
 
     return {
+        handlePlaceCatalogItem,
         handleMusicToggle,
         handleModeToggle,
         handleDrawerToggle,
@@ -227,4 +236,3 @@ export function useRoomHandlers({
         handleDeleteItem,
     };
 }
-

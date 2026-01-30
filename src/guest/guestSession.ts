@@ -11,6 +11,7 @@ import {
     type GuestSessionState,
     type GuestShortcut,
 } from "@shared/guestTypes";
+import { createId } from "@/utils/id";
 
 function randomBrightColor(): string {
     const hue = Math.floor(Math.random() * 360);
@@ -129,7 +130,7 @@ function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
         .filter((item): item is RoomItem => typeof item === "object" && item !== null)
         .map((item) => ({
             ...item,
-            id: typeof item.id === "string" ? item.id : crypto.randomUUID(),
+            id: typeof item.id === "string" ? item.id : createId(),
             x: clampNumber(item.x, 0, 0, Infinity),
             y: clampNumber(item.y, 0, 0, Infinity),
         }));
@@ -173,7 +174,7 @@ function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
     return shortcuts
         .filter((shortcut): shortcut is GuestShortcut => typeof shortcut === "object" && shortcut !== null)
         .map((shortcut) => ({
-            id: typeof shortcut.id === "string" ? shortcut.id : crypto.randomUUID(),
+            id: typeof shortcut.id === "string" ? shortcut.id : createId(),
             name: typeof shortcut.name === "string" ? shortcut.name : "Link",
             url: typeof shortcut.url === "string" ? shortcut.url : "",
             row: typeof shortcut.row === "number" ? shortcut.row : undefined,
@@ -304,4 +305,3 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
 
     return next;
 }
-

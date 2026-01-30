@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef } from "react";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
@@ -11,11 +11,17 @@ import { DailyRewardToast } from "./DailyRewardToast";
 import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
 import { ChatHint } from "./ChatHint";
+import { MobileChatInput } from "./MobileChatInput";
 import { LocalCursor } from "@/presence/LocalCursor";
+import { TouchCursor } from "./TouchCursor";
+import { useTouchOnly } from "@/hooks/useTouchCapability";
 import type { RoomOverlaysProps } from "./RoomOverlays.types";
 import type { RoomItem } from "@shared/guestTypes";
 
 export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
+    const isTouchOnly = useTouchOnly();
+    const mobileChatInputRef = useRef<HTMLInputElement>(null);
+
     const activeMusicItem = useMemo(
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
         [music.localItems, music.musicPlayerItemId]
@@ -32,6 +38,8 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
         },
         [music]
     );
+
+    const isTouchPlacementActive = isTouchOnly && ui.mode === "edit" && Boolean(ui.touchPlacementItemId);
     return (
         <>
             <RoomToolbar
@@ -51,12 +59,17 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 onDrawerToggle={ui.drawer.onToggle}
                 draggedItemId={ui.draggedItemId}
                 onDeleteItem={ui.onDeleteItem}
+                onTouchPlaceItem={ui.onTouchPlaceItem}
+                onTouchPlacementCancel={ui.onTouchPlacementCancel}
                 highlightComputer={ui.highlightComputer}
+                touchPlacementItemId={ui.touchPlacementItemId}
                 isGuest={ui.isGuest}
                 guestItems={ui.guestItems}
                 placedCatalogItemIds={ui.placedCatalogItemIds}
                 orientation={ui.drawer.orientation}
             />
+
+            {isTouchPlacementActive && null}
 
             <ComputerOverlay
                 isGuest={ui.isGuest}
@@ -140,7 +153,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 />
             )}
 
-            {!ui.isGuest && presence.hasVisitors && (
+            {!ui.isGuest && presence.hasVisitors && !isTouchOnly && (
                 <ChatInput
                     onMessageChange={presence.updateChatMessage}
                     disabled={
@@ -152,7 +165,25 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 />
             )}
 
-            {!ui.isGuest && presence.hasVisitors && !presence.isComputerOpenState && !music.musicPlayerItemId && !presence.isShareModalOpen && <ChatHint />}
+            {!ui.isGuest && presence.hasVisitors && isTouchOnly && (
+                <MobileChatInput
+                    ref={mobileChatInputRef}
+                    onMessageChange={presence.updateChatMessage}
+                    disabled={
+                        presence.isComputerOpenState ||
+                        music.musicPlayerItemId !== null ||
+                        presence.isShareModalOpen ||
+                        presence.connectionState !== "connected"
+                    }
+                />
+            )}
+
+            {!ui.isGuest &&
+                presence.hasVisitors &&
+                isTouchOnly &&
+                !presence.isComputerOpenState &&
+                !music.musicPlayerItemId &&
+                !presence.isShareModalOpen && <ChatHint onTapToChat={() => mobileChatInputRef.current?.focus()} />}
 
             {!ui.isGuest && presence.connectionState !== "connected" && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
@@ -171,6 +202,8 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 chatMessage={!ui.isGuest && presence.hasVisitors ? presence.localChatMessage : null}
                 cursorColor={computer.profile.cursorColor}
             />
+
+            <TouchCursor cursorColor={computer.profile.cursorColor} />
         </>
     );
 }

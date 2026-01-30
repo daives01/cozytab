@@ -12,6 +12,8 @@ import type React from "react";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
 import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
+import { useMobileZoom } from "./hooks/useMobileZoom";
+import { MobileZoomButton } from "./components/MobileZoomButton";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
 import { useDrawerLayout } from "./hooks/useDrawerLayout";
 import { clearGuestSession } from "@/guest/guestSession";
@@ -24,6 +26,7 @@ import { useRoomComputed } from "./hooks/useRoomComputed";
 import { useRoomGate } from "./hooks/useRoomGate";
 import { usePlacementAllowance } from "./hooks/usePlacementAllowance";
 import { useRoomOverlaysModel } from "./hooks/useRoomOverlaysModel";
+import { useTouchPlacement } from "./hooks/useTouchPlacement";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
 import { RoomShell } from "./components/RoomShell";
@@ -43,8 +46,6 @@ import {
     useOnboardingAssetPrefetch,
     useEscapeToExitEditMode,
 } from "./hooks/useRoomPageEffects";
-
-const MOBILE_MAX_WIDTH = 640;
 
 interface RoomPageProps {
     isGuest?: boolean;
@@ -102,6 +103,17 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     const { viewportWidth, viewportHeight, scale } = useRoomViewportScale();
+    const {
+        zoomLevel,
+        zoomLabel,
+        isZoomed,
+        panOffset,
+        effectiveScale,
+        cycleZoom,
+        handlePanStart,
+        handlePanMove,
+        handlePanEnd,
+    } = useMobileZoom({ baseScale: scale, viewportWidth, viewportHeight });
     const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
     const [showStripeSuccessToast, setShowStripeSuccessToast] = useState(() => {
         if (typeof window === "undefined") return false;
@@ -364,7 +376,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         mode: roomState.mode,
         roomId: room?._id ?? null,
         containerRef,
-        scale,
+        scale: effectiveScale,
         lastRoomPositionRef,
         hasVisitors,
         onboardingStep,
@@ -395,17 +407,41 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         handlers.handleCursorMove(e.clientX, e.clientY);
     };
 
+    const handlePointerEvent = (e: React.PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        handlers.handleCursorMove(e.clientX, e.clientY);
+        if (isZoomed && roomState.mode === "view") {
+            handlePanMove(e.clientX, e.clientY);
+        }
+    };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        if (isZoomed && roomState.mode === "view") {
+            handlePanStart(e.clientX, e.clientY);
+        }
+    };
+
+    const handlePointerUp = useCallback(() => {
+        handlePanEnd();
+    }, [handlePanEnd]);
+
+    const {
+        touchPlacementId,
+        handleTouchPlaceStart,
+        handleTouchPlaceRoom,
+        onTouchPlacementCancel,
+    } = useTouchPlacement(handlers, roomState);
+
     const gate = useRoomGate({
         isGuest,
-        viewportWidth,
-        mobileMaxWidth: MOBILE_MAX_WIDTH,
         initialGuestSession: roomState.initialGuestSession,
         room,
         guestTemplate,
         guestRoom,
     });
 
-    const overlaysModel = useRoomOverlaysModel({
+    const baseOverlaysModel = useRoomOverlaysModel({
         isGuest,
         roomState,
         computed,
@@ -442,6 +478,16 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         saveRoom,
     });
 
+    const overlaysModel = {
+        ...baseOverlaysModel,
+        ui: {
+            ...baseOverlaysModel.ui,
+            onTouchPlaceItem: handleTouchPlaceStart,
+            touchPlacementItemId: touchPlacementId,
+            onTouchPlacementCancel,
+        },
+    };
+
     if (gate) return gate;
 
     const roomContent = (
@@ -450,7 +496,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
             catalogItems={catalogItems ?? undefined}
             selectedId={roomState.selectedId}
             mode={roomState.mode}
-            scale={scale}
+            scale={effectiveScale}
             onSelect={handlers.handleSelectItem}
             onChange={handlers.handleChangeItem}
             onDragStart={handlers.handleDragStart}
@@ -472,24 +518,37 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     );
 
     return (
-        <RoomShell
-            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
-            scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onDragOver={handleDragOver}
-            onDrop={handlers.handleDrop}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            onBackgroundClick={handlers.handleBackgroundClick}
-            outerClassName={roomState.draggedItemId ? "select-none" : ""}
-            outerStyle={{
-                paddingLeft: drawerInsetLeft,
-                paddingBottom: drawerInsetBottom,
-                transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-            roomContent={roomContent}
-            overlays={<RoomOverlays {...overlaysModel} />}
-        />
+        <>
+            <RoomShell
+                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+                scale={scale}
+                zoomLevel={zoomLevel}
+                panOffset={panOffset}
+                timeOfDay={timeOfDay}
+                containerRef={containerRef}
+                onDragOver={handleDragOver}
+                onDrop={handlers.handleDrop}
+                onMouseMove={handleMouseEvent}
+                onMouseEnter={handleMouseEvent}
+                onPointerMove={handlePointerEvent}
+                onPointerEnter={handlePointerEvent}
+                onPointerDown={(e) => {
+                    handlePointerDown(e);
+                    handleTouchPlaceRoom(e);
+                }}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                onBackgroundClick={handlers.handleBackgroundClick}
+                outerClassName={roomState.draggedItemId ? "select-none" : ""}
+                outerStyle={{
+                    paddingLeft: drawerInsetLeft,
+                    paddingBottom: drawerInsetBottom,
+                    transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+                }}
+                roomContent={roomContent}
+                overlays={<RoomOverlays {...overlaysModel} />}
+            />
+            <MobileZoomButton zoomLevel={zoomLevel} zoomLabel={zoomLabel} onCycleZoom={cycleZoom} />
+        </>
     );
 }

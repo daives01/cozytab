@@ -10,11 +10,13 @@ export function HiddenItemsSection({
     onToggleSection,
     onUnhideAll,
     onDragStart,
+    onTouchPlace,
     onToggleHidden,
     pendingHides,
     isGuest,
     showHideControls,
     highlightComputer,
+    touchPlacementItemId,
 }: HiddenItemsSectionProps) {
     return (
         <div className="space-y-3">
@@ -28,11 +30,13 @@ export function HiddenItemsSection({
                                     <ItemCard
                                         key={item.inventoryId}
                                         item={item}
+                                        isTouchSelected={touchPlacementItemId === item.catalogItemId}
                                         highlightComputer={highlightComputer}
                                         isGuest={isGuest}
                                         isPending={pendingHides[String(item.inventoryId)]}
                                         showHideControls={showHideControls}
                                         onDragStart={onDragStart}
+                                        onTouchPlace={onTouchPlace}
                                         onToggleHidden={onToggleHidden}
                                     />
                                 ))}

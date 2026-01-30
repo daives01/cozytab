@@ -44,34 +44,49 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
             return;
         }
 
-        const handleMouseMove = (e: MouseEvent) => {
-            if (!trashRef.current) return;
-
+        const checkTrashHover = (clientX: number, clientY: number): boolean => {
+            if (!trashRef.current) return false;
             const rect = trashRef.current.getBoundingClientRect();
-            const isOver = (
-                e.clientX >= rect.left &&
-                e.clientX <= rect.right &&
-                e.clientY >= rect.top &&
-                e.clientY <= rect.bottom
+            return (
+                clientX >= rect.left &&
+                clientX <= rect.right &&
+                clientY >= rect.top &&
+                clientY <= rect.bottom
             );
+        };
 
-            setIsHovered(isOver);
+        const handleMouseMove = (e: MouseEvent) => {
+            setIsHovered(checkTrashHover(e.clientX, e.clientY));
         };
 
         const handleMouseUp = (e: MouseEvent) => {
             // Use ref to get the current value, even if prop was cleared
             const currentItemId = draggedItemIdRef.current;
-            if (!currentItemId || !trashRef.current) return;
+            if (!currentItemId) return;
 
-            const rect = trashRef.current.getBoundingClientRect();
-            const isOver = (
-                e.clientX >= rect.left &&
-                e.clientX <= rect.right &&
-                e.clientY >= rect.top &&
-                e.clientY <= rect.bottom
-            );
+            if (checkTrashHover(e.clientX, e.clientY)) {
+                onDelete(currentItemId);
+            }
+            setIsHovered(false);
+            setShouldShow(false);
 
-            if (isOver) {
+            if (showTimeoutRef.current) {
+                clearTimeout(showTimeoutRef.current);
+                showTimeoutRef.current = null;
+            }
+        };
+
+        const handlePointerMove = (e: PointerEvent) => {
+            if (e.pointerType !== "touch") return;
+            setIsHovered(checkTrashHover(e.clientX, e.clientY));
+        };
+
+        const handlePointerUp = (e: PointerEvent) => {
+            if (e.pointerType !== "touch") return;
+            const currentItemId = draggedItemIdRef.current;
+            if (!currentItemId) return;
+
+            if (checkTrashHover(e.clientX, e.clientY)) {
                 onDelete(currentItemId);
             }
             setIsHovered(false);
@@ -85,10 +100,16 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
 
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp, true); // Use capture phase to run before ItemNode
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp, true);
+        window.addEventListener("pointercancel", handlePointerUp, true);
 
         return () => {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp, true);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp, true);
+            window.removeEventListener("pointercancel", handlePointerUp, true);
         };
     }, [draggedItemId, onDelete]);
 

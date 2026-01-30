@@ -114,6 +114,9 @@ export interface UIProps {
     onToggleMode: () => void;
     onShareClick: () => void;
     onDeleteItem: (id: string) => void;
+    onTouchPlaceItem?: (catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => void;
+    touchPlacementItemId?: Id<"catalogItems"> | null;
+    onTouchPlacementCancel?: () => void;
 }
 
 export interface RoomOverlaysProps {

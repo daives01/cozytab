@@ -14,7 +14,10 @@ interface EditDrawerProps {
     onDrawerToggle: () => void;
     draggedItemId: string | null;
     onDeleteItem: (itemId: string) => void;
+    onTouchPlaceItem?: (catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => void;
+    onTouchPlacementCancel?: () => void;
     highlightComputer: boolean;
+    touchPlacementItemId?: Id<"catalogItems"> | null;
     isGuest: boolean;
     guestItems?: GuestDrawerItem[];
     placedCatalogItemIds?: Id<"catalogItems">[];
@@ -27,7 +30,10 @@ export function EditDrawer({
     onDrawerToggle,
     draggedItemId,
     onDeleteItem,
+    onTouchPlaceItem,
+    onTouchPlacementCancel,
     highlightComputer,
+    touchPlacementItemId,
     isGuest,
     guestItems,
     placedCatalogItemIds,
@@ -80,7 +86,10 @@ export function EditDrawer({
                 onDragStart={(e: React.DragEvent, id: Id<"catalogItems">) => {
                     e.dataTransfer.setData("catalogItemId", String(id));
                 }}
+                onTouchPlace={onTouchPlaceItem}
+                onTouchPlacementCancel={onTouchPlacementCancel}
                 highlightComputer={highlightComputer}
+                touchPlacementItemId={touchPlacementItemId}
                 isGuest={isGuest}
                 guestItems={guestItems}
                 placedCatalogItemIds={placedCatalogItemIds}

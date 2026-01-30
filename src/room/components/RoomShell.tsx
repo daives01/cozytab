@@ -6,10 +6,17 @@ import type { TimeOfDay } from "../types";
 interface RoomShellProps {
     roomBackgroundImageUrl?: string;
     scale: number;
+    zoomLevel?: number;
+    panOffset?: { x: number; y: number };
     timeOfDay: TimeOfDay;
     containerRef?: React.RefObject<HTMLDivElement | null>;
     onMouseMove?: (e: React.MouseEvent) => void;
     onMouseEnter?: (e: React.MouseEvent) => void;
+    onPointerMove?: (e: React.PointerEvent) => void;
+    onPointerEnter?: (e: React.PointerEvent) => void;
+    onPointerDown?: (e: React.PointerEvent) => void;
+    onPointerUp?: (e: React.PointerEvent) => void;
+    onPointerCancel?: (e: React.PointerEvent) => void;
     onDrop?: (e: DragEvent) => void;
     onDragOver?: (e: DragEvent) => void;
     onBackgroundClick?: () => void;
@@ -22,10 +29,17 @@ interface RoomShellProps {
 export function RoomShell({
     roomBackgroundImageUrl,
     scale,
+    zoomLevel,
+    panOffset,
     timeOfDay,
     containerRef: externalContainerRef,
     onMouseMove,
     onMouseEnter,
+    onPointerMove,
+    onPointerEnter,
+    onPointerDown,
+    onPointerUp,
+    onPointerCancel,
     onDrop,
     onDragOver,
     onBackgroundClick,
@@ -38,14 +52,21 @@ export function RoomShell({
     const containerRef = externalContainerRef ?? internalContainerRef;
 
     return (
-        <div className="h-screen w-screen">
+        <div className="fixed inset-0 overflow-hidden overscroll-none">
             <RoomCanvas
                 roomBackgroundImageUrl={roomBackgroundImageUrl}
                 scale={scale}
+                zoomLevel={zoomLevel}
+                panOffset={panOffset}
                 timeOfDay={timeOfDay}
                 containerRef={containerRef}
                 onMouseMove={onMouseMove}
                 onMouseEnter={onMouseEnter}
+                onPointerMove={onPointerMove}
+                onPointerEnter={onPointerEnter}
+                onPointerDown={onPointerDown}
+                onPointerUp={onPointerUp}
+                onPointerCancel={onPointerCancel}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onBackgroundClick={onBackgroundClick}

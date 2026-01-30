@@ -16,7 +16,10 @@ export type GuestDrawerItem = {
 export interface AssetDrawerProps {
     isOpen: boolean;
     onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
+    onTouchPlace?: (id: Id<"catalogItems">, event: React.PointerEvent) => void;
+    onTouchPlacementCancel?: () => void;
     highlightComputer?: boolean;
+    touchPlacementItemId?: Id<"catalogItems"> | null;
     isGuest?: boolean;
     guestItems?: GuestDrawerItem[] | undefined;
     placedCatalogItemIds?: Id<"catalogItems">[];
@@ -32,10 +35,12 @@ export interface FilterPillsProps {
 export interface ItemCardProps {
     item: GuestDrawerItem;
     highlightComputer?: boolean;
+    isTouchSelected?: boolean;
     isGuest?: boolean;
     isPending?: boolean;
     showHideControls?: boolean;
     onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
+    onTouchPlace?: (id: Id<"catalogItems">, event: React.PointerEvent) => void;
     onToggleHidden: (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => void;
     compact?: boolean;
 }
@@ -47,9 +52,11 @@ export interface HiddenItemsSectionProps {
     onToggleSection: () => void;
     onUnhideAll: () => void;
     onDragStart: (e: React.DragEvent, id: Id<"catalogItems">) => void;
+    onTouchPlace?: (id: Id<"catalogItems">, event: React.PointerEvent) => void;
     onToggleHidden: (inventoryId: Id<"inventory"> | string, nextHidden: boolean) => void;
     pendingHides: Record<string, boolean>;
     isGuest: boolean;
     showHideControls: boolean;
     highlightComputer?: boolean;
+    touchPlacementItemId?: Id<"catalogItems"> | null;
 }

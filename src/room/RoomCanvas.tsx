@@ -6,10 +6,17 @@ import type { TimeOfDay } from "./types";
 interface RoomCanvasProps {
     roomBackgroundImageUrl?: string;
     scale: number;
+    zoomLevel?: number;
+    panOffset?: { x: number; y: number };
     timeOfDay: TimeOfDay;
     containerRef?: React.Ref<HTMLDivElement>;
     onMouseMove?: React.MouseEventHandler<HTMLDivElement>;
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
+    onPointerMove?: React.PointerEventHandler<HTMLDivElement>;
+    onPointerEnter?: React.PointerEventHandler<HTMLDivElement>;
+    onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+    onPointerUp?: React.PointerEventHandler<HTMLDivElement>;
+    onPointerCancel?: React.PointerEventHandler<HTMLDivElement>;
     onDragOver?: React.DragEventHandler<HTMLDivElement>;
     onDrop?: React.DragEventHandler<HTMLDivElement>;
     onBackgroundClick?: () => void;
@@ -22,10 +29,17 @@ interface RoomCanvasProps {
 export function RoomCanvas({
     roomBackgroundImageUrl,
     scale,
+    zoomLevel = 1,
+    panOffset = { x: 0, y: 0 },
     timeOfDay,
     containerRef,
     onMouseMove,
     onMouseEnter,
+    onPointerMove,
+    onPointerEnter,
+    onPointerDown,
+    onPointerUp,
+    onPointerCancel,
     onDragOver,
     onDrop,
     onBackgroundClick,
@@ -34,6 +48,7 @@ export function RoomCanvas({
     roomContent,
     overlays,
 }: RoomCanvasProps) {
+    const effectiveScale = scale * zoomLevel;
     const outerClass = [
         "relative w-full h-full font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
@@ -58,12 +73,18 @@ export function RoomCanvas({
             className={outerClass}
             onMouseMove={onMouseMove}
             onMouseEnter={onMouseEnter}
+            onPointerMove={onPointerMove}
+            onPointerEnter={onPointerEnter}
+            onPointerDown={onPointerDown}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
             onDragOver={onDragOver}
             onDrop={onDrop}
             style={{
                 background: backgroundGradient,
                 transition: "background 400ms ease",
                 overflow: "hidden",
+                touchAction: "none",
                 ...outerStyle,
             }}
         >
@@ -95,7 +116,7 @@ export function RoomCanvas({
                 style={{
                     width: ROOM_WIDTH,
                     height: ROOM_HEIGHT,
-                    transform: `scale(${scale})`,
+                    transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${effectiveScale})`,
                     transformOrigin: "center",
                     position: "relative",
                     flexShrink: 0,

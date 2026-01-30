@@ -14,6 +14,9 @@ import { Package } from "lucide-react";
 export function AssetDrawer({
     isOpen,
     onDragStart,
+    onTouchPlace,
+    onTouchPlacementCancel,
+    touchPlacementItemId,
     highlightComputer,
     isGuest = false,
     guestItems,
@@ -111,12 +114,38 @@ export function AssetDrawer({
         ? "grid grid-cols-[repeat(auto-fit,minmax(130px,160px))] auto-rows-min justify-center gap-3"
         : "grid grid-cols-2 gap-3";
 
+    const handlePointerDown = useCallback(
+        (event: React.PointerEvent<HTMLDivElement>) => {
+            if (event.pointerType !== "touch") return;
+            const target = event.target as HTMLElement | null;
+            if (target?.closest("[data-touch-place-item]")) return;
+            onTouchPlacementCancel?.();
+        },
+        [onTouchPlacementCancel]
+    );
+
+    const showTouchHint = Boolean(touchPlacementItemId);
+    const hintWrapperClass = isLeft
+        ? "absolute left-full top-auto bottom-4 pl-3 animate-in fade-in slide-in-from-left-2 duration-200"
+        : "absolute left-auto right-4 top-0 -translate-y-full animate-in fade-in slide-in-from-bottom-2 duration-200";
+    const hintBubbleClass = isLeft
+        ? "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-foreground)] shadow-[var(--shadow-4)]"
+        : "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-foreground)] shadow-[var(--shadow-4)]";
+
     return (
         <div
             data-asset-drawer="true"
             style={drawerSizeStyle}
             className={`absolute ${positionClass} z-40 transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${translateClass}`}
+            onPointerDown={handlePointerDown}
         >
+            {showTouchHint && (
+                <div className={hintWrapperClass}>
+                    <div className={`${hintBubbleClass} inline-flex items-center`}>
+                        (Tap room to place!)
+                    </div>
+                </div>
+            )}
             <div
                 className={`relative flex h-full flex-col overflow-hidden border-2 border-[var(--color-foreground)] bg-[var(--color-background)] ${containerRadii} ${shadowClass}`}
                 style={handwritingFont}
@@ -143,11 +172,13 @@ export function AssetDrawer({
                                             <ItemCard
                                                 key={item.inventoryId}
                                                 item={item}
+                                                isTouchSelected={touchPlacementItemId === item.catalogItemId}
                                                 highlightComputer={highlightComputer}
                                                 isGuest={isGuest}
                                                 isPending={pendingHides[String(item.inventoryId)]}
                                                 showHideControls={showHideControls}
                                                 onDragStart={onDragStart}
+                                                onTouchPlace={onTouchPlace}
                                                 onToggleHidden={handleToggleHidden}
                                                 compact={isBottom}
                                             />
@@ -167,12 +198,14 @@ export function AssetDrawer({
                                         onToggleSection={() => toggleSection("hidden")}
                                         onUnhideAll={handleUnhideAll}
                                         onDragStart={onDragStart}
+                                        onTouchPlace={onTouchPlace}
                                         onToggleHidden={handleToggleHidden}
                                         pendingHides={pendingHides}
                                         isBulkUnhiding={isBulkUnhiding}
                                         isGuest={isGuest}
                                         showHideControls={showHideControls}
                                         highlightComputer={highlightComputer}
+                                        touchPlacementItemId={touchPlacementItemId}
                                     />
                                 )}
                             </>

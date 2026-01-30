@@ -73,6 +73,8 @@ export interface ComputerScreenProps {
     inRoomVisitors?: import("@/hooks/useWebSocketPresence").VisitorState[];
 }
 
+import { createId } from "@/utils/id";
+
 const DISPLAY_NAME_MAX_LENGTH = 50;
 
 export function ComputerScreen({
@@ -340,7 +342,7 @@ export function ComputerScreen({
             : defaultSize.height;
         const x = bounds ? (isShop ? 0 : Math.max(8, (bounds.width - width) / 2)) : 40;
         const y = bounds ? (isShop ? 0 : Math.max(8, (bounds.height - height) / 2)) : 40;
-        const id = crypto.randomUUID();
+        const id = createId();
         const nextZ = zCounterRef.current + 1;
         zCounterRef.current = nextZ;
 
@@ -518,7 +520,7 @@ export function ComputerScreen({
 
         const url = withProtocol(newShortcutUrl.trim());
         const { row, col } = pendingShortcutPosition;
-        const newId = crypto.randomUUID();
+        const newId = createId();
         const initialName = deriveShortcutName(url);
         const newShortcut: Shortcut = {
             id: newId,

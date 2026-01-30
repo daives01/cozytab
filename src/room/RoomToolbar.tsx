@@ -13,6 +13,7 @@ interface RoomToolbarProps {
     onShareClick: () => void;
     drawerOffset?: number;
     drawerOrientation?: "left" | "bottom";
+    onTouchPlacementCancel?: () => void;
 }
 
 export function RoomToolbar({
@@ -24,6 +25,7 @@ export function RoomToolbar({
     onShareClick,
     drawerOffset = 0,
     drawerOrientation = "left",
+    onTouchPlacementCancel,
 }: RoomToolbarProps) {
     const circleBaseStyles =
         "relative h-14 w-14 rounded-full border-2 border-[var(--ink)] shadow-[var(--shadow-6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all flex items-center justify-center text-[var(--ink)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--ink)]/10";
@@ -34,6 +36,11 @@ export function RoomToolbar({
         <div
             className="absolute top-4 flex gap-3 pointer-events-auto items-center transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
             style={{ zIndex: 50, left: `${leftSpacing}px`, top: `${topSpacing}px` }}
+            onPointerDown={(event) => {
+                if (event.pointerType !== "touch") return;
+                event.stopPropagation();
+                onTouchPlacementCancel?.();
+            }}
         >
             {isGuest && (
                 <SignUpButton mode="modal">
@@ -92,4 +99,3 @@ export function RoomToolbar({
         </div>
     );
 }
-

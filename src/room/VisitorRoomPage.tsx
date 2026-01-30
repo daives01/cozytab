@@ -40,6 +40,7 @@ import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
 import { ChatHint } from "./components/ChatHint";
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { GameOverlay } from "@/games/components/GameOverlay";
+import { createId } from "@/utils/id";
 
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";
 
@@ -109,7 +110,7 @@ function VisitorRoomPageContent({
     const { scale } = useRoomViewportScale();
     const containerRef = useRef<HTMLDivElement | null>(null);
 
-    const [guestVisitorId] = useState(() => `visitor-${crypto.randomUUID()}`);
+    const [guestVisitorId] = useState(() => `visitor-${createId()}`);
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
     const [guestCursorColor] = useState(() => randomBrightColor());
     const [isComputerOpen, setIsComputerOpen] = useState(false);

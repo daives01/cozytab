@@ -36,17 +36,24 @@ export function detectTouchCapable(): boolean {
   return coarsePointer || hasTouchEvent || uaSuggestsTouch;
 }
 
-export function useTouchCapability() {
-  const initial = useMemo(() => detectTouchCapable(), []);
-  const [isTouchCapable, setIsTouchCapable] = useState(initial);
+/** Returns true if the device is primarily touch-based (no fine pointer available) */
+export function isTouchOnlyDevice(): boolean {
+  if (!hasWindow()) return false;
+  const coarse = matchMediaQuery("(pointer: coarse)");
+  const fine = matchMediaQuery("(pointer: fine)");
+  return Boolean(coarse?.matches) && !fine?.matches;
+}
+
+function useMediaQueryState(detector: () => boolean): boolean {
+  const initial = useMemo(() => detector(), [detector]);
+  const [state, setState] = useState(initial);
 
   useEffect(() => {
     if (!hasWindow()) return;
 
-    const update = () => setIsTouchCapable(detectTouchCapable());
+    const update = () => setState(detector());
     const mql = matchMediaQuery("(pointer: coarse)");
 
-    // Re-evaluate on first touch and pointer capability changes
     window.addEventListener("touchstart", update, { once: true, passive: true });
     if (mql) {
       if (typeof mql.addEventListener === "function") {
@@ -66,7 +73,16 @@ export function useTouchCapability() {
         }
       }
     };
-  }, []);
+  }, [detector]);
 
-  return isTouchCapable;
+  return state;
+}
+
+export function useTouchCapability(): boolean {
+  return useMediaQueryState(detectTouchCapable);
+}
+
+/** React hook that returns true if device is touch-only (no mouse) */
+export function useTouchOnly(): boolean {
+  return useMediaQueryState(isTouchOnlyDevice);
 }

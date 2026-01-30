@@ -4,6 +4,7 @@ import type { Doc } from "@convex/_generated/dataModel";
 import type React from "react";
 import { AssetImage } from "../components/AssetImage";
 import { ArrowDown, ArrowUp, FlipHorizontal2 } from "lucide-react";
+import { useTouchOnly } from "@/hooks/useTouchCapability";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -51,11 +52,35 @@ export function ItemNode({
     const [isDragging, setIsDragging] = useState(false);
     const dragStart = useRef({ x: 0, y: 0 });
     const itemStart = useRef({ x: 0, y: 0 });
+    const pointerIdRef = useRef<number | null>(null);
+    const itemRef = useRef(item);
+    const scaleRef = useRef(scale);
+    const onChangeRef = useRef(onChange);
+    const onDragEndRef = useRef(onDragEnd);
+    const isTouchOnly = useTouchOnly();
     const imageUrl = catalogItem?.assetUrl ?? "";
     const resolvedWidth = catalogItem?.defaultWidth ?? 150;
+    const shouldPreventDefaultClick = useRef(false);
+
+    useEffect(() => {
+        itemRef.current = item;
+    }, [item]);
+
+    useEffect(() => {
+        scaleRef.current = scale;
+    }, [scale]);
+
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }, [onChange]);
+
+    useEffect(() => {
+        onDragEndRef.current = onDragEnd;
+    }, [onDragEnd]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
+        if (isTouchOnly) return;
         e.stopPropagation();
         e.preventDefault();
 
@@ -67,33 +92,83 @@ export function ItemNode({
         itemStart.current = { x: item.x, y: item.y };
     };
 
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (mode !== "edit") return;
+        if (e.pointerType !== "touch") return;
+        e.stopPropagation();
+        e.preventDefault();
+        shouldPreventDefaultClick.current = true;
+
+        if (e.currentTarget.setPointerCapture) {
+            e.currentTarget.setPointerCapture(e.pointerId);
+        }
+
+        onSelect();
+        setIsDragging(true);
+        onDragStart?.();
+
+        pointerIdRef.current = e.pointerId;
+        dragStart.current = { x: e.clientX, y: e.clientY };
+        itemStart.current = { x: item.x, y: item.y };
+    };
+
     useEffect(() => {
         if (!isDragging) return;
 
-        const handleMouseMove = (e: MouseEvent) => {
-            const dx = e.clientX - dragStart.current.x;
-            const dy = e.clientY - dragStart.current.y;
+        const updatePosition = (clientX: number, clientY: number) => {
+            const dx = clientX - dragStart.current.x;
+            const dy = clientY - dragStart.current.y;
 
-            onChange({
-                ...item,
-                x: itemStart.current.x + dx / scale,
-                y: itemStart.current.y + dy / scale,
-            });
+            const nextItem = {
+                ...itemRef.current,
+                x: itemStart.current.x + dx / scaleRef.current,
+                y: itemStart.current.y + dy / scaleRef.current,
+            };
+
+            onChangeRef.current(nextItem);
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            updatePosition(e.clientX, e.clientY);
         };
 
         const handleMouseUp = () => {
             setIsDragging(false);
-            onDragEnd?.();
+            onDragEndRef.current?.();
+        };
+
+        const handlePointerMove = (e: PointerEvent) => {
+            if (e.pointerType !== "touch") return;
+            if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return;
+            updatePosition(e.clientX, e.clientY);
+        };
+
+        const handlePointerUp = (e: PointerEvent) => {
+            if (e.pointerType !== "touch") return;
+            if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return;
+            pointerIdRef.current = null;
+            shouldPreventDefaultClick.current = false;
+            if (e.target instanceof Element && "releasePointerCapture" in e.target) {
+                (e.target as Element).releasePointerCapture(e.pointerId);
+            }
+            setIsDragging(false);
+            onDragEndRef.current?.();
         };
 
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp);
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerUp);
 
         return () => {
             window.removeEventListener("mousemove", handleMouseMove);
             window.removeEventListener("mouseup", handleMouseUp);
+            window.removeEventListener("pointermove", handlePointerMove);
+            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerUp);
         };
-    }, [isDragging, item, onChange, scale, onDragEnd]);
+    }, [isDragging]);
 
     const category = catalogItem?.category?.toLowerCase();
     const isComputerCategory = category === "computers";
@@ -133,10 +208,16 @@ export function ItemNode({
                 transform: "translate(-50%, -50%)",
                 zIndex: 10,
                 cursor,
+                touchAction: mode === "edit" ? "none" : "manipulation",
             }}
             onMouseDown={handleMouseDown}
+            onPointerDown={handlePointerDown}
             onClick={(e) => {
                 e.stopPropagation();
+                if (shouldPreventDefaultClick.current) {
+                    shouldPreventDefaultClick.current = false;
+                    return;
+                }
                 if (mode !== "view" || !isInteractable) return;
 
                 if (isMusicCategory && onMusicPlayerClick) {
