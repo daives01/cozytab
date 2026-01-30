@@ -54,7 +54,7 @@ export function ItemsTab({
                             <div className={`h-1 flex-1 rounded-full bg-gradient-to-l ${color} opacity-50`} />
                         </div>
 
-                        <div className="flex flex-wrap gap-2.5 md:gap-3 justify-center md:justify-start">
+                        <div className="flex flex-wrap gap-2 sm:gap-2.5 md:gap-3 justify-center sm:justify-center md:justify-start">
                             {groupedItems[category]?.map((item) => {
                                 const ownedCount = ownedCounts.get(item._id) ?? 0;
                                 const isOwned = ownedCount > 0;
@@ -67,24 +67,24 @@ export function ItemsTab({
                                     <div
                                         key={item._id}
                                         data-onboarding={isHighlighted ? "first-music-player" : undefined}
-                                        className={`relative w-[130px] shrink-0 bg-[var(--paper)] rounded-lg border-2 p-2.5 transition-all shadow-sm ${
+                                        className={`relative w-[110px] sm:w-[130px] shrink-0 bg-[var(--paper)] rounded-lg border-2 p-2 sm:p-2.5 transition-all shadow-sm ${
                                             isOwned
                                                 ? "border-[var(--success)] bg-[var(--success-light)]"
                                                 : "border-[var(--ink)] hover:border-[var(--warning)] hover:shadow-md hover:-translate-y-1"
                                         }`}
                                     >
                                         {isHighlighted && (
-                                            <div className="absolute -top-3 -left-3 bg-[var(--warning)] text-[var(--ink)] border-2 border-[var(--ink)] rounded-full px-2 py-0.5 text-[10px] font-bold shadow-sm">
+                                            <div className="absolute -top-2 -left-2 sm:-top-3 sm:-left-3 bg-[var(--warning)] text-[var(--ink)] border-2 border-[var(--ink)] rounded-full px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold shadow-sm">
                                                 Start here
                                             </div>
                                         )}
                                         <ItemCountBadge
                                             count={ownedCount}
-                                            icon={isOwned ? <Check className="h-4 w-4 text-[var(--success-dark)]" /> : null}
+                                            icon={isOwned ? <Check className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--success-dark)]" /> : null}
                                             className="border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)]"
                                         />
 
-                                        <div className="w-full h-[112px] bg-transparent rounded-md mb-2 flex items-center justify-center overflow-hidden">
+                                        <div className="w-full h-[90px] sm:h-[112px] bg-transparent rounded-md mb-1.5 sm:mb-2 flex items-center justify-center overflow-hidden">
                                             <AssetImage
                                                 assetUrl={item.assetUrl}
                                                 alt={item.name}
@@ -93,14 +93,14 @@ export function ItemsTab({
                                             />
                                         </div>
 
-                                        <h4 className="font-bold text-[var(--ink)] text-center truncate mb-1.5 text-size-lg">
+                                        <h4 className="font-bold text-[var(--ink)] text-center truncate mb-1 sm:mb-1.5 text-size-sm sm:text-size-lg">
                                             {item.name}
                                         </h4>
 
                                         <button
                                             onClick={() => onPurchase(item._id)}
                                             disabled={!canAfford || isPurchasing}
-                                            className={`w-full py-1 px-2.5 rounded-md font-bold text-size-base transition-all flex items-center justify-center gap-1.5 border-2 ${
+                                            className={`w-full py-1 px-1.5 sm:px-2.5 rounded-md font-bold text-size-sm sm:text-size-base transition-all flex items-center justify-center gap-1 border-2 ${
                                                 isPurchasing
                                                     ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                     : canAfford
@@ -108,13 +108,13 @@ export function ItemsTab({
                                                     : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
                                             }`}
                                         >
-                                            <Coins className="h-3.5 w-3.5" />
+                                            <Coins className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                                             <span>{item.basePrice}</span>
                                         </button>
 
                                         {resultForItem && (
                                             <div
-                                                className={`mt-1.5 text-size-sm leading-tight text-center ${
+                                                className={`mt-1 sm:mt-1.5 text-size-xs sm:text-size-sm leading-tight text-center ${
                                                     resultForItem.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
                                                 }`}
                                             >

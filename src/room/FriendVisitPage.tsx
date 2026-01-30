@@ -3,7 +3,10 @@ import { useUser, SignInButton } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { Link, useParams } from "react-router-dom";
 import { LocalCursor } from "@/presence/LocalCursor";
+import { TouchCursor } from "./components/TouchCursor";
+import { MobileChatInput } from "./components/MobileChatInput";
 import { ChatInput } from "./ChatInput";
+import { useTouchOnly } from "@/hooks/useTouchCapability";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import type { Shortcut, RoomItem } from "@shared/guestTypes";
@@ -27,7 +30,7 @@ import { VisitorRoomItems } from "./components/VisitorRoomItems";
 import { VisitorHeader } from "./components/VisitorHeader";
 import { ConnectionBanner } from "./components/ConnectionBanner";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
-import { ChatHint } from "./components/ChatHint";
+
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { GameOverlay } from "@/games/components/GameOverlay";
 
@@ -130,6 +133,7 @@ function FriendVisitContent({
     const saveComputer = useMutation(api.users.saveMyComputer);
 
     const { scale } = useRoomViewportScale();
+    const isTouchOnly = useTouchOnly();
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const [isComputerOpen, setIsComputerOpen] = useState(false);
@@ -180,6 +184,7 @@ function FriendVisitContent({
         setInGame,
         setGameMetadata,
         connectionState,
+        connectionError,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: {
@@ -274,13 +279,40 @@ function FriendVisitContent({
     const overlays = (
         <>
             <VisitorHeader ownerName={roomData.ownerName} visitorCount={visitors.length} />
-            <ConnectionBanner connectionState={connectionState} />
+            <ConnectionBanner connectionState={connectionState} connectionError={connectionError} />
 
-            <ChatInput
-                onMessageChange={updateChatMessage}
-                disabled={connectionState !== "connected"}
-            />
-            <ChatHint />
+            {!isTouchOnly && (
+                <>
+                    <ChatInput
+                        onMessageChange={updateChatMessage}
+                        disabled={connectionState !== "connected"}
+                    />
+                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+                        <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
+                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
+                            <span
+                                style={{
+                                    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+                                    fontSize: "1.07em",
+                                    fontWeight: 400,
+                                    fontStyle: "normal",
+                                    fontSynthesis: "none",
+                                    fontOpticalSizing: "none",
+                                }}
+                            >
+                                to chat
+                            </span>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {isTouchOnly && (
+                <MobileChatInput
+                    onMessageChange={updateChatMessage}
+                    disabled={connectionState !== "connected"}
+                />
+            )}
 
             {activeMusicItem ? (
                 <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
@@ -304,6 +336,8 @@ function FriendVisitContent({
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
             />
+
+            <TouchCursor cursorColor={visitorIdentity.cursorColor} />
 
             <ComputerOverlay
                 isGuest={false}

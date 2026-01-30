@@ -74,7 +74,7 @@ function TaskbarIconButton({
                     onClick();
                 }}
                 aria-label={ariaLabel ?? label}
-                className={`flex items-center justify-center h-full aspect-square bg-[color-mix(in_srgb,var(--card)_80%,transparent)] hover:bg-[var(--card)] px-2 rounded border border-[var(--taskbar-border)] shadow-sm active:translate-y-[1px] transition-all ${className ?? ""}`}
+                className={`flex items-center justify-center h-full aspect-square bg-[color-mix(in_srgb,var(--card)_80%,transparent)] hover:bg-[var(--card)] px-1 sm:px-2 rounded border border-[var(--taskbar-border)] shadow-sm active:translate-y-[1px] transition-all ${className ?? ""}`}
             >
                 {children}
             </button>
@@ -117,7 +117,7 @@ export function Taskbar({
 
     return (
         <div className="bg-gradient-to-b from-[var(--taskbar-from)] to-[var(--taskbar-to)] border-t-2 border-[var(--taskbar-border)] p-1.5 px-2 shadow-[var(--shadow-inset-1)] text-[var(--ink)] relative">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
@@ -137,7 +137,7 @@ export function Taskbar({
                     <User className="h-5 w-5 text-[var(--ink)]" />
                 </button>
 
-                <div className="flex items-center gap-2 h-8">
+                <div className="flex items-center gap-1 sm:gap-1.5 h-8 overflow-x-auto sm:overflow-visible overflow-y-hidden">
                     <TaskbarIconButton
                         dataOnboarding="shop-icon"
                         label="Shop"
@@ -209,7 +209,7 @@ export function Taskbar({
 
                 <div className="flex-1" />
 
-                <div className="flex items-center gap-2 bg-[color-mix(in_srgb,var(--taskbar-from)_70%,transparent)] border border-[var(--taskbar-border)] rounded px-2 py-1 shadow-inner">
+                <div className="flex items-center gap-1 sm:gap-2 bg-[color-mix(in_srgb,var(--taskbar-from)_70%,transparent)] border border-[var(--taskbar-border)] rounded px-1.5 sm:px-2 py-1 shadow-inner shrink-0 whitespace-nowrap ml-auto">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
@@ -217,15 +217,15 @@ export function Taskbar({
                         }}
                         aria-label="Volume"
                         aria-pressed={isVolumeOpen}
-                        className={`h-7 w-8 rounded-sm border-2 border-[var(--taskbar-border)] bg-gradient-to-b from-[color-mix(in_srgb,var(--taskbar-to)_92%,var(--card))] to-[color-mix(in_srgb,var(--taskbar-from)_90%,transparent)] shadow-[2px_2px_0px_0px_color-mix(in_srgb,var(--ink)_25%,transparent)] flex items-center justify-center transition-transform ${
+                        className={`h-6 sm:h-7 w-7 sm:w-8 rounded-sm border-2 border-[var(--taskbar-border)] bg-gradient-to-b from-[color-mix(in_srgb,var(--taskbar-to)_92%,var(--card))] to-[color-mix(in_srgb,var(--taskbar-from)_90%,transparent)] shadow-[2px_2px_0px_0px_color-mix(in_srgb,var(--ink)_25%,transparent)] flex items-center justify-center transition-transform ${
                             isVolumeOpen ? "translate-y-[1px] shadow-none" : ""
                         }`}
                     >
-                        <VolumeIcon className="h-4 w-4 text-[var(--ink)]" />
+                        <VolumeIcon className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-[var(--ink)]" />
                     </button>
-                    <div className="flex items-center gap-2">
-                        <Clock3 className="h-4 w-4 text-[var(--ink-muted)]" />
-                        <span className="font-mono text-sm text-[var(--ink)]">{nowLabel}</span>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <Clock3 className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-[var(--ink-muted)] hidden sm:block" />
+                        <span className="font-mono text-xs sm:text-sm text-[var(--ink)]">{nowLabel}</span>
                     </div>
                 </div>
             </div>

@@ -287,22 +287,22 @@ export function Shop({
 
     const content = (
         <div className="relative bg-background rounded-xl shadow-lg w-full h-full border-2 border-foreground overflow-hidden flex flex-col">
-            <div className="bg-secondary border-b-2 border-foreground px-4 pt-2 pb-0 shrink-0 shadow-sm">
-                <div className="flex items-center justify-between gap-3">
+            <div className="bg-secondary border-b-2 border-foreground px-2 sm:px-4 pt-2 pb-0 shrink-0 shadow-sm">
+                <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex gap-1">
                         <button
                             onClick={() => setActiveTab("items")}
-                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-size-xl transition-all border-2 ${
+                            className={`relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-t-xl font-bold text-size-base sm:text-size-xl transition-all border-2 ${
                                 activeTab === "items"
                                     ? "bg-background text-foreground border-foreground border-b-background -mb-[2px] z-10 rounded-b-none shadow-none"
                                     : "bg-transparent text-[var(--ink-subtle)] hover:text-foreground border-transparent"
                             }`}
                         >
-                            <Package className="h-5 w-5" />
-                            Items
+                            <Package className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <span>Items</span>
                             {catalogItems && (
                                 <span
-                                    className={`text-xs px-2 py-0.5 rounded-full border-2 ${
+                                    className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full border-2 ${
                                         activeTab === "items"
                                             ? "bg-[var(--warning)] text-white border-foreground"
                                             : "bg-muted text-muted-foreground border-foreground"
@@ -314,17 +314,17 @@ export function Shop({
                         </button>
                         <button
                             onClick={() => setActiveTab("rooms")}
-                            className={`relative flex items-center gap-2 px-4 py-2 rounded-t-xl font-bold text-size-xl transition-all border-2 ${
+                            className={`relative flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-t-xl font-bold text-size-base sm:text-size-xl transition-all border-2 ${
                                 activeTab === "rooms"
                                     ? "bg-background text-foreground border-foreground border-b-background -mb-[2px] z-10 rounded-b-none shadow-none"
                                     : "bg-transparent text-[var(--ink-subtle)] hover:text-foreground border-transparent"
                             }`}
                         >
-                            <Home className="h-5 w-5" />
-                            Rooms
+                            <Home className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <span>Rooms</span>
                             {purchasableRooms.length > 0 && (
                                 <span
-                                    className={`text-xs px-2 py-0.5 rounded-full border-2 ${
+                                    className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full border-2 ${
                                         activeTab === "rooms"
                                             ? "bg-destructive text-destructive-foreground border-foreground"
                                             : "bg-muted text-muted-foreground border-foreground"
@@ -335,9 +335,9 @@ export function Shop({
                             )}
                         </button>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {!isGuest && (
-                            <div className="flex items-center gap-3 text-size-md font-bold text-neutral-500">
+                            <div className="hidden sm:flex items-center gap-3 text-size-md font-bold text-neutral-500">
                                 <div className="flex items-center gap-1.5" title="Login Streak">
                                     <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500" />
                                     <span>{loginStreak ?? 0}d streak</span>
@@ -372,27 +372,27 @@ export function Shop({
                                         : "cursor-default"
                                 }`}
                             >
-                                <div className="flex items-center gap-2 pl-4 pr-2 py-1.5">
-                                    <Coins className="h-4 w-4 text-[var(--warning)]" />
-                                    <span className="font-bold text-size-lg text-foreground">
+                                <div className="flex items-center gap-1.5 sm:gap-2 pl-2.5 sm:pl-4 pr-1.5 sm:pr-2 py-1 sm:py-1.5">
+                                    <Coins className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--warning)]" />
+                                    <span className="font-bold text-size-base sm:text-size-lg text-foreground">
                                         {effectiveCoins.toLocaleString()}
                                     </span>
                                 </div>
                                 {!isGuest && (isUS !== false) && !isLocationLoading && (
                                     <div
-                                        className={`mr-1.5 h-8 w-8 rounded-full flex items-center justify-center transition-all ${
+                                        className={`mr-1 sm:mr-1.5 h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center transition-all ${
                                             isCoinPanelOpen
                                                 ? "bg-foreground text-background"
                                                 : "text-foreground group-hover:bg-foreground/10"
                                         }`}
                                     >
-                                        {isCoinPanelOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                        {isCoinPanelOpen ? <X className="h-3 w-3 sm:h-4 sm:w-4" /> : <Plus className="h-3 w-3 sm:h-4 sm:w-4" />}
                                     </div>
                                 )}
                             </button>
                             {!isGuest && (isUS !== false) && !isLocationLoading && isCoinPanelOpen && (
                                 <div
-                                    className="absolute right-0 top-full mt-3 w-[240px] bg-background border-2 border-foreground rounded-3xl p-3 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200"
+                                    className="absolute right-0 top-full mt-3 w-[200px] sm:w-[240px] bg-background border-2 border-foreground rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200"
                                     onClick={(event) => event.stopPropagation()}
                                 >
                                     {coinPacks.length === 0 ? (
@@ -407,12 +407,12 @@ export function Shop({
                                                     type="button"
                                                     onClick={() => handleCoinPurchase(pack)}
                                                     disabled={coinCheckoutLoading === pack.priceId}
-                                                    className="group flex items-center justify-between rounded-2xl border-2 border-foreground bg-secondary px-4 py-3 text-left shadow-md transition-all hover:bg-[var(--warning-light)] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed"
+                                                    className="group flex items-center justify-between rounded-xl sm:rounded-2xl border-2 border-foreground bg-secondary px-3 sm:px-4 py-2 sm:py-3 text-left shadow-md transition-all hover:bg-[var(--warning-light)] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed"
                                                 >
-                                                    <span className="text-size-lg font-bold text-foreground">
+                                                    <span className="text-size-base sm:text-size-lg font-bold text-foreground">
                                                         {pack.coins.toLocaleString()} coins
                                                     </span>
-                                                    <span className="bg-background px-2 py-0.5 rounded-lg border-2 border-foreground text-size-md font-bold text-foreground">
+                                                    <span className="bg-background px-2 py-0.5 rounded-lg border-2 border-foreground text-size-sm sm:text-size-md font-bold text-foreground">
                                                         {pack.priceLabel}
                                                     </span>
                                                 </button>

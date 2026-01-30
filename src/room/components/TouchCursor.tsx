@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { CursorAvatar } from "@/components/CursorAvatar";
 import { useTouchOnly } from "@/hooks/useTouchCapability";
 
@@ -78,7 +79,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
         return null;
     }
 
-    return (
+    return createPortal(
         <div
             className="fixed pointer-events-none z-[100]"
             style={{
@@ -90,8 +91,8 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
                 color={cursorColor}
                 width={POINTER_SIZE.width}
                 height={POINTER_SIZE.height}
-                filter="drop-shadow(2px 2px 2px rgba(0,0,0,0.3))"
             />
-        </div>
+        </div>,
+        document.body
     );
 }

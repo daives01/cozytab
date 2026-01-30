@@ -3,6 +3,25 @@ import { playKeyDown, playKeyUp } from "../lib/typingAudio";
 import { isAudioUnlocked } from "@/lib/audio";
 import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
 import { PRESENCE_THROTTLE_MS } from "@shared/gameTypes";
+import { ROOM_WIDTH, ROOM_HEIGHT } from "@/time/roomConstants";
+
+// Padding to keep cursor visible at room edges (in room coordinates)
+const CURSOR_EDGE_PADDING = 180;
+
+/**
+ * Clamp cursor coordinates to room bounds with padding to ensure visibility
+ */
+function clampCursorToRoomBounds(x: number, y: number): { x: number; y: number } {
+    const minX = CURSOR_EDGE_PADDING;
+    const minY = CURSOR_EDGE_PADDING;
+    const maxX = ROOM_WIDTH - CURSOR_EDGE_PADDING;
+    const maxY = ROOM_HEIGHT - CURSOR_EDGE_PADDING;
+
+    return {
+        x: Math.max(minX, Math.min(maxX, x)),
+        y: Math.max(minY, Math.min(maxY, y)),
+    };
+}
 
 type PresenceMessage =
     | {
@@ -53,7 +72,12 @@ const MAX_RETRY_DELAY_MS = 5000;
 export const REMOTE_KEYUP_MIN_DELAY_MS = 45;
 export const REMOTE_KEYUP_MAX_DELAY_MS = 100;
 
-export type ConnectionState = "connecting" | "connected" | "reconnecting";
+export type ConnectionState = "connecting" | "connected" | "reconnecting" | "error";
+export type ConnectionError = {
+    type: "network" | "timeout" | "unknown";
+    message: string;
+    attemptedUrl?: string;
+};
 
 function resolveWsBaseUrl() {
     const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
@@ -63,10 +87,9 @@ function resolveWsBaseUrl() {
 
     if (typeof window !== "undefined") {
         const { protocol, hostname, port } = window.location;
-        const isLocalhost = ["localhost", "127.0.0.1", "0.0.0.0"].includes(hostname);
         const wsProtocol = protocol === "https:" ? "wss:" : "ws:";
-        const inferredPort =
-            isLocalhost && (!port || port === "5173" || port === "4173") ? "8787" : port;
+        // Always route WebSocket through port 8787 for local dev (handles mobile/network testing)
+        const inferredPort = !port || port === "5173" || port === "4173" ? "8787" : port;
         const portPart = inferredPort ? `:${inferredPort}` : "";
         return `${wsProtocol}//${hostname}${portPart}`;
     }
@@ -112,7 +135,9 @@ export function useWebSocketPresence(
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
     const remoteKeyupTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
     const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
+    const [connectionError, setConnectionError] = useState<ConnectionError | null>(null);
     const isIntentionallyClosedRef = useRef(false);
+    const lastAttemptedUrlRef = useRef<string>("");
     const connectFnRef = useRef<(() => void) | null>(null);
 
     const lastSendTimeRef = useRef<number>(0);
@@ -269,15 +294,15 @@ export function useWebSocketPresence(
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
-                                  ...v,
-                                  ...(inSameContext && { x: data.x, y: data.y }),
-                                  cursorColor: data.cursorColor ?? v.cursorColor,
-                                  inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
-                                  tabbedOut:
-                                      typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
-                                  inGame: data.inGame !== undefined ? data.inGame : v.inGame,
-                                  gameMetadata: data.gameMetadata !== undefined ? data.gameMetadata : v.gameMetadata,
-                              }
+                                ...v,
+                                ...(inSameContext && { x: data.x, y: data.y }),
+                                cursorColor: data.cursorColor ?? v.cursorColor,
+                                inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
+                                tabbedOut:
+                                    typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
+                                inGame: data.inGame !== undefined ? data.inGame : v.inGame,
+                                gameMetadata: data.gameMetadata !== undefined ? data.gameMetadata : v.gameMetadata,
+                            }
                             : v
                     )
                 );
@@ -288,10 +313,10 @@ export function useWebSocketPresence(
                     prev.map((v) =>
                         v.visitorId === data.visitorId
                             ? {
-                                  ...v,
-                                  displayName: data.displayName,
-                                  cursorColor: data.cursorColor ?? v.cursorColor,
-                              }
+                                ...v,
+                                displayName: data.displayName,
+                                cursorColor: data.cursorColor ?? v.cursorColor,
+                            }
                             : v
                     )
                 );
@@ -353,15 +378,18 @@ export function useWebSocketPresence(
         let cancelled = false;
         let retryDelay = INITIAL_RETRY_DELAY_MS;
         const baseUrl = resolveWsBaseUrl().replace(/\/$/, "");
+        const attemptedUrl = `${baseUrl}/ws/${roomId}`;
+        lastAttemptedUrlRef.current = attemptedUrl;
 
         const connect = () => {
             if (cancelled) return;
             hasSentCursorRef.current = false;
             isIntentionallyClosedRef.current = false;
 
-            const ws = new WebSocket(`${baseUrl}/ws/${roomId}`);
+            const ws = new WebSocket(attemptedUrl);
             wsRef.current = ws;
             setConnectionState("connecting");
+            setConnectionError(null);
 
             ws.onopen = () => {
                 retryDelay = INITIAL_RETRY_DELAY_MS;
@@ -380,12 +408,22 @@ export function useWebSocketPresence(
 
             ws.onmessage = handleIncomingMessage;
 
-            ws.onerror = (error) => {
-                console.error("[Presence] WebSocket error:", error);
+            ws.onerror = (_error) => {
+                console.error("[Presence] WebSocket error - unable to connect to", attemptedUrl);
+                // Set error state with diagnostic info
+                const isLocalNetwork = attemptedUrl.includes("192.168.") || attemptedUrl.includes("10.") || attemptedUrl.includes("172.");
+                setConnectionError({
+                    type: "network",
+                    message: isLocalNetwork
+                        ? "Cannot connect to presence server on local network. Ensure the worker is running with 'bun run worker' and is accessible from this device."
+                        : "Failed to connect to presence server",
+                    attemptedUrl,
+                });
+                setConnectionState("error");
                 ws.close();
             };
 
-            ws.onclose = () => {
+            ws.onclose = (event) => {
                 wsRef.current = null;
                 setVisitors([]);
                 clearIntervalRef(heartbeatIntervalRef);
@@ -393,6 +431,11 @@ export function useWebSocketPresence(
 
                 if (cancelled || isIntentionallyClosedRef.current) {
                     return;
+                }
+
+                // If it was an abnormal closure (not a clean close), retry connection
+                if (!event.wasClean) {
+                    // Abnormal closure detected, will retry
                 }
 
                 setConnectionState("reconnecting");
@@ -452,18 +495,23 @@ export function useWebSocketPresence(
             const now = Date.now();
             const timeSinceLastSend = now - lastSendTimeRef.current;
             const transmit = (nextX: number, nextY: number) => {
+                // Clamp to room bounds with padding to ensure visibility
+                const clamped = clampCursorToRoomBounds(nextX, nextY);
                 lastSendTimeRef.current = Date.now();
-                lastBroadcastCursorRef.current = { x: nextX, y: nextY };
-                sendMessage(buildCursorMessage(nextX, nextY, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame, opts?.gameMetadata));
+                lastBroadcastCursorRef.current = { x: clamped.x, y: clamped.y };
+                sendMessage(buildCursorMessage(clamped.x, clamped.y, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame, opts?.gameMetadata));
             };
 
+            // Clamp the input coordinates immediately
+            const clampedInput = clampCursorToRoomBounds(x, y);
+
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
-                transmit(x, y);
+                transmit(clampedInput.x, clampedInput.y);
                 pendingCursorRef.current = null;
                 return true;
             }
 
-            pendingCursorRef.current = { x, y };
+            pendingCursorRef.current = { x: clampedInput.x, y: clampedInput.y };
 
             if (!throttleTimeoutRef.current) {
                 throttleTimeoutRef.current = setTimeout(() => {
@@ -605,6 +653,7 @@ export function useWebSocketPresence(
         setInGame,
         setGameMetadata,
         connectionState,
+        connectionError,
         reconnectNow,
         // No batchInterval needed - direct updates
         batchInterval: 0,

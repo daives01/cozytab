@@ -273,6 +273,7 @@ export function GameOverlay({
   if (!isOpen) return null;
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType !== "touch") return;
     onPointerMove?.(e.clientX, e.clientY);
   };
 

@@ -21,10 +21,11 @@ export function MobileZoomButton({ zoomLevel, zoomLabel, onCycleZoom }: MobileZo
                 fixed bottom-4 right-4 z-50
                 h-12 min-w-12 px-3
                 flex items-center justify-center gap-1.5
-                rounded-xl border-2 border-[var(--color-foreground)]
-                bg-[var(--color-background)]
-                shadow-[4px_4px_0px_0px_var(--color-foreground)]
-                active:translate-x-[4px] active:translate-y-[4px] active:shadow-none
+                rounded-xl border-2 border-[var(--ink)]
+                bg-[var(--paper)]
+                shadow-md
+                hover:shadow-lg
+                active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]
                 transition-all duration-100
                 ${zoomLevel > 1 ? "bg-[var(--color-accent)]" : ""}
             `}

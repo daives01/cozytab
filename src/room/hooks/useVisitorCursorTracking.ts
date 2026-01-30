@@ -20,12 +20,24 @@ export function useVisitorCursorTracking({
         [containerRef, scale, updateCursor]
     );
 
-    const handleMouseEvent = (e: React.MouseEvent) => {
-        updateCursorFromClient(e.clientX, e.clientY);
-    };
+    const handleMouseEvent = useCallback(
+        (e: React.MouseEvent) => {
+            updateCursorFromClient(e.clientX, e.clientY);
+        },
+        [updateCursorFromClient]
+    );
+
+    const handlePointerEvent = useCallback(
+        (e: React.PointerEvent) => {
+            if (e.pointerType !== "touch") return;
+            updateCursorFromClient(e.clientX, e.clientY);
+        },
+        [updateCursorFromClient]
+    );
 
     return {
         updateCursorFromClient,
         handleMouseEvent,
+        handlePointerEvent,
     };
 }

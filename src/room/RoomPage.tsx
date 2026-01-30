@@ -224,6 +224,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         setInGame,
         setGameMetadata,
         connectionState,
+        connectionError,
         wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
@@ -458,6 +459,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
             localChatMessage,
             screenCursor,
             connectionState,
+            connectionError,
             wsRef,
             visitors,
             activeInvites,

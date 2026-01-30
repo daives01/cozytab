@@ -82,7 +82,7 @@ export function CursorDisplay({
                     color={pointerColor}
                     width={POINTER_SIZE.width}
                     height={POINTER_SIZE.height}
-                    filter="drop-shadow(var(--shadow-offset-x) var(--shadow-offset-y) 2px var(--shadow-color))"
+                    // Drop-shadow removed: causes compositing artifacts on iOS Safari
                     rotated={rotated}
                     hotspot={POINTER_HOTSPOT}
                 />

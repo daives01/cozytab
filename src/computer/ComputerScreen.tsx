@@ -816,13 +816,13 @@ export function ComputerScreen({
                 </div>
 
                 <div
-                    className="rounded-xl p-1 overflow-hidden h-full shadow-inner relative border-2"
+                    className="rounded-xl p-1 h-full shadow-inner relative border-2"
                     style={{
                         backgroundColor: "color-mix(in srgb, var(--ink) 85%, black)",
                         borderColor: "color-mix(in srgb, var(--ink) 40%, transparent)",
                     }}
                 >
-                    <div className="w-full h-full bg-[var(--retro-screen)] flex flex-col relative overflow-hidden">
+                    <div className="w-full h-full bg-[var(--retro-screen)] flex flex-col relative">
                         <WindowHeader onClose={onClose} />
 
                         <div
@@ -840,7 +840,14 @@ export function ComputerScreen({
                                 forwardPointerMove(e.clientX, e.clientY);
                             }}
                             onDrop={handleDrop}
-                            onPointerMove={(e) => forwardPointerMove(e.clientX, e.clientY)}
+                            onPointerMove={(e) => {
+                                if (e.pointerType !== "touch") return;
+                                const target = e.target as HTMLElement;
+                                if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
+                                    return;
+                                }
+                                forwardPointerMove(e.clientX, e.clientY);
+                            }}
                             onContextMenu={handleDesktopContextMenu}
                         >
                             <DesktopGrid

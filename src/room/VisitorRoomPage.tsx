@@ -4,7 +4,10 @@ import { useQuery, useMutation } from "convex/react";
 import { Link, useParams } from "react-router-dom";
 import { useAtomValue, useSetAtom } from "jotai";
 import { LocalCursor } from "@/presence/LocalCursor";
+import { TouchCursor } from "./components/TouchCursor";
+import { MobileChatInput } from "./components/MobileChatInput";
 import { ChatInput } from "./ChatInput";
+import { useTouchOnly } from "@/hooks/useTouchCapability";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import type { Shortcut, RoomItem } from "@shared/guestTypes";
@@ -15,6 +18,8 @@ import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
 import { useCozyCursor } from "./hooks/useCozyCursor";
 import { useCursorColor } from "./hooks/useCursorColor";
 import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
+import { useMobileZoom } from "./hooks/useMobileZoom";
+import { MobileZoomButton } from "./components/MobileZoomButton";
 import { useVisitorMusic } from "./hooks/useVisitorMusic";
 import { useVisitorGameState } from "./hooks/useVisitorGameState";
 import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
@@ -37,7 +42,7 @@ import { VisitorRoomItems } from "./components/VisitorRoomItems";
 import { VisitorHeader } from "./components/VisitorHeader";
 import { ConnectionBanner } from "./components/ConnectionBanner";
 import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
-import { ChatHint } from "./components/ChatHint";
+
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { GameOverlay } from "@/games/components/GameOverlay";
 import { createId } from "@/utils/id";
@@ -107,8 +112,20 @@ function VisitorRoomPageContent({
     const catalogItems = useQuery(api.catalog.list);
     const saveComputer = useMutation(api.users.saveMyComputer);
 
-    const { scale } = useRoomViewportScale();
+    const { scale, viewportWidth, viewportHeight } = useRoomViewportScale();
+    const isTouchOnly = useTouchOnly();
     const containerRef = useRef<HTMLDivElement | null>(null);
+
+    const {
+        zoomLevel,
+        zoomLabel,
+        panOffset,
+        effectiveScale,
+        cycleZoom,
+        handlePanStart,
+        handlePanMove,
+        handlePanEnd,
+    } = useMobileZoom({ baseScale: scale, viewportWidth, viewportHeight });
 
     const [guestVisitorId] = useState(() => `visitor-${createId()}`);
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
@@ -175,6 +192,7 @@ function VisitorRoomPageContent({
         setInGame,
         setGameMetadata,
         connectionState,
+        connectionError,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: {
@@ -239,11 +257,30 @@ function VisitorRoomPageContent({
         return () => clearTimeout(timer);
     }, [roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
 
-    const { updateCursorFromClient, handleMouseEvent } = useVisitorCursorTracking({
+    const { updateCursorFromClient, handleMouseEvent, handlePointerEvent: baseHandlePointerEvent } = useVisitorCursorTracking({
         containerRef,
-        scale,
+        scale: effectiveScale,
         updateCursor,
     });
+
+    const handlePointerEvent = useCallback((e: React.PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        baseHandlePointerEvent(e);
+        if (zoomLevel > 1) {
+            handlePanMove(e.clientX, e.clientY);
+        }
+    }, [baseHandlePointerEvent, zoomLevel, handlePanMove]);
+
+    const handlePointerDown = useCallback((e: React.PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        if (zoomLevel > 1) {
+            handlePanStart(e.clientX, e.clientY);
+        }
+    }, [zoomLevel, handlePanStart]);
+
+    const handlePointerUp = useCallback(() => {
+        handlePanEnd();
+    }, [handlePanEnd]);
 
     const handleOpenComputer = useCallback(() => {
         setIsComputerOpen(true);
@@ -295,7 +332,7 @@ function VisitorRoomPageContent({
             items={items}
             catalogItems={catalogItems}
             visitorMusicState={visitorMusicState}
-            scale={scale}
+            scale={effectiveScale}
             onComputerClick={handleOpenComputer}
             onMusicPlayerClick={setActiveMusicItemId}
             onGameClick={setActiveGameItemId}
@@ -309,7 +346,7 @@ function VisitorRoomPageContent({
     const overlays = (
         <>
             <VisitorHeader ownerName={roomData.ownerName} visitorCount={visitors.length} />
-            <ConnectionBanner connectionState={connectionState} />
+            <ConnectionBanner connectionState={connectionState} connectionError={connectionError} />
 
             {showVisitorChatOnboarding && (
                 <OnboardingSpotlight
@@ -336,11 +373,38 @@ function VisitorRoomPageContent({
                 />
             )}
 
-            <ChatInput
-                onMessageChange={updateChatMessage}
-                disabled={connectionState !== "connected"}
-            />
-            <ChatHint />
+            {!isTouchOnly && (
+                <>
+                    <ChatInput
+                        onMessageChange={updateChatMessage}
+                        disabled={connectionState !== "connected"}
+                    />
+                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
+                        <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
+                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
+                            <span
+                                style={{
+                                    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+                                    fontSize: "1.07em",
+                                    fontWeight: 400,
+                                    fontStyle: "normal",
+                                    fontSynthesis: "none",
+                                    fontOpticalSizing: "none",
+                                }}
+                            >
+                                to chat
+                            </span>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {isTouchOnly && (
+                <MobileChatInput
+                    onMessageChange={updateChatMessage}
+                    disabled={connectionState !== "connected"}
+                />
+            )}
 
             {activeMusicItem ? (
                 <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
@@ -364,6 +428,8 @@ function VisitorRoomPageContent({
                 chatMessage={localChatMessage}
                 cursorColor={visitorIdentity.cursorColor}
             />
+
+            <TouchCursor cursorColor={visitorIdentity.cursorColor} />
 
             <ComputerOverlay
                 isGuest={isGuestVisitor}
@@ -413,15 +479,24 @@ function VisitorRoomPageContent({
     );
 
     return (
-        <RoomShell
-            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
-            scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            roomContent={roomContent}
-            overlays={overlays}
-        />
+        <>
+            <RoomShell
+                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+                scale={scale}
+                zoomLevel={zoomLevel}
+                panOffset={panOffset}
+                timeOfDay={timeOfDay}
+                containerRef={containerRef}
+                onMouseMove={handleMouseEvent}
+                onMouseEnter={handleMouseEvent}
+                onPointerMove={handlePointerEvent}
+                onPointerDown={handlePointerDown}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                roomContent={roomContent}
+                overlays={overlays}
+            />
+            <MobileZoomButton zoomLevel={zoomLevel} zoomLabel={zoomLabel} onCycleZoom={cycleZoom} />
+        </>
     );
 }

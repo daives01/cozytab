@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { ROOM_WIDTH, ROOM_HEIGHT } from "@/time/roomConstants";
 
-const ZOOM_LEVELS = [1, 1.5, 2] as const;
+const ZOOM_LEVELS = [1, 2, 3] as const;
 export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 interface UseMobileZoomOptions {

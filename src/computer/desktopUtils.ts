@@ -3,7 +3,7 @@ import type { Shortcut } from "@shared/guestTypes";
 import type { ComputerWindowApp } from "./computerTypes";
 
 export const GRID_COLUMNS = 6;
-export const ROW_HEIGHT = 132;
+export const ROW_HEIGHT = 120;
 export const DESKTOP_PADDING_Y = 32;
 export const MIN_WINDOW_WIDTH = 360;
 export const MIN_WINDOW_HEIGHT = 280;

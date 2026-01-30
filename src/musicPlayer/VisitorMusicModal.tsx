@@ -96,27 +96,28 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                         </button>
                     </div>
 
-                    <div className="grid gap-6 px-7 py-6 md:grid-cols-[0.7fr_0.3fr] items-stretch">
+                    <div className="grid gap-6 px-4 py-5 md:px-7 md:py-6 md:grid-cols-[0.7fr_0.3fr] items-stretch">
                         <div className="flex flex-col gap-5">
-                            <div className="relative flex flex-1 min-h-[20rem] items-center justify-center">
+                            {/* Cover art and volume side by side */}
+                            <div className="flex items-center justify-center gap-4">
                                 <div className="relative flex items-center justify-center">
                                     <div
                                         className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
-                                            previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
+                                            previewUrl ? "translate-x-10 rotate-6" : "translate-x-0"
                                         }`}
                                     >
-                                        <div className="flex h-52 w-52 animate-[spin_6s_linear_infinite] items-center justify-center rounded-full border-4 border-[var(--color-foreground)] bg-black shadow-xl">
+                                        <div className="flex h-32 w-32 sm:h-44 sm:w-44 animate-[spin_6s_linear_infinite] items-center justify-center rounded-full border-4 border-[var(--color-foreground)] bg-black shadow-xl">
                                             <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent" />
                                             <div className="absolute inset-4 rounded-full border border-[var(--color-foreground)]/25" />
                                             <div className="absolute inset-8 rounded-full border border-[var(--color-foreground)]/15" />
-                                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent)] border-4 border-[var(--color-foreground)]/50">
+                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-accent)] border-4 border-[var(--color-foreground)]/50">
                                                 <div className="h-2 w-2 rounded-full bg-black" />
                                             </div>
                                         </div>
                                     </div>
 
                                     <div
-                                        className={`relative z-20 flex h-[19rem] w-[19rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${
+                                        className={`relative z-20 flex h-[14rem] w-[14rem] sm:h-[18rem] sm:w-[18rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${
                                             previewUrl ? "-rotate-2" : "rotate-0"
                                         }`}
                                     >
@@ -138,6 +139,14 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                                         )}
                                         <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/22 to-transparent" />
                                     </div>
+                                </div>
+
+                                {/* Mobile volume fader - hidden on desktop */}
+                                <div className="flex flex-col items-center justify-center gap-2 md:hidden">
+                                    <RetroVolumeFader value={musicVolume} onChange={setMusicVolume} height={180} />
+                                    <span className="rounded-md border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-1 text-xs font-bold font-mono text-[var(--color-foreground)] shadow-[var(--shadow-2)]">
+                                        {percent}%
+                                    </span>
                                 </div>
                             </div>
 
@@ -180,9 +189,10 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-5">
+                        {/* Desktop only: larger volume fader in right column */}
+                        <div className="hidden md:flex flex-col gap-5">
                             <div className="flex flex-1 flex-col items-center justify-center gap-4">
-                                <RetroVolumeFader value={musicVolume} onChange={setMusicVolume} height={320} />
+                                <RetroVolumeFader value={musicVolume} onChange={setMusicVolume} height={240} />
                                 <span className="rounded-md border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-1 text-xs font-bold font-mono text-[var(--color-foreground)] shadow-[var(--shadow-2)]">
                                     {percent}%
                                 </span>

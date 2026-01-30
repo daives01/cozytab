@@ -6,7 +6,7 @@ import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
-import type { VisitorState } from "@/hooks/useWebSocketPresence";
+import type { VisitorState, ConnectionState, ConnectionError } from "@/hooks/useWebSocketPresence";
 import type { useRoomState } from "./useRoomState";
 import type { useRoomHandlers } from "./useRoomHandlers";
 import type { useRoomComputed } from "./useRoomComputed";
@@ -38,7 +38,8 @@ interface UseRoomOverlaysModelArgs {
         updateChatMessage: (msg: string | null) => void;
         localChatMessage: string | null;
         screenCursor: { x: number; y: number };
-        connectionState: "connecting" | "connected" | "reconnecting";
+        connectionState: ConnectionState;
+        connectionError?: ConnectionError | null;
         wsRef: React.RefObject<WebSocket | null>;
         visitors: VisitorState[];
         activeInvites?: Doc<"roomInvites">[] | null;
@@ -219,6 +220,7 @@ export function useRoomOverlaysModel({
             localChatMessage: presence.localChatMessage,
             screenCursor: presence.screenCursor,
             connectionState: presence.connectionState,
+            connectionError: presence.connectionError,
             activeInvites: presence.activeInvites,
             visitors: presence.visitors,
         };

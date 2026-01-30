@@ -3,7 +3,7 @@ import type { GameType } from "@convex/lib/categories";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
-import type { VisitorState } from "@/hooks/useWebSocketPresence";
+import type { VisitorState, ConnectionState, ConnectionError } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
 
 export interface DrawerProps {
@@ -86,7 +86,8 @@ export interface PresenceProps {
     updateChatMessage: (msg: string | null) => void;
     localChatMessage: string | null;
     screenCursor: { x: number; y: number };
-    connectionState: "connecting" | "connected" | "reconnecting";
+    connectionState: ConnectionState;
+    connectionError?: ConnectionError | null;
     activeInvites?: Doc<"roomInvites">[] | null;
     visitors: VisitorState[];
 }

@@ -96,7 +96,7 @@ export function DesktopGrid({
             style={{ height: gridHeight * desktopScale || undefined }}
         >
             <div
-                className="grid gap-4"
+                className="grid gap-2 sm:gap-4"
                 style={{
                     gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
                     gridAutoRows: `${rowHeight}px`,
@@ -117,6 +117,8 @@ export function DesktopGrid({
                             style={{
                                 gridColumnStart: shortcut.col + 1,
                                 gridRowStart: shortcut.row + 1,
+                                transform: `scale(${1 / Math.max(0.7, desktopScale)})`,
+                                transformOrigin: "top center",
                             }}
                             draggable
                             onDragStart={(event) => {
@@ -136,7 +138,7 @@ export function DesktopGrid({
                             onContextMenu={(event) => onContextMenu(event, shortcut)}
                         >
                             <div
-                                className={`w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-xl border border-white/30 bg-white/15 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all relative ${
+                                className={`w-14 h-14 sm:w-[72px] sm:h-[72px] lg:w-20 lg:h-20 rounded-xl border border-white/30 bg-white/15 backdrop-blur-sm shadow-lg flex items-center justify-center transition-all relative ${
                                     isSelected
                                         ? "ring-2 ring-blue-200 bg-white/25"
                                         : "hover:bg-white/25 hover:border-white/50"
@@ -144,7 +146,7 @@ export function DesktopGrid({
                             >
                                 <SiteFavicon
                                     url={shortcut.url}
-                                    className="h-9 w-9 text-cyan-100 drop-shadow"
+                                    className="h-7 w-7 sm:h-9 sm:w-9 text-cyan-100 drop-shadow"
                                 />
                             </div>
                             {renamingId === shortcut.id ? (
@@ -163,13 +165,13 @@ export function DesktopGrid({
                                         }
                                     }}
                                     onBlur={() => onCommitRename(shortcut.id)}
-                                    className="text-sm text-blue-900 bg-white rounded px-2 py-1 w-[120px] text-center shadow-inner border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                                    className="text-xs sm:text-sm text-blue-900 bg-white rounded px-1.5 sm:px-2 py-1 w-[100px] sm:w-[120px] text-center shadow-inner border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-300"
                                     spellCheck={false}
                                     onClick={(e) => e.stopPropagation()}
                                 />
                             ) : (
                                 <span
-                                    className={`text-white text-center text-sm leading-tight drop-shadow-md px-2 py-0.5 rounded max-w-[120px] break-words ${
+                                    className={`text-white text-center text-xs sm:text-sm leading-tight drop-shadow-md px-1 sm:px-2 py-0.5 rounded max-w-[100px] sm:max-w-[120px] break-words ${
                                         isSelected ? "bg-blue-900/60" : "bg-blue-900/0"
                                     }`}
                                 >

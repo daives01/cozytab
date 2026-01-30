@@ -23,8 +23,14 @@ function ChessCursor({ displayX, displayY, cursorColor, chatMessage, rotated }: 
 
   return (
     <div
-      className="absolute pointer-events-none transition-all duration-75"
-      style={{ left: `${displayX}%`, top: `${displayY}%`, transform: "translate(-50%, -50%)", zIndex: 10 }}
+      className="absolute pointer-events-none"
+      style={{
+        left: `${displayX}%`,
+        top: `${displayY}%`,
+        transform: "translate(-50%, -50%)",
+        zIndex: 10,
+        transition: "left 50ms linear, top 50ms linear",
+      }}
     >
       <CursorDisplay
         x={0}
@@ -645,6 +651,7 @@ export function ChessGame({
           className="relative aspect-square"
           style={{ width: `var(--board-size)` }}
           onMouseMove={handleMouseMove}
+          onPointerMove={handleMouseMove}
         >
           <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
             <Chessboard
@@ -748,6 +755,7 @@ export function ChessGame({
         ref={boardRef}
         className="relative aspect-square w-full"
         onMouseMove={handleMouseMove}
+        onPointerMove={handleMouseMove}
       >
         <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
           <Chessboard

@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback } from "react";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
 import { ComputerOverlay } from "@/computer/ComputerOverlay";
@@ -10,7 +10,6 @@ import { Heart, UserPlus } from "lucide-react";
 import { DailyRewardToast } from "./DailyRewardToast";
 import { Toast } from "@/components/ui/toast";
 import { ChatInput } from "../ChatInput";
-import { ChatHint } from "./ChatHint";
 import { MobileChatInput } from "./MobileChatInput";
 import { LocalCursor } from "@/presence/LocalCursor";
 import { TouchCursor } from "./TouchCursor";
@@ -20,7 +19,6 @@ import type { RoomItem } from "@shared/guestTypes";
 
 export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
     const isTouchOnly = useTouchOnly();
-    const mobileChatInputRef = useRef<HTMLInputElement>(null);
 
     const activeMusicItem = useMemo(
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
@@ -154,20 +152,38 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
             )}
 
             {!ui.isGuest && presence.hasVisitors && !isTouchOnly && (
-                <ChatInput
-                    onMessageChange={presence.updateChatMessage}
-                    disabled={
-                        presence.isComputerOpenState ||
-                        music.musicPlayerItemId !== null ||
-                        presence.isShareModalOpen ||
-                        presence.connectionState !== "connected"
-                    }
-                />
+                <>
+                    <ChatInput
+                        onMessageChange={presence.updateChatMessage}
+                        disabled={
+                            presence.isComputerOpenState ||
+                            music.musicPlayerItemId !== null ||
+                            presence.isShareModalOpen ||
+                            presence.connectionState !== "connected"
+                        }
+                    />
+                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none" data-onboarding="chat-hint">
+                        <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
+                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
+                            <span
+                                style={{
+                                    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
+                                    fontSize: "1.07em",
+                                    fontWeight: 400,
+                                    fontStyle: "normal",
+                                    fontSynthesis: "none",
+                                    fontOpticalSizing: "none",
+                                }}
+                            >
+                                to chat
+                            </span>
+                        </div>
+                    </div>
+                </>
             )}
 
             {!ui.isGuest && presence.hasVisitors && isTouchOnly && (
                 <MobileChatInput
-                    ref={mobileChatInputRef}
                     onMessageChange={presence.updateChatMessage}
                     disabled={
                         presence.isComputerOpenState ||
@@ -178,20 +194,30 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 />
             )}
 
-            {!ui.isGuest &&
-                presence.hasVisitors &&
-                isTouchOnly &&
-                !presence.isComputerOpenState &&
-                !music.musicPlayerItemId &&
-                !presence.isShareModalOpen && <ChatHint onTapToChat={() => mobileChatInputRef.current?.focus()} />}
-
             {!ui.isGuest && presence.connectionState !== "connected" && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
-                    <div className="rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[4px_4px_0px_0px_var(--color-foreground)] px-4 py-3 flex items-center gap-3">
-                        <div className="h-4 w-4 border-2 border-[var(--color-foreground)] border-t-transparent rounded-full animate-spin" />
-                        <span className="text-sm font-medium">
-                            {presence.connectionState === "connecting" ? "Connecting..." : "Reconnecting..."}
-                        </span>
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 max-w-[90vw]">
+                    <div className={`rounded-xl border-2 px-4 py-3 flex flex-col gap-2 shadow-[4px_4px_0px_0px_var(--color-foreground)] ${
+                        presence.connectionState === "error"
+                            ? "border-red-600 bg-red-50"
+                            : "border-[var(--color-foreground)] bg-[var(--color-background)]"
+                    }`}>
+                        <div className="flex items-center gap-3">
+                            {presence.connectionState === "error" ? (
+                                <div className="h-4 w-4 rounded-full bg-red-600 flex-shrink-0" />
+                            ) : (
+                                <div className="h-4 w-4 border-2 border-[var(--color-foreground)] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                            )}
+                            <span className={`text-sm font-medium ${presence.connectionState === "error" ? "text-red-900" : ""}`}>
+                                {presence.connectionState === "connecting" && "Connecting..."}
+                                {presence.connectionState === "reconnecting" && "Reconnecting..."}
+                                {presence.connectionState === "error" && "Connection Failed"}
+                            </span>
+                        </div>
+                        {presence.connectionState === "error" && presence.connectionError && (
+                            <p className="text-xs text-red-800 max-w-[280px] leading-relaxed">
+                                {presence.connectionError.message}
+                            </p>
+                        )}
                     </div>
                 </div>
             )}
