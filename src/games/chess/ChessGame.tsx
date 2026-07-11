@@ -9,6 +9,7 @@ import { CursorDisplay } from "@/presence/CursorDisplay";
 import { useChatFade } from "@/hooks/useChatFade";
 import { Crown, X, LogOut, Flag, Handshake, RotateCcw } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
+import { deriveChessGameEnd, selectClaimedSide, useChessController, type ChessGameSignal } from "./useChessController";
 
 interface ChessCursorProps {
   displayX: number;
@@ -53,7 +54,7 @@ export type GamePlayer = {
   side?: "white" | "black" | null;
 };
 
-export type GameSignal = "resign" | "drawOffer" | "drawAccept" | "drawDecline" | null;
+export type GameSignal = ChessGameSignal;
 
 interface ChessGameProps {
   playersInGame: VisitorState[];
@@ -107,6 +108,33 @@ function DrawDeclinedBanner() {
   return (
     <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
       <span className="text-xs font-medium whitespace-nowrap">Draw declined</span>
+    </div>
+  );
+}
+
+function PromotionOverlay({ onPromote }: { onPromote: (piece: "q" | "r" | "b" | "n") => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
+        <p className="text-center font-bold mb-3">Promote to:</p>
+        <div className="flex gap-2">
+          {(["q", "r", "b", "n"] as const).map((piece) => (
+            <button key={piece} type="button" onClick={() => onPromote(piece)} className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
+              {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultOverlay({ message }: { message: string }) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+      <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
+        <p className="text-xl font-bold text-center">{message}</p>
+      </div>
     </div>
   );
 }
@@ -195,9 +223,6 @@ export function ChessGame({
 }: ChessGameProps) {
   const boardRef = useRef<HTMLDivElement>(null);
   const handledResultRef = useRef<string | null>(null);
-  const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
-  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
-  const [possibleMoves, setPossibleMoves] = useState<Set<Square>>(new Set());
   const { playMoveSound } = useChessSounds();
   const prevFenRef = useRef(serverFen);
   const [drawDeclinedAt, setDrawDeclinedAt] = useState<number | null>(null);
@@ -213,15 +238,8 @@ export function ChessGame({
   const fen = serverFen;
   const lastMove = serverLastMove;
 
-  const chess = useMemo(() => {
-    const c = new Chess();
-    try {
-      c.load(fen);
-    } catch {
-      c.load(STARTING_FEN);
-    }
-    return c;
-  }, [fen]);
+  const { chess, isMyTurn, gameStatus, pendingPromotion, handleDrop, handleSquareClick, handlePromotion, squareStyles } =
+    useChessController({ fen, lastMove, mySide, resultOverlay, onMove });
 
   useEffect(() => {
     if (prevFenRef.current !== fen && lastMove) {
@@ -241,19 +259,6 @@ export function ChessGame({
 
   const boardOrientation = mySide === "black" ? "black" : "white";
 
-  const isMyTurn = useMemo(() => {
-    if (!mySide) return false;
-    const turn = chess.turn();
-    return (turn === "w" && mySide === "white") || (turn === "b" && mySide === "black");
-  }, [chess, mySide]);
-
-  const gameStatus = useMemo(() => {
-    if (chess.isCheckmate()) return `Checkmate! ${chess.turn() === "w" ? "Black" : "White"} wins!`;
-    if (chess.isStalemate()) return "Stalemate!";
-    if (chess.isDraw()) return "Draw!";
-    if (chess.isCheck()) return "Check!";
-    return null;
-  }, [chess]);
 
   // Extract signals from players: { visitorId, side, signal }
   const playerSignals = useMemo(() => {
@@ -265,9 +270,6 @@ export function ChessGame({
         signal: p.gameMetadata?.gameSignal as GameSignal,
       }));
   }, [playersInGame]);
-
-  // Check for resign (anyone with "resign" signal)
-  const resignedPlayer = playerSignals.find((p) => p.signal === "resign");
 
   // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
   const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
@@ -320,139 +322,20 @@ export function ChessGame({
   // Clear local UI state when game resets to starting position
   useEffect(() => {
     if (fen === STARTING_FEN) {
-      /* eslint-disable react-hooks/set-state-in-effect -- intentional reset on game restart */
-      setPendingPromotion(null);
-      setSelectedSquare(null);
-      setPossibleMoves(new Set());
-      /* eslint-enable react-hooks/set-state-in-effect */
       handledResultRef.current = null;
     }
   }, [fen]);
 
-  // Check for mutual draw accept
-  const drawAccepted = playerSignals.some((p) => p.signal === "drawAccept");
-
-  // Derive result key to detect unique game-ending events
-  const resultKey = resignedPlayer
-    ? `resign:${resignedPlayer.visitorId}`
-    : drawAccepted
-      ? "draw"
-      : chess.isCheckmate()
-        ? `checkmate:${fen}`
-        : chess.isStalemate()
-          ? `stalemate:${fen}`
-          : chess.isDraw()
-            ? `draw:${fen}`
-            : null;
+  const gameEnd = useMemo(() => deriveChessGameEnd(chess, fen, playerSignals), [chess, fen, playerSignals]);
+  const resultKey = gameEnd?.key ?? null;
 
   // Notify parent of game-ending signals (resign, draw accept, checkmate, stalemate)
   useEffect(() => {
     if (!resultKey || handledResultRef.current === resultKey) return;
     handledResultRef.current = resultKey;
 
-    let message: string;
-    if (resignedPlayer) {
-      message = `${resignedPlayer.side === "white" ? "Black" : "White"} wins by resignation!`;
-    } else if (drawAccepted) {
-      message = "Draw agreed!";
-    } else if (chess.isCheckmate()) {
-      message = `Checkmate! ${chess.turn() === "w" ? "Black" : "White"} wins!`;
-    } else if (chess.isStalemate()) {
-      message = "Stalemate!";
-    } else if (chess.isDraw()) {
-      message = "Draw!";
-    } else {
-      return;
-    }
-
-    onGameEnd(message);
-  }, [resultKey, resignedPlayer, drawAccepted, chess, onGameEnd]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedSquare(null);
-    setPossibleMoves(new Set());
-  }, []);
-
-  const tryMove = useCallback(
-    (from: Square, to: Square, promotion?: string) => {
-      try {
-        const tempChess = new Chess(fen);
-        const move = tempChess.move({ from, to, promotion });
-        if (move) {
-          const newFen = tempChess.fen();
-          onMove({ from, to, promotion }, newFen);
-          clearSelection();
-          return true;
-        }
-      } catch {
-        // Invalid move
-      }
-      return false;
-    },
-    [fen, onMove, clearSelection]
-  );
-
-  const needsPromotion = useCallback(
-    (from: Square, to: Square) => {
-      const piece = chess.get(from);
-      if (piece?.type !== "p") return false;
-      const targetRank = to[1];
-      return (mySide === "white" && targetRank === "8") || (mySide === "black" && targetRank === "1");
-    },
-    [chess, mySide]
-  );
-
-  const handleDrop = useCallback(
-    ({ sourceSquare, targetSquare }: { piece: unknown; sourceSquare: string; targetSquare: string | null }): boolean => {
-      if (!targetSquare || !mySide || !isMyTurn || resultOverlay) return false;
-      const from = sourceSquare as Square;
-      const to = targetSquare as Square;
-
-      if (needsPromotion(from, to)) {
-        setPendingPromotion({ from, to });
-        return false;
-      }
-
-      return tryMove(from, to);
-    },
-    [mySide, isMyTurn, resultOverlay, needsPromotion, tryMove]
-  );
-
-  const handleSquareClick = useCallback(
-    ({ square }: { piece: unknown; square: string }) => {
-      if (!mySide || !isMyTurn || resultOverlay) return;
-      const sq = square as Square;
-
-      if (selectedSquare) {
-        if (possibleMoves.has(sq)) {
-          if (needsPromotion(selectedSquare, sq)) {
-            setPendingPromotion({ from: selectedSquare, to: sq });
-            return;
-          }
-          tryMove(selectedSquare, sq);
-          return;
-        }
-        clearSelection();
-      }
-
-      const piece = chess.get(sq);
-      const myColor = mySide === "white" ? "w" : "b";
-      if (piece?.color === myColor) {
-        setSelectedSquare(sq);
-        setPossibleMoves(new Set(chess.moves({ square: sq, verbose: true }).map((m) => m.to as Square)));
-      }
-    },
-    [chess, mySide, isMyTurn, resultOverlay, selectedSquare, possibleMoves, needsPromotion, tryMove, clearSelection]
-  );
-
-  const handlePromotion = useCallback(
-    (piece: "q" | "r" | "b" | "n") => {
-      if (!pendingPromotion) return;
-      tryMove(pendingPromotion.from, pendingPromotion.to, piece);
-      setPendingPromotion(null);
-    },
-    [pendingPromotion, tryMove]
-  );
+    if (gameEnd) onGameEnd(gameEnd.message);
+  }, [gameEnd, onGameEnd, resultKey]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -464,31 +347,6 @@ export function ChessGame({
     },
     [onCursorMove]
   );
-
-  const squareStyles = useMemo(() => {
-    const styles: Record<string, React.CSSProperties> = {};
-
-    if (lastMove) {
-      styles[lastMove.from] = { backgroundColor: "rgba(255, 255, 0, 0.4)" };
-      styles[lastMove.to] = { backgroundColor: "rgba(255, 255, 0, 0.4)" };
-    }
-
-    if (selectedSquare) {
-      styles[selectedSquare] = { backgroundColor: "rgba(100, 200, 255, 0.6)" };
-    }
-
-    for (const sq of possibleMoves) {
-      const hasPiece = chess.get(sq as Square);
-      styles[sq] = {
-        ...styles[sq],
-        background: hasPiece
-          ? "radial-gradient(circle, transparent 60%, rgba(0,0,0,0.3) 60%)"
-          : "radial-gradient(circle, rgba(0,0,0,0.2) 25%, transparent 25%)",
-      };
-    }
-
-    return styles;
-  }, [lastMove, selectedSquare, possibleMoves, chess]);
 
   const getCursorOwnerSide = useCallback(
     (cursorVisitorId: string): "white" | "black" | null => {
@@ -527,19 +385,17 @@ export function ChessGame({
 
   // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
   const whitePlayerId = useMemo(() => {
-    const claimants = playersInGame
-      .filter((p) => p.gameMetadata?.side === "white")
-      .map((p) => p.visitorId)
-      .sort();
-    return claimants[0] ?? null;
+    return selectClaimedSide(playersInGame.map((player) => ({
+      visitorId: player.visitorId,
+      side: player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black" ? player.gameMetadata.side : null,
+    })), "white");
   }, [playersInGame]);
 
   const blackPlayerId = useMemo(() => {
-    const claimants = playersInGame
-      .filter((p) => p.gameMetadata?.side === "black")
-      .map((p) => p.visitorId)
-      .sort();
-    return claimants[0] ?? null;
+    return selectClaimedSide(playersInGame.map((player) => ({
+      visitorId: player.visitorId,
+      side: player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black" ? player.gameMetadata.side : null,
+    })), "black");
   }, [playersInGame]);
 
   const whitePlayer: GamePlayer | undefined = useMemo(() => {
@@ -703,34 +559,10 @@ export function ChessGame({
         </div>
 
         {/* Promotion modal */}
-        {pendingPromotion && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
-              <p className="text-center font-bold mb-3">Promote to:</p>
-              <div className="flex gap-2">
-                {(["q", "r", "b", "n"] as const).map((piece) => (
-                  <button
-                    key={piece}
-                    type="button"
-                    onClick={() => handlePromotion(piece)}
-                    className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                  >
-                    {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
 
         {/* Result overlay */}
-        {resultOverlay && (
-          <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
-              <p className="text-xl font-bold text-center">{resultOverlay}</p>
-            </div>
-          </div>
-        )}
+        {resultOverlay && <ResultOverlay message={resultOverlay} />}
       </div>
     );
   }
@@ -811,34 +643,10 @@ export function ChessGame({
       </div>
 
       {/* Promotion modal */}
-      {pendingPromotion && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
-            <p className="text-center font-bold mb-3">Promote to:</p>
-            <div className="flex gap-2">
-              {(["q", "r", "b", "n"] as const).map((piece) => (
-                <button
-                  key={piece}
-                  type="button"
-                  onClick={() => handlePromotion(piece)}
-                  className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-                >
-                  {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
 
       {/* Result overlay */}
-      {resultOverlay && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
-            <p className="text-xl font-bold text-center">{resultOverlay}</p>
-          </div>
-        </div>
-      )}
+      {resultOverlay && <ResultOverlay message={resultOverlay} />}
     </div>
   );
 }

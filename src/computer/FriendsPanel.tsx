@@ -37,8 +37,8 @@ export function FriendsPanel({ isGuest = false, inRoomVisitors = [] }: FriendsPa
 
     if (isGuest) {
         return (
-            <div className="bg-stone-50 w-full h-full flex items-center justify-center p-4">
-                <p className="text-stone-600 text-sm font-medium">Log in to use Friends!</p>
+            <div className="bg-[var(--color-background)] text-[var(--color-foreground)] w-full h-full flex items-center justify-center p-4">
+                <p className="text-[var(--color-muted-foreground)] text-sm font-medium">Log in to use Friends!</p>
             </div>
         );
     }
@@ -46,8 +46,8 @@ export function FriendsPanel({ isGuest = false, inRoomVisitors = [] }: FriendsPa
     const requestCount = pendingRequests ? pendingRequests.incoming.length : 0;
 
     return (
-        <div className="bg-stone-50 w-full h-full flex flex-col overflow-hidden">
-            <div className="flex border-b border-stone-200">
+        <div className="bg-[var(--color-background)] text-[var(--color-foreground)] w-full h-full flex flex-col overflow-hidden">
+            <div className="flex border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)]">
                 <TabButton label="Friends" icon={<Users className="h-3.5 w-3.5" />} active={activeTab === "friends"} onClick={() => setActiveTab("friends")} />
                 <TabButton label="Requests" icon={<Clock className="h-3.5 w-3.5" />} active={activeTab === "requests"} onClick={() => setActiveTab("requests")} badge={requestCount} />
                 <TabButton label="Add Friend" icon={<UserPlus className="h-3.5 w-3.5" />} active={activeTab === "add"} onClick={() => setActiveTab("add")} />
@@ -67,14 +67,14 @@ function TabButton({ label, icon, active, onClick, badge }: { label: string; ico
             onClick={onClick}
             className={`relative flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors ${
                 active
-                    ? "bg-white text-purple-700 border-b-2 border-purple-500"
-                    : "text-stone-500 hover:text-stone-700 hover:bg-stone-100"
+                    ? "bg-[var(--color-accent)] text-[var(--color-foreground)] border-b-2 border-[var(--color-foreground)]"
+                    : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
             }`}
         >
             {icon}
             {label}
             {badge != null && badge > 0 && (
-                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 flex items-center justify-center text-[10px] font-bold bg-red-500 text-white rounded-full">
+                <span className="absolute top-1 right-1 min-w-4 h-4 px-1 flex items-center justify-center text-[10px] font-bold bg-[var(--color-destructive)] text-[var(--color-destructive-foreground)] rounded-full border border-[var(--color-foreground)]">
                     {badge}
                 </span>
             )}
@@ -127,7 +127,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
     if (friends === undefined) {
         return (
-            <div className="p-4 text-sm text-stone-400 text-center">
+            <div className="p-4 text-sm text-[var(--color-muted-foreground)] text-center">
                 Loading...
             </div>
         );
@@ -138,7 +138,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
     if (!hasInRoomVisitors && !hasFriends) {
         return (
-            <div className="p-4 text-sm text-stone-500 text-center">
+            <div className="p-4 text-sm text-[var(--color-muted-foreground)] text-center">
                 <p>No friends yet.</p>
                 <p className="mt-1 text-xs">Use the "Add Friend" tab to get started!</p>
             </div>
@@ -146,10 +146,10 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
     }
 
     return (
-        <div className="divide-y divide-stone-100">
+        <div className="divide-y-2 divide-[var(--color-foreground)]">
             {hasInRoomVisitors && (
                 <div>
-                    <div className="px-4 py-2 bg-purple-50/80 text-xs font-semibold text-purple-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <div className="px-4 py-2 bg-[var(--color-accent)] text-xs font-semibold text-[var(--color-foreground)] uppercase tracking-wide flex items-center gap-1.5">
                         <Sparkles className="h-3 w-3" />
                         In Your Room
                     </div>
@@ -165,7 +165,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
             {hasFriends && (
                 <div>
                     {hasInRoomVisitors && (
-                        <div className="px-4 py-2 bg-stone-100/50 text-xs font-semibold text-stone-500 uppercase tracking-wide">
+                        <div className="px-4 py-2 bg-[var(--color-muted)] text-xs font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wide">
                             Friends
                         </div>
                     )}
@@ -174,18 +174,18 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
                         const isOnline = friend.lastSeenAt != null && now - friend.lastSeenAt < ONLINE_THRESHOLD_MS;
 
                         return (
-                            <div key={friend.userId} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-100/50">
+                            <div key={friend.userId} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-muted)]">
                                 <div className="relative">
                                     <CursorAvatar color={friend.cursorColor ?? "#a78bfa"} size={28} />
                                     <div
-                                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-stone-50 ${
-                                            isOnline ? "bg-green-500" : "bg-stone-300"
+                                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[var(--color-background)] ${
+                                            isOnline ? "bg-[var(--success)]" : "bg-[var(--color-muted-foreground)]"
                                         }`}
                                     />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-stone-800 truncate">{friend.displayName}</div>
-                                    <div className="text-xs text-stone-400">{isOnline ? "Online" : "Offline"}</div>
+                                    <div className="text-sm font-medium text-[var(--color-foreground)] truncate">{friend.displayName}</div>
+                                    <div className="text-xs text-[var(--color-muted-foreground)]">{isOnline ? "Online" : "Offline"}</div>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {friend.activeRoomId && (
@@ -193,7 +193,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
                                             href={`/friend/${friend.userId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-2.5 py-1 text-xs font-semibold text-white bg-purple-500 hover:bg-purple-600 rounded-md transition-colors"
+                                            className="px-2.5 py-1 text-xs font-semibold border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] rounded-md shadow-[var(--shadow-2)] active:translate-x-px active:translate-y-px active:shadow-none"
                                         >
                                             Visit
                                         </a>
@@ -296,11 +296,11 @@ function InRoomVisitorRow({ visitor, friendshipStatusMap }: { visitor: VisitorSt
     }
 
     return (
-        <div className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50/50">
+        <div className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-muted)]">
             <CursorAvatar color={visitor.cursorColor ?? "#a78bfa"} size={28} />
             <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-stone-800 truncate">{visitor.displayName}</div>
-                <div className="text-xs text-purple-500">Visiting now</div>
+                <div className="text-sm font-medium text-[var(--color-foreground)] truncate">{visitor.displayName}</div>
+                <div className="text-xs text-[var(--color-accent-foreground)]">Visiting now</div>
             </div>
             <div className="flex items-center">
                 {actionContent}

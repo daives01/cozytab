@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useClerk } from "@clerk/clerk-react";
 import type { Shortcut } from "@shared/guestTypes";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
-import { clearGuestSession } from "../guest/guestSession";
 import { WindowFrame } from "./WindowFrame";
 import { ComputerWindowContent } from "./ComputerWindowContent";
-import type { ComputerWindowApp, ContextMenuState } from "./types";
+import type { ContextMenuState } from "./types";
 import { DesktopGrid } from "./DesktopGrid";
 import { InlineAddPrompt } from "./InlineAddPrompt";
 import { DesktopContextMenu } from "./DesktopContextMenu";
@@ -19,10 +17,7 @@ import {
     GRID_COLUMNS,
     ROW_HEIGHT,
     DESKTOP_PADDING_Y,
-    MIN_WINDOW_HEIGHT,
-    MIN_WINDOW_WIDTH,
     WINDOW_ACCENTS,
-    WINDOW_DEFAULTS,
     deriveShortcutName,
     findCellFromPoint,
     findNearestCell,
@@ -30,18 +25,9 @@ import {
     normalizeShortcuts,
     withProtocol,
 } from "./desktopUtils";
+import { useWindowManager } from "./useWindowManager";
+import { useComputerDevActions, useComputerProfileActions } from "./useComputerActions";
 import type { TimeOfDay } from "../room/types";
-
-interface ComputerWindow {
-    id: string;
-    app: ComputerWindowApp;
-    title: string;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    z: number;
-}
 
 export interface ComputerScreenProps {
     shortcuts: Shortcut[];
@@ -74,8 +60,6 @@ export interface ComputerScreenProps {
 }
 
 import { createId } from "@/utils/id";
-
-const DISPLAY_NAME_MAX_LENGTH = 50;
 
 export function ComputerScreen({
     shortcuts,
@@ -122,43 +106,22 @@ export function ComputerScreen({
     const [isVolumePanelOpen, setIsVolumePanelOpen] = useState(false);
     const [now, setNow] = useState(() => new Date());
     const [desktopScale, setDesktopScale] = useState(1);
-    const [windows, setWindows] = useState<ComputerWindow[]>([]);
-    const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
-    const [currentDisplayName, setCurrentDisplayName] = useState(displayName ?? username ?? "You");
-    const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
-    const [displayNameError, setDisplayNameError] = useState<string | null>(null);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
     const [pendingShortcutPosition, setPendingShortcutPosition] = useState<{
         row: number;
         col: number;
     } | null>(null);
-    const zCounterRef = useRef(1);
-    const dragWindowRef = useRef<{
-        id: string;
-        startX: number;
-        startY: number;
-        originX: number;
-        originY: number;
-    } | null>(null);
-    const resizeWindowRef = useRef<{
-        id: string;
-        startX: number;
-        startY: number;
-        originW: number;
-        originH: number;
-    } | null>(null);
-    const windowsRef = useRef<ComputerWindow[]>([]);
     const {
         volume: keyboardVolume,
         musicVolume,
         setVolume: setKeyboardVolume,
         setMusicVolume,
     } = useKeyboardSoundPreferences();
-    const { signOut } = useClerk();
     const isDevEnv = import.meta.env.DEV;
-    const devDeleteMyAccount = useMutation(api.users.devDeleteMyAccount);
-    const updateDisplayNameMutation = useMutation(api.users.updateDisplayName);
+    const { signOut, deleteUser: handleDevDeleteUser, resetStorage: handleDevResetStorage } = useComputerDevActions();
+    const { currentDisplayName, isSavingDisplayName, displayNameError, handleSaveDisplayName } =
+        useComputerProfileActions({ displayName, username, onDisplayNameUpdated });
     const pendingFriendRequestCount = useQuery(api.friends.getPendingRequestCount, isGuest ? "skip" : undefined);
 
     const myRooms = useQuery(api.rooms.getMyRooms, isGuest ? "skip" : undefined);
@@ -205,10 +168,6 @@ export function ComputerScreen({
     }, []);
 
     useEffect(() => {
-        setCurrentDisplayName(displayName ?? username ?? "You");
-    }, [displayName, username]);
-
-    useEffect(() => {
         recomputeScale();
     }, [recomputeScale, orderedShortcuts]);
 
@@ -218,10 +177,6 @@ export function ComputerScreen({
         return () => window.removeEventListener("resize", onResize);
     }, [recomputeScale]);
 
-    useEffect(() => {
-        windowsRef.current = windows;
-    }, [windows]);
-
     const forwardPointerMove = useCallback(
         (clientX: number, clientY: number) => {
             if (!onPointerMove) return;
@@ -229,48 +184,15 @@ export function ComputerScreen({
         },
         [onPointerMove]
     );
-
-    const handleDevDeleteUser = async () => {
-        try {
-            await devDeleteMyAccount({});
-            await signOut();
-        } catch (error) {
-            console.error("Dev delete failed", error);
-        }
-    };
-
-    const handleDevResetStorage = () => {
-        try {
-            localStorage.clear();
-            sessionStorage.clear();
-            clearGuestSession();
-        } catch (error) {
-            console.error("Storage reset failed", error);
-        }
-    };
-
-    const handleSaveDisplayName = useCallback(
-        async (next: string) => {
-            const trimmed = next.trim();
-            if (trimmed.length === 0) {
-                setDisplayNameError("Display name cannot be empty");
-                return;
-            }
-            const safeValue = trimmed.slice(0, DISPLAY_NAME_MAX_LENGTH);
-            setIsSavingDisplayName(true);
-            setDisplayNameError(null);
-            try {
-                const result = await updateDisplayNameMutation({ displayName: safeValue });
-                setCurrentDisplayName(result.displayName);
-                onDisplayNameUpdated?.(result.displayName);
-            } catch (error) {
-                setDisplayNameError(error instanceof Error ? error.message : "Failed to update display name");
-            } finally {
-                setIsSavingDisplayName(false);
-            }
-        },
-        [onDisplayNameUpdated, updateDisplayNameMutation]
-    );
+    const {
+        windows,
+        activeWindowId,
+        openWindow,
+        closeWindow,
+        bringToFront,
+        startDragWindow,
+        startResizeWindow,
+    } = useWindowManager({ desktopRef, onPointerMove: forwardPointerMove, onShopOpened });
 
     const normalizeAndSave = useCallback(
         (next: Shortcut[]) => {
@@ -284,202 +206,6 @@ export function ComputerScreen({
         setRenamingId(null);
         setRenameValue("");
     }, []);
-
-    const getDesktopBounds = useCallback(
-        () => desktopRef.current?.getBoundingClientRect() ?? null,
-        []
-    );
-
-    const clampWindow = useCallback(
-        <T extends ComputerWindow>(win: T): T => {
-            const bounds = getDesktopBounds();
-            if (!bounds) return win;
-            const maxX = Math.max(0, bounds.width - win.width);
-            const maxY = Math.max(0, bounds.height - win.height);
-            return {
-                ...win,
-                x: Math.min(Math.max(0, win.x), maxX),
-                y: Math.min(Math.max(0, win.y), maxY),
-                width: Math.min(Math.max(MIN_WINDOW_WIDTH, win.width), bounds.width),
-                height: Math.min(Math.max(MIN_WINDOW_HEIGHT, win.height), bounds.height),
-            } as T;
-        },
-        [getDesktopBounds]
-    );
-
-    const bringToFront = (id: string) => {
-        const nextZ = zCounterRef.current + 1;
-        zCounterRef.current = nextZ;
-        setWindows((prev) =>
-            prev.map((win) => (win.id === id ? { ...win, z: nextZ } : win))
-        );
-        setActiveWindowId(id);
-    };
-
-    const openWindow = (app: ComputerWindowApp) => {
-        const existing = windowsRef.current.find((win) => win.app === app);
-        if (existing) {
-            bringToFront(existing.id);
-            if (app === "shop") {
-                onShopOpened?.();
-            }
-            return;
-        }
-
-        const bounds = getDesktopBounds();
-        const defaultSize = WINDOW_DEFAULTS[app];
-
-        const isShop = app === "shop";
-        const width = bounds
-            ? isShop
-                ? bounds.width
-                : Math.min(defaultSize.width, bounds.width - 16)
-            : defaultSize.width;
-        const height = bounds
-            ? isShop
-                ? bounds.height
-                : Math.min(defaultSize.height, bounds.height - 16)
-            : defaultSize.height;
-        const x = bounds ? (isShop ? 0 : Math.max(8, (bounds.width - width) / 2)) : 40;
-        const y = bounds ? (isShop ? 0 : Math.max(8, (bounds.height - height) / 2)) : 40;
-        const id = createId();
-        const nextZ = zCounterRef.current + 1;
-        zCounterRef.current = nextZ;
-
-        const titleMap: Record<ComputerWindowApp, string> = {
-            shop: "Shop",
-            rooms: "My Rooms",
-            about: "About Cozytab",
-            customize: "Customize",
-            friends: "Friends",
-        };
-
-        const newWindow: ComputerWindow = {
-            id,
-            app,
-            title: titleMap[app],
-            x,
-            y,
-            width,
-            height,
-            z: nextZ,
-        };
-
-        setWindows((prev) => [...prev, clampWindow(newWindow)]);
-        setActiveWindowId(id);
-        if (app === "shop") {
-            onShopOpened?.();
-        }
-    };
-
-    const closeWindow = (id: string) => {
-        setWindows((prev) => prev.filter((win) => win.id !== id));
-        setActiveWindowId((current) => (current === id ? null : current));
-        if (dragWindowRef.current?.id === id) {
-            dragWindowRef.current = null;
-        }
-        if (resizeWindowRef.current?.id === id) {
-            resizeWindowRef.current = null;
-        }
-    };
-
-    const handleWindowPointerDown = (id: string) => {
-        bringToFront(id);
-    };
-
-    const startDragWindow = (
-        id: string,
-        event: React.PointerEvent<HTMLDivElement>
-    ) => {
-        const targetWindow = windowsRef.current.find((win) => win.id === id);
-        if (!targetWindow) return;
-        handleWindowPointerDown(id);
-        dragWindowRef.current = {
-            id,
-            startX: event.clientX,
-            startY: event.clientY,
-            originX: targetWindow.x,
-            originY: targetWindow.y,
-        };
-        event.preventDefault();
-    };
-
-    const startResizeWindow = (
-        id: string,
-        event: React.PointerEvent<HTMLDivElement>
-    ) => {
-        const targetWindow = windowsRef.current.find((win) => win.id === id);
-        if (!targetWindow) return;
-        handleWindowPointerDown(id);
-        resizeWindowRef.current = {
-            id,
-            startX: event.clientX,
-            startY: event.clientY,
-            originW: targetWindow.width,
-            originH: targetWindow.height,
-        };
-        event.preventDefault();
-    };
-
-    const handlePointerMove = useCallback(
-        (event: PointerEvent) => {
-            const dragState = dragWindowRef.current;
-            const resizeState = resizeWindowRef.current;
-
-            if (!dragState && !resizeState) return;
-
-            if (dragState) {
-                const deltaX = event.clientX - dragState.startX;
-                const deltaY = event.clientY - dragState.startY;
-                const bounds = getDesktopBounds();
-                if (!bounds) return;
-                setWindows((prev) =>
-                    prev.map((win) => {
-                        if (win.id !== dragState.id) return win;
-                        const next = clampWindow({
-                            ...win,
-                            x: dragState.originX + deltaX,
-                            y: dragState.originY + deltaY,
-                        });
-                        return { ...win, x: next.x, y: next.y };
-                    })
-                );
-                forwardPointerMove(event.clientX, event.clientY);
-            }
-
-            if (resizeState) {
-                const deltaX = event.clientX - resizeState.startX;
-                const deltaY = event.clientY - resizeState.startY;
-                setWindows((prev) =>
-                    prev.map((win) => {
-                        if (win.id !== resizeState.id) return win;
-                        const clamped = clampWindow({
-                            ...win,
-                            width: resizeState.originW + deltaX,
-                            height: resizeState.originH + deltaY,
-                        });
-                        return { ...win, width: clamped.width, height: clamped.height };
-                    })
-                );
-                forwardPointerMove(event.clientX, event.clientY);
-            }
-        },
-        [clampWindow, forwardPointerMove, getDesktopBounds]
-    );
-
-    const stopWindowInteractions = useCallback(() => {
-        dragWindowRef.current = null;
-        resizeWindowRef.current = null;
-    }, []);
-
-    useEffect(() => {
-        window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointerup", stopWindowInteractions);
-        return () => {
-            window.removeEventListener("pointermove", handlePointerMove);
-            window.removeEventListener("pointerup", stopWindowInteractions);
-        };
-    }, [handlePointerMove, stopWindowInteractions]);
 
     const cleanupDragImage = useCallback(() => {
         if (dragImageRef.current) {
@@ -887,7 +613,7 @@ export function ComputerScreen({
                                         zIndex={50 + win.z}
                                         accent={WINDOW_ACCENTS[win.app]}
                                         isActive={activeWindowId === win.id}
-                                        onPointerDown={() => handleWindowPointerDown(win.id)}
+                                        onPointerDown={() => bringToFront(win.id)}
                                         onClose={() => closeWindow(win.id)}
                                         onStartDrag={(e) => startDragWindow(win.id, e)}
                                         onStartResize={(e) => startResizeWindow(win.id, e)}

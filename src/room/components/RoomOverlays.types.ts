@@ -1,5 +1,5 @@
 import type { RoomItem, Shortcut } from "@shared/guestTypes";
-import type { GameType } from "@convex/lib/categories";
+import type { GameType } from "@shared/categories";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";

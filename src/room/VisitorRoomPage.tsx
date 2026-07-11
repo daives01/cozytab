@@ -1,502 +1,206 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Link, useParams } from "react-router-dom";
-import { useAtomValue, useSetAtom } from "jotai";
-import { LocalCursor } from "@/presence/LocalCursor";
-import { TouchCursor } from "./components/TouchCursor";
-import { MobileChatInput } from "./components/MobileChatInput";
-import { ChatInput } from "./ChatInput";
-import { useTouchOnly } from "@/hooks/useTouchCapability";
-import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
-import type { Shortcut, RoomItem } from "@shared/guestTypes";
-import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
+import { Button } from "@/components/ui/button";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import { normalizeGuestShortcuts, readGuestSession, saveGuestSession } from "@/guest/guestSession";
+import { getReferralCode, saveReferralCode } from "../referralStorage";
 import { RoomPage } from "./RoomPage";
-import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
-import { useCozyCursor } from "./hooks/useCozyCursor";
-import { useCursorColor } from "./hooks/useCursorColor";
 import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
 import { useMobileZoom } from "./hooks/useMobileZoom";
+import { useVisitorRoomController } from "./hooks/useVisitorRoomController";
+import { normalizeInviteRoomSource } from "./visitorRoomSource";
+import { VisitorRoomExperience } from "./components/VisitorRoomExperience";
 import { MobileZoomButton } from "./components/MobileZoomButton";
-import { useVisitorMusic } from "./hooks/useVisitorMusic";
-import { useVisitorGameState } from "./hooks/useVisitorGameState";
-import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
-import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
-import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
-import { randomBrightColor } from "./utils/cursorColor";
-import { getReferralCode, saveReferralCode } from "../referralStorage";
-import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
-import {
-    guestCoinsAtom,
-    guestCursorColorAtom,
-    guestInventoryAtom,
-    guestNormalizedShortcutsAtom,
-    guestShortcutsAtom,
-} from "@/guest/state/guestAtoms";
-import { usePresenceAndChat } from "@/presence/usePresenceChat";
-import { RoomShell } from "./components/RoomShell";
-import { VisitorRoomItems } from "./components/VisitorRoomItems";
-import { VisitorHeader } from "./components/VisitorHeader";
-import { ConnectionBanner } from "./components/ConnectionBanner";
-import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
-
-import { ComputerOverlay } from "@/computer/ComputerOverlay";
-import { GameOverlay } from "@/games/components/GameOverlay";
+import { randomBrightColor } from "./utils/cursorColor";
 import { createId } from "@/utils/id";
 
 const VISITOR_CHAT_ONBOARDING_KEY = "cozytab:visitor-chat-onboarding";
 
-type InviteQueryResult = ReturnType<typeof useQuery<typeof api.rooms.getRoomByInvite>>;
+function InviteState({ message }: { message: string }) {
+    return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
+            <p>{message}</p>
+            <Link to="/">
+                <Button><Home className="mr-2 h-4 w-4" />Go Home</Button>
+            </Link>
+        </div>
+    );
+}
 
 export function VisitorRoomPage() {
     const { token } = useParams<{ token: string }>();
     const { isSignedIn } = useUser();
     const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
     const roomData = useQuery(api.rooms.getRoomByInvite, token ? { token } : "skip");
+    const ownerLoading = isSignedIn && authedUser === undefined;
 
-    const isOwnerLoading = isSignedIn && authedUser === undefined;
-    const isOwnerViewingInvite =
-        isSignedIn && Boolean(authedUser?._id && roomData?.room?.userId === authedUser._id);
+    if (!token) return <InviteState message="Invalid invite link" />;
+    if (ownerLoading || roomData === undefined) return <InviteState message="Loading room..." />;
+    if (roomData === null) return <InviteState message="This invite link is invalid or has expired" />;
+    if (isSignedIn && authedUser?._id === roomData.room.userId) return <RoomPage isGuest={false} />;
 
-    if (!token) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>Invalid invite link</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
+    return <InviteRoomContent roomData={roomData} authedUser={authedUser} />;
+}
 
-    if (isOwnerLoading || roomData === undefined) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading room...
-            </div>
-        );
-    }
+function InviteRoomContent({
+    roomData,
+    authedUser,
+}: {
+    roomData: NonNullable<Exclude<ReturnType<typeof useQuery<typeof api.rooms.getRoomByInvite>>, undefined>>;
+    authedUser: ReturnType<typeof useQuery<typeof api.users.getMe>>;
+}) {
+    const { user: clerkUser, isSignedIn } = useUser();
+    usePresenceHeartbeat(isSignedIn === true);
+    const roomStatus = useQuery(api.rooms.getRoomStatus, { roomId: roomData.room._id });
+    const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
+    const catalogItems = useQuery(api.catalog.list);
+    const saveComputer = useMutation(api.users.saveMyComputer);
+    const { scale, viewportWidth, viewportHeight } = useRoomViewportScale();
+    const zoom = useMobileZoom({ baseScale: scale, viewportWidth, viewportHeight });
+    const [guestSession, setGuestSession] = useState(() => readGuestSession());
+    const [guestVisitorId] = useState(() => `visitor-${createId()}`);
+    const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
+    const [fallbackCursorColor] = useState(() => randomBrightColor());
+    const [roomClosedOverride, setRoomClosedOverride] = useState(false);
+    const [chatOnboardingDismissed, setChatOnboardingDismissed] = useState(() =>
+        typeof window !== "undefined" && Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY))
+    );
 
-    if (isOwnerViewingInvite && roomData?.room?._id) {
-        return <RoomPage isGuest={false} />;
-    }
+    const source = useMemo(() => normalizeInviteRoomSource(roomData), [roomData]);
+    const roomClosed = roomClosedOverride || source.access === "closed" || roomStatus?.status !== "open";
+
+    useEffect(() => {
+        if (source.ownerReferralCode && !getReferralCode()) saveReferralCode(source.ownerReferralCode);
+    }, [source.ownerReferralCode]);
+
+    useEffect(() => {
+        if (roomStatus?.status !== "open" || !roomStatus.closesAt) return;
+        const delay = roomStatus.closesAt - Date.now();
+        const timer = window.setTimeout(() => setRoomClosedOverride(true), Math.max(0, delay));
+        return () => window.clearTimeout(timer);
+    }, [roomStatus?.closesAt, roomStatus?.status]);
+
+    const updateGuestSession = useCallback((changes: Parameters<typeof saveGuestSession>[0]) => {
+        const persisted = saveGuestSession(changes);
+        setGuestSession(persisted);
+    }, []);
+
+    if (roomStatus === undefined) return <InviteState message="Loading room..." />;
+    if (roomClosed) return <InviteState message="The host stepped away." />;
 
     return (
-        <VisitorRoomPageContent
-            roomData={roomData as Exclude<InviteQueryResult, undefined>}
+        <InviteRoomExperience
+            source={source}
             authedUser={authedUser}
+            clerkUser={clerkUser}
+            computerState={computerState}
+            catalogItems={catalogItems}
+            saveComputer={saveComputer}
+            isSignedIn={Boolean(isSignedIn)}
+            guestSession={guestSession}
+            updateGuestSession={updateGuestSession}
+            guestVisitorId={guestVisitorId}
+            guestVisitorName={guestVisitorName}
+            fallbackCursorColor={fallbackCursorColor}
+            zoom={zoom}
+            showChatOnboarding={!chatOnboardingDismissed}
+            dismissChatOnboarding={() => {
+                setChatOnboardingDismissed(true);
+                window.localStorage.setItem(VISITOR_CHAT_ONBOARDING_KEY, "1");
+            }}
         />
     );
 }
 
-function VisitorRoomPageContent({
-    roomData,
-    authedUser,
-}: {
-    roomData: Exclude<InviteQueryResult, undefined>;
+function InviteRoomExperience({ source, authedUser, clerkUser, computerState, catalogItems, saveComputer, isSignedIn, guestSession, updateGuestSession, guestVisitorId, guestVisitorName, fallbackCursorColor, zoom, showChatOnboarding, dismissChatOnboarding }: {
+    source: ReturnType<typeof normalizeInviteRoomSource>;
     authedUser: ReturnType<typeof useQuery<typeof api.users.getMe>>;
+    clerkUser: ReturnType<typeof useUser>["user"];
+    computerState: ReturnType<typeof useQuery<typeof api.users.getMyComputer>>;
+    catalogItems: ReturnType<typeof useQuery<typeof api.catalog.list>>;
+    saveComputer: ReturnType<typeof useMutation<typeof api.users.saveMyComputer>>;
+    isSignedIn: boolean;
+    guestSession: ReturnType<typeof readGuestSession>;
+    updateGuestSession: (changes: Parameters<typeof saveGuestSession>[0]) => void;
+    guestVisitorId: string;
+    guestVisitorName: string;
+    fallbackCursorColor: string;
+    zoom: ReturnType<typeof useMobileZoom>;
+    showChatOnboarding: boolean;
+    dismissChatOnboarding: () => void;
 }) {
-    const roomStatus = useQuery(
-        api.rooms.getRoomStatus,
-        roomData?.room?._id ? { roomId: roomData.room._id } : "skip"
-    );
-    const { user: clerkUser, isSignedIn } = useUser();
-    usePresenceHeartbeat(isSignedIn === true);
-    const computerState = useQuery(api.users.getMyComputer, isSignedIn ? {} : "skip");
-    const catalogItems = useQuery(api.catalog.list);
-    const saveComputer = useMutation(api.users.saveMyComputer);
-
-    const { scale, viewportWidth, viewportHeight } = useRoomViewportScale();
-    const isTouchOnly = useTouchOnly();
-    const containerRef = useRef<HTMLDivElement | null>(null);
-
-    const {
-        zoomLevel,
-        zoomLabel,
-        panOffset,
-        effectiveScale,
-        cycleZoom,
-        handlePanStart,
-        handlePanMove,
-        handlePanEnd,
-    } = useMobileZoom({ baseScale: scale, viewportWidth, viewportHeight });
-
-    const [guestVisitorId] = useState(() => `visitor-${createId()}`);
-    const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
-    const [guestCursorColor] = useState(() => randomBrightColor());
-    const [isComputerOpen, setIsComputerOpen] = useState(false);
-    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<Shortcut[] | null>(null);
-    const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
-    const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
-    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
-    const items = roomData?.room?.items as RoomItem[] | undefined;
-
-    const {
-        visitorMusicState,
-        activeMusicItem,
-        setActiveMusicItemId,
-        handleMusicToggle,
-    } = useVisitorMusic(items);
-
-    // Guest-local computer state
-    const guestShortcutsNormalized = useAtomValue(guestNormalizedShortcutsAtom);
-    const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
-    const guestCoins = useAtomValue(guestCoinsAtom);
-    const setGuestCoins = useSetAtom(guestCoinsAtom);
-    const guestInventory = useAtomValue(guestInventoryAtom);
-    const setGuestInventory = useSetAtom(guestInventoryAtom);
-    const setGuestCursorColor = useSetAtom(guestCursorColorAtom);
-    const guestCursorColorValue = useAtomValue(guestCursorColorAtom);
-
-    const isGuestVisitor = !isSignedIn;
-
-    const visitorIdentity = {
-        id: isSignedIn && clerkUser?.id ? clerkUser.id : guestVisitorId,
-        name:
-            visitorDisplayNameOverride ??
-            authedUser?.displayName ??
-            authedUser?.username ??
-            clerkUser?.username ??
-            guestVisitorName,
-        cursorColor:
-            visitorCursorColorOverride ??
-            (isGuestVisitor
-                ? guestCursorColorValue ?? guestCursorColor
-                : authedUser?.cursorColor ?? computerState?.cursorColor ?? guestCursorColor),
-    };
-    const [roomClosedOverride, setRoomClosedOverride] = useState(false);
-    const isStatusOpen = roomStatus?.status === "open";
-    const roomUnavailable = roomStatus ? roomStatus.status !== "open" : true;
-    const roomClosed = roomClosedOverride || roomData?.closed === true || roomUnavailable;
-    const presenceRoomId =
-        isStatusOpen && !roomData?.closed && !roomClosed ? roomData?.room?._id ?? null : null;
-    const [visitorChatOnboardingDismissed, setVisitorChatOnboardingDismissed] = useState(() => {
-        if (typeof window === "undefined") return false;
-        return Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY));
-    });
-    const showVisitorChatOnboarding = Boolean(presenceRoomId && !visitorChatOnboardingDismissed);
-
-    const {
-        visitors,
-        updateCursor,
-        updateChatMessage,
-        screenCursor,
-        localChatMessage,
-        setInMenu,
-        setInGame,
-        setGameMetadata,
-        connectionState,
-        connectionError,
-    } = usePresenceAndChat({
-        roomId: presenceRoomId,
+    const isGuest = !isSignedIn;
+    const controller = useVisitorRoomController({
+        source,
         identity: {
-            id: visitorIdentity.id,
-            name: visitorIdentity.name,
-            cursorColor: visitorIdentity.cursorColor,
+            id: isSignedIn ? clerkUser?.id ?? "" : guestVisitorId,
+            name: authedUser?.displayName ?? authedUser?.username ?? clerkUser?.username ?? guestVisitorName,
+            username: clerkUser?.username ?? undefined,
+            cursorColor: isGuest
+                ? guestSession.cursorColor ?? fallbackCursorColor
+                : authedUser?.cursorColor ?? computerState?.cursorColor ?? fallbackCursorColor,
             convexUserId: authedUser?._id,
         },
-        isOwner: false,
-    });
-    const {
-        activeGameItemId,
-        setActiveGameItemId,
-        activeGameType,
-        handleGameActiveChange,
-    } = useVisitorGameState({
-        items,
         catalogItems,
-        isComputerOpen,
-        activeMusicItem,
-        setInMenu,
-        setInGame,
-    });
-    const handleDismissChatOnboarding = useCallback(() => {
-        setVisitorChatOnboardingDismissed(true);
-        if (typeof window !== "undefined") {
-            window.localStorage.setItem(VISITOR_CHAT_ONBOARDING_KEY, "1");
-        }
-    }, []);
-    const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
-    useCozyCursor(true);
-    useCursorColor(visitorIdentity.cursorColor);
-
-    useEffect(() => {
-        const ownerReferralCode = roomData?.ownerReferralCode;
-        if (!ownerReferralCode) return;
-
-        const existingCode = getReferralCode();
-        if (!existingCode) {
-            saveReferralCode(ownerReferralCode);
-        }
-    }, [roomData?.ownerReferralCode]);
-
-    useEffect(() => {
-        if (!roomData?.room?._id) return;
-        if (roomClosed) return;
-        if (roomStatus?.status !== "open") return;
-
-        const closesAt = roomStatus.closesAt;
-        if (!closesAt) return;
-
-        const delay = closesAt - Date.now();
-        if (delay <= 0) {
-            setTimeout(() => setRoomClosedOverride(true), 0);
-            return;
-        }
-
-        const timer = setTimeout(() => {
-            setRoomClosedOverride(true);
-        }, delay);
-
-        return () => clearTimeout(timer);
-    }, [roomClosed, roomData?.room?._id, roomStatus?.closesAt, roomStatus?.status]);
-
-    const { updateCursorFromClient, handleMouseEvent, handlePointerEvent: baseHandlePointerEvent } = useVisitorCursorTracking({
-        containerRef,
-        scale: effectiveScale,
-        updateCursor,
+        computerState: isGuest ? { shortcuts: normalizeGuestShortcuts(guestSession.shortcuts), cursorColor: guestSession.cursorColor } : computerState,
+        isGuest,
+        economy: {
+            currency: isSignedIn ? authedUser?.currency ?? 0 : guestSession.coins,
+            nextRewardAt: isSignedIn ? authedUser?.nextRewardAt ?? undefined : undefined,
+            loginStreak: isSignedIn ? authedUser?.loginStreak ?? undefined : undefined,
+            guestCoins: guestSession.coins,
+            guestInventory: guestSession.inventoryIds,
+            onGuestCoinsChange: (coins) => updateGuestSession({ coins }),
+            onGuestPurchase: (catalogItemId: Id<"catalogItems">) =>
+                updateGuestSession({ inventoryIds: guestSession.inventoryIds.includes(catalogItemId) ? guestSession.inventoryIds : [...guestSession.inventoryIds, catalogItemId] }),
+        },
+        scale: zoom.effectiveScale,
+        saveComputer: (computer) => void saveComputer(computer),
+        saveGuestShortcuts: (shortcuts) => updateGuestSession({ shortcuts }),
+        saveGuestCursorColor: (cursorColor) => updateGuestSession({ cursorColor }),
     });
 
-    const handlePointerEvent = useCallback((e: React.PointerEvent) => {
-        if (e.pointerType !== "touch") return;
-        baseHandlePointerEvent(e);
-        if (zoomLevel > 1) {
-            handlePanMove(e.clientX, e.clientY);
-        }
-    }, [baseHandlePointerEvent, zoomLevel, handlePanMove]);
-
-    const handlePointerDown = useCallback((e: React.PointerEvent) => {
-        if (e.pointerType !== "touch") return;
-        if (zoomLevel > 1) {
-            handlePanStart(e.clientX, e.clientY);
-        }
-    }, [zoomLevel, handlePanStart]);
-
-    const handlePointerUp = useCallback(() => {
-        handlePanEnd();
-    }, [handlePanEnd]);
-
-    const handleOpenComputer = useCallback(() => {
-        setIsComputerOpen(true);
-    }, []);
-
-    const overlayShortcuts = useMemo(() => {
-        if (!isSignedIn) return guestShortcutsNormalized;
-        if (visitorShortcutsOverride) return visitorShortcutsOverride;
-        return (computerState?.shortcuts as Shortcut[] | undefined) ?? [];
-    }, [computerState?.shortcuts, guestShortcutsNormalized, isSignedIn, visitorShortcutsOverride]);
-
-    const overlayCurrency = isSignedIn ? authedUser?.currency ?? 0 : guestCoins;
-    const overlayNextReward = isSignedIn ? authedUser?.nextRewardAt ?? undefined : undefined;
-    const overlayLoginStreak = isSignedIn ? authedUser?.loginStreak ?? undefined : undefined;
-    const overlayDisplayName = isSignedIn ? visitorIdentity.name : undefined;
-    const overlayUsername = isSignedIn ? clerkUser?.username ?? "you" : undefined;
-    const overlayCursorColor = visitorIdentity.cursorColor;
-
-    if (roomData === null) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>This invite link is invalid or has expired</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    if (roomClosed) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>The host stepped away.</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    const roomContent = (
-        <VisitorRoomItems
-            items={items}
-            catalogItems={catalogItems}
-            visitorMusicState={visitorMusicState}
-            scale={effectiveScale}
-            onComputerClick={handleOpenComputer}
-            onMusicPlayerClick={setActiveMusicItemId}
-            onGameClick={setActiveGameItemId}
-            onMusicToggle={handleMusicToggle}
-            visitors={visitors}
-            currentVisitorId={visitorIdentity.id}
-            currentGameId={activeGameItemId}
+    const handlePointerMove = useCallback((event: React.PointerEvent) => {
+        if (event.pointerType !== "touch") return;
+        controller.cursor.handlePointerEvent(event);
+        if (zoom.zoomLevel > 1) zoom.handlePanMove(event.clientX, event.clientY);
+    }, [controller.cursor, zoom]);
+    const handlePointerDown = useCallback((event: React.PointerEvent) => {
+        if (event.pointerType === "touch" && zoom.zoomLevel > 1) zoom.handlePanStart(event.clientX, event.clientY);
+    }, [zoom]);
+    const handlePointerUp = useCallback(() => zoom.handlePanEnd(), [zoom]);
+    const onboarding = showChatOnboarding ? (
+        <OnboardingSpotlight
+            message="Press Enter to chat"
+            messageContent={<p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">Press <span className="rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-3 py-1 font-mono shadow-[var(--shadow-3)]">Enter</span> to chat</p>}
+            bubblePosition="bottom"
+            bubbleWidth={600}
+            onSkip={dismissChatOnboarding}
+            showSkip={false}
+            pulseTarget={false}
+            onNext={dismissChatOnboarding}
+            showNext
         />
-    );
-
-    const overlays = (
-        <>
-            <VisitorHeader ownerName={roomData.ownerName} visitorCount={visitors.length} />
-            <ConnectionBanner connectionState={connectionState} connectionError={connectionError} />
-
-            {showVisitorChatOnboarding && (
-                <OnboardingSpotlight
-                    message="Press Enter to chat"
-                    messageContent={
-                        <div className="space-y-2">
-                            <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">
-                                Press{" "}
-                                <span className="inline-flex items-center justify-center rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-3 py-1 font-mono text-base shadow-[var(--shadow-3)]">
-                                    Enter
-                                </span>{" "}
-                                to chat
-                            </p>
-                            <p className="text-sm text-[var(--color-muted-foreground)]">Hit Enter to start typing, Enter again to send.</p>
-                        </div>
-                    }
-                    bubblePosition="bottom"
-                    bubbleWidth={600}
-                    onSkip={handleDismissChatOnboarding}
-                    showSkip={false}
-                    pulseTarget={false}
-                    onNext={handleDismissChatOnboarding}
-                    showNext
-                />
-            )}
-
-            {!isTouchOnly && (
-                <>
-                    <ChatInput
-                        onMessageChange={updateChatMessage}
-                        disabled={connectionState !== "connected"}
-                    />
-                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
-                        <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
-                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
-                            <span
-                                style={{
-                                    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-                                    fontSize: "1.07em",
-                                    fontWeight: 400,
-                                    fontStyle: "normal",
-                                    fontSynthesis: "none",
-                                    fontOpticalSizing: "none",
-                                }}
-                            >
-                                to chat
-                            </span>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {isTouchOnly && (
-                <MobileChatInput
-                    onMessageChange={updateChatMessage}
-                    disabled={connectionState !== "connected"}
-                />
-            )}
-
-            {activeMusicItem ? (
-                <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
-            ) : null}
-
-            <GameOverlay
-                isOpen={!!activeGameItemId && !!activeGameType}
-                gameType={activeGameType ?? "chess"}
-                itemId={activeGameItemId ?? ""}
-                visitorId={visitorIdentity.id}
-                visitors={visitors}
-                setGameMetadata={setGameMetadata}
-                onClose={() => setActiveGameItemId(null)}
-                onPointerMove={updateCursorFromClient}
-                onGameActiveChange={handleGameActiveChange}
-            />
-
-            <LocalCursor
-                x={screenCursor.x}
-                y={screenCursor.y}
-                chatMessage={localChatMessage}
-                cursorColor={visitorIdentity.cursorColor}
-            />
-
-            <TouchCursor cursorColor={visitorIdentity.cursorColor} />
-
-            <ComputerOverlay
-                isGuest={isGuestVisitor}
-                isComputerOpen={isComputerOpen}
-                onCloseComputer={() => setIsComputerOpen(false)}
-                shortcuts={overlayShortcuts}
-                onUpdateShortcuts={(next) => {
-                    if (isSignedIn) {
-                        setVisitorShortcutsOverride(next);
-                        saveComputer({ shortcuts: next, cursorColor: overlayCursorColor });
-                    } else {
-                        setGuestShortcuts(next);
-                    }
-                }}
-                userCurrency={overlayCurrency}
-                nextRewardAt={overlayNextReward}
-                loginStreak={overlayLoginStreak}
-                onPointerMove={updateCursorFromClient}
-                guestCoins={guestCoins}
-                onGuestCoinsChange={(coins) => setGuestCoins(coins)}
-                startingCoins={GUEST_STARTING_COINS}
-                guestInventory={guestInventory}
-                onGuestPurchase={(itemId: Id<"catalogItems">) =>
-                    setGuestInventory((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
-                }
-                isOnboardingShopStep={false}
-                displayName={overlayDisplayName}
-                username={overlayUsername}
-                onDisplayNameUpdated={(next) => setVisitorDisplayNameOverride(next)}
-                cursorColor={overlayCursorColor}
-                onCursorColorChange={(next) => {
-                    const value = next?.trim();
-                    if (!value) return;
-                    setVisitorCursorColorOverride(value);
-                    if (isSignedIn) {
-                        saveComputer({ shortcuts: overlayShortcuts, cursorColor: value });
-                    } else {
-                        setGuestCursorColor(value);
-                    }
-                }}
-                timeOfDay={timeOfDay}
-                devTimeOfDay={overrideTimeOfDay}
-                onSetDevTimeOfDay={setOverrideTimeOfDay}
-                inRoomVisitors={visitors.filter((v) => v.convexUserId && v.visitorId !== visitorIdentity.id)}
-            />
-        </>
-    );
+    ) : null;
 
     return (
         <>
-            <RoomShell
-                roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
-                scale={scale}
-                zoomLevel={zoomLevel}
-                panOffset={panOffset}
-                timeOfDay={timeOfDay}
-                containerRef={containerRef}
-                onMouseMove={handleMouseEvent}
-                onMouseEnter={handleMouseEvent}
-                onPointerMove={handlePointerEvent}
+            <VisitorRoomExperience
+                controller={controller}
+                extraOverlays={onboarding}
+                zoomLevel={zoom.zoomLevel}
+                panOffset={zoom.panOffset}
+                onPointerMove={handlePointerMove}
                 onPointerDown={handlePointerDown}
                 onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                roomContent={roomContent}
-                overlays={overlays}
             />
-            <MobileZoomButton zoomLevel={zoomLevel} zoomLabel={zoomLabel} onCycleZoom={cycleZoom} />
+            <MobileZoomButton zoomLevel={zoom.zoomLevel} zoomLabel={zoom.zoomLabel} onCycleZoom={zoom.cycleZoom} />
         </>
     );
 }

@@ -35,7 +35,7 @@ const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
     },
 };
 
-const bufferCache = new Map<string, AudioBuffer>();
+const bufferCache = new Map<string, AudioBuffer | null>();
 const lastPlayed = new Map<string, number>();
 const activeSources = new Set<AudioBufferSourceNode>();
 
@@ -55,7 +55,7 @@ async function loadBuffer(url: string): Promise<AudioBuffer | null> {
         return decoded;
     } catch (err) {
         console.error("[TypingAudio] Failed to load buffer", url, err);
-        bufferCache.set(url, null as unknown as AudioBuffer);
+        bufferCache.set(url, null);
         return null;
     }
 }
@@ -134,4 +134,3 @@ export function playKeyUp(key: string) {
     const path = getPath("up", key);
     void playSample(path);
 }
-

@@ -22,6 +22,7 @@ app.use(
                 "http://localhost:8787",
                 "http://localhost:5173",
                 "http://localhost:4173",
+                "http://100.94.163.58:5173/"
             ]);
 
             if (!origin) return origin;

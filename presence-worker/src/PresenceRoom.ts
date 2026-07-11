@@ -1,51 +1,12 @@
 import { DurableObject } from "cloudflare:workers";
+import type { PresenceMessage, PresenceVisitor as VisitorState } from "../../shared/presenceProtocol";
 
 export interface Env {
     PRESENCE_ROOM: DurableObjectNamespace;
 }
 
-export type PresenceMessage =
-    | {
-          type: "join";
-          visitorId: string;
-          displayName: string;
-          isOwner: boolean;
-          cursorColor?: string;
-          tabbedOut?: boolean;
-          convexUserId?: string;
-      }
-    | { type: "leave"; visitorId: string }
-    | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | {
-          type: "cursor";
-          visitorId: string;
-          x: number;
-          y: number;
-          cursorColor?: string;
-          inMenu?: boolean;
-          tabbedOut?: boolean;
-          inGame?: string | null;
-          gameMetadata?: Record<string, unknown> | null;
-      }
-    | { type: "chat"; visitorId: string; text: string | null }
-    | { type: "state"; visitors: VisitorState[] };
-
-export type VisitorState = {
-    visitorId: string;
-    displayName: string;
-    isOwner: boolean;
-    x: number;
-    y: number;
-    chatMessage: string | null;
-    cursorColor?: string;
-    inMenu: boolean;
-    tabbedOut: boolean;
-    inGame?: string | null;
-    gameMetadata?: Record<string, unknown> | null;
-    convexUserId?: string;
-};
-
 type WebSocketAttachment = {
+    // TODO(security): bind a future signed room capability here before trusting owner identity or game actions.
     visitorId: string;
     displayName: string;
     isOwner: boolean;
@@ -187,16 +148,14 @@ function validateMessage(raw: unknown): PresenceMessage | null {
         }
         case "cursor": {
             if (!isValidCursorPayload(data)) return null;
-            const { visitorId, x, y, cursorColor, inMenu, tabbedOut, inGame, gameMetadata } = data as unknown as {
-                visitorId: string;
-                x: number;
-                y: number;
-                cursorColor?: string;
-                inMenu?: boolean;
-                tabbedOut?: boolean;
-                inGame?: string | null;
-                gameMetadata?: Record<string, unknown> | null;
-            };
+            const visitorId = data.visitorId as string;
+            const x = data.x as number;
+            const y = data.y as number;
+            const cursorColor = data.cursorColor as string | undefined;
+            const inMenu = data.inMenu as boolean | undefined;
+            const tabbedOut = data.tabbedOut as boolean | undefined;
+            const inGame = data.inGame as string | null | undefined;
+            const gameMetadata = data.gameMetadata as Record<string, unknown> | null | undefined;
             return {
                 type: "cursor",
                 visitorId,

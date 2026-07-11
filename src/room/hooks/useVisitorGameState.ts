@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RoomItem } from "@shared/guestTypes";
-import type { GameType } from "@convex/lib/categories";
+import type { GameType } from "@shared/categories";
 import type { Doc } from "@convex/_generated/dataModel";
 
 type CatalogItem = Doc<"catalogItems">;

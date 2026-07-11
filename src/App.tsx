@@ -1,14 +1,10 @@
 import { useUser } from "@clerk/clerk-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
-import { VisitorRoomPage } from "./room/VisitorRoomPage";
-import { FriendVisitPage } from "./room/FriendVisitPage";
-import { AdminPage } from "./admin/AdminPage";
 import { clearGuestSession, readGuestSession } from "./guest/guestSession";
-import { createGuestStore, GuestStateProvider } from "./guest/state";
 import {
   clearReferralCode,
   getReferralCode,
@@ -18,6 +14,14 @@ import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
 import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
 import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
+
+const VisitorRoomPage = lazy(() => import("./room/VisitorRoomPage").then((module) => ({ default: module.VisitorRoomPage })));
+const FriendVisitPage = lazy(() => import("./room/FriendVisitPage").then((module) => ({ default: module.FriendVisitPage })));
+const AdminPage = lazy(() => import("./admin/AdminPage").then((module) => ({ default: module.AdminPage })));
+
+function RouteLoading() {
+  return <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">Loading your cozytab...</div>;
+}
 
 /** Backwards-compat: /ref/:code and /addfriend/:code both redirect to /?friendRef=code */
 function LegacyRedirect() {
@@ -31,14 +35,16 @@ function App() {
   return (
     <BrowserRouter>
       <TouchWarningGate />
-      <Routes>
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/visit/:token" element={<VisitorRoomPage />} />
-        <Route path="/friend/:friendUserId" element={<FriendVisitPage />} />
-        <Route path="/addfriend/:code" element={<LegacyRedirect />} />
-        <Route path="/ref/:code" element={<LegacyRedirect />} />
-        <Route path="/admin" element={<AdminPage />} />
-      </Routes>
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
+          <Route path="/" element={<HomeRoute />} />
+          <Route path="/visit/:token" element={<VisitorRoomPage />} />
+          <Route path="/friend/:friendUserId" element={<FriendVisitPage />} />
+          <Route path="/addfriend/:code" element={<LegacyRedirect />} />
+          <Route path="/ref/:code" element={<LegacyRedirect />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
@@ -98,11 +104,6 @@ function HomeRoute() {
   }, [clerkUser, ensureUser, guestSession, shouldFetchAuthedUser, user]);
 
   const isGuestView = isClerkLoaded ? !isSignedIn || user === null : false;
-  const guestStore = useMemo(() => {
-    if (!isGuestView) return null;
-    return createGuestStore(guestSession);
-  }, [guestSession, isGuestView]);
-
   if (!isClerkLoaded || isUserLoading) {
     return (
       <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
@@ -111,12 +112,8 @@ function HomeRoute() {
     );
   }
 
-  if (isGuestView && guestStore) {
-    return (
-      <GuestStateProvider store={guestStore}>
-        <RoomPage isGuest guestSession={guestSession} friendRefCode={friendRefCode} />
-      </GuestStateProvider>
-    );
+  if (isGuestView) {
+    return <RoomPage isGuest guestSession={guestSession} friendRefCode={friendRefCode} />;
   }
 
   return <RoomPage isGuest={false} guestSession={guestSession} friendRefCode={friendRefCode} />;

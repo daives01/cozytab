@@ -1,9 +1,7 @@
-import { useMemo, useCallback } from "react";
+import { lazy, Suspense, useMemo, useCallback } from "react";
 import { RoomToolbar } from "../RoomToolbar";
 import { EditDrawer } from "../EditDrawer";
-import { ComputerOverlay } from "@/computer/ComputerOverlay";
 import { MusicPlayerModal } from "@/musicPlayer/MusicPlayerModal";
-import { GameOverlay } from "@/games/components/GameOverlay";
 import { ShareModal } from "../ShareModal";
 import { Onboarding } from "../Onboarding";
 import { Heart, UserPlus } from "lucide-react";
@@ -16,6 +14,9 @@ import { TouchCursor } from "./TouchCursor";
 import { useTouchOnly } from "@/hooks/useTouchCapability";
 import type { RoomOverlaysProps } from "./RoomOverlays.types";
 import type { RoomItem } from "@shared/guestTypes";
+
+const ComputerOverlay = lazy(() => import("@/computer/ComputerOverlay").then((module) => ({ default: module.ComputerOverlay })));
+const GameOverlay = lazy(() => import("@/games/components/GameOverlay").then((module) => ({ default: module.GameOverlay })));
 
 export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
     const isTouchOnly = useTouchOnly();
@@ -69,7 +70,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
 
             {isTouchPlacementActive && null}
 
-            <ComputerOverlay
+            {computer.isOpen && <Suspense fallback={null}><ComputerOverlay
                 isGuest={ui.isGuest}
                 isComputerOpen={computer.isOpen}
                 onCloseComputer={computer.onClose}
@@ -98,13 +99,13 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 devTimeOfDay={computer.time.devTimeOfDay}
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
                 inRoomVisitors={visibleRoomVisitors}
-            />
+            /></Suspense>}
 
             {activeMusicItem && (
                 <MusicPlayerModal item={activeMusicItem} onClose={music.onClose} onSave={handleMusicSave} />
             )}
 
-            <GameOverlay
+            {!!game.activeGameItemId && !!game.gameType && <Suspense fallback={null}><GameOverlay
                 isOpen={!!game.activeGameItemId && !!game.gameType}
                 gameType={game.gameType ?? "chess"}
                 itemId={game.activeGameItemId ?? ""}
@@ -114,7 +115,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 onClose={game.onClose}
                 onPointerMove={computer.onPointerMove}
                 onGameActiveChange={game.onGameActiveChange}
-            />
+            /></Suspense>}
 
             {!ui.isGuest && presence.isShareModalOpen && (
                 <ShareModal onClose={presence.onCloseShareModal} activeInvites={presence.activeInvites} />

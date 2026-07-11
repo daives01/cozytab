@@ -161,8 +161,8 @@ export function GameOverlay({
     if (fen === STARTING_FEN) {
       pendingAutoClaimRef.current = null;
       // Ensure no stale side leaks into later cursor merges
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { side, ...rest } = gameMetadataRef.current;
+      const rest = { ...gameMetadataRef.current };
+      delete rest.side;
       gameMetadataRef.current = rest;
       return;
     }

@@ -1,13 +1,6 @@
 import type { Shortcut } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
-import { useAtomValue, useSetAtom } from "jotai";
-import {
-    guestCoinsAtom,
-    guestInventoryAtom,
-    guestShortcutsAtom,
-    guestNormalizedShortcutsAtom,
-} from "@/guest/state/guestAtoms";
 import type { TimeOfDay } from "../room/types";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
@@ -72,31 +65,13 @@ export function ComputerOverlay({
     onSetDevTimeOfDay,
     inRoomVisitors,
 }: ComputerOverlayProps) {
-    const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
-    const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
-    const guestCoinsAtomValue = useAtomValue(guestCoinsAtom);
-    const setGuestCoinsAtomValue = useSetAtom(guestCoinsAtom);
-    const guestInventoryAtomValue = useAtomValue(guestInventoryAtom);
-    const setGuestInventoryAtomValue = useSetAtom(guestInventoryAtom);
-
-    const effectiveShortcuts = isGuest ? guestShortcuts : shortcuts;
-    const handleShortcutsUpdate = isGuest ? setGuestShortcuts : onUpdateShortcuts;
-    const effectiveGuestCoins = isGuest ? guestCoinsAtomValue : guestCoins;
-    const handleGuestCoinsChange = isGuest ? setGuestCoinsAtomValue : onGuestCoinsChange;
-    const effectiveGuestInventory = isGuest ? guestInventoryAtomValue : guestInventory;
-    const handleGuestPurchase =
-        isGuest && onGuestPurchase === undefined
-            ? (itemId: Id<"catalogItems">) =>
-                  setGuestInventoryAtomValue((prev) => (prev.includes(itemId) ? prev : [...prev, itemId]))
-            : onGuestPurchase;
-
     if (!isComputerOpen) return null;
 
     return (
         <ComputerScreen
-            shortcuts={effectiveShortcuts}
+            shortcuts={shortcuts}
             onClose={onCloseComputer}
-            onUpdateShortcuts={handleShortcutsUpdate}
+            onUpdateShortcuts={onUpdateShortcuts}
             userCurrency={userCurrency}
             nextRewardAt={nextRewardAt}
             loginStreak={loginStreak}
@@ -106,11 +81,11 @@ export function ComputerOverlay({
             isOnboardingShopStep={isOnboardingShopStep}
             onPointerMove={onPointerMove}
             isGuest={isGuest}
-            guestCoins={effectiveGuestCoins}
-            onGuestCoinsChange={handleGuestCoinsChange}
+            guestCoins={guestCoins}
+            onGuestCoinsChange={onGuestCoinsChange}
             startingCoins={startingCoins}
-            guestInventory={effectiveGuestInventory}
-            onGuestPurchase={handleGuestPurchase}
+            guestInventory={guestInventory}
+            onGuestPurchase={onGuestPurchase}
             highlightFirstMusicItem={highlightFirstMusicItem}
             displayName={displayName}
             username={username}

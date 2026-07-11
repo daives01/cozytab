@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { RoomItem } from "@shared/guestTypes";
-import type { GameType } from "@convex/lib/categories";
+import type { GameType } from "@shared/categories";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";

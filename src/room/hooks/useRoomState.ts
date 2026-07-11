@@ -1,45 +1,11 @@
-import { useEffect, useMemo, useRef, useCallback } from "react";
-import { useAtomValue, useSetAtom } from "jotai";
-import type { Shortcut } from "@shared/guestTypes";
-import type { GuestSessionState } from "@shared/guestTypes";
-import {
-    coinsAtom,
-    computerOpenAtom,
-    cursorColorAtom,
-    displayNameAtom,
-    drawerOpenAtom,
-    draggedItemIdAtom,
-    inventoryAtom,
-    itemsAtom,
-    modeAtom,
-    musicInteractionTokenAtom,
-    musicPlayerItemIdAtom,
-    onboardingCompletedAtom,
-    selectedIdAtom,
-    shareModalOpenAtom,
-    shortcutsAtom,
-    type Mode,
-} from "../state/roomAtoms";
-import {
-    guestCoinsAtom,
-    guestComputerOpenAtom,
-    guestCursorColorAtom,
-    guestDisplayNameAtom,
-    guestDrawerOpenAtom,
-    guestDraggedItemIdAtom,
-    guestInventoryAtom,
-    guestModeAtom,
-    guestMusicPlayerItemIdAtom,
-    guestNormalizedShortcutsAtom,
-    guestRoomItemsAtom,
-    guestSelectedItemIdAtom,
-    guestShareModalOpenAtom,
-    guestShortcutsAtom,
-    guestOnboardingCompletedAtom,
-    normalizeGuestShortcuts,
-} from "@/guest/state/guestAtoms";
-import { readGuestSession, buildCatalogLookup } from "@/guest/guestSession";
-import type { Doc } from "@convex/_generated/dataModel";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Doc, Id } from "@convex/_generated/dataModel";
+import type { GuestSessionState, RoomItem, Shortcut } from "@shared/guestTypes";
+import { buildCatalogLookup, readGuestSession, saveGuestSession } from "@/guest/guestSession";
+import { useActiveRoomSession } from "../session";
+import type { ComputerState, RoomEphemeralState } from "../session";
+
+type Updater<T> = T | ((previous: T) => T);
 
 export type UseRoomStateArgs = {
     isGuest: boolean;
@@ -47,7 +13,13 @@ export type UseRoomStateArgs = {
     catalogItems?: Doc<"catalogItems">[] | null;
 };
 
+function resolveUpdate<T>(current: T, update: Updater<T>): T {
+    return typeof update === "function" ? (update as (previous: T) => T)(current) : update;
+}
+
+/** Reads and updates the single active owner-room store. Persistence is delegated to its adapter. */
 export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomStateArgs) {
+    const { adapter, state, setState } = useActiveRoomSession();
     const catalogLookup = useMemo(() => buildCatalogLookup(catalogItems ?? undefined), [catalogItems]);
     const initialGuestSession = useMemo(() => {
         if (guestSession) return guestSession;
@@ -55,173 +27,177 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         return null;
     }, [guestSession, isGuest, catalogLookup]);
 
-    const authedShortcutsRef = useRef<Shortcut[]>(normalizeGuestShortcuts(initialGuestSession?.shortcuts ?? []));
-    const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
     const guestSessionLoadedRef = useRef(false);
+    const authedShortcutsRef = useRef<Shortcut[]>(state.persisted.computer.shortcuts);
+    const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
 
-    const guestModeValue = useAtomValue(guestModeAtom);
-    const setGuestMode = useSetAtom(guestModeAtom);
-    const guestItems = useAtomValue(guestRoomItemsAtom);
-    const setGuestItems = useSetAtom(guestRoomItemsAtom);
-    const guestSelectedId = useAtomValue(guestSelectedItemIdAtom);
-    const setGuestSelectedId = useSetAtom(guestSelectedItemIdAtom);
-    const guestDrawerOpen = useAtomValue(guestDrawerOpenAtom);
-    const setGuestDrawerOpen = useSetAtom(guestDrawerOpenAtom);
-    const guestDraggedItemId = useAtomValue(guestDraggedItemIdAtom);
-    const setGuestDraggedItemId = useSetAtom(guestDraggedItemIdAtom);
-    const guestComputerOpen = useAtomValue(guestComputerOpenAtom);
-    const setGuestComputerOpen = useSetAtom(guestComputerOpenAtom);
-    const guestShareModalOpen = useAtomValue(guestShareModalOpenAtom);
-    const setGuestShareModalOpen = useSetAtom(guestShareModalOpenAtom);
-    const guestShortcuts = useAtomValue(guestNormalizedShortcutsAtom);
-    const setGuestShortcuts = useSetAtom(guestShortcutsAtom);
-    const guestMusicPlayerItemId = useAtomValue(guestMusicPlayerItemIdAtom);
-    const setGuestMusicPlayerItemId = useSetAtom(guestMusicPlayerItemIdAtom);
-    const guestOnboardingCompleted = useAtomValue(guestOnboardingCompletedAtom);
-    const setGuestOnboardingCompleted = useSetAtom(guestOnboardingCompletedAtom);
-    const guestCoins = useAtomValue(guestCoinsAtom);
-    const setGuestCoins = useSetAtom(guestCoinsAtom);
-    const guestInventory = useAtomValue(guestInventoryAtom);
-    const setGuestInventory = useSetAtom(guestInventoryAtom);
-    const guestDisplayName = useAtomValue(guestDisplayNameAtom);
-    const setGuestDisplayName = useSetAtom(guestDisplayNameAtom);
-    const guestCursorColorValue = useAtomValue(guestCursorColorAtom);
-    const setGuestCursorColor = useSetAtom(guestCursorColorAtom);
-
-    const authedMode = useAtomValue(modeAtom);
-    const setAuthedMode = useSetAtom(modeAtom);
-    const authedItems = useAtomValue(itemsAtom);
-    const setAuthedItems = useSetAtom(itemsAtom);
-    const authedSelectedId = useAtomValue(selectedIdAtom);
-    const setAuthedSelectedId = useSetAtom(selectedIdAtom);
-    const authedDrawerOpen = useAtomValue(drawerOpenAtom);
-    const setAuthedDrawerOpen = useSetAtom(drawerOpenAtom);
-    const authedDraggedItemId = useAtomValue(draggedItemIdAtom);
-    const setAuthedDraggedItemId = useSetAtom(draggedItemIdAtom);
-    const authedComputerOpen = useAtomValue(computerOpenAtom);
-    const setAuthedComputerOpen = useSetAtom(computerOpenAtom);
-    const authedShareModalOpen = useAtomValue(shareModalOpenAtom);
-    const setAuthedShareModalOpen = useSetAtom(shareModalOpenAtom);
-    const authedShortcuts = useAtomValue(shortcutsAtom);
-    const setAuthedShortcuts = useSetAtom(shortcutsAtom);
-    const authedCursorColor = useAtomValue(cursorColorAtom);
-    const setAuthedCursorColor = useSetAtom(cursorColorAtom);
-    const authedMusicPlayerItemId = useAtomValue(musicPlayerItemIdAtom);
-    const setAuthedMusicPlayerItemId = useSetAtom(musicPlayerItemIdAtom);
-    const musicInteractionToken = useAtomValue(musicInteractionTokenAtom);
-    const setMusicInteractionToken = useSetAtom(musicInteractionTokenAtom);
-    const guestOnboardingCompletedState = useAtomValue(onboardingCompletedAtom);
-    const setGuestOnboardingCompletedState = useSetAtom(onboardingCompletedAtom);
-    const guestCoinsState = useAtomValue(coinsAtom);
-    const setGuestCoinsState = useSetAtom(coinsAtom);
-    const guestInventoryState = useAtomValue(inventoryAtom);
-    const setGuestInventoryState = useSetAtom(inventoryAtom);
-    const localDisplayName = useAtomValue(displayNameAtom);
-    const setLocalDisplayName = useSetAtom(displayNameAtom);
-
-    const mode = isGuest ? guestModeValue : authedMode;
-    const setMode = useCallback(
-        (next: Mode) => {
-            if (isGuest) {
-                setGuestMode(next);
-            } else {
-                setAuthedMode(next);
-            }
+    const updateEphemeral = useCallback(
+        <K extends keyof RoomEphemeralState>(key: K, update: Updater<RoomEphemeralState[K]>) => {
+            setState((previous) => ({
+                ...previous,
+                ephemeral: { ...previous.ephemeral, [key]: resolveUpdate(previous.ephemeral[key], update) },
+            }));
         },
-        [isGuest, setAuthedMode, setGuestMode]
+        [setState]
     );
 
-    const localItems = isGuest ? guestItems : authedItems;
-    const setLocalItems = isGuest ? setGuestItems : setAuthedItems;
+    const setLocalItems = useCallback(
+        (update: Updater<RoomItem[]>) => {
+            let nextItems: RoomItem[] = [];
+            setState((previous) => {
+                nextItems = resolveUpdate(previous.persisted.items, update);
+                return { ...previous, persisted: { ...previous.persisted, items: nextItems } };
+            });
+            if (adapter.kind === "guest-owner") void adapter.saveItems(nextItems);
+        },
+        [adapter, setState]
+    );
 
-    const selectedId = isGuest ? guestSelectedId : authedSelectedId;
-    const setSelectedId: (update: string | null | ((prev: string | null) => string | null)) => void = isGuest
-        ? setGuestSelectedId
-        : setAuthedSelectedId;
+    const setLocalShortcuts = useCallback(
+        (update: Updater<Shortcut[]>) => {
+            let nextShortcuts: Shortcut[] = [];
+            let nextCursorColor: string | null = null;
+            let changed = false;
+            setState((previous) => {
+                nextShortcuts = resolveUpdate(previous.persisted.computer.shortcuts, update);
+                nextCursorColor = previous.persisted.computer.cursorColor;
+                if (nextShortcuts === previous.persisted.computer.shortcuts) return previous;
+                changed = true;
+                return {
+                    ...previous,
+                    persisted: {
+                        ...previous.persisted,
+                        computer: { ...previous.persisted.computer, shortcuts: nextShortcuts },
+                    },
+                };
+            });
+            authedShortcutsRef.current = nextShortcuts;
+            if (changed && adapter.kind === "guest-owner") {
+                void adapter.saveComputer({ shortcuts: nextShortcuts, cursorColor: nextCursorColor });
+            }
+        },
+        [adapter, setState]
+    );
 
-    const isDrawerOpen = isGuest ? guestDrawerOpen : authedDrawerOpen;
-    const setIsDrawerOpen = isGuest ? setGuestDrawerOpen : setAuthedDrawerOpen;
+    const setCursorColor = useCallback(
+        (update: Updater<string | null>) => {
+            let nextComputer: ComputerState | null = null;
+            setState((previous) => {
+                const cursorColor = resolveUpdate(previous.persisted.computer.cursorColor, update);
+                if (cursorColor === previous.persisted.computer.cursorColor) return previous;
+                nextComputer = { ...previous.persisted.computer, cursorColor };
+                return { ...previous, persisted: { ...previous.persisted, computer: nextComputer } };
+            });
+            if (adapter.kind === "guest-owner" && nextComputer) void adapter.saveComputer(nextComputer);
+        },
+        [adapter, setState]
+    );
 
-    const draggedItemId = isGuest ? guestDraggedItemId : authedDraggedItemId;
-    const setDraggedItemId = isGuest ? setGuestDraggedItemId : setAuthedDraggedItemId;
+    const setOnboardingCompleted = useCallback(
+        (update: Updater<boolean>) => {
+            let completed = false;
+            setState((previous) => {
+                completed = resolveUpdate(previous.persisted.profile.onboardingCompleted, update);
+                return {
+                    ...previous,
+                    persisted: {
+                        ...previous.persisted,
+                        profile: { ...previous.persisted.profile, onboardingCompleted: completed },
+                    },
+                };
+            });
+            if (completed) void adapter.saveProfile({ onboardingCompleted: true });
+        },
+        [adapter, setState]
+    );
 
-    const isComputerOpen = isGuest ? guestComputerOpen : authedComputerOpen;
-    const setIsComputerOpen = isGuest ? setGuestComputerOpen : setAuthedComputerOpen;
+    const setDisplayName = useCallback(
+        (update: Updater<string | null>) => {
+            let displayName: string | null = null;
+            setState((previous) => {
+                displayName = resolveUpdate(previous.persisted.profile.displayName, update);
+                return {
+                    ...previous,
+                    persisted: {
+                        ...previous.persisted,
+                        profile: { ...previous.persisted.profile, displayName },
+                    },
+                };
+            });
+            if (displayName !== null) void adapter.saveProfile({ displayName });
+        },
+        [adapter, setState]
+    );
 
-    const isShareModalOpen = isGuest ? guestShareModalOpen : authedShareModalOpen;
-    const setIsShareModalOpen = isGuest ? setGuestShareModalOpen : setAuthedShareModalOpen;
+    const setInventory = useCallback(
+        (update: Updater<Id<"catalogItems">[]>) => {
+            let inventory: Id<"catalogItems">[] = [];
+            setState((previous) => {
+                inventory = resolveUpdate(previous.persisted.inventory, update);
+                return { ...previous, persisted: { ...previous.persisted, inventory } };
+            });
+            if (adapter.kind === "guest-owner") saveGuestSession({ inventoryIds: inventory });
+        },
+        [adapter.kind, setState]
+    );
 
-    const localShortcuts: Shortcut[] = isGuest ? guestShortcuts : authedShortcuts;
-    const setLocalShortcuts = isGuest ? setGuestShortcuts : setAuthedShortcuts;
-
-    const musicPlayerItemId = isGuest ? guestMusicPlayerItemId : authedMusicPlayerItemId;
-    const setMusicPlayerItemId = isGuest ? setGuestMusicPlayerItemId : setAuthedMusicPlayerItemId;
-
-    const guestOnboardingCompletedValue = isGuest ? guestOnboardingCompleted : guestOnboardingCompletedState;
-    const setGuestOnboardingCompletedValue = isGuest ? setGuestOnboardingCompleted : setGuestOnboardingCompletedState;
-
-    const guestCoinsValue = isGuest ? guestCoins : guestCoinsState;
-    const setGuestCoinsValue = isGuest ? setGuestCoins : setGuestCoinsState;
-
-    const guestInventoryValue = isGuest ? guestInventory : guestInventoryState;
-    const setGuestInventoryValue = isGuest ? setGuestInventory : setGuestInventoryState;
-
-    const displayNameValue = isGuest ? guestDisplayName : localDisplayName;
-    const setDisplayNameValue = isGuest ? setGuestDisplayName : setLocalDisplayName;
-
-    const guestCursorColor = guestCursorColorValue;
+    const setCoins = useCallback(
+        (update: Updater<number>) => {
+            let coins = 0;
+            setState((previous) => {
+                coins = resolveUpdate(previous.persisted.coins, update);
+                return { ...previous, persisted: { ...previous.persisted, coins } };
+            });
+            if (adapter.kind === "guest-owner") saveGuestSession({ coins });
+        },
+        [adapter.kind, setState]
+    );
 
     useEffect(() => {
-        if (!isGuest) {
-            authedShortcutsRef.current = localShortcuts;
-        }
-    }, [isGuest, localShortcuts]);
+        authedShortcutsRef.current = state.persisted.computer.shortcuts;
+    }, [state.persisted.computer.shortcuts]);
 
     useEffect(() => {
-        if (!isGuest) return;
-        if (!catalogLookup) return;
-        if (guestInventoryValue.length > 0) return;
-        if (catalogLookup.starterIds.length === 0) return;
-        setGuestInventoryValue(() => [...catalogLookup.starterIds]);
-    }, [catalogLookup, guestInventoryValue.length, isGuest, setGuestInventoryValue]);
+        if (!isGuest || !catalogLookup || state.persisted.inventory.length > 0 || catalogLookup.starterIds.length === 0) return;
+        setInventory([...catalogLookup.starterIds]);
+    }, [catalogLookup, isGuest, setInventory, state.persisted.inventory.length]);
 
     return {
         initialGuestSession,
-        mode,
-        setMode,
-        localItems,
+        mode: state.ephemeral.mode,
+        setMode: (next: Updater<RoomEphemeralState["mode"]>) => updateEphemeral("mode", next),
+        localItems: state.persisted.items,
         setLocalItems,
-        selectedId,
-        setSelectedId,
-        isDrawerOpen,
-        setIsDrawerOpen,
-        draggedItemId,
-        setDraggedItemId,
-        isComputerOpen,
-        setIsComputerOpen,
-        isShareModalOpen,
-        setIsShareModalOpen,
-        localShortcuts,
+        selectedId: state.ephemeral.selectedItemId,
+        setSelectedId: (next: Updater<string | null>) => updateEphemeral("selectedItemId", next),
+        isDrawerOpen: state.ephemeral.drawerOpen,
+        setIsDrawerOpen: (next: Updater<boolean>) => updateEphemeral("drawerOpen", next),
+        draggedItemId: state.ephemeral.draggedItemId,
+        setDraggedItemId: (next: Updater<string | null>) => updateEphemeral("draggedItemId", next),
+        isComputerOpen: state.ephemeral.computerOpen,
+        setIsComputerOpen: (next: Updater<boolean>) => updateEphemeral("computerOpen", next),
+        isShareModalOpen: state.ephemeral.shareModalOpen,
+        setIsShareModalOpen: (next: Updater<boolean>) => updateEphemeral("shareModalOpen", next),
+        localShortcuts: state.persisted.computer.shortcuts,
         setLocalShortcuts,
         authedShortcutsRef,
-        authedCursorColor,
-        setAuthedCursorColor,
+        authedCursorColor: state.persisted.computer.cursorColor,
+        setAuthedCursorColor: setCursorColor,
         saveAuthedCursorColorRef,
-        musicPlayerItemId,
-        setMusicPlayerItemId,
-        musicInteractionToken,
-        setMusicInteractionToken,
-        guestOnboardingCompletedValue,
-        setGuestOnboardingCompletedValue,
-        guestCoinsValue,
-        setGuestCoinsValue,
-        guestInventoryValue,
-        setGuestInventoryValue,
-        displayNameValue,
-        setDisplayNameValue,
+        musicPlayerItemId: state.ephemeral.musicPlayerItemId,
+        setMusicPlayerItemId: (next: Updater<string | null>) => updateEphemeral("musicPlayerItemId", next),
+        musicInteractionToken: state.ephemeral.musicInteractionToken,
+        setMusicInteractionToken: (next: Updater<number>) => updateEphemeral("musicInteractionToken", next),
+        guestOnboardingCompletedValue: state.persisted.profile.onboardingCompleted,
+        setGuestOnboardingCompletedValue: setOnboardingCompleted,
+        guestCoinsValue: state.persisted.coins,
+        setGuestCoinsValue: setCoins,
+        guestInventoryValue: state.persisted.inventory,
+        setGuestInventoryValue: setInventory,
+        displayNameValue: state.persisted.profile.displayName,
+        setDisplayNameValue: setDisplayName,
         guestSessionLoadedRef,
-        guestCursorColor,
-        setGuestCursorColor,
+        guestCursorColor: state.persisted.computer.cursorColor,
+        setGuestCursorColor: setCursorColor,
     };
 }
-

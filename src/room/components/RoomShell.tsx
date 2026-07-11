@@ -3,7 +3,7 @@ import type React from "react";
 import { RoomCanvas } from "../RoomCanvas";
 import type { TimeOfDay } from "../types";
 
-interface RoomShellProps {
+export interface RoomShellProps {
     roomBackgroundImageUrl?: string;
     scale: number;
     zoomLevel?: number;

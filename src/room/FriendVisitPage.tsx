@@ -1,119 +1,49 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { useUser, SignInButton } from "@clerk/clerk-react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { Link, useParams } from "react-router-dom";
-import { LocalCursor } from "@/presence/LocalCursor";
-import { TouchCursor } from "./components/TouchCursor";
-import { MobileChatInput } from "./components/MobileChatInput";
-import { ChatInput } from "./ChatInput";
-import { useTouchOnly } from "@/hooks/useTouchCapability";
-import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
-import type { Shortcut, RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
-import { RoomPage } from "./RoomPage";
-import { useRoomBackgroundImageUrl } from "./hooks/useRoomBackgroundImageUrl";
-import { useCozyCursor } from "./hooks/useCozyCursor";
-import { useCursorColor } from "./hooks/useCursorColor";
-import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
-import { useVisitorMusic } from "./hooks/useVisitorMusic";
-import { useVisitorGameState } from "./hooks/useVisitorGameState";
-import { useVisitorCursorTracking } from "./hooks/useVisitorCursorTracking";
-import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
+import { Button } from "@/components/ui/button";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
+import { RoomPage } from "./RoomPage";
+import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
+import { useVisitorRoomController } from "./hooks/useVisitorRoomController";
+import { normalizeFriendRoomSource } from "./visitorRoomSource";
+import { VisitorRoomExperience } from "./components/VisitorRoomExperience";
 import { randomBrightColor } from "./utils/cursorColor";
-import { GUEST_STARTING_COINS } from "@shared/guestTypes";
-import { usePresenceAndChat } from "@/presence/usePresenceChat";
-import { RoomShell } from "./components/RoomShell";
-import { VisitorRoomItems } from "./components/VisitorRoomItems";
-import { VisitorHeader } from "./components/VisitorHeader";
-import { ConnectionBanner } from "./components/ConnectionBanner";
-import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
 
-import { ComputerOverlay } from "@/computer/ComputerOverlay";
-import { GameOverlay } from "@/games/components/GameOverlay";
+function RouteState({ message, action }: { message: string; action?: React.ReactNode }) {
+    return (
+        <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
+            <p>{message}</p>
+            {action}
+            <Link to="/">
+                <Button variant={action ? "outline" : "default"}>
+                    <Home className="mr-2 h-4 w-4" />
+                    Go Home
+                </Button>
+            </Link>
+        </div>
+    );
+}
 
 export function FriendVisitPage() {
     const { friendUserId } = useParams<{ friendUserId: string }>();
     const { isSignedIn, isLoaded, user: clerkUser } = useUser();
     const authedUser = useQuery(api.users.getMe, isSignedIn ? {} : "skip");
+    const plausibleId = friendUserId && /^[a-zA-Z0-9_-]+$/.test(friendUserId);
 
-    if (!isLoaded) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading...
-            </div>
-        );
-    }
-
+    if (!isLoaded || authedUser === undefined) return <RouteState message="Loading..." />;
     if (!isSignedIn) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>You need to sign in to visit a friend's room.</p>
-                <SignInButton mode="modal">
-                    <Button>Sign In</Button>
-                </SignInButton>
-                <Link to="/">
-                    <Button variant="outline">
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
+        return <RouteState message="You need to sign in to visit a friend's room." action={<SignInButton mode="modal"><Button>Sign In</Button></SignInButton>} />;
     }
+    if (!plausibleId) return <RouteState message="Invalid friend link" />;
+    if (authedUser === null) return <RouteState message="Unable to load your profile" />;
+    if (authedUser._id === friendUserId) return <RoomPage isGuest={false} />;
 
-    // Convex IDs are non-empty alphanumeric-ish strings; reject obvious garbage early
-    const isPlausibleId = friendUserId && /^[a-zA-Z0-9_-]+$/.test(friendUserId);
-    if (!isPlausibleId) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>Invalid friend link</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    if (authedUser === undefined) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading...
-            </div>
-        );
-    }
-
-    if (authedUser === null) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>Unable to load your profile</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    // If visiting own room, redirect to RoomPage
-    if (authedUser._id === friendUserId) {
-        return <RoomPage isGuest={false} />;
-    }
-
-    return (
-        <FriendVisitContent
-            friendUserId={friendUserId as Id<"users">}
-            authedUser={authedUser}
-            clerkUser={clerkUser}
-        />
-    );
+    return <FriendVisitContent friendUserId={friendUserId as Id<"users">} authedUser={authedUser} clerkUser={clerkUser} />;
 }
 
 function FriendVisitContent({
@@ -126,266 +56,64 @@ function FriendVisitContent({
     clerkUser: ReturnType<typeof useUser>["user"];
 }) {
     usePresenceHeartbeat(true);
-
     const roomData = useQuery(api.friends.getFriendRoom, { friendUserId });
     const computerState = useQuery(api.users.getMyComputer);
     const catalogItems = useQuery(api.catalog.list);
     const saveComputer = useMutation(api.users.saveMyComputer);
-
     const { scale } = useRoomViewportScale();
-    const isTouchOnly = useTouchOnly();
-    const containerRef = useRef<HTMLDivElement | null>(null);
-
-    const [isComputerOpen, setIsComputerOpen] = useState(false);
-    const [visitorShortcutsOverride, setVisitorShortcutsOverride] = useState<Shortcut[] | null>(null);
-    const [visitorCursorColorOverride, setVisitorCursorColorOverride] = useState<string | null>(null);
-    const [visitorDisplayNameOverride, setVisitorDisplayNameOverride] = useState<string | null>(null);
     const [fallbackCursorColor] = useState(() => randomBrightColor());
-    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
-    const items = roomData?.room?.items as RoomItem[] | undefined;
 
-    const {
-        visitorMusicState,
-        activeMusicItem,
-        setActiveMusicItemId,
-        handleMusicToggle,
-    } = useVisitorMusic(items);
-
-    const visitorIdentity = useMemo(() => ({
-        id: clerkUser?.id ?? "",
-        name:
-            visitorDisplayNameOverride ??
-            authedUser?.displayName ??
-            authedUser?.username ??
-            clerkUser?.username ??
-            "Visitor",
-        cursorColor:
-            visitorCursorColorOverride ??
-            authedUser?.cursorColor ??
-            computerState?.cursorColor ??
-            fallbackCursorColor,
-    }), [
-        clerkUser?.id, clerkUser?.username,
-        visitorDisplayNameOverride, authedUser?.displayName, authedUser?.username,
-        visitorCursorColorOverride, authedUser?.cursorColor, computerState?.cursorColor,
-        fallbackCursorColor,
-    ]);
-
-    // Friend rooms are always accessible – no TTL gating
-    const presenceRoomId = roomData?.room?._id ?? null;
-
-    const {
-        visitors,
-        updateCursor,
-        updateChatMessage,
-        screenCursor,
-        localChatMessage,
-        setInMenu,
-        setInGame,
-        setGameMetadata,
-        connectionState,
-        connectionError,
-    } = usePresenceAndChat({
-        roomId: presenceRoomId,
-        identity: {
-            id: visitorIdentity.id,
-            name: visitorIdentity.name,
-            cursorColor: visitorIdentity.cursorColor,
-            convexUserId: authedUser?._id,
-        },
-        isOwner: false,
-    });
-
-    const {
-        activeGameItemId,
-        setActiveGameItemId,
-        activeGameType,
-        handleGameActiveChange,
-    } = useVisitorGameState({
-        items,
-        catalogItems,
-        isComputerOpen,
-        activeMusicItem,
-        setInMenu,
-        setInGame,
-    });
-
-    const roomBackgroundImageUrl = useRoomBackgroundImageUrl(roomData?.room?.template?.backgroundUrl, timeOfDay);
-    useCozyCursor(true);
-    useCursorColor(visitorIdentity.cursorColor);
-
-    const { updateCursorFromClient, handleMouseEvent } = useVisitorCursorTracking({
-        containerRef,
-        scale,
-        updateCursor,
-    });
-
-    const handleOpenComputer = useCallback(() => {
-        setIsComputerOpen(true);
-    }, []);
-
-    const overlayShortcuts = useMemo(() => {
-        if (visitorShortcutsOverride) return visitorShortcutsOverride;
-        return (computerState?.shortcuts as Shortcut[] | undefined) ?? [];
-    }, [computerState?.shortcuts, visitorShortcutsOverride]);
-
-    const overlayCurrency = authedUser?.currency ?? 0;
-    const overlayNextReward = authedUser?.nextRewardAt ?? undefined;
-    const overlayLoginStreak = authedUser?.loginStreak ?? undefined;
-    const overlayDisplayName = visitorIdentity.name;
-    const overlayUsername = clerkUser?.username ?? "you";
-    const overlayCursorColor = visitorIdentity.cursorColor;
-
-    // Loading state
-    if (roomData === undefined) {
-        return (
-            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
-                Loading room...
-            </div>
-        );
-    }
-
-    // No friendship or no active room
-    if (roomData === null) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
-                <p>Friend room not found</p>
-                <Link to="/">
-                    <Button>
-                        <Home className="mr-2 h-4 w-4" />
-                        Go Home
-                    </Button>
-                </Link>
-            </div>
-        );
-    }
-
-    const roomContent = (
-        <VisitorRoomItems
-            items={items}
-            catalogItems={catalogItems}
-            visitorMusicState={visitorMusicState}
-            scale={scale}
-            onComputerClick={handleOpenComputer}
-            onMusicPlayerClick={setActiveMusicItemId}
-            onGameClick={setActiveGameItemId}
-            onMusicToggle={handleMusicToggle}
-            visitors={visitors}
-            currentVisitorId={visitorIdentity.id}
-            currentGameId={activeGameItemId}
-        />
-    );
-
-    const overlays = (
-        <>
-            <VisitorHeader ownerName={roomData.ownerName} visitorCount={visitors.length} />
-            <ConnectionBanner connectionState={connectionState} connectionError={connectionError} />
-
-            {!isTouchOnly && (
-                <>
-                    <ChatInput
-                        onMessageChange={updateChatMessage}
-                        disabled={connectionState !== "connected"}
-                    />
-                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none">
-                        <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
-                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
-                            <span
-                                style={{
-                                    fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
-                                    fontSize: "1.07em",
-                                    fontWeight: 400,
-                                    fontStyle: "normal",
-                                    fontSynthesis: "none",
-                                    fontOpticalSizing: "none",
-                                }}
-                            >
-                                to chat
-                            </span>
-                        </div>
-                    </div>
-                </>
-            )}
-
-            {isTouchOnly && (
-                <MobileChatInput
-                    onMessageChange={updateChatMessage}
-                    disabled={connectionState !== "connected"}
-                />
-            )}
-
-            {activeMusicItem ? (
-                <VisitorMusicModal item={activeMusicItem} onClose={() => setActiveMusicItemId(null)} />
-            ) : null}
-
-            <GameOverlay
-                isOpen={!!activeGameItemId && !!activeGameType}
-                gameType={activeGameType ?? "chess"}
-                itemId={activeGameItemId ?? ""}
-                visitorId={visitorIdentity.id}
-                visitors={visitors}
-                setGameMetadata={setGameMetadata}
-                onClose={() => setActiveGameItemId(null)}
-                onPointerMove={updateCursorFromClient}
-                onGameActiveChange={handleGameActiveChange}
-            />
-
-            <LocalCursor
-                x={screenCursor.x}
-                y={screenCursor.y}
-                chatMessage={localChatMessage}
-                cursorColor={visitorIdentity.cursorColor}
-            />
-
-            <TouchCursor cursorColor={visitorIdentity.cursorColor} />
-
-            <ComputerOverlay
-                isGuest={false}
-                isComputerOpen={isComputerOpen}
-                onCloseComputer={() => setIsComputerOpen(false)}
-                shortcuts={overlayShortcuts}
-                onUpdateShortcuts={(next) => {
-                    setVisitorShortcutsOverride(next);
-                    saveComputer({ shortcuts: next, cursorColor: overlayCursorColor });
-                }}
-                userCurrency={overlayCurrency}
-                nextRewardAt={overlayNextReward}
-                loginStreak={overlayLoginStreak}
-                onPointerMove={updateCursorFromClient}
-                guestCoins={0}
-                onGuestCoinsChange={() => { }}
-                startingCoins={GUEST_STARTING_COINS}
-                guestInventory={[]}
-                onGuestPurchase={() => { }}
-                isOnboardingShopStep={false}
-                displayName={overlayDisplayName}
-                username={overlayUsername}
-                onDisplayNameUpdated={(next) => setVisitorDisplayNameOverride(next)}
-                cursorColor={overlayCursorColor}
-                onCursorColorChange={(next) => {
-                    const value = next?.trim();
-                    if (!value) return;
-                    setVisitorCursorColorOverride(value);
-                    saveComputer({ shortcuts: overlayShortcuts, cursorColor: value });
-                }}
-                timeOfDay={timeOfDay}
-                devTimeOfDay={overrideTimeOfDay}
-                onSetDevTimeOfDay={setOverrideTimeOfDay}
-                inRoomVisitors={visitors.filter((v) => v.convexUserId && v.visitorId !== visitorIdentity.id)}
-            />
-        </>
-    );
+    if (roomData === undefined) return <RouteState message="Loading room..." />;
+    if (roomData === null) return <RouteState message="Friend room not found" />;
 
     return (
-        <RoomShell
-            roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
+        <FriendRoomExperience
+            source={normalizeFriendRoomSource(roomData)}
+            authedUser={authedUser}
+            clerkUser={clerkUser}
+            computerState={computerState}
+            catalogItems={catalogItems}
+            saveComputer={saveComputer}
             scale={scale}
-            timeOfDay={timeOfDay}
-            containerRef={containerRef}
-            onMouseMove={handleMouseEvent}
-            onMouseEnter={handleMouseEvent}
-            roomContent={roomContent}
-            overlays={overlays}
+            fallbackCursorColor={fallbackCursorColor}
         />
     );
+}
+
+function FriendRoomExperience({ source, authedUser, clerkUser, computerState, catalogItems, saveComputer, scale, fallbackCursorColor }: {
+    source: ReturnType<typeof normalizeFriendRoomSource>;
+    authedUser: NonNullable<ReturnType<typeof useQuery<typeof api.users.getMe>>>;
+    clerkUser: ReturnType<typeof useUser>["user"];
+    computerState: ReturnType<typeof useQuery<typeof api.users.getMyComputer>>;
+    catalogItems: ReturnType<typeof useQuery<typeof api.catalog.list>>;
+    saveComputer: ReturnType<typeof useMutation<typeof api.users.saveMyComputer>>;
+    scale: number;
+    fallbackCursorColor: string;
+}) {
+    const controller = useVisitorRoomController({
+        source,
+        identity: {
+            id: clerkUser?.id ?? "",
+            name: authedUser.displayName ?? authedUser.username ?? clerkUser?.username ?? "Visitor",
+            username: clerkUser?.username ?? undefined,
+            cursorColor: authedUser.cursorColor ?? computerState?.cursorColor ?? fallbackCursorColor,
+            convexUserId: authedUser._id,
+        },
+        catalogItems,
+        computerState,
+        isGuest: false,
+        economy: {
+            currency: authedUser.currency,
+            nextRewardAt: authedUser.nextRewardAt ?? undefined,
+            loginStreak: authedUser.loginStreak ?? undefined,
+            guestCoins: 0,
+            guestInventory: [],
+            onGuestCoinsChange: () => undefined,
+            onGuestPurchase: () => undefined,
+        },
+        scale,
+        saveComputer: (computer) => void saveComputer(computer),
+    });
+
+    return <VisitorRoomExperience controller={controller} />;
 }

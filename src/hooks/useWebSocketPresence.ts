@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { playKeyDown, playKeyUp } from "../lib/typingAudio";
-import { isAudioUnlocked } from "@/lib/audio";
-import { isKeyboardSoundEnabled } from "./useKeyboardSoundSetting";
 import { PRESENCE_THROTTLE_MS } from "@shared/gameTypes";
 import { ROOM_WIDTH, ROOM_HEIGHT } from "@/time/roomConstants";
+import type { PresenceMessage, PresenceVisitor } from "@shared/presenceProtocol";
+import { applyPresenceMessage, DEFAULT_PRESENCE_POSITION } from "@/presence/presenceState";
+import {
+    PresenceTransport,
+    type PresenceConnectionError as ConnectionError,
+    type PresenceConnectionState as ConnectionState,
+} from "@/presence/PresenceTransport";
+import {
+    REMOTE_KEYUP_MAX_DELAY_MS,
+    REMOTE_KEYUP_MIN_DELAY_MS,
+    useRemoteTypingAudio,
+} from "@/presence/useRemoteTypingAudio";
 
 // Padding to keep cursor visible at room edges (in room coordinates)
 const CURSOR_EDGE_PADDING = 180;
@@ -23,61 +32,14 @@ function clampCursorToRoomBounds(x: number, y: number): { x: number; y: number }
     };
 }
 
-type PresenceMessage =
-    | {
-          type: "join";
-          visitorId: string;
-          displayName: string;
-          isOwner: boolean;
-          cursorColor?: string;
-          tabbedOut?: boolean;
-          convexUserId?: string;
-      }
-    | { type: "leave"; visitorId: string }
-    | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | {
-          type: "cursor";
-          visitorId: string;
-          x: number;
-          y: number;
-          cursorColor?: string;
-          inMenu?: boolean;
-          tabbedOut?: boolean;
-          inGame?: string | null;
-          gameMetadata?: Record<string, unknown> | null;
-      }
-    | { type: "chat"; visitorId: string; text: string | null }
-    | { type: "state"; visitors: VisitorState[] };
+export type VisitorState = PresenceVisitor;
 
-export type VisitorState = {
-    visitorId: string;
-    displayName: string;
-    isOwner: boolean;
-    x: number;
-    y: number;
-    chatMessage: string | null;
-    cursorColor?: string;
-    inMenu: boolean;
-    tabbedOut: boolean;
-    inGame?: string | null;
-    gameMetadata?: Record<string, unknown> | null;
-    convexUserId?: string;
-};
-
-const DEFAULT_WS_URL = "ws://localhost:8787";
+const DEFAULT_WS_URL = "ws://100.94.163.58:8787";
 const THROTTLE_MS = PRESENCE_THROTTLE_MS;
-const DEFAULT_POSITION = { x: 960, y: 540 };
-const INITIAL_RETRY_DELAY_MS = 500;
-const MAX_RETRY_DELAY_MS = 5000;
-export const REMOTE_KEYUP_MIN_DELAY_MS = 45;
-export const REMOTE_KEYUP_MAX_DELAY_MS = 100;
+const DEFAULT_POSITION = DEFAULT_PRESENCE_POSITION;
+export { REMOTE_KEYUP_MIN_DELAY_MS, REMOTE_KEYUP_MAX_DELAY_MS };
 
-export type ConnectionState = "connecting" | "connected" | "reconnecting" | "error";
-export type ConnectionError = {
-    type: "network" | "timeout" | "unknown";
-    message: string;
-    attemptedUrl?: string;
-};
+export type { ConnectionState, ConnectionError };
 
 function resolveWsBaseUrl() {
     const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
@@ -110,12 +72,6 @@ function clearTimeoutRef(ref: { current: ReturnType<typeof setTimeout> | null })
     ref.current = null;
 }
 
-function clearIntervalRef(ref: { current: ReturnType<typeof setInterval> | null }) {
-    if (!ref.current) return;
-    clearInterval(ref.current);
-    ref.current = null;
-}
-
 export function useWebSocketPresence(
     roomId: string | null,
     visitorId: string,
@@ -133,19 +89,13 @@ export function useWebSocketPresence(
     const visitorsRef = useRef<VisitorState[]>([]);
     const [screenCursor, setScreenCursor] = useState(getInitialCursor);
     const [localChatMessage, setLocalChatMessage] = useState<string | null>(null);
-    const remoteKeyupTimeoutsRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
     const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
     const [connectionError, setConnectionError] = useState<ConnectionError | null>(null);
-    const isIntentionallyClosedRef = useRef(false);
-    const lastAttemptedUrlRef = useRef<string>("");
-    const connectFnRef = useRef<(() => void) | null>(null);
+    const transportRef = useRef<PresenceTransport | null>(null);
 
     const lastSendTimeRef = useRef<number>(0);
     const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-    const heartbeatTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasSentCursorRef = useRef(false);
     const inMenuRef = useRef(false);
     const tabbedOutRef = useRef<boolean>(
@@ -165,73 +115,17 @@ export function useWebSocketPresence(
         []
     );
 
-    const queueRemoteTypingSounds = useCallback((senderId: string, nextText: string | null) => {
-        if (!isKeyboardSoundEnabled() || !isAudioUnlocked() || nextText === null) return;
-        const prevVisitor = visitorsRef.current.find((v) => v.visitorId === senderId);
-        const prevText = prevVisitor?.chatMessage ?? "";
-        if (nextText.length <= prevText.length) return;
-
-        const addedSegment = nextText.slice(prevText.length);
-        const range = Math.max(REMOTE_KEYUP_MAX_DELAY_MS - REMOTE_KEYUP_MIN_DELAY_MS, 0);
-
-        for (const char of addedSegment) {
-            const key = char === " " ? " " : char;
-            playKeyDown(key);
-            const delay = REMOTE_KEYUP_MIN_DELAY_MS + Math.random() * range;
-            const timeout = setTimeout(() => playKeyUp(key), delay);
-            remoteKeyupTimeoutsRef.current.push(timeout);
-        }
-    }, []);
-
-    const resetHeartbeat = useCallback(() => {
-        clearTimeoutRef(heartbeatTimeoutRef);
-    }, []);
-
-    const startHeartbeat = useCallback(
-        (ws: WebSocket) => {
-            clearIntervalRef(heartbeatIntervalRef);
-            resetHeartbeat();
-
-            const sendPing = () => {
-                if (ws.readyState !== WebSocket.OPEN) return;
-
-                try {
-                    ws.send("ping");
-                } catch (e) {
-                    console.error("[Presence] Ping failed, closing socket:", e);
-                    try {
-                        ws.close();
-                    } catch {
-                        // Ignore close errors
-                    }
-                    return;
-                }
-
-                resetHeartbeat();
-                heartbeatTimeoutRef.current = setTimeout(() => {
-                    // Close to trigger reconnect if the server stops replying
-                    ws.close();
-                }, 10000);
-            };
-
-            // Kick off immediately, then on interval
-            sendPing();
-            heartbeatIntervalRef.current = setInterval(sendPing, 20000);
-        },
-        [resetHeartbeat]
-    );
+    const queueRemoteTypingSounds = useRemoteTypingAudio(visitorsRef);
 
     const sendMessage = useCallback((msg: PresenceMessage) => {
-        const ws = wsRef.current;
-        if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        ws.send(JSON.stringify(msg));
+        transportRef.current?.send(JSON.stringify(msg));
     }, []);
 
     const handleIncomingMessage = useCallback((event: MessageEvent) => {
         if (typeof event.data !== "string") return;
 
         if (event.data === "pong") {
-            resetHeartbeat();
+            transportRef.current?.acknowledgeHeartbeat();
             return;
         }
 
@@ -243,96 +137,13 @@ export function useWebSocketPresence(
             return;
         }
 
-        switch (data.type) {
-            case "state":
-                setVisitorsAndStore(
-                    data.visitors.map((visitor) => ({
-                        ...visitor,
-                        inMenu: Boolean(visitor.inMenu),
-                        tabbedOut: Boolean(visitor.tabbedOut),
-                        convexUserId: (visitor as { convexUserId?: string }).convexUserId,
-                    }))
-                );
-                break;
-            case "join":
-                setVisitorsAndStore((prev) => {
-                    const exists = prev.some((v) => v.visitorId === data.visitorId);
-                    if (exists) return prev;
-                    const next = [
-                        ...prev,
-                        {
-                            visitorId: data.visitorId,
-                            displayName: data.displayName,
-                            isOwner: data.isOwner,
-                            x: DEFAULT_POSITION.x,
-                            y: DEFAULT_POSITION.y,
-                            chatMessage: null,
-                            cursorColor: data.cursorColor,
-                            inMenu: false,
-                            tabbedOut: Boolean(data.tabbedOut),
-                            inGame: null,
-                            gameMetadata: undefined,
-                            convexUserId: (data as { convexUserId?: string }).convexUserId,
-                        },
-                    ];
-                    return next;
-                });
-                break;
-            case "leave":
-                setVisitorsAndStore((prev) => prev.filter((v) => v.visitorId !== data.visitorId));
-                break;
-            case "cursor": {
-                const myInMenu = inMenuRef.current;
-                const myInGame = inGameRef.current;
-                const theirInMenu = typeof data.inMenu === "boolean" ? data.inMenu : false;
-                const theirInGame = data.inGame ?? null;
-
-                const inSameContext =
-                    myInGame === theirInGame && (myInMenu === theirInMenu || (myInGame !== null && theirInGame !== null));
-
-                setVisitorsAndStore((prev) =>
-                    prev.map((v) =>
-                        v.visitorId === data.visitorId
-                            ? {
-                                ...v,
-                                ...(inSameContext && { x: data.x, y: data.y }),
-                                cursorColor: data.cursorColor ?? v.cursorColor,
-                                inMenu: typeof data.inMenu === "boolean" ? data.inMenu : v.inMenu,
-                                tabbedOut:
-                                    typeof data.tabbedOut === "boolean" ? data.tabbedOut : v.tabbedOut ?? false,
-                                inGame: data.inGame !== undefined ? data.inGame : v.inGame,
-                                gameMetadata: data.gameMetadata !== undefined ? data.gameMetadata : v.gameMetadata,
-                            }
-                            : v
-                    )
-                );
-                break;
-            }
-            case "rename":
-                setVisitorsAndStore((prev) =>
-                    prev.map((v) =>
-                        v.visitorId === data.visitorId
-                            ? {
-                                ...v,
-                                displayName: data.displayName,
-                                cursorColor: data.cursorColor ?? v.cursorColor,
-                            }
-                            : v
-                    )
-                );
-                break;
-            case "chat":
-                if (data.visitorId !== visitorId) {
-                    queueRemoteTypingSounds(data.visitorId, data.text);
-                }
-                setVisitorsAndStore((prev) =>
-                    prev.map((v) => (v.visitorId === data.visitorId ? { ...v, chatMessage: data.text } : v))
-                );
-                break;
-            default:
-                console.warn("[Presence] Unknown message type", (data as { type?: string })?.type);
+        if (data.type === "chat" && data.visitorId !== visitorId) {
+            queueRemoteTypingSounds(data.visitorId, data.text);
         }
-    }, [queueRemoteTypingSounds, resetHeartbeat, setVisitorsAndStore, visitorId]);
+        setVisitorsAndStore((previous) =>
+            applyPresenceMessage(previous, data, { inMenu: inMenuRef.current, inGame: inGameRef.current })
+        );
+    }, [queueRemoteTypingSounds, setVisitorsAndStore, visitorId]);
 
     useEffect(() => {
         latestCursorColorRef.current = cursorColor;
@@ -363,38 +174,25 @@ export function useWebSocketPresence(
 
     const reconnectNow = useCallback(() => {
         if (!roomId || !visitorId) return;
-        clearTimeoutRef(reconnectTimeoutRef);
-        isIntentionallyClosedRef.current = false;
-        if (connectFnRef.current) {
-            connectFnRef.current();
-        }
+        transportRef.current?.reconnect();
     }, [roomId, visitorId]);
 
     useEffect(() => {
-        if (!roomId || !visitorId) {
-            return;
-        }
-
-        let cancelled = false;
-        let retryDelay = INITIAL_RETRY_DELAY_MS;
+        if (!roomId || !visitorId) return;
         const baseUrl = resolveWsBaseUrl().replace(/\/$/, "");
         const attemptedUrl = `${baseUrl}/ws/${roomId}`;
-        lastAttemptedUrlRef.current = attemptedUrl;
-
-        const connect = () => {
-            if (cancelled) return;
-            hasSentCursorRef.current = false;
-            isIntentionallyClosedRef.current = false;
-
-            const ws = new WebSocket(attemptedUrl);
-            wsRef.current = ws;
-            setConnectionState("connecting");
-            setConnectionError(null);
-
-            ws.onopen = () => {
-                retryDelay = INITIAL_RETRY_DELAY_MS;
-                setConnectionState("connected");
-                startHeartbeat(ws);
+        const transport = new PresenceTransport({
+            url: attemptedUrl,
+            onMessage: handleIncomingMessage,
+            onSocket: (socket) => { wsRef.current = socket; },
+            onState: (state) => {
+                setConnectionState(state);
+                if (state === "connected") setConnectionError(null);
+                if (state === "reconnecting") setVisitorsAndStore([]);
+            },
+            onError: (error) => setConnectionError(error),
+            onOpen: () => {
+                hasSentCursorRef.current = false;
                 sendMessage({
                     type: "join",
                     visitorId,
@@ -404,67 +202,19 @@ export function useWebSocketPresence(
                     tabbedOut: tabbedOutRef.current,
                     convexUserId: latestConvexUserIdRef.current,
                 });
-            };
-
-            ws.onmessage = handleIncomingMessage;
-
-            ws.onerror = (_error) => {
-                console.error("[Presence] WebSocket error - unable to connect to", attemptedUrl);
-                // Set error state with diagnostic info
-                const isLocalNetwork = attemptedUrl.includes("192.168.") || attemptedUrl.includes("10.") || attemptedUrl.includes("172.");
-                setConnectionError({
-                    type: "network",
-                    message: isLocalNetwork
-                        ? "Cannot connect to presence server on local network. Ensure the worker is running with 'bun run worker' and is accessible from this device."
-                        : "Failed to connect to presence server",
-                    attemptedUrl,
-                });
-                setConnectionState("error");
-                ws.close();
-            };
-
-            ws.onclose = (event) => {
-                wsRef.current = null;
-                setVisitors([]);
-                clearIntervalRef(heartbeatIntervalRef);
-                resetHeartbeat();
-
-                if (cancelled || isIntentionallyClosedRef.current) {
-                    return;
-                }
-
-                // If it was an abnormal closure (not a clean close), retry connection
-                if (!event.wasClean) {
-                    // Abnormal closure detected, will retry
-                }
-
-                setConnectionState("reconnecting");
-                reconnectTimeoutRef.current = setTimeout(connect, retryDelay);
-
-                retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY_MS);
-            };
-        };
-
-        connectFnRef.current = connect;
-        connect();
+            },
+        });
+        transportRef.current = transport;
+        transport.start();
 
         return () => {
-            cancelled = true;
-            isIntentionallyClosedRef.current = true;
-            connectFnRef.current = null;
             clearTimeoutRef(throttleTimeoutRef);
-            clearTimeoutRef(reconnectTimeoutRef);
-            clearIntervalRef(heartbeatIntervalRef);
-            resetHeartbeat();
-
-            if (wsRef.current?.readyState === WebSocket.OPEN) {
-                sendMessage({ type: "leave", visitorId });
-                wsRef.current.close();
-            }
-            wsRef.current = null;
-            setVisitors([]);
+            sendMessage({ type: "leave", visitorId });
+            transport.stop();
+            if (transportRef.current === transport) transportRef.current = null;
+            setVisitorsAndStore([]);
         };
-    }, [handleIncomingMessage, isOwner, resetHeartbeat, roomId, sendMessage, startHeartbeat, visitorId]);
+    }, [handleIncomingMessage, isOwner, roomId, sendMessage, setVisitorsAndStore, visitorId]);
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
@@ -635,13 +385,6 @@ export function useWebSocketPresence(
         document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [roomId, sendCursor]);
-
-    useEffect(() => {
-        return () => {
-            remoteKeyupTimeoutsRef.current.forEach(clearTimeout);
-            remoteKeyupTimeoutsRef.current = [];
-        };
-    }, []);
 
     return {
         visitors,

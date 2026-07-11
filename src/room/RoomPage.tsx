@@ -29,10 +29,10 @@ import { useRoomOverlaysModel } from "./hooks/useRoomOverlaysModel";
 import { useTouchPlacement } from "./hooks/useTouchPlacement";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
-import { RoomShell } from "./components/RoomShell";
+import { RoomExperience } from "./components/RoomExperience";
 import { GUEST_STARTING_COINS, type GuestSessionState } from "@shared/guestTypes";
 import { useAudioUnlock } from "@/lib/audio";
-import { RoomStateProvider } from "./state/roomAtoms";
+import { createGuestRoomSessionAdapter, RoomSessionProvider, type RoomSessionAdapter } from "./session";
 import {
     useCursorColorSaver,
     useGuestBootstrap,
@@ -54,14 +54,32 @@ interface RoomPageProps {
 }
 
 export function RoomPage(props: RoomPageProps) {
-    if (props.isGuest) {
-        return <RoomPageContent {...props} />;
-    }
+    const adapter = useMemo<RoomSessionAdapter>(() => {
+        if (props.isGuest) {
+            return createGuestRoomSessionAdapter(
+                props.guestSession ? { loadSession: () => props.guestSession as GuestSessionState } : undefined
+            );
+        }
+
+        return {
+            kind: "authenticated-owner",
+            load: () => ({
+                items: [],
+                inventory: [],
+                coins: 0,
+                computer: { shortcuts: [], cursorColor: null },
+                profile: { displayName: null, onboardingCompleted: false },
+            }),
+            saveItems: () => undefined,
+            saveComputer: () => undefined,
+            saveProfile: () => undefined,
+        };
+    }, [props.guestSession, props.isGuest]);
 
     return (
-        <RoomStateProvider storeKey="room-owner">
+        <RoomSessionProvider adapter={adapter} storeKey={props.isGuest ? "guest-owner" : "authenticated-owner"}>
             <RoomPageContent {...props} />
-        </RoomStateProvider>
+        </RoomSessionProvider>
     );
 }
 
@@ -82,13 +100,13 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
     const roomState = useRoomState({ isGuest, guestSession, catalogItems });
 
-    const localItems = roomState.localItems as RoomItem[];
-    const setLocalItems = roomState.setLocalItems as (updater: RoomItem[] | ((prev: RoomItem[]) => RoomItem[])) => void;
+    const localItems = roomState.localItems;
+    const setLocalItems = roomState.setLocalItems;
     const placedCatalogItemIds = useMemo(() => localItems.map((item) => item.catalogItemId), [localItems]);
     const { canPlace: canPlaceItem } = usePlacementAllowance({
         isGuest,
         placedCatalogItemIds,
-        guestInventoryIds: roomState.guestInventoryValue as Id<"catalogItems">[],
+        guestInventoryIds: roomState.guestInventoryValue,
         inventoryItems: inventoryWithCounts,
         inventoryLoading: inventoryWithCounts === undefined,
     });
@@ -165,9 +183,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
 
     const updateGuestInventory = useCallback(
         (updater: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => {
-            (roomState.setGuestInventoryValue as unknown as (fn: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => void)(
-                updater
-            );
+            roomState.setGuestInventoryValue(updater);
         },
         [roomState]
     );
@@ -521,7 +537,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
 
     return (
         <>
-            <RoomShell
+            <RoomExperience
                 roomBackgroundImageUrl={roomBackgroundImageUrl ?? undefined}
                 scale={scale}
                 zoomLevel={zoomLevel}
