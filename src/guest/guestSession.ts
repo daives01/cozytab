@@ -10,6 +10,7 @@ import {
     type RoomItem,
     type GuestSessionState,
     type GuestShortcut,
+    type Shortcut,
 } from "@shared/guestTypes";
 import { createId } from "@/utils/id";
 
@@ -72,6 +73,23 @@ export type CatalogLookup = {
     byId: Set<Id<"catalogItems">>;
     starterIds: Id<"catalogItems">[];
 };
+
+const NORMALIZE_SHORTCUT_COLUMNS = 6;
+
+export const normalizeGuestShortcuts = (shortcuts: GuestShortcut[]): Shortcut[] =>
+    shortcuts.map((shortcut, index) => ({
+        id: shortcut.id,
+        name: shortcut.name,
+        url: shortcut.url,
+        row:
+            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
+                ? shortcut.row
+                : Math.floor(index / NORMALIZE_SHORTCUT_COLUMNS),
+        col:
+            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
+                ? shortcut.col
+                : index % NORMALIZE_SHORTCUT_COLUMNS,
+    }));
 
 export function buildCatalogLookup(
     catalogItems: { _id: Id<"catalogItems">; name: string; isStarterItem?: boolean }[] | undefined

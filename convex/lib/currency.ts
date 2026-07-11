@@ -17,7 +17,7 @@ type ApplyCurrencyChangeArgs = {
     delta: number;
     reason: CurrencyReason | (string & {});
     idempotencyKey: string;
-    metadata?: Record<string, unknown>;
+    metadata?: Record<string, string | number | boolean | null>;
 };
 
 type ApplyCurrencyChangeResult = {

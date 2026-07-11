@@ -1,26 +1,7 @@
 import { query, mutation } from "./_generated/server";
-import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
-
-// Helper to check if the current user is an admin
-async function requireAdmin(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-        throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-        .unique();
-
-    if (!user || user.admin !== true) {
-        throw new Error("Admin access required");
-    }
-
-    return user;
-}
+import { requireAdmin } from "./lib/auth";
 
 export const list = query({
     args: {},

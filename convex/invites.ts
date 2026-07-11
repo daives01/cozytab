@@ -1,11 +1,18 @@
 import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
+import { getCurrentUser, requireUser } from "./lib/auth";
+import { getActiveRoomForUser } from "./lib/roomAccess";
+import { INVITE_TTL_MS, isInviteOpen } from "./lib/inviteLifecycle";
 
 const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const INVITE_CODE_LENGTH = 6;
 const MAX_CODE_ATTEMPTS = 5;
-const INVITE_TTL_MS = 7 * 60 * 1000;
+const inviteResultValidator = v.object({
+    inviteId: v.id("roomInvites"),
+    token: v.string(),
+    code: v.string(),
+});
 
 function generateInviteCode() {
     let code = "";
@@ -31,27 +38,13 @@ async function generateUniqueCode(ctx: MutationCtx) {
 
 export const enableInvite = mutation({
     args: {},
+    returns: inviteResultValidator,
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         // Get active room
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-        const room = rooms[0];
-        if (!room) throw new Error("Room not found");
+        const room = await getActiveRoomForUser(ctx, user._id);
+        if (!room) throw new ConvexError("Room not found");
 
         const invites = await ctx.db
             .query("roomInvites")
@@ -93,55 +86,33 @@ export const enableInvite = mutation({
 
 export const revokeInvite = mutation({
     args: { inviteId: v.id("roomInvites") },
+    returns: v.object({ success: v.literal(true) }),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
+        const user = await requireUser(ctx);
 
         const invite = await ctx.db.get(args.inviteId);
-        if (!invite) throw new Error("Invite not found");
+        if (!invite) throw new ConvexError("Invite not found");
 
         if (invite.createdBy !== user._id) {
-            throw new Error("Forbidden");
+            throw new ConvexError("Forbidden");
         }
 
         await ctx.db.patch(args.inviteId, {
             expiresAt: Date.now(),
             hostOnlySince: undefined,
         });
-        return { success: true };
+        return { success: true as const };
     },
 });
 
 export const rotateInviteCode = mutation({
     args: {},
+    returns: inviteResultValidator,
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
+        const user = await requireUser(ctx);
 
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
-
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-        const room = rooms[0];
-        if (!room) throw new Error("Room not found");
+        const room = await getActiveRoomForUser(ctx, user._id);
+        if (!room) throw new ConvexError("Room not found");
 
         const invites = await ctx.db
             .query("roomInvites")
@@ -182,46 +153,7 @@ export const rotateInviteCode = mutation({
     },
 });
 
-export const revokeAllInvites = mutation({
-    args: {},
-    handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Not authenticated");
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
-        if (!user) throw new Error("User not found");
-
-        // Get active room
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-        const room = rooms[0];
-        if (!room) throw new Error("Room not found");
-
-        const invites = await ctx.db
-            .query("roomInvites")
-            .withIndex("by_room", (q) => q.eq("roomId", room._id))
-            .collect();
-
-        for (const invite of invites) {
-            await ctx.db.patch(invite._id, {
-                expiresAt: Date.now(),
-                hostOnlySince: undefined,
-            });
-        }
-
-        return { success: true, count: invites.length };
-    },
-});
-
+/** Open-only invite details for legacy callers. Use rooms.getRoomByInvite when closed-state visibility is required. */
 export const getInviteByToken = query({
     args: { token: v.string() },
     handler: async (ctx, args) => {
@@ -233,7 +165,7 @@ export const getInviteByToken = query({
                 .unique());
 
         if (!invite) return null;
-        if (!invite.expiresAt || invite.expiresAt < now) return null;
+        if (!isInviteOpen(invite, now)) return null;
 
         const room = await ctx.db.get(invite.roomId);
         if (!room) return null;
@@ -251,25 +183,11 @@ export const getInviteByToken = query({
 export const getMyActiveInvites = query({
     args: {},
     handler: async (ctx) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return [];
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
-            .unique();
+        const user = await getCurrentUser(ctx);
         if (!user) return [];
 
         // Get active room
-        const rooms = await ctx.db
-            .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
-            .collect();
-        const room = rooms[0];
+        const room = await getActiveRoomForUser(ctx, user._id);
         if (!room) return [];
 
         const invites = await ctx.db

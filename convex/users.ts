@@ -2,41 +2,28 @@ import { query, mutation, internalMutation, internalQuery } from "./_generated/s
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id, Doc } from "./_generated/dataModel";
-import { GUEST_STARTING_COINS, type RoomItem, type GuestSessionState, type GuestShortcut } from "@shared/guestTypes";
+import { type RoomItem, type GuestSessionState, type GuestShortcut } from "@shared/guestTypes";
 import { getDayDelta, getMountainDayKey, getNextMountainMidnightUtc } from "./lib/time";
 import { applyCurrencyChange } from "./lib/currency";
+import { getCurrentUser, requireIdentity, requireUserWithIdentity as requireUser } from "./lib/auth";
+import { clampVolume, normalizeShortcutsWithGrid, randomBrightColor } from "./lib/userSettings";
+import {
+    clampGuestCoins,
+    ensureStarterInventory,
+    importInventoryWithinBudget,
+    sanitizeGuestShortcuts,
+    seedRoomFromGuest,
+} from "./lib/guestImport";
 
-type AnyCtx = QueryCtx | MutationCtx;
-
-async function getIdentity(ctx: AnyCtx) {
-    return await ctx.auth.getUserIdentity();
-}
-
-async function findUserByExternalId(ctx: AnyCtx, externalId: string) {
+async function findUserByExternalId(ctx: QueryCtx | MutationCtx, externalId: string) {
     return await ctx.db
         .query("users")
-        .withIndex("by_externalId", (q) => q.eq("externalId", externalId))
+        .withIndex("by_externalId", (query) => query.eq("externalId", externalId))
         .unique();
 }
 
-async function getUserForRequest(ctx: AnyCtx) {
-    const identity = await getIdentity(ctx);
-    if (!identity) return { identity: null, user: null };
-    const user = await findUserByExternalId(ctx, identity.subject);
-    return { identity, user };
-}
-
-async function requireIdentity(ctx: AnyCtx) {
-    const identity = await getIdentity(ctx);
-    if (!identity) throw new Error("Not authenticated");
-    return identity;
-}
-
-async function requireUser(ctx: AnyCtx) {
-    const identity = await requireIdentity(ctx);
-    const user = await findUserByExternalId(ctx, identity.subject);
-    if (!user) throw new Error("User not found");
-    return { identity, user };
+async function getUserForRequest(ctx: QueryCtx | MutationCtx) {
+    return { user: await getCurrentUser(ctx) };
 }
 
 type DerivedNames = { username: string; displayName: string };
@@ -49,7 +36,7 @@ function pickFirst<T>(...values: (T | undefined)[]): T | undefined {
     return values.find((value) => value !== undefined);
 }
 
-function buildIdentityName(identity: Awaited<ReturnType<typeof getIdentity>>) {
+function buildIdentityName(identity: Awaited<ReturnType<typeof requireIdentity>>) {
     const givenName =
         normalizeString((identity as { firstName?: string }).firstName) ??
         normalizeString((identity as { givenName?: string }).givenName);
@@ -66,7 +53,7 @@ function buildIdentityName(identity: Awaited<ReturnType<typeof getIdentity>>) {
     );
 }
 
-function getEmailLocal(identity: Awaited<ReturnType<typeof getIdentity>>, tokenTail?: string) {
+function getEmailLocal(identity: Awaited<ReturnType<typeof requireIdentity>>, tokenTail?: string) {
     const rawEmail =
         normalizeString((identity as { email?: string }).email) ??
         normalizeString((identity as { emailAddress?: string }).emailAddress) ??
@@ -74,7 +61,7 @@ function getEmailLocal(identity: Awaited<ReturnType<typeof getIdentity>>, tokenT
     return rawEmail?.split("@")[0];
 }
 
-function deriveNames(identity: Awaited<ReturnType<typeof getIdentity>>, fallbackUsername: string): DerivedNames {
+function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fallbackUsername: string): DerivedNames {
     // Values the user chose should win over provider-derived values.
     const providedUsername = normalizeString(fallbackUsername);
 
@@ -202,218 +189,6 @@ async function generateUniqueReferralCode(ctx: MutationCtx) {
     return referralCode;
 }
 
-const MAX_GUEST_ITEMS = 100;
-
-function clampGuestCoins(value: unknown): number {
-    if (typeof value !== "number" || Number.isNaN(value)) return GUEST_STARTING_COINS;
-    return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
-}
-
-function clampVolume(value: unknown, fallback = 0.5): number {
-    if (typeof value !== "number" || Number.isNaN(value)) return fallback;
-    return Math.max(0, Math.min(1, value));
-}
-
-function randomBrightColor(): string {
-    const hue = Math.floor(Math.random() * 360);
-    const saturation = 70 + Math.floor(Math.random() * 30);
-    const lightness = 55 + Math.floor(Math.random() * 15);
-    return hslToHex(hue, saturation, lightness);
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-    const sat = s / 100;
-    const light = l / 100;
-    const c = (1 - Math.abs(2 * light - 1)) * sat;
-    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-    const m = light - c / 2;
-    let r = 0, g = 0, b = 0;
-
-    if (h >= 0 && h < 60) {
-        r = c; g = x; b = 0;
-    } else if (h >= 60 && h < 120) {
-        r = x; g = c; b = 0;
-    } else if (h >= 120 && h < 180) {
-        r = 0; g = c; b = x;
-    } else if (h >= 180 && h < 240) {
-        r = 0; g = x; b = c;
-    } else if (h >= 240 && h < 300) {
-        r = x; g = 0; b = c;
-    } else {
-        r = c; g = 0; b = x;
-    }
-
-    const toHex = (value: number) => {
-        const hex = Math.round((value + m) * 255).toString(16).padStart(2, "0");
-        return hex;
-    };
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-async function importInventoryWithinBudget(
-    ctx: MutationCtx,
-    userId: Id<"users">,
-    guestInventory: string[],
-    reportedCoins: number
-) {
-    const inventoryNames = new Set<string>();
-    const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
-    const starterItems = catalogItems.filter((item) => item.isStarterItem);
-    const totalBudget = GUEST_STARTING_COINS;
-    const safeReportedCoins = Math.max(0, reportedCoins);
-    const maxSpend = Math.max(0, totalBudget - safeReportedCoins);
-    let spent = 0;
-    const counts = new Map<string, number>();
-    const starterFreeGranted = new Set<string>();
-
-    const resolveCatalogItem = (idOrName: string) =>
-        catalogItems.find((c) => c.name === idOrName || (c._id as unknown as string) === idOrName);
-
-    for (const idOrName of guestInventory) {
-        const catalogItem = resolveCatalogItem(idOrName);
-        if (!catalogItem) continue;
-        const catalogKey = catalogItem._id as unknown as string;
-        const baseCost = catalogItem.basePrice ?? 0;
-        const cost = catalogItem.isStarterItem && !starterFreeGranted.has(catalogKey) ? 0 : baseCost;
-        if (spent + cost > maxSpend) continue;
-
-        inventoryNames.add(catalogItem.name);
-        spent += cost;
-        if (catalogItem.isStarterItem && cost === 0) {
-            starterFreeGranted.add(catalogKey);
-        }
-        counts.set(catalogKey, (counts.get(catalogKey) ?? 0) + 1);
-    }
-
-    for (const starterItem of starterItems) {
-        const catalogKey = starterItem._id as unknown as string;
-        if (counts.has(catalogKey)) continue;
-        counts.set(catalogKey, 1);
-        inventoryNames.add(starterItem.name);
-    }
-
-    for (const [catalogKey, count] of counts.entries()) {
-        const catalogItem = catalogItems.find((c) => (c._id as unknown as string) === catalogKey);
-        if (!catalogItem) continue;
-        await ctx.db.insert("inventory", {
-            userId,
-            catalogItemId: catalogItem._id,
-            purchasedAt: Date.now(),
-            count,
-        });
-    }
-
-    return {
-        remainingCurrency: Math.max(0, totalBudget - spent),
-        inventoryNames,
-        catalogItems,
-    };
-}
-
-async function ensureStarterInventory(ctx: MutationCtx, userId: Id<"users">) {
-    const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
-    const starterItems = catalogItems.filter((item) => item.isStarterItem);
-
-    if (starterItems.length === 0) {
-        return { catalogItems, ensured: false };
-    }
-
-    const inventoryItems = await ctx.db
-        .query("inventory")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .collect();
-
-    const inventoryByCatalog = new Map<Id<"catalogItems">, Doc<"inventory">>();
-    for (const item of inventoryItems) {
-        inventoryByCatalog.set(item.catalogItemId, item);
-    }
-
-    let ensured = false;
-    for (const starterItem of starterItems) {
-        const existing = inventoryByCatalog.get(starterItem._id);
-        if (existing) {
-            const count = existing.count ?? 1;
-            if (count <= 0) {
-                await ctx.db.patch(existing._id, { count: 1 });
-                ensured = true;
-            }
-            continue;
-        }
-
-        await ctx.db.insert("inventory", {
-            userId,
-            catalogItemId: starterItem._id,
-            purchasedAt: Date.now(),
-            hidden: false,
-            count: 1,
-        });
-        ensured = true;
-    }
-
-    return { catalogItems, ensured };
-}
-
-function sanitizeRoomItems(
-    items: RoomItem[] | undefined,
-    catalogByName: Map<string, Id<"catalogItems">>,
-    catalogIds: Set<Id<"catalogItems">>
-): Array<RoomItem & { catalogItemId: Id<"catalogItems"> }> {
-    if (!items) return [];
-    const sanitized: Array<RoomItem & { catalogItemId: Id<"catalogItems"> }> = [];
-    for (const item of items.slice(0, MAX_GUEST_ITEMS)) {
-        const asId = item.catalogItemId as Id<"catalogItems">;
-        const catalogId = catalogIds.has(asId) ? asId : catalogByName.get(item.catalogItemId);
-        if (!catalogId) continue;
-
-        sanitized.push({
-            id: item.id,
-            catalogItemId: catalogId,
-            x: Number.isFinite(item.x) ? item.x : 0,
-            y: Number.isFinite(item.y) ? item.y : 0,
-            url: item.url,
-            flipped: item.flipped,
-            musicUrl: item.musicUrl,
-            musicType: item.musicType,
-            musicPlaying: item.musicPlaying,
-            musicStartedAt: item.musicStartedAt,
-            musicPositionAtStart: item.musicPositionAtStart,
-        });
-    }
-    return sanitized;
-}
-
-function sanitizeGuestShortcuts(shortcuts: GuestShortcut[] | undefined) {
-    const trimmed = (shortcuts ?? []).slice(0, MAX_GUEST_ITEMS).map((s) => ({
-        id: s.id,
-        name: s.name,
-        url: s.url,
-        row: s.row,
-        col: s.col,
-    }));
-    return normalizeShortcutsWithGrid(trimmed);
-}
-
-async function seedRoomFromGuest(
-    ctx: MutationCtx,
-    userId: Id<"users">,
-    templateId: Id<"roomTemplates">,
-    templateName: string,
-    guestItems: RoomItem[] | undefined,
-    catalogByName: Map<string, Id<"catalogItems">>,
-    catalogIds: Set<Id<"catalogItems">>
-) {
-    const sanitizedItems = sanitizeRoomItems(guestItems, catalogByName, catalogIds);
-
-    await ctx.db.insert("rooms", {
-        userId,
-        templateId,
-        name: templateName,
-        isActive: true,
-        items: sanitizedItems,
-    });
-}
-
 const guestRoomItemValidator = v.object({
     id: v.string(),
     catalogItemId: v.id("catalogItems"),
@@ -485,7 +260,7 @@ export const ensureUser = mutation({
                     : undefined;
         const guestSessionState: GuestSessionState = {
             coins: reportedGuestCoins,
-            inventoryIds: rawGuestInventory as unknown as Id<"catalogItems">[],
+            inventoryIds: rawGuestInventory as Id<"catalogItems">[],
             roomItems: rawRoomItems ?? [],
             shortcuts: rawGuestShortcuts ?? [],
             onboardingCompleted: Boolean(guestSession?.onboardingCompleted),
@@ -913,49 +688,6 @@ export const getByExternalId = internalQuery({
             .unique();
     },
 });
-
-const GRID_COLUMNS = 6;
-
-function normalizeShortcutsWithGrid<
-    T extends {
-        id: string;
-        name: string;
-        url: string;
-        row?: number;
-        col?: number;
-    }
->(shortcuts: T[]) {
-    const occupied = new Set<string>();
-
-    const clamp = (value: number) => Math.max(0, Math.round(value));
-
-    return shortcuts.map((shortcut, index) => {
-        let row =
-            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
-                ? clamp(shortcut.row)
-                : Math.floor(index / GRID_COLUMNS);
-        let col =
-            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
-                ? clamp(shortcut.col)
-                : index % GRID_COLUMNS;
-
-        // Resolve collisions by walking forward in row-major order
-        while (occupied.has(`${row}-${col}`)) {
-            col++;
-            if (col >= GRID_COLUMNS) {
-                col = 0;
-                row++;
-            }
-        }
-        occupied.add(`${row}-${col}`);
-
-        return {
-            ...shortcut,
-            row,
-            col,
-        };
-    });
-}
 
 export const getMyComputer = query({
     args: {},

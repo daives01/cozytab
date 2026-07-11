@@ -1,38 +1,8 @@
 import { query, mutation } from "./_generated/server";
-import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { applyCurrencyChange } from "./lib/currency";
 import { randomId } from "./lib/id";
-
-// Helper to check if the current user is an admin
-async function requireAdmin(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-        throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-        .unique();
-
-    if (!user || user.admin !== true) {
-        throw new Error("Admin access required");
-    }
-
-    return user;
-}
-
-// Helper to get current user
-async function getUser(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    return await ctx.db
-        .query("users")
-        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-        .unique();
-}
+import { getCurrentUser as getUser, requireAdmin } from "./lib/auth";
 
 // List all room templates (for shop)
 export const list = query({
@@ -270,4 +240,3 @@ export const seedDefault = mutation({
         return { success: true, message: "Default template created", id };
     },
 });
-

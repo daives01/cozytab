@@ -2,21 +2,10 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { v, ConvexError } from "convex/values";
+import { getCurrentUser, requireUser } from "./lib/auth";
+import { roomWithTemplateValidator } from "./validators/room";
 
 // ── Helpers ──
-
-async function requireUser(ctx: QueryCtx | MutationCtx) {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Not authenticated");
-
-    const user = await ctx.db
-        .query("users")
-        .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-        .unique();
-    if (!user) throw new ConvexError("User not found");
-
-    return user;
-}
 
 /** Sort two user IDs so user1 < user2 (lexicographic). */
 function sortedPair(a: Id<"users">, b: Id<"users">): [Id<"users">, Id<"users">] {
@@ -411,25 +400,19 @@ export const getFriendRoom = query({
     args: { friendUserId: v.string() },
     returns: v.union(
         v.object({
-            room: v.any(),
+            room: roomWithTemplateValidator,
             ownerName: v.string(),
             ownerReferralCode: v.union(v.string(), v.null()),
         }),
         v.null()
     ),
     handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
+        const me = await getCurrentUser(ctx);
+        if (!me) return null;
 
         // Validate the ID format before using it
         const friendUserId = ctx.db.normalizeId("users", args.friendUserId);
         if (!friendUserId) return null;
-
-        const me = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
-            .unique();
-        if (!me) return null;
 
         // Validate friendship
         const friendship = await findFriendship(ctx, me._id, friendUserId);
@@ -454,30 +437,6 @@ export const getFriendRoom = query({
             ownerName: friend.displayName ?? friend.username ?? "Unknown",
             ownerReferralCode: friend.referralCode ?? null,
         };
-    },
-});
-
-export const getUserByExternalId = query({
-    args: { externalId: v.string() },
-    returns: v.union(
-        v.object({
-            _id: v.id("users"),
-            displayName: v.optional(v.string()),
-            username: v.string(),
-        }),
-        v.null()
-    ),
-    handler: async (ctx, args) => {
-        // Require authentication to prevent user enumeration
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) return null;
-
-        const user = await ctx.db
-            .query("users")
-            .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
-            .unique();
-        if (!user) return null;
-        return { _id: user._id, displayName: user.displayName, username: user.username };
     },
 });
 

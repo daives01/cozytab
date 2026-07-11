@@ -10,7 +10,7 @@ import { RoomsTab } from "./shop/RoomsTab";
 import { purchaseWithBudget } from "@/room/utils/sessionGuards";
 import { useIsUSLocation } from "@/hooks/useIsUSLocation";
 
-import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@convex/lib/categories";
+import { CATALOG_ITEM_CATEGORIES, type CatalogItemCategory } from "@shared/categories";
 
 type ShopTab = "items" | "rooms";
 

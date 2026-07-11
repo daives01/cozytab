@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { internalMutation, query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { applyCurrencyChange } from "./lib/currency";
@@ -201,7 +201,7 @@ export const setHidden = mutation({
     },
 });
 
-export const backfillInventoryCounts = mutation({
+export const backfillInventoryCounts = internalMutation({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -218,11 +218,10 @@ export const backfillInventoryCounts = mutation({
         for (const item of inventoryItems) {
             if (item.count === undefined) {
                 await ctx.db.patch(item._id, { count: 1 });
-                updated.push(item._id as unknown as string);
+                updated.push(String(item._id));
             }
         }
 
         return { updated };
     },
 });
-

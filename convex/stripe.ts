@@ -95,7 +95,7 @@ export const fulfillCoinPurchase = internalMutation({
             idempotencyKey,
             metadata: {
                 stripeEventId: args.stripeEventId,
-                stripeSessionId: args.stripeSessionId,
+                ...(args.stripeSessionId ? { stripeSessionId: args.stripeSessionId } : {}),
                 priceId: args.priceId,
                 coins: args.coins,
             },

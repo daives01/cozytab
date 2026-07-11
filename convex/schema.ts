@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
+import { roomItemValidator, shortcutValidator } from "./validators/room";
 
 export default defineSchema({
     users: defineTable({
@@ -13,15 +14,7 @@ export default defineSchema({
         musicPlayerVolume: v.optional(v.number()),
         computer: v.optional(
             v.object({
-                shortcuts: v.array(
-                    v.object({
-                        id: v.string(),
-                        name: v.string(),
-                        url: v.string(),
-                        row: v.number(),
-                        col: v.number(),
-                    })
-                )
+                shortcuts: v.array(shortcutValidator)
             })
         ),
         lastDailyRewardDay: v.optional(v.string()),
@@ -50,21 +43,7 @@ export default defineSchema({
         templateId: v.id("roomTemplates"),
         name: v.string(),
         isActive: v.boolean(),
-        items: v.array(
-            v.object({
-                id: v.string(),
-                catalogItemId: v.id("catalogItems"),
-                x: v.number(),
-                y: v.number(),
-                url: v.optional(v.string()),
-                flipped: v.optional(v.boolean()),
-                musicUrl: v.optional(v.string()),
-                musicType: v.optional(v.literal("youtube")),
-                musicPlaying: v.optional(v.boolean()),
-                musicStartedAt: v.optional(v.number()),
-                musicPositionAtStart: v.optional(v.number()),
-            })
-        ),
+        items: v.array(roomItemValidator),
     })
         .index("by_user", ["userId"])
         .index("by_user_template", ["userId", "templateId"])
@@ -108,7 +87,7 @@ export default defineSchema({
         reason: v.string(),
         idempotencyKey: v.string(),
         createdAt: v.number(),
-        metadata: v.optional(v.any()),
+        metadata: v.optional(v.record(v.string(), v.union(v.string(), v.number(), v.boolean(), v.null()))),
     })
         .index("by_user", ["userId"])
         .index("by_idempotencyKey", ["idempotencyKey"]),

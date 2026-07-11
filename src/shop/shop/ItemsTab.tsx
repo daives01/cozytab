@@ -2,7 +2,7 @@ import { Package, Coins, Check } from "lucide-react";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { ItemCountBadge } from "@/room/components/ItemCountBadge";
-import type { CatalogItemCategory } from "@convex/lib/categories";
+import type { CatalogItemCategory } from "@shared/categories";
 
 interface ItemsTabProps {
     groupedItems: Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>;
@@ -131,4 +131,3 @@ export function ItemsTab({
         </div>
     );
 }
-
