@@ -5,6 +5,7 @@ import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
 import type { VisitorState, ConnectionState, ConnectionError } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
+import type { PlacementEligibility } from "../session";
 
 export interface DrawerProps {
     offset: number;
@@ -56,6 +57,7 @@ export interface ComputerProps {
     time: TimeProps;
     onboardingCallbacks: OnboardingCallbacksProps;
     onPointerMove: (x: number, y: number) => void;
+    canSwitchRooms: boolean;
 }
 
 export interface MusicProps {
@@ -111,7 +113,7 @@ export interface UIProps {
     draggedItemId: string | null;
     highlightComputer: boolean;
     guestItems?: GuestDrawerItem[];
-    placedCatalogItemIds: Id<"catalogItems">[];
+    placementEligibility: (catalogItemId: Id<"catalogItems">) => PlacementEligibility;
     onToggleMode: () => void;
     onShareClick: () => void;
     onDeleteItem: (id: string) => void;

@@ -312,6 +312,7 @@ export const saveMyRoom = mutation({
         const normalizedItems = normalizeRoomItems(args.items as RoomItem[], validCatalogIds);
 
         await ctx.db.patch(args.roomId, { items: normalizedItems });
+        return normalizedItems;
     },
 });
 

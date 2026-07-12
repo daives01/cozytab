@@ -3,20 +3,17 @@ import type { DragEvent } from "react";
 import type { Shortcut, RoomItem } from "@shared/guestTypes";
 import type { Id } from "@convex/_generated/dataModel";
 import type { OnboardingStep } from "../Onboarding";
+import type { RoomEditingSession } from "../session";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
 import {
-    addDroppedItem,
-    bringItemToFront,
     clampCursorToRoom,
-    clampItemPosition,
-    sendItemToBack,
     updateItemsForMusicToggle,
 } from "../utils/roomActions";
 
 type HandlersArgs = {
     isGuest: boolean;
     mode: "view" | "edit";
-    roomId: Id<"rooms"> | null;
+    editingSession: RoomEditingSession;
     containerRef: React.RefObject<HTMLDivElement | null>;
     scale: number;
     lastRoomPositionRef: React.MutableRefObject<{ x: number; y: number }>;
@@ -24,25 +21,19 @@ type HandlersArgs = {
     onboardingStep: OnboardingStep | null;
     advanceOnboarding: () => void;
     computerGuardAllowOpen: boolean;
-    setLocalItems: (updater: (prev: RoomItem[]) => RoomItem[]) => void;
-    setSelectedId: (update: string | null | ((prev: string | null) => string | null)) => void;
-    setDraggedItemId: (id: string | null) => void;
     setIsComputerOpen: (next: boolean) => void;
     setMusicPlayerItemId: (id: string | null) => void;
     setIsDrawerOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
-    setMode: (next: "view" | "edit") => void;
     updateCursor: (x: number, y: number, clientX: number, clientY: number, hasVisitors: boolean) => void;
-    saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
     updateGuestShortcuts: (next: Shortcut[]) => void;
     saveComputer: (args: { shortcuts: Shortcut[]; cursorColor: string }) => void;
     cursorColor: string;
-    canPlaceItem: (catalogItemId: Id<"catalogItems">) => boolean;
 };
 
 export function useRoomHandlers({
     isGuest,
     mode,
-    roomId,
+    editingSession,
     containerRef,
     scale,
     lastRoomPositionRef,
@@ -50,25 +41,18 @@ export function useRoomHandlers({
     onboardingStep,
     advanceOnboarding,
     computerGuardAllowOpen,
-    setLocalItems,
-    setSelectedId,
-    setDraggedItemId,
     setIsComputerOpen,
     setMusicPlayerItemId,
     setIsDrawerOpen,
-    setMode,
     updateCursor,
-    saveRoom,
     updateGuestShortcuts,
     saveComputer,
     cursorColor,
-    canPlaceItem,
 }: HandlersArgs) {
     const handlePlaceCatalogItem = useCallback(
         (catalogItemId: Id<"catalogItems">, clientX: number, clientY: number) => {
             if (mode !== "edit") return;
             if (!containerRef.current) return;
-            if (!canPlaceItem(catalogItemId)) return;
 
             const rect = containerRef.current.getBoundingClientRect();
             const relativeX = clientX - rect.left;
@@ -81,44 +65,45 @@ export function useRoomHandlers({
             const x = relativeX / scale;
             const y = relativeY / scale;
 
-            setLocalItems((prev) => addDroppedItem(prev, catalogItemId, x, y));
+            const result = editingSession.place({ catalogItemId, x, y });
+            if (!result.accepted) return;
 
             if (onboardingStep === "place-computer") {
                 advanceOnboarding();
             }
         },
-        [advanceOnboarding, canPlaceItem, containerRef, mode, onboardingStep, scale, setLocalItems]
+        [advanceOnboarding, containerRef, editingSession, mode, onboardingStep, scale]
     );
 
     const handleMusicToggle = useCallback(
         (itemId: string, playing: boolean) => {
             const now = Date.now();
-            setLocalItems((prev) => {
-                const next = updateItemsForMusicToggle(prev, itemId, playing, now);
-                if (!isGuest && roomId && mode === "view") {
-                    saveRoom({ roomId, items: next });
-                }
-                return next;
-            });
+            const current = editingSession.getSnapshot().items;
+            const updated = updateItemsForMusicToggle(current, itemId, playing, now).find((item) => item.id === itemId);
+            if (!updated) return;
+            const changes: Partial<RoomItem> = { ...updated };
+            delete changes.id;
+            delete changes.catalogItemId;
+            editingSession.changePersistedItem(itemId, changes, "visitor-observable");
         },
-        [isGuest, mode, roomId, saveRoom, setLocalItems]
+        [editingSession]
     );
 
     const handleModeToggle = useCallback(() => {
         if (mode === "edit") {
-            setMode("view");
+            editingSession.exitEditMode();
             setIsDrawerOpen(false);
             if (onboardingStep === "switch-to-view") {
                 advanceOnboarding();
             }
         } else {
-            setMode("edit");
+            editingSession.enterEditMode();
             setIsDrawerOpen(true);
             if (onboardingStep === "enter-edit-mode") {
                 advanceOnboarding();
             }
         }
-    }, [advanceOnboarding, mode, onboardingStep, setIsDrawerOpen, setMode]);
+    }, [advanceOnboarding, editingSession, mode, onboardingStep, setIsDrawerOpen]);
 
     const handleDrawerToggle = useCallback(() => setIsDrawerOpen((prev) => !prev), [setIsDrawerOpen]);
 
@@ -156,7 +141,7 @@ export function useRoomHandlers({
         [containerRef, hasVisitors, lastRoomPositionRef, scale, updateCursor]
     );
 
-    const handleBackgroundClick = useCallback(() => setSelectedId(null), [setSelectedId]);
+    const handleBackgroundClick = useCallback(() => editingSession.select(null), [editingSession]);
 
     const handleComputerClick = useCallback(() => {
         if (mode !== "view") return;
@@ -187,33 +172,36 @@ export function useRoomHandlers({
         [cursorColor, isGuest, saveComputer, updateGuestShortcuts]
     );
 
-    const handleSelectItem = useCallback((id: string | null) => setSelectedId(id), [setSelectedId]);
+    const handleSelectItem = useCallback((id: string | null) => editingSession.select(id), [editingSession]);
 
     const handleChangeItem = useCallback(
         (newItem: RoomItem) => {
-            setLocalItems((prev) => prev.map((i) => (i.id === newItem.id ? clampItemPosition(newItem) : i)));
+            const changes: Partial<RoomItem> = { ...newItem };
+            delete changes.id;
+            delete changes.catalogItemId;
+            const id = newItem.id;
+            editingSession.changePersistedItem(id, changes);
         },
-        [setLocalItems]
+        [editingSession]
     );
 
-    const handleDragStart = useCallback((id: string) => setDraggedItemId(id), [setDraggedItemId]);
-    const handleDragEnd = useCallback(() => setDraggedItemId(null), [setDraggedItemId]);
+    const handleDragStart = useCallback((id: string) => { editingSession.beginDrag(id); }, [editingSession]);
+    const handleDragEnd = useCallback(() => editingSession.endDrag(), [editingSession]);
 
     const handleBringToFront = useCallback(
-        (id: string) => setLocalItems((prev) => bringItemToFront(prev, id)),
-        [setLocalItems]
+        (id: string) => { editingSession.bringToFront(id); },
+        [editingSession]
     );
     const handleSendToBack = useCallback(
-        (id: string) => setLocalItems((prev) => sendItemToBack(prev, id)),
-        [setLocalItems]
+        (id: string) => { editingSession.sendToBack(id); },
+        [editingSession]
     );
 
     const handleDeleteItem = useCallback(
         (itemId: string) => {
-            setLocalItems((prev) => prev.filter((item) => item.id !== itemId));
-            setSelectedId((current) => (current === itemId ? null : current));
+            editingSession.remove(itemId);
         },
-        [setLocalItems, setSelectedId]
+        [editingSession]
     );
 
     return {

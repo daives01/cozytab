@@ -8,7 +8,6 @@ import { HiddenItemsSection } from "./components/HiddenItemsSection";
 import { ItemCard } from "./components/ItemCard";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
 import type { AssetDrawerProps, GuestDrawerItem } from "./types";
-import { countIds } from "../utils/itemCounts";
 import { Package } from "lucide-react";
 
 export function AssetDrawer({
@@ -20,7 +19,7 @@ export function AssetDrawer({
     highlightComputer,
     isGuest = false,
     guestItems,
-    placedCatalogItemIds = [],
+    placementEligibility,
     orientation = "left",
 }: AssetDrawerProps) {
     const inventoryItems = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : undefined);
@@ -30,20 +29,17 @@ export function AssetDrawer({
     const [pendingHides, setPendingHides] = useState<Record<string, boolean>>({});
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
-    const placedCounts = useMemo(() => countIds(placedCatalogItemIds), [placedCatalogItemIds]);
-
     const items: GuestDrawerItem[] = useMemo(() => {
         const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
         return source.map((item) => {
-            const total = Math.max(1, item.count ?? 1);
-            const placed = placedCounts.get(String(item.catalogItemId)) ?? 0;
+            const eligibility = placementEligibility(item.catalogItemId as Id<"catalogItems">);
             return {
                 ...item,
-                count: total,
-                remaining: Math.max(0, total - placed),
+                count: eligibility.ownedCount,
+                remaining: eligibility.remaining,
             } as GuestDrawerItem;
         });
-    }, [guestItems, inventoryItems, isGuest, placedCounts]);
+    }, [guestItems, inventoryItems, isGuest, placementEligibility]);
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
     const showHideControls = !isGuest && items.length > HIDE_TOGGLE_THRESHOLD;
 

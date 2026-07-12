@@ -33,6 +33,7 @@ export interface ComputerOverlayProps {
     devTimeOfDay: TimeOfDay | null;
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
     inRoomVisitors?: VisitorState[];
+    canSwitchRooms: boolean;
 }
 
 export function ComputerOverlay({
@@ -64,6 +65,7 @@ export function ComputerOverlay({
     devTimeOfDay,
     onSetDevTimeOfDay,
     inRoomVisitors,
+    canSwitchRooms,
 }: ComputerOverlayProps) {
     if (!isComputerOpen) return null;
 
@@ -96,6 +98,7 @@ export function ComputerOverlay({
             devTimeOfDay={devTimeOfDay}
             onSetDevTimeOfDay={onSetDevTimeOfDay}
             inRoomVisitors={inRoomVisitors}
+            canSwitchRooms={canSwitchRooms}
         />
     );
 }

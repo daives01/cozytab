@@ -15,12 +15,14 @@ interface Room {
 interface RoomsPanelProps {
     myRooms: Room[] | undefined;
     switchingRoom: Id<"rooms"> | null;
+    canSwitchRooms: boolean;
     onSwitchRoom: (roomId: Id<"rooms">) => Promise<void>;
 }
 
 export function RoomsPanel({
     myRooms,
     switchingRoom,
+    canSwitchRooms,
     onSwitchRoom,
 }: RoomsPanelProps) {
     const baseContainerClass = "bg-stone-50 w-full h-full overflow-hidden flex flex-col";
@@ -47,12 +49,14 @@ export function RoomsPanel({
                             <button
                                 key={room._id}
                                 onClick={() => !isActive && !isSingleRoom && onSwitchRoom(room._id)}
-                                disabled={isActive || isSwitching}
+                                disabled={isActive || isSwitching || !canSwitchRooms}
                                 className={`w-full flex items-center gap-3 p-2 rounded-lg border-2 transition-all text-left ${
                                     isActive
                                         ? "bg-emerald-50 border-emerald-400 cursor-default"
                                         : isSwitching
                                         ? "bg-stone-100 border-stone-300 cursor-wait opacity-70"
+                                        : !canSwitchRooms
+                                        ? "bg-[var(--color-muted)] border-[var(--color-muted-foreground)] cursor-not-allowed opacity-60"
                                         : "bg-white border-stone-200 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer"
                                 }`}
                             >
@@ -93,11 +97,10 @@ export function RoomsPanel({
             </div>
 
             <div className="bg-stone-200 border-t border-stone-300 px-3 py-2 text-size-md text-stone-500 text-center shrink-0">
-                Buy more rooms from the Item Shop!
+                {canSwitchRooms ? "Buy more rooms from the Item Shop!" : "Finish saving your room before switching."}
             </div>
         </div>
     );
 
     return <div className="w-full h-full">{container}</div>;
 }
-

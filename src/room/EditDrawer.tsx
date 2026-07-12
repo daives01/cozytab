@@ -4,6 +4,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { AssetDrawer } from "./AssetDrawer";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT } from "./AssetDrawer/constants";
 import type { GuestDrawerItem } from "./AssetDrawer/types";
+import type { PlacementEligibility } from "./session";
 import { TrashCan } from "./TrashCan";
 
 type Mode = "view" | "edit";
@@ -20,7 +21,7 @@ interface EditDrawerProps {
     touchPlacementItemId?: Id<"catalogItems"> | null;
     isGuest: boolean;
     guestItems?: GuestDrawerItem[];
-    placedCatalogItemIds?: Id<"catalogItems">[];
+    placementEligibility: (catalogItemId: Id<"catalogItems">) => PlacementEligibility;
     orientation?: "left" | "bottom";
 }
 
@@ -36,7 +37,7 @@ export function EditDrawer({
     touchPlacementItemId,
     isGuest,
     guestItems,
-    placedCatalogItemIds,
+    placementEligibility,
     orientation = "left",
 }: EditDrawerProps) {
     const isLeft = orientation === "left";
@@ -92,7 +93,7 @@ export function EditDrawer({
                 touchPlacementItemId={touchPlacementItemId}
                 isGuest={isGuest}
                 guestItems={guestItems}
-                placedCatalogItemIds={placedCatalogItemIds}
+                placementEligibility={placementEligibility}
                 orientation={orientation}
             />
 

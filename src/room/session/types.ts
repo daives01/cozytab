@@ -1,58 +1,73 @@
 import type { Id } from "@convex/_generated/dataModel";
-import type { RoomItem, Shortcut } from "@shared/guestTypes";
+import type { RoomItem } from "@shared/guestTypes";
 
-export type RoomSessionKind = "guest-owner" | "authenticated-owner";
+export type RoomEditingMode = "view" | "edit";
+export type RoomSaveStatus = "clean" | "saving" | "unsaved";
+export type PersistedChangeVisibility = "structural" | "visitor-observable";
 
-export interface ComputerState {
-    shortcuts: Shortcut[];
-    cursorColor: string | null;
+export interface RoomEditingSnapshot {
+    readonly roomId: string;
+    readonly items: RoomItem[];
+    readonly mode: RoomEditingMode;
+    readonly selectedItemId: string | null;
+    readonly draggedItemId: string | null;
+    readonly placingCatalogItemId: Id<"catalogItems"> | null;
+    readonly saveStatus: RoomSaveStatus;
+    readonly canSwitchRooms: boolean;
 }
 
-export interface ProfileState {
-    displayName: string | null;
-    onboardingCompleted: boolean;
+export interface PlacementEligibility {
+    allowed: boolean;
+    ownedCount: number;
+    placedCount: number;
+    remaining: number;
 }
 
-/** Persisted domain data shared by guest and authenticated room owners. */
-export interface RoomSessionSnapshot {
-    items: RoomItem[];
-    inventory: Id<"catalogItems">[];
-    coins: number;
-    computer: ComputerState;
-    profile: ProfileState;
+export type EditingRejection = "not-editing" | "item-not-found" | "insufficient-ownership";
+export type EditingResult = { accepted: true } | { accepted: false; reason: EditingRejection };
+export type PlacementResult = { accepted: true; itemId: string } | { accepted: false; reason: EditingRejection };
+
+export interface RoomPersistence {
+    load(): RoomItem[];
+    save(items: RoomItem[]): Promise<RoomItem[]>;
 }
 
-/** UI-only state that should never be written by a session adapter. */
-export interface RoomEphemeralState {
-    mode: "view" | "edit";
-    selectedItemId: string | null;
-    drawerOpen: boolean;
-    draggedItemId: string | null;
-    computerOpen: boolean;
-    shareModalOpen: boolean;
-    musicPlayerItemId: string | null;
-    musicInteractionToken: number;
+export interface RoomSessionScheduler {
+    schedule(task: () => void, delayMs: number): () => void;
 }
 
-/** The target owner-room state shape, independent of its persistence mechanism. */
-export interface RoomUiState {
-    session: {
-        kind: RoomSessionKind;
-        loaded: boolean;
-    };
-    persisted: RoomSessionSnapshot;
-    ephemeral: RoomEphemeralState;
+export interface RoomEditingSession {
+    getSnapshot(): RoomEditingSnapshot;
+    subscribe(listener: () => void): () => void;
+    updateOwnedCount(ownedCount: (catalogItemId: Id<"catalogItems">) => number): void;
+    enterEditMode(): void;
+    exitEditMode(): void;
+    select(itemId: string | null): void;
+    beginDrag(itemId: string): EditingResult;
+    endDrag(): void;
+    beginPlacement(catalogItemId: Id<"catalogItems">): EditingResult;
+    cancelPlacement(): void;
+    placementEligibility(catalogItemId: Id<"catalogItems">): PlacementEligibility;
+    place(input: { catalogItemId: Id<"catalogItems">; x: number; y: number }): PlacementResult;
+    move(itemId: string, position: { x: number; y: number }): EditingResult;
+    flip(itemId: string): EditingResult;
+    remove(itemId: string): EditingResult;
+    bringToFront(itemId: string): EditingResult;
+    sendToBack(itemId: string): EditingResult;
+    changePersistedItem(
+        itemId: string,
+        changes: Partial<Omit<RoomItem, "id" | "catalogItemId">>,
+        visibility?: PersistedChangeVisibility
+    ): EditingResult;
+    flush(): Promise<void>;
+    dispose(): void;
 }
 
-export interface ProfileChanges {
-    displayName?: string;
-    onboardingCompleted?: true;
-}
-
-export interface RoomSessionAdapter {
-    readonly kind: RoomSessionKind;
-    load(): RoomSessionSnapshot;
-    saveItems(items: RoomItem[]): Promise<void> | void;
-    saveComputer(computer: ComputerState): Promise<void> | void;
-    saveProfile(profile: ProfileChanges): Promise<void> | void;
+export interface CreateRoomEditingSessionOptions {
+    roomId: string;
+    persistence: RoomPersistence;
+    ownedCount?: (catalogItemId: Id<"catalogItems">) => number;
+    createItemId?: () => string;
+    scheduler?: RoomSessionScheduler;
+    debounceMs?: number;
 }

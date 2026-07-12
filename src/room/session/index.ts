@@ -1,14 +1,18 @@
-export { createAuthenticatedRoomSessionAdapter, createGuestRoomSessionAdapter } from "./adapters";
-export { createRoomSessionStore, DEFAULT_ROOM_EPHEMERAL_STATE } from "./roomSessionStore";
+export { createAuthenticatedRoomPersistence, createGuestRoomPersistence } from "./adapters";
+export { createRoomEditingSession } from "./roomEditingSession";
 export { RoomSessionProvider } from "./RoomSessionProvider";
 export { useActiveRoomSession } from "./useActiveRoomSession";
 export type {
-    ComputerState,
-    ProfileChanges,
-    ProfileState,
-    RoomEphemeralState,
-    RoomSessionAdapter,
-    RoomSessionKind,
-    RoomSessionSnapshot,
-    RoomUiState,
+    CreateRoomEditingSessionOptions,
+    EditingRejection,
+    EditingResult,
+    PersistedChangeVisibility,
+    PlacementEligibility,
+    PlacementResult,
+    RoomEditingMode,
+    RoomEditingSession,
+    RoomEditingSnapshot,
+    RoomPersistence,
+    RoomSaveStatus,
+    RoomSessionScheduler,
 } from "./types";

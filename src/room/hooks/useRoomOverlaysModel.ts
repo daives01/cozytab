@@ -18,7 +18,6 @@ interface UseRoomOverlaysModelArgs {
     handlers: ReturnType<typeof useRoomHandlers>;
     localItems: RoomItem[];
     catalogItems: Doc<"catalogItems">[] | undefined;
-    placedCatalogItemIds: Id<"catalogItems">[];
 
     layout: {
         toolbarOffset: number;
@@ -81,8 +80,6 @@ interface UseRoomOverlaysModelArgs {
         setGameMetadata: (metadata: Record<string, unknown> | null) => void;
     };
 
-    room: { _id: Id<"rooms"> } | null | undefined;
-    saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
 }
 
 export function useRoomOverlaysModel({
@@ -92,7 +89,6 @@ export function useRoomOverlaysModel({
     handlers,
     localItems,
     catalogItems,
-    placedCatalogItemIds,
     layout,
     onboarding,
     presence,
@@ -101,8 +97,6 @@ export function useRoomOverlaysModel({
     time,
     toasts,
     game,
-    room,
-    saveRoom,
 }: UseRoomOverlaysModelArgs): RoomOverlaysProps {
     return useMemo((): RoomOverlaysProps => {
         const ui: RoomOverlaysProps["ui"] = {
@@ -119,7 +113,7 @@ export function useRoomOverlaysModel({
             draggedItemId: roomState.draggedItemId,
             highlightComputer: onboarding.onboardingStep === "place-computer",
             guestItems: computed.guestDrawerItems as GuestDrawerItem[] | undefined,
-            placedCatalogItemIds,
+            placementEligibility: roomState.editingSession.placementEligibility,
             onToggleMode: handlers.handleModeToggle,
             onShareClick: () => roomState.setIsShareModalOpen(true),
             onDeleteItem: handlers.handleDeleteItem,
@@ -179,21 +173,22 @@ export function useRoomOverlaysModel({
                 highlightFirstMusicItem: computed.shouldHighlightMusicPurchase,
             },
             onPointerMove: handlers.handleCursorMove,
+            canSwitchRooms: roomState.canSwitchRooms,
         };
 
         const music: RoomOverlaysProps["music"] = {
             musicPlayerItemId: roomState.musicPlayerItemId,
             localItems,
             musicInteractionToken: roomState.musicInteractionToken,
-            onSave: async (updatedItem, updatedItems) => {
-                roomState.setLocalItems(() => updatedItems);
+            onSave: async (updatedItem) => {
+                const changes: Partial<RoomItem> = { ...updatedItem };
+                delete changes.id;
+                delete changes.catalogItemId;
+                const id = updatedItem.id;
+                roomState.editingSession.changePersistedItem(id, changes, "visitor-observable");
 
                 if (updatedItem.musicUrl && updatedItem.musicPlaying) {
                     roomState.setMusicInteractionToken(Date.now());
-                }
-
-                if (!isGuest && room) {
-                    await saveRoom({ roomId: room._id, items: updatedItems });
                 }
             },
             onClose: () => roomState.setMusicPlayerItemId(null),
@@ -259,7 +254,6 @@ export function useRoomOverlaysModel({
         handlers,
         localItems,
         catalogItems,
-        placedCatalogItemIds,
         layout,
         onboarding,
         presence,
@@ -268,7 +262,5 @@ export function useRoomOverlaysModel({
         time,
         toasts,
         game,
-        room,
-        saveRoom,
     ]);
 }

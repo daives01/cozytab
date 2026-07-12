@@ -1,22 +1,26 @@
-import {
-    createElement,
-    useMemo,
-    type PropsWithChildren,
-} from "react";
-import { createRoomSessionStore } from "./roomSessionStore";
-import type { RoomSessionAdapter } from "./types";
+import { useEffect, useState, type PropsWithChildren } from "react";
+import type { Id } from "@convex/_generated/dataModel";
+import { createRoomEditingSession } from "./roomEditingSession";
 import { RoomSessionContext } from "./roomSessionContext";
+import type { RoomPersistence } from "./types";
 
 interface RoomSessionProviderProps {
-    adapter: RoomSessionAdapter;
-    storeKey?: string | number;
+    roomId: string;
+    persistence: RoomPersistence;
+    ownedCount: (catalogItemId: Id<"catalogItems">) => number;
 }
 
-export function RoomSessionProvider({ adapter, storeKey, children }: PropsWithChildren<RoomSessionProviderProps>) {
-    const value = useMemo(() => {
-        void storeKey;
-        return { adapter, store: createRoomSessionStore(adapter) };
-    }, [adapter, storeKey]);
+export function RoomSessionProvider({ roomId, persistence, ownedCount, children }: PropsWithChildren<RoomSessionProviderProps>) {
+    const [session] = useState(() =>
+        createRoomEditingSession({
+            roomId,
+            persistence,
+            ownedCount,
+        })
+    );
 
-    return createElement(RoomSessionContext.Provider, { value }, children);
+    useEffect(() => () => session.dispose(), [session]);
+    useEffect(() => session.updateOwnedCount(ownedCount), [ownedCount, session]);
+
+    return <RoomSessionContext.Provider value={session}>{children}</RoomSessionContext.Provider>;
 }

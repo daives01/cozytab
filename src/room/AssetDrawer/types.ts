@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import type { CatalogItemCategory } from "@shared/categories";
+import type { PlacementEligibility } from "../session";
 
 export type GuestDrawerItem = {
     inventoryId: Id<"inventory"> | Id<"catalogItems"> | string;
@@ -22,7 +23,7 @@ export interface AssetDrawerProps {
     touchPlacementItemId?: Id<"catalogItems"> | null;
     isGuest?: boolean;
     guestItems?: GuestDrawerItem[] | undefined;
-    placedCatalogItemIds?: Id<"catalogItems">[];
+    placementEligibility: (catalogItemId: Id<"catalogItems">) => PlacementEligibility;
     orientation?: "left" | "bottom";
 }
 

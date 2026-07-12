@@ -13,6 +13,7 @@ type ShopWindowProps = ComponentProps<typeof Shop>;
 interface RoomsWindowProps {
     myRooms: Doc<"rooms">[];
     switchingRoom: Id<"rooms"> | null;
+    canSwitchRooms: boolean;
     onSwitchRoom: (roomId: Id<"rooms">) => Promise<void>;
 }
 
@@ -46,6 +47,7 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, customizePro
             <RoomsPanel
                 myRooms={roomsProps.myRooms}
                 switchingRoom={roomsProps.switchingRoom}
+                canSwitchRooms={roomsProps.canSwitchRooms}
                 onSwitchRoom={roomsProps.onSwitchRoom}
             />
         );

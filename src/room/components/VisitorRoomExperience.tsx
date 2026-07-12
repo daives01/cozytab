@@ -82,6 +82,7 @@ export function VisitorRoomExperience({
             />
             <TouchCursor cursorColor={identity.cursorColor} />
             <ComputerOverlay
+                canSwitchRooms={false}
                 isGuest={controller.isGuest}
                 isComputerOpen={controller.isComputerOpen}
                 onCloseComputer={() => controller.setIsComputerOpen(false)}

@@ -57,6 +57,7 @@ export interface ComputerScreenProps {
     devTimeOfDay: TimeOfDay | null;
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
     inRoomVisitors?: import("@/hooks/useWebSocketPresence").VisitorState[];
+    canSwitchRooms: boolean;
 }
 
 import { createId } from "@/utils/id";
@@ -89,6 +90,7 @@ export function ComputerScreen({
     devTimeOfDay,
     onSetDevTimeOfDay,
     inRoomVisitors,
+    canSwitchRooms,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -367,6 +369,7 @@ export function ComputerScreen({
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;
+        if (!canSwitchRooms) return;
         if (!myRooms || myRooms.length <= 1) return;
         const targetRoom = myRooms.find((room: Doc<"rooms">) => room._id === roomId);
         if (!targetRoom || targetRoom.isActive) return;
@@ -625,6 +628,7 @@ export function ComputerScreen({
                                             roomsProps={{
                                                 myRooms: myRooms ?? [],
                                                 switchingRoom,
+                                                canSwitchRooms,
                                                 onSwitchRoom: (roomId) => handleSwitchRoom(roomId, win.id),
                                             }}
                                             customizeProps={

@@ -64,7 +64,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 touchPlacementItemId={ui.touchPlacementItemId}
                 isGuest={ui.isGuest}
                 guestItems={ui.guestItems}
-                placedCatalogItemIds={ui.placedCatalogItemIds}
+                placementEligibility={ui.placementEligibility}
                 orientation={ui.drawer.orientation}
             />
 
@@ -99,6 +99,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 devTimeOfDay={computer.time.devTimeOfDay}
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
                 inRoomVisitors={visibleRoomVisitors}
+                canSwitchRooms={computer.canSwitchRooms}
             /></Suspense>}
 
             {activeMusicItem && (

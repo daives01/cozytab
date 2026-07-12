@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, startTransition, useCallback } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import type React from "react";
 import type { Doc, Id } from "@convex/_generated/dataModel";
-import type { RoomItem, Shortcut } from "@shared/guestTypes";
+import type { Shortcut } from "@shared/guestTypes";
 import type { DailyRewardToastPayload } from "../types";
 import { debounce } from "@/lib/debounce";
-import { clampItems } from "../utils/roomActions";
 
 type RoomRecord = Pick<Doc<"rooms">, "_id" | "items" | "userId">;
 
@@ -38,38 +37,6 @@ export function useCursorColorSaver(
             saveAuthedCursorColorRef.current = null;
         };
     }, [saveAuthedCursorColorRef]);
-}
-
-export function useGuestBootstrap({
-    isGuest,
-    guestSessionLoadedRef,
-    initialGuestSession,
-    guestRoomItems,
-    guestTemplateItems,
-    setLocalItems,
-}: {
-    isGuest: boolean;
-    guestSessionLoadedRef: React.MutableRefObject<boolean>;
-    initialGuestSession: { roomItems: RoomItem[] } | null;
-    guestRoomItems: RoomItem[] | undefined;
-    guestTemplateItems: RoomItem[] | undefined;
-    setLocalItems: (updater: (prev: RoomItem[]) => RoomItem[]) => void;
-}) {
-    useEffect(() => {
-        if (!isGuest || guestSessionLoadedRef.current) return;
-
-        const session = initialGuestSession ?? { roomItems: [] };
-
-        if (session.roomItems.length > 0) {
-            setLocalItems(() => clampItems(session.roomItems as RoomItem[]));
-        } else if (guestRoomItems?.length) {
-            setLocalItems(() => clampItems(guestRoomItems as RoomItem[]));
-        } else if (guestTemplateItems && guestTemplateItems.length > 0) {
-            setLocalItems(() => clampItems(guestTemplateItems as RoomItem[]));
-        }
-
-        guestSessionLoadedRef.current = true;
-    }, [guestRoomItems, guestTemplateItems, guestSessionLoadedRef, initialGuestSession, isGuest, setLocalItems]);
 }
 
 export function useReconcileGuestOnboarding({
@@ -130,96 +97,15 @@ export function useOwnerPresenceCursorSync({
     }, [hasVisitors, isGuest, screenCursor.x, screenCursor.y, updateCursor, lastRoomPositionRef]);
 }
 
-export function useDebouncedRoomSave({
-    isGuest,
-    mode,
-    room,
-    localItems,
-    saveRoom,
-}: {
-    isGuest: boolean;
-    mode: "view" | "edit";
-    room: RoomRecord | null | undefined;
-    localItems: RoomItem[];
-    saveRoom: (args: { roomId: Id<"rooms">; items: RoomItem[] }) => void;
-}) {
-    const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const lastSavedSerializedRef = useRef<string>("");
-    const prevModeRef = useRef<typeof mode>(mode);
-
-    const saveNow = useCallback(
-        (roomId: Id<"rooms">, items: RoomItem[]) => {
-            const serialized = JSON.stringify(items);
-            if (serialized === lastSavedSerializedRef.current) return;
-            saveRoom({ roomId, items });
-            lastSavedSerializedRef.current = serialized;
-        },
-        [saveRoom]
-    );
-
-    useEffect(() => {
-        if (!canSave(isGuest)) return;
-        if (!room || mode !== "edit") {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-                saveTimeoutRef.current = null;
-            }
-            return;
-        }
-
-        const roomId = room._id;
-        if (saveTimeoutRef.current) {
-            clearTimeout(saveTimeoutRef.current);
-        }
-
-        saveTimeoutRef.current = setTimeout(() => {
-            saveNow(roomId, localItems);
-            saveTimeoutRef.current = null;
-        }, 400);
-
-        return () => {
-            if (saveTimeoutRef.current) {
-                clearTimeout(saveTimeoutRef.current);
-                saveTimeoutRef.current = null;
-            }
-        };
-    }, [isGuest, localItems, mode, room, saveNow]);
-
-    useEffect(() => {
-        if (!canSave(isGuest)) {
-            prevModeRef.current = mode;
-            return;
-        }
-        if (!room) {
-            prevModeRef.current = mode;
-            return;
-        }
-
-        const prevMode = prevModeRef.current;
-        if (prevMode === "edit" && mode === "view") {
-            saveNow(room._id, localItems);
-        }
-        prevModeRef.current = mode;
-    }, [isGuest, localItems, mode, room, saveNow]);
-}
-
-function canSave(isGuest: boolean) {
-    return !isGuest;
-}
-
 export function useEnsureRoomLoaded({
     room,
     isGuest,
-    setLocalItems,
     createRoom,
 }: {
     room: RoomRecord | null | undefined;
     isGuest: boolean;
-    setLocalItems: (items: RoomItem[]) => void;
     createRoom: () => void;
 }) {
-    const hasHydratedRef = useRef(false);
-    const lastRoomIdRef = useRef<Id<"rooms"> | null>(null);
     const createRoomRequestedRef = useRef(false);
 
     useEffect(() => {
@@ -230,17 +116,10 @@ export function useEnsureRoomLoaded({
                     createRoom();
                 }
             } else if (room) {
-                const roomId = room._id;
-                const isNewRoom = roomId !== lastRoomIdRef.current;
-                if (!hasHydratedRef.current || isNewRoom) {
-                    setLocalItems(clampItems(room.items as RoomItem[]));
-                    hasHydratedRef.current = true;
-                    lastRoomIdRef.current = roomId;
-                }
                 createRoomRequestedRef.current = false;
             }
         }
-    }, [room, createRoom, isGuest, setLocalItems]);
+    }, [room, createRoom, isGuest]);
 }
 
 export function useLeaseHeartbeat({

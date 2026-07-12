@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import { canShare, canUseComputer } from "../utils/sessionGuards";
 import { countIds } from "../utils/itemCounts";
+import type { PlacementEligibility } from "../session";
 import type { OnboardingStep } from "../Onboarding";
 import type { Id, Doc } from "@convex/_generated/dataModel";
 
 type UseRoomComputedArgs = {
     catalogItems: Doc<"catalogItems">[] | undefined;
     guestInventoryValue: Id<"catalogItems">[];
-    placedCatalogItemIds: Id<"catalogItems">[];
+    placementEligibility: (catalogItemId: Id<"catalogItems">) => PlacementEligibility;
     userDisplayName?: string | null;
     userUsername?: string | null;
     clerkUsername?: string | null;
@@ -21,7 +22,7 @@ type UseRoomComputedArgs = {
 export function useRoomComputed({
     catalogItems,
     guestInventoryValue,
-    placedCatalogItemIds,
+    placementEligibility,
     userDisplayName,
     userUsername,
     clerkUsername,
@@ -41,14 +42,13 @@ export function useRoomComputed({
     const guestDrawerItems = useMemo(() => {
         if (!catalogItems) return undefined;
 
-        const placedCounts = countIds(placedCatalogItemIds);
         const inventoryCounts = countIds(guestInventoryValue);
 
         return Array.from(inventoryCounts.entries())
             .map(([idKey, total]) => {
                 const item = catalogItems.find((c) => String(c._id) === idKey);
                 if (!item) return null;
-                const placed = placedCounts.get(idKey) ?? 0;
+                const eligibility = placementEligibility(item._id);
                 return {
                     inventoryId: idKey,
                     catalogItemId: item._id,
@@ -57,11 +57,11 @@ export function useRoomComputed({
                     category: item.category,
                     hidden: false,
                     count: total,
-                    remaining: Math.max(0, total - placed),
+                    remaining: eligibility.remaining,
                 };
             })
             .filter((item): item is NonNullable<typeof item> => Boolean(item));
-    }, [catalogItems, guestInventoryValue, placedCatalogItemIds]);
+    }, [catalogItems, guestInventoryValue, placementEligibility]);
 
     const shouldHighlightMusicPurchase = onboardingStep === "buy-item";
     const shareAllowed = canShare(isGuest);
@@ -78,4 +78,3 @@ export function useRoomComputed({
         overrideTimeOfDay,
     };
 }
-

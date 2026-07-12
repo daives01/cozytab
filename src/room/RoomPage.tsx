@@ -16,7 +16,7 @@ import { useMobileZoom } from "./hooks/useMobileZoom";
 import { MobileZoomButton } from "./components/MobileZoomButton";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
 import { useDrawerLayout } from "./hooks/useDrawerLayout";
-import { clearGuestSession } from "@/guest/guestSession";
+import { clearGuestSession, readGuestSession } from "@/guest/guestSession";
 import { useRoomData } from "./hooks/useRoomData";
 import { usePresenceAndChat } from "@/presence/usePresenceChat";
 import { useTimeOfDayControls } from "@/hooks/useTimeOfDayControls";
@@ -24,7 +24,6 @@ import { useRoomState } from "./hooks/useRoomState";
 import { useRoomHandlers } from "./hooks/useRoomHandlers";
 import { useRoomComputed } from "./hooks/useRoomComputed";
 import { useRoomGate } from "./hooks/useRoomGate";
-import { usePlacementAllowance } from "./hooks/usePlacementAllowance";
 import { useRoomOverlaysModel } from "./hooks/useRoomOverlaysModel";
 import { useTouchPlacement } from "./hooks/useTouchPlacement";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
@@ -32,13 +31,12 @@ import { RoomOverlays } from "./components/RoomOverlays";
 import { RoomExperience } from "./components/RoomExperience";
 import { GUEST_STARTING_COINS, type GuestSessionState } from "@shared/guestTypes";
 import { useAudioUnlock } from "@/lib/audio";
-import { createGuestRoomSessionAdapter, RoomSessionProvider, type RoomSessionAdapter } from "./session";
+import { createAuthenticatedRoomPersistence, createGuestRoomPersistence, RoomSessionProvider } from "./session";
+import { addInventoryCounts, countIds } from "./utils/itemCounts";
 import {
     useCursorColorSaver,
-    useGuestBootstrap,
     useReconcileGuestOnboarding,
     useOwnerPresenceCursorSync,
-    useDebouncedRoomSave,
     useEnsureRoomLoaded,
     useLeaseHeartbeat,
     useSyncComputerState,
@@ -54,39 +52,75 @@ interface RoomPageProps {
 }
 
 export function RoomPage(props: RoomPageProps) {
-    const adapter = useMemo<RoomSessionAdapter>(() => {
-        if (props.isGuest) {
-            return createGuestRoomSessionAdapter(
-                props.guestSession ? { loadSession: () => props.guestSession as GuestSessionState } : undefined
-            );
-        }
+    return <RoomPageContent {...props} />;
+}
 
-        return {
-            kind: "authenticated-owner",
-            load: () => ({
-                items: [],
-                inventory: [],
-                coins: 0,
-                computer: { shortcuts: [], cursorColor: null },
-                profile: { displayName: null, onboardingCompleted: false },
-            }),
-            saveItems: () => undefined,
-            saveComputer: () => undefined,
-            saveProfile: () => undefined,
-        };
-    }, [props.guestSession, props.isGuest]);
+function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomPageProps) {
+    const timeControls = useTimeOfDayControls();
+    const roomData = useRoomData({ isGuest, timeOfDay: timeControls.timeOfDay });
+    const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
+    const saveRoom = useMutation(api.rooms.saveMyRoom);
+    const loadedGuestSession = useMemo(() => guestSession ?? readGuestSession(), [guestSession]);
+    const initialGuestItems = useMemo(() => loadedGuestSession.roomItems.length > 0
+        ? loadedGuestSession.roomItems
+        : (roomData.guestRoom?.items ?? (roomData.guestTemplate as { items?: RoomItem[] } | null | undefined)?.items ?? []),
+    [loadedGuestSession, roomData.guestRoom, roomData.guestTemplate]);
+    const persistence = useMemo(() => {
+        if (isGuest) {
+            return createGuestRoomPersistence({
+                loadSession: () => ({ ...loadedGuestSession, roomItems: initialGuestItems }),
+            });
+        }
+        return createAuthenticatedRoomPersistence({
+            initialItems: (roomData.room?.items ?? []) as RoomItem[],
+            saveItems: async (items) => (await saveRoom({ roomId: roomData.room!._id, items })) as RoomItem[],
+        });
+    }, [initialGuestItems, isGuest, loadedGuestSession, roomData.room, saveRoom]);
+    const ownedCounts = useMemo(() => {
+        if (isGuest) return countIds(loadedGuestSession.inventoryIds);
+        if (inventoryWithCounts === undefined) return null;
+        return addInventoryCounts(inventoryWithCounts);
+    }, [inventoryWithCounts, isGuest, loadedGuestSession.inventoryIds]);
+    const ownedCount = useCallback((catalogItemId: Id<"catalogItems">) => {
+        if (isGuest) return countIds(readGuestSession().inventoryIds).get(String(catalogItemId)) ?? 0;
+        if (ownedCounts === null) return 0;
+        return ownedCounts.get(String(catalogItemId)) ?? 0;
+    }, [isGuest, ownedCounts]);
+    const roomIdentity = isGuest
+        ? "guest-owner"
+        : String(roomData.room?._id ?? (roomData.room === undefined ? "authenticated-loading" : "authenticated-empty"));
+
+    if (isGuest && (roomData.guestRoom === undefined || roomData.guestTemplate === undefined)) {
+        return <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">Loading your cozytab...</div>;
+    }
 
     return (
-        <RoomSessionProvider adapter={adapter} storeKey={props.isGuest ? "guest-owner" : "authenticated-owner"}>
-            <RoomPageContent {...props} />
+        <RoomSessionProvider key={roomIdentity} roomId={roomIdentity} persistence={persistence} ownedCount={ownedCount}>
+            <RoomPageOwner
+                isGuest={isGuest}
+                guestSession={guestSession}
+                friendRefCode={friendRefCode}
+                roomData={roomData}
+                timeControls={timeControls}
+            />
         </RoomSessionProvider>
     );
 }
 
-function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomPageProps) {
+function RoomPageOwner({
+    isGuest,
+    guestSession,
+    friendRefCode,
+    roomData,
+    timeControls,
+}: RoomPageProps & {
+    isGuest: boolean;
+    roomData: ReturnType<typeof useRoomData>;
+    timeControls: ReturnType<typeof useTimeOfDayControls>;
+}) {
     const { user: clerkUser } = useUser();
     useAudioUnlock();
-    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = useTimeOfDayControls();
+    const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = timeControls;
     const {
         room,
         guestTemplate,
@@ -96,22 +130,11 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         computerState,
         roomBackgroundImageUrl,
         resolvedComputerAssetUrl,
-    } = useRoomData({ isGuest, timeOfDay });
-    const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
+    } = roomData;
     const roomState = useRoomState({ isGuest, guestSession, catalogItems });
 
     const localItems = roomState.localItems;
-    const setLocalItems = roomState.setLocalItems;
-    const placedCatalogItemIds = useMemo(() => localItems.map((item) => item.catalogItemId), [localItems]);
-    const { canPlace: canPlaceItem } = usePlacementAllowance({
-        isGuest,
-        placedCatalogItemIds,
-        guestInventoryIds: roomState.guestInventoryValue,
-        inventoryItems: inventoryWithCounts,
-        inventoryLoading: inventoryWithCounts === undefined,
-    });
     const createRoom = useMutation(api.rooms.createRoom);
-    const saveRoom = useMutation(api.rooms.saveMyRoom);
     const heartbeatInvite = useMutation(api.rooms.heartbeatInvite);
     const closeInviteSession = useMutation(api.rooms.closeInviteSession);
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
@@ -207,15 +230,6 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         [isGuest, roomState]
     );
 
-    useGuestBootstrap({
-        isGuest,
-        guestSessionLoadedRef: roomState.guestSessionLoadedRef,
-        initialGuestSession: roomState.initialGuestSession,
-        guestRoomItems: guestRoom?.items as RoomItem[] | undefined,
-        guestTemplateItems: (guestTemplate as { items?: RoomItem[] } | null | undefined)?.items,
-        setLocalItems,
-    });
-
     useReconcileGuestOnboarding({
         isGuest,
         reconciledGuestOnboardingRef: reconciledGuestOnboarding,
@@ -261,12 +275,9 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
-    useDebouncedRoomSave({ isGuest, mode: roomState.mode, room, localItems, saveRoom });
-
     useEnsureRoomLoaded({
         room,
         isGuest,
-        setLocalItems: (items) => setLocalItems(items),
         createRoom: () => createRoom({}),
     });
 
@@ -375,7 +386,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const computed = useRoomComputed({
         catalogItems,
         guestInventoryValue: roomState.guestInventoryValue,
-        placedCatalogItemIds,
+        placementEligibility: roomState.editingSession.placementEligibility,
         userDisplayName: user?.displayName,
         userUsername: user?.username,
         clerkUsername: clerkUser?.username,
@@ -391,7 +402,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const handlers = useRoomHandlers({
         isGuest,
         mode: roomState.mode,
-        roomId: room?._id ?? null,
+        editingSession: roomState.editingSession,
         containerRef,
         scale: effectiveScale,
         lastRoomPositionRef,
@@ -399,19 +410,13 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         onboardingStep,
         advanceOnboarding,
         computerGuardAllowOpen: computed.computerGuard.allowOpen,
-        setLocalItems,
-        setSelectedId: roomState.setSelectedId,
-        setDraggedItemId: roomState.setDraggedItemId,
         setIsComputerOpen: roomState.setIsComputerOpen,
         setMusicPlayerItemId: roomState.setMusicPlayerItemId,
         setIsDrawerOpen: roomState.setIsDrawerOpen,
-        setMode: roomState.setMode,
         updateCursor,
-        saveRoom,
         updateGuestShortcuts,
         saveComputer,
         cursorColor,
-        canPlaceItem,
     });
 
     useEscapeToExitEditMode(roomState.mode, handlers.handleModeToggle);
@@ -465,7 +470,6 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         handlers,
         localItems,
         catalogItems,
-        placedCatalogItemIds,
         layout: { toolbarOffset, drawerOrientation },
         onboarding: { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete },
         presence: {
@@ -492,8 +496,6 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         time: { timeOfDay: computed.timeOfDay, overrideTimeOfDay: computed.overrideTimeOfDay, setOverrideTimeOfDay },
         toasts: { dailyRewardToast, showStripeSuccessToast, setShowStripeSuccessToast, friendRefToast, setFriendRefToast },
         game: { activeGameItemId, setActiveGameItemId, handleGameActiveChange, visitorId: visitorId ?? "owner", setGameMetadata },
-        room,
-        saveRoom,
     });
 
     const overlaysModel = {
