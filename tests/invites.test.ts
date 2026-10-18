@@ -72,7 +72,7 @@ describe("invite lifecycle", () => {
         })).status).toBe("stale");
     });
 
-    test("redacts populated rooms after expiration or closure while preserving friend access", async () => {
+    test("redacts populated rooms after expiration, closure, or revocation while preserving friend access", async () => {
         const t = createConvexTest();
         const ownerId = await seedUser(t, "owner");
         const friendId = await seedUser(t, "friend");
@@ -100,6 +100,12 @@ describe("invite lifecycle", () => {
         await owner.mutation(api.invites.enableInvite, {});
         await owner.mutation(api.rooms.closeInviteSession, { roomId });
         expect(await t.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
+        await owner.mutation(api.invites.enableInvite, {});
+        await owner.mutation(api.invites.revokeInvite, { inviteId: invite.inviteId });
+        for (const caller of [t, owner, friend]) {
+            expect(await caller.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
+        }
+        expect(await t.query(api.invites.getInviteByToken, { token: invite.code })).toBeNull();
         expect(await friend.query(api.friends.getFriendRoom, { friendUserId: ownerId })).toMatchObject({ room: { _id: roomId, items } });
     });
 
