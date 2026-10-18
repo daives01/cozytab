@@ -309,7 +309,33 @@ export const saveMyRoom = mutation({
         const catalogItems = await ctx.db.query("catalogItems").collect();
         const validCatalogIds = new Set<Id<"catalogItems">>(catalogItems.map((item) => item._id));
 
+        const inventory = await ctx.db
+            .query("inventory")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .collect();
+        const ownedCounts = new Map<Id<"catalogItems">, number>();
+        for (const item of inventory) {
+            ownedCounts.set(item.catalogItemId, (ownedCounts.get(item.catalogItemId) ?? 0) + (item.count ?? 1));
+        }
+        // Starter items have historically been granted implicitly to users whose
+        // inventory predates explicit starter grants.
+        for (const item of catalogItems) {
+            if (item.isStarterItem && !ownedCounts.has(item._id)) {
+                ownedCounts.set(item._id, 1);
+            }
+        }
+
         const normalizedItems = normalizeRoomItems(args.items as RoomItem[], validCatalogIds);
+
+        const placedCounts = new Map<Id<"catalogItems">, number>();
+        for (const item of normalizedItems) {
+            placedCounts.set(item.catalogItemId, (placedCounts.get(item.catalogItemId) ?? 0) + 1);
+        }
+        for (const [catalogItemId, placedCount] of placedCounts) {
+            if (placedCount > (ownedCounts.get(catalogItemId) ?? 0)) {
+                throw new Error("Room contains items you do not own");
+            }
+        }
 
         await ctx.db.patch(args.roomId, { items: normalizedItems });
         return normalizedItems;
