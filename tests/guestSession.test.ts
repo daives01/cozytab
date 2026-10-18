@@ -14,6 +14,8 @@ import {
     saveGuestCoins,
 } from "@/guest/guestSession";
 
+import { createGuestRoomPersistence, createRoomEditingSession } from "@/room/session";
+
 class MemoryStorage implements Storage {
     private values = new Map<string, string>();
 
@@ -151,4 +153,34 @@ describe("guest session storage", () => {
         expect(saveGuestCoins(99)).toBe(GUEST_STARTING_COINS);
         expect(localStorage.getItem(GUEST_COINS_STORAGE_KEY)).toBe(String(GUEST_STARTING_COINS));
     });
+});
+
+test("guest autosave reports storage failure and retries only the newest room items", async () => {
+    const chair = { id: "chair-1", catalogItemId: "chair" as Id<"catalogItems">, x: 10, y: 20 };
+    const originalItems = JSON.stringify({ items: [chair] });
+    localStorage.setItem(GUEST_ROOM_STORAGE_KEY, originalItems);
+    localStorage.setItem(GUEST_COINS_STORAGE_KEY, "123");
+    const storage = localStorage;
+    let fail = true;
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+        getItem: (key: string) => storage.getItem(key),
+        setItem: (key: string, value: string) => {
+            if (fail) throw new Error("QuotaExceededError");
+            storage.setItem(key, value);
+        },
+    } });
+    const session = createRoomEditingSession({ roomId: "guest-owner", persistence: createGuestRoomPersistence() });
+    session.enterEditMode();
+    session.move(chair.id, { x: 30, y: 40 });
+    await session.flush();
+    expect(session.getSnapshot().saveStatus).toBe("error");
+    expect(session.getSnapshot().saveError).toContain("Allow storage or free up space");
+    expect(storage.getItem(GUEST_ROOM_STORAGE_KEY)).toBe(originalItems);
+    session.move(chair.id, { x: 80, y: 90 });
+    fail = false;
+    await session.retrySave();
+    expect(session.getSnapshot()).toMatchObject({ saveStatus: "clean", saveError: null });
+    expect(JSON.parse(storage.getItem(GUEST_ROOM_STORAGE_KEY)!).items[0]).toMatchObject({ x: 80, y: 90 });
+    expect(storage.getItem(GUEST_COINS_STORAGE_KEY)).toBe("123");
+    session.dispose();
 });

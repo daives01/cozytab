@@ -329,6 +329,77 @@ describe("Room Editing Session", () => {
         expect(session.getSnapshot()).toMatchObject({ saveStatus: "error", saveError: message });
     });
 
+    test("captures synchronous adapter failures and recovers", async () => {
+        let fail = true;
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: {
+                load: () => [chair],
+                save: (items) => {
+                    if (fail) throw new Error("Storage unavailable");
+                    return Promise.resolve(items);
+                },
+            },
+        });
+        session.enterEditMode();
+        session.flip(chair.id);
+        await session.flush();
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "error", saveError: "Storage unavailable" });
+        fail = false;
+        await session.retrySave();
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "clean", saveError: null });
+    });
+
+    test("retry waits for an older in-flight failure and saves the newest edit", async () => {
+        const first = deferred<RoomItem[]>();
+        const saves: RoomItem[][] = [];
+        const clock = manualScheduler();
+        const session = createRoomEditingSession({
+            roomId: "room-1", scheduler: clock.scheduler,
+            persistence: {
+                load: () => [chair],
+                save: (items) => {
+                    saves.push(items);
+                    return saves.length === 1 ? first.promise : Promise.resolve(items);
+                },
+            },
+        });
+        session.enterEditMode();
+        session.move(chair.id, { x: 30, y: 20 });
+        clock.runAll();
+        session.move(chair.id, { x: 90, y: 20 });
+        const retry = session.retrySave();
+        first.reject(new Error("Offline"));
+        await retry;
+        expect(saves).toHaveLength(2);
+        expect(saves[1][0].x).toBe(90);
+        expect(clock.size()).toBe(0);
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "clean", saveError: null, canSwitchRooms: false });
+        session.exitEditMode();
+        expect(session.getSnapshot().canSwitchRooms).toBe(true);
+    });
+
+    test("late failures from a disposed room cannot publish into a new session", async () => {
+        const pending = deferred<RoomItem[]>();
+        const oldSession = createRoomEditingSession({
+            roomId: "old-account-room",
+            persistence: { load: () => [chair], save: () => pending.promise },
+        });
+        let notifications = 0;
+        oldSession.subscribe(() => notifications++);
+        oldSession.enterEditMode();
+        oldSession.flip(chair.id);
+        const saving = oldSession.flush();
+        oldSession.dispose();
+        const countAtDisposal = notifications;
+        const nextSession = createRoomEditingSession({ roomId: "new-account-room", persistence: persistence([]).adapter });
+        pending.reject(new Error("Old account disconnected"));
+        await saving;
+        expect(notifications).toBe(countAtDisposal);
+        expect(nextSession.getSnapshot()).toMatchObject({ items: [], saveStatus: "clean", saveError: null });
+        nextSession.dispose();
+    });
+
     test("does not let an older save response overwrite newer edits", async () => {
         const first = deferred<RoomItem[]>();
         const saves: RoomItem[][] = [];

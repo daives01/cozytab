@@ -248,6 +248,18 @@ export function saveRoomItems(items: RoomItem[]) {
     safeWrite(GUEST_ROOM_STORAGE_KEY, JSON.stringify({ items }));
 }
 
+// Room autosave must distinguish durable storage from an in-memory edit.
+export function persistGuestRoomItems(items: RoomItem[]): RoomItem[] {
+    const canonicalItems = sanitizeRoomItems(items);
+    try {
+        if (typeof window === "undefined") throw new Error("Browser storage unavailable");
+        localStorage.setItem(GUEST_ROOM_STORAGE_KEY, JSON.stringify({ items: canonicalItems }));
+    } catch {
+        throw new Error("Browser storage is unavailable or full. Allow storage or free up space, then retry.");
+    }
+    return canonicalItems;
+}
+
 export function saveGuestInventory(inventoryIds: Id<"catalogItems">[]) {
     safeWrite(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify(inventoryIds));
 }

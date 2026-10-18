@@ -12,6 +12,13 @@ import type {
     RoomEditingSnapshot,
 } from "./types";
 
+function saveErrorMessage(error: unknown): string {
+    const message = error instanceof ConvexError && typeof error.data === "string"
+        ? error.data
+        : error instanceof Error ? error.message : typeof error === "string" ? error : "";
+    return message.trim() || "Check your connection and try again.";
+}
+
 const defaultScheduler = {
     schedule(task: () => void, delayMs: number) {
         const timer = setTimeout(task, delayMs);
@@ -66,9 +73,15 @@ export function createRoomEditingSession({
 
     const recordItems = (items: RoomEditingSnapshot["items"], visibility: PersistedChangeVisibility) => {
         if (disposed) return;
-        persistence.draft?.write(items);
+        let checkpointError: unknown;
+        try {
+            persistence.draft?.write(items);
+        } catch (error) {
+            checkpointError = error;
+        }
         revision += 1;
         publish({ items, saveStatus: snapshot.saveStatus === "error" ? "error" : "unsaved" });
+        if (checkpointError) publish({ saveStatus: "error", saveError: saveErrorMessage(checkpointError) });
         if (visibility === "visitor-observable") {
             cancelScheduledSave?.();
             cancelScheduledSave = null;
@@ -106,12 +119,9 @@ export function createRoomEditingSession({
                 }
             })
             .catch((error: unknown) => {
-                const message = error instanceof ConvexError && typeof error.data === "string"
-                    ? error.data
-                    : error instanceof Error ? error.message : typeof error === "string" ? error : "";
                 if (!disposed) publish({
                     saveStatus: "error",
-                    saveError: message.trim() || "Check your connection and try again.",
+                    saveError: saveErrorMessage(error),
                 });
             })
             .finally(() => {
