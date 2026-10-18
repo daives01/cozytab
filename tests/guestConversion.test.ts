@@ -52,6 +52,28 @@ describe("Guest Conversion", () => {
         }
     });
 
+    test("normalizes room links and drops invalid links without losing placements or music", async () => {
+        const t = createConvexTest();
+        await seedTemplate(t);
+        const starterId = await seedCatalogItem(t, { isStarterItem: true });
+        const urls = [" example.com/path ", "javascript:alert(1)", "https://", "https://example.com/\nfoo"];
+        for (const [index, url] of urls.entries()) {
+            await asUser(t, `url-guest-${index}`).mutation(api.guestConversion.resolveGuestProgress, {
+                username: "Guest",
+                guestProgress: guestProgress({
+                    roomItems: [{ id: "link", catalogItemId: starterId, x: 1, y: 2, url, musicUrl: "https://youtu.be/abc", musicType: "youtube" }],
+                }),
+            });
+        }
+        const state = await allConversionState(t);
+        expect(state.rooms).toHaveLength(urls.length);
+        for (const [index, room] of state.rooms.entries()) {
+            expect(room.items).toHaveLength(1);
+            expect(room.items[0]).toMatchObject({ id: "link", musicUrl: "https://youtu.be/abc", musicType: "youtube" });
+            expect(room.items[0].url).toBe(index === 0 ? "https://example.com/path" : undefined);
+        }
+    });
+
     test("preserves untouched Guest Progress as a new user's initial state", async () => {
         const t = createConvexTest();
         const templateId = await seedTemplate(t);

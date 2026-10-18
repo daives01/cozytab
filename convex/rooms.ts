@@ -14,6 +14,7 @@ import {
 } from "./lib/inviteLifecycle";
 import { MAX_ROOM_ITEMS, ROOM_FULL_MESSAGE } from "@shared/roomLimits";
 import { roomItemValidator } from "./validators/room";
+import { normalizeRoomItemUrl } from "../shared/roomItemUrl";
 
 // Heartbeat TTL slightly larger than interval buffer.
 const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
@@ -71,7 +72,9 @@ function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogI
         };
 
         if (item.url !== undefined) {
-            normalized.url = clampStringLength(item.url, MAX_URL_LENGTH);
+            const url = normalizeRoomItemUrl(item.url);
+            if (!url) throw new Error(`Invalid room item URL at index ${index}`);
+            normalized.url = url;
         }
         if (item.flipped !== undefined) {
             normalized.flipped = item.flipped;

@@ -7,6 +7,7 @@ import { MAX_ROOM_ITEMS } from "@shared/roomLimits";
 import { applyCurrencyChange } from "./lib/currency";
 import { requireIdentity } from "./lib/auth";
 import { isValidPrice } from "./lib/price";
+import { normalizeRoomItemUrl } from "../shared/roomItemUrl";
 import { normalizeShortcutsWithGrid, randomBrightColor } from "./lib/userSettings";
 
 // Inventory and shortcuts have separate conversion bounds from room capacity.
@@ -104,7 +105,10 @@ function sanitizeRoomItem(item: GuestRoomItem, catalogItemId: Id<"catalogItems">
         x: clamp(item.x, 0, MAX_POSITION),
         y: clamp(item.y, 0, MAX_POSITION),
     };
-    if (item.url !== undefined) sanitized.url = item.url.slice(0, MAX_URL_LENGTH);
+    if (item.url !== undefined) {
+        const url = normalizeRoomItemUrl(item.url);
+        if (url) sanitized.url = url;
+    }
     if (item.flipped !== undefined) sanitized.flipped = item.flipped;
     if (item.musicUrl !== undefined) sanitized.musicUrl = item.musicUrl.slice(0, MAX_URL_LENGTH);
     if (item.musicType === "youtube") sanitized.musicType = "youtube";

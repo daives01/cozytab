@@ -217,4 +217,30 @@ describe("room active-state and saving invariants", () => {
         }
         expect(await owner.mutation(api.rooms.saveMyRoom, { roomId, items: [] })).toEqual([]);
     });
+
+    test("normalizes room item links and rejects malformed or disallowed schemes", async () => {
+        const t = createConvexTest();
+        const userId = await seedUser(t, "url-owner");
+        const templateId = await seedTemplate(t);
+        const roomId = await t.run((ctx) => ctx.db.insert("rooms", {
+            userId, templateId, name: "Room", isActive: true, items: [],
+        }));
+        const catalogItemId = await seedCatalogItem(t, { isStarterItem: true });
+        const owner = asUser(t, "url-owner");
+
+        await owner.mutation(api.rooms.saveMyRoom, {
+            roomId,
+            items: [{ id: "link", catalogItemId, x: 1, y: 1, url: " example.com/path ", musicUrl: "https://youtu.be/abc?t=20", musicType: "youtube" }],
+        });
+        const saved = await t.run((ctx) => ctx.db.get(roomId));
+        expect(saved?.items[0]).toMatchObject({ url: "https://example.com/path", musicUrl: "https://youtu.be/abc?t=20", musicType: "youtube" });
+
+        for (const url of ["javascript:alert(1)", "data:text/html,hi", "file:///etc/passwd", "https://", "https://exa mple.com", "https://example.com/\nfoo", `https://example.com/${"é".repeat(400)}`]) {
+            await expect(owner.mutation(api.rooms.saveMyRoom, {
+                roomId,
+                items: [{ id: "bad-link", catalogItemId, x: 1, y: 1, url }],
+            })).rejects.toThrow("Invalid room item URL");
+            expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(saved?.items);
+        }
+    });
 });

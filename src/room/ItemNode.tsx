@@ -5,6 +5,7 @@ import type React from "react";
 import { AssetImage } from "../components/AssetImage";
 import { ArrowDown, ArrowUp, FlipHorizontal2 } from "lucide-react";
 import { useTouchOnly } from "@/hooks/useTouchCapability";
+import { openRoomItemLink } from "./roomItemLink";
 
 interface ItemNodeProps {
     item: RoomItem;
@@ -231,7 +232,7 @@ export function ItemNode({
                 }
 
                 if (isVisitor && item.url) {
-                    window.open(item.url, "_blank");
+                    openRoomItemLink(item.url);
                     return;
                 }
 
@@ -241,7 +242,7 @@ export function ItemNode({
                 }
 
                 if (item.url) {
-                    window.open(item.url, "_blank");
+                    openRoomItemLink(item.url);
                 }
             }}
         >
