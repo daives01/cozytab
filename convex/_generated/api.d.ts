@@ -11,6 +11,7 @@
 import type * as catalog from "../catalog.js";
 import type * as friends from "../friends.js";
 import type * as games from "../games.js";
+import type * as guestConversion from "../guestConversion.js";
 import type * as http from "../http.js";
 import type * as inventory from "../inventory.js";
 import type * as invites from "../invites.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   catalog: typeof catalog;
   friends: typeof friends;
   games: typeof games;
+  guestConversion: typeof guestConversion;
   http: typeof http;
   inventory: typeof inventory;
   invites: typeof invites;

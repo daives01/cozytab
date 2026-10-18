@@ -1,6 +1,7 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import { createRoomEditingSession } from "./roomEditingSession";
+import { createRoomSessionLifecycle } from "./roomSessionLifecycle";
 import { RoomSessionContext } from "./roomSessionContext";
 import type { RoomPersistence } from "./types";
 
@@ -18,8 +19,9 @@ export function RoomSessionProvider({ roomId, persistence, ownedCount, children 
             ownedCount,
         })
     );
+    const [activateSessionLifecycle] = useState(() => createRoomSessionLifecycle(session));
 
-    useEffect(() => () => session.dispose(), [session]);
+    useEffect(() => activateSessionLifecycle(), [activateSessionLifecycle]);
     useEffect(() => session.updateOwnedCount(ownedCount), [ownedCount, session]);
 
     return <RoomSessionContext.Provider value={session}>{children}</RoomSessionContext.Provider>;

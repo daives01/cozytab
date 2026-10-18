@@ -131,6 +131,11 @@ function safeRemove(key: string) {
     } catch {
         // ignore
     }
+    try {
+        sessionStorage.removeItem(key);
+    } catch {
+        // ignore
+    }
 }
 
 function parseJson<T>(raw: string | null, fallback: T): T {

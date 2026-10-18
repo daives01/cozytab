@@ -8,6 +8,7 @@ import {
     type RoomPersistence,
     type RoomSessionScheduler,
 } from "@/room/session";
+import { createRoomSessionLifecycle } from "@/room/session/roomSessionLifecycle";
 
 const chairId = "chair" as Id<"catalogItems">;
 const lampId = "lamp" as Id<"catalogItems">;
@@ -57,6 +58,26 @@ function persistence(items: RoomItem[] = [chair]) {
 }
 
 describe("Room Editing Session", () => {
+    test("stays active through React Strict Mode's effect replay", () => {
+        const { adapter } = persistence([]);
+        const session = createRoomEditingSession({ roomId: "room-1", persistence: adapter });
+        const deferredTasks: Array<() => void> = [];
+        const activateLifecycle = createRoomSessionLifecycle(session, (task) => deferredTasks.push(task));
+
+        const cleanupFirstEffect = activateLifecycle();
+        cleanupFirstEffect();
+        const cleanupReplayedEffect = activateLifecycle();
+        deferredTasks.splice(0).forEach((task) => task());
+
+        session.enterEditMode();
+        expect(session.getSnapshot().mode).toBe("edit");
+
+        cleanupReplayedEffect();
+        deferredTasks.splice(0).forEach((task) => task());
+        session.exitEditMode();
+        expect(session.getSnapshot().mode).toBe("edit");
+    });
+
     test("hydrates exactly once when the session is created", () => {
         let loads = 0;
         const session = createRoomEditingSession({

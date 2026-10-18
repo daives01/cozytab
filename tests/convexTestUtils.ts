@@ -9,6 +9,7 @@ const modules = {
     "@convex/rooms.ts": () => import("@convex/rooms"),
     "@convex/invites.ts": () => import("@convex/invites"),
     "@convex/friends.ts": () => import("@convex/friends"),
+    "@convex/guestConversion.ts": () => import("@convex/guestConversion"),
     "@convex/inventory.ts": () => import("@convex/inventory"),
 };
 

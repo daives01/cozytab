@@ -1,19 +1,13 @@
 import { useUser } from "@clerk/clerk-react";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@convex/_generated/api";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { BrowserRouter, Routes, Route, useParams, Navigate } from "react-router-dom";
 import { RoomPage } from "./room/RoomPage";
-import { clearGuestSession, readGuestSession } from "./guest/guestSession";
-import {
-  clearReferralCode,
-  getReferralCode,
-  saveReferralCode,
-} from "./referralStorage";
+import { readGuestSession } from "./guest/guestSession";
+import { GuestConversionGate } from "./guest/GuestConversionGate";
+import { saveReferralCode } from "./referralStorage";
 import { TouchWarningToast } from "./components/TouchWarningToast";
 import { useTouchCapability } from "./hooks/useTouchCapability";
 import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
-import { usePresenceHeartbeat } from "./hooks/usePresenceHeartbeat";
 
 const VisitorRoomPage = lazy(() => import("./room/VisitorRoomPage").then((module) => ({ default: module.VisitorRoomPage })));
 const FriendVisitPage = lazy(() => import("./room/FriendVisitPage").then((module) => ({ default: module.FriendVisitPage })));
@@ -51,13 +45,7 @@ function App() {
 
 function HomeRoute() {
   const { user: clerkUser, isLoaded: isClerkLoaded, isSignedIn } = useUser();
-  const ensureUser = useMutation(api.users.ensureUser);
-  const shouldFetchAuthedUser = isClerkLoaded && isSignedIn;
-  const user = useQuery(api.users.getMe, shouldFetchAuthedUser ? {} : "skip");
   const guestSession = useMemo(() => readGuestSession(), []);
-  const isUserLoading = shouldFetchAuthedUser && user === undefined;
-
-  usePresenceHeartbeat(user !== undefined && user !== null);
 
   // Read ?friendRef= from URL, save as referral code, and clean URL
   const [friendRefCode] = useState(() => {
@@ -73,50 +61,23 @@ function HomeRoute() {
     return code;
   });
 
-  useEffect(() => {
-    if (!shouldFetchAuthedUser) return;
-    if (user === undefined || user !== null) return;
-
-    const username = clerkUser?.username ?? "User";
-    const referralCode = getReferralCode() ?? undefined;
-
-    void ensureUser({
-      username,
-      referralCode,
-      guestSession: {
-        coins: guestSession.coins,
-        inventoryIds: guestSession.inventoryIds,
-        roomItems: guestSession.roomItems,
-        shortcuts: guestSession.shortcuts,
-        onboardingCompleted: guestSession.onboardingCompleted,
-        cursorColor: guestSession.cursorColor,
-      },
-    })
-      .then(() => {
-        if (referralCode) {
-          clearReferralCode();
-        }
-        clearGuestSession();
-      })
-      .catch((error) => {
-        console.error("Failed to ensure user", error);
-      });
-  }, [clerkUser, ensureUser, guestSession, shouldFetchAuthedUser, user]);
-
-  const isGuestView = isClerkLoaded ? !isSignedIn || user === null : false;
-  if (!isClerkLoaded || isUserLoading) {
+  if (!isClerkLoaded) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
+      <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-xl">
         Loading your cozytab...
       </div>
     );
   }
 
-  if (isGuestView) {
+  if (!isSignedIn) {
     return <RoomPage isGuest guestSession={guestSession} friendRefCode={friendRefCode} />;
   }
 
-  return <RoomPage isGuest={false} guestSession={guestSession} friendRefCode={friendRefCode} />;
+  return (
+    <GuestConversionGate username={clerkUser?.username ?? "User"}>
+      <RoomPage isGuest={false} friendRefCode={friendRefCode} />
+    </GuestConversionGate>
+  );
 }
 
 function TouchWarningGate() {
