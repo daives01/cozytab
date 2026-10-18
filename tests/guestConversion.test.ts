@@ -26,6 +26,32 @@ async function allConversionState(t: ReturnType<typeof createConvexTest>) {
 }
 
 describe("Guest Conversion", () => {
+    test("skips invalid stored prices when reconstructing paid inventory", async () => {
+        for (const basePrice of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+            const t = createConvexTest();
+            await seedTemplate(t);
+            const invalidId = await seedCatalogItem(t, { name: "Invalid", basePrice });
+            const starterId = await seedCatalogItem(t, { name: "Starter", basePrice, isStarterItem: true });
+            const paidId = await seedCatalogItem(t, { name: "Paid", basePrice: 2 });
+            const freeId = await seedCatalogItem(t, { name: "Free", basePrice: 0 });
+
+            await asUser(t, "buyer").mutation(api.guestConversion.resolveGuestProgress, {
+                username: "Buyer",
+                guestProgress: guestProgress({
+                    inventoryIds: [invalidId, starterId, starterId, paidId, freeId],
+                    roomItems: [{ id: "invalid", catalogItemId: invalidId, x: 0, y: 0 }],
+                }),
+            });
+
+            const state = await allConversionState(t);
+            expect(state.users[0]?.currency).toBe(GUEST_STARTING_COINS - 2);
+            expect(state.transactions[0]?.delta).toBe(GUEST_STARTING_COINS - 2);
+            expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count]))
+                .toEqual([[starterId, 1], [paidId, 1], [freeId, 1]]);
+            expect(state.rooms[0]?.items).toEqual([]);
+        }
+    });
+
     test("preserves untouched Guest Progress as a new user's initial state", async () => {
         const t = createConvexTest();
         const templateId = await seedTemplate(t);

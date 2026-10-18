@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import { GUEST_STARTING_COINS, type GuestShortcut, type RoomItem } from "@shared/guestTypes";
 import { applyCurrencyChange } from "./lib/currency";
 import { requireIdentity } from "./lib/auth";
+import { isValidPrice } from "./lib/price";
 import { normalizeShortcutsWithGrid, randomBrightColor } from "./lib/userSettings";
 
 const MAX_GUEST_ITEMS = 100;
@@ -126,7 +127,8 @@ function reconstructEconomy(catalogItems: Doc<"catalogItems">[], requestedInvent
         const item = byIdOrName.get(idOrName);
         if (!item) continue;
         const isFreeStarter = item.isStarterItem === true && !freeStarters.has(item._id);
-        const cost = isFreeStarter ? 0 : Math.max(0, item.basePrice);
+        const cost = isFreeStarter ? 0 : item.basePrice;
+        if (!isValidPrice(cost)) continue;
         if (cost > balance) continue;
         balance -= cost;
         ownedCounts.set(item._id, (ownedCounts.get(item._id) ?? 0) + 1);
