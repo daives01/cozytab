@@ -1,7 +1,9 @@
 import type { Id } from "@convex/_generated/dataModel";
+import type { api } from "@convex/_generated/api";
+import type { FunctionReturnType } from "convex/server";
 import type { RoomItem } from "@shared/guestTypes";
 
-export type VisitorRoomAccess = "open" | "closed";
+export type OpenInviteRoomData = Extract<FunctionReturnType<typeof api.rooms.getRoomByInvite>, { closed: false }>;
 
 export interface VisitorRoomSource {
     kind: "invite" | "friend";
@@ -12,7 +14,7 @@ export interface VisitorRoomSource {
     };
     ownerName: string;
     ownerReferralCode?: string | null;
-    access: VisitorRoomAccess;
+    access: "open";
 }
 
 interface NormalizableRoom {
@@ -33,6 +35,7 @@ export function normalizeInviteRoomSource(input: {
     room: NormalizableRoom;
     ownerName: string;
     ownerReferralCode?: string | null;
+    closed: false;
 }): VisitorRoomSource {
     return {
         kind: "invite",

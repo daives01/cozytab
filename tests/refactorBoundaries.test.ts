@@ -12,8 +12,8 @@ const room = {
 };
 
 describe("visitor room source normalization", () => {
-    test("keeps invite closure and referral capabilities explicit", () => {
-        const source = normalizeInviteRoomSource({ room, ownerName: "Host", ownerReferralCode: "ABC" });
+    test("keeps open invite access and referral capabilities explicit", () => {
+        const source = normalizeInviteRoomSource({ room, ownerName: "Host", ownerReferralCode: "ABC", closed: false });
         expect(source).toMatchObject({ kind: "invite", access: "open", ownerName: "Host", ownerReferralCode: "ABC" });
     });
 

@@ -13,7 +13,7 @@ import { RoomPage } from "./RoomPage";
 import { useRoomViewportScale } from "./hooks/useRoomViewportScale";
 import { useMobileZoom } from "./hooks/useMobileZoom";
 import { useVisitorRoomController } from "./hooks/useVisitorRoomController";
-import { normalizeInviteRoomSource } from "./visitorRoomSource";
+import { normalizeInviteRoomSource, type OpenInviteRoomData } from "./visitorRoomSource";
 import { VisitorRoomExperience } from "./components/VisitorRoomExperience";
 import { MobileZoomButton } from "./components/MobileZoomButton";
 import { OnboardingSpotlight } from "./OnboardingSpotlight";
@@ -53,7 +53,7 @@ function InviteRoomContent({
     roomData,
     authedUser,
 }: {
-    roomData: NonNullable<Exclude<ReturnType<typeof useQuery<typeof api.rooms.getRoomByInvite>>, undefined>>;
+    roomData: OpenInviteRoomData;
     authedUser: ReturnType<typeof useQuery<typeof api.users.getMe>>;
 }) {
     const { user: clerkUser, isSignedIn } = useUser();
@@ -74,7 +74,7 @@ function InviteRoomContent({
     );
 
     const source = useMemo(() => normalizeInviteRoomSource(roomData), [roomData]);
-    const roomClosed = roomClosedOverride || source.access === "closed" || roomStatus?.status !== "open";
+    const roomClosed = roomClosedOverride || roomStatus?.status !== "open";
 
     useEffect(() => {
         if (source.ownerReferralCode && !getReferralCode()) saveReferralCode(source.ownerReferralCode);
