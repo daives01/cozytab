@@ -421,6 +421,62 @@ describe("exit draft recovery", () => {
         expect(draft.load()?.[0].x).toBe(90);
     });
 
+    test.each([false, true])("detached sessions cannot drain over newer edits (new save completed: %s)", async (completeNewSave) => {
+        const storage = memoryStorage();
+        const first = deferred<RoomItem[]>();
+        const newerSave = deferred<RoomItem[]>();
+        const oldSaves: RoomItem[][] = [];
+        const old = createRoomEditingSession({ roomId: "room-1", persistence: {
+            load: () => [chair], draft: createRoomDraft("room-1", storage),
+            save: (items) => { oldSaves.push(items); return first.promise; },
+        } });
+        old.enterEditMode();
+        old.move(chair.id, { x: 30, y: 20 });
+        const oldFlush = old.flush();
+        old.move(chair.id, { x: 60, y: 20 });
+        old.dispose();
+
+        const newer = createRoomEditingSession({ roomId: "room-1", persistence: {
+            load: () => [chair], draft: createRoomDraft("room-1", storage),
+            save: () => newerSave.promise,
+        } });
+        newer.enterEditMode();
+        newer.move(chair.id, { x: 90, y: 20 });
+        const newFlush = newer.flush();
+        if (completeNewSave) {
+            newerSave.resolve(newer.getSnapshot().items);
+            await newFlush;
+        }
+        first.resolve(oldSaves[0]);
+        await oldFlush;
+        // Await detached drain without explicitly retrying either session.
+        await Promise.resolve();
+        expect(oldSaves).toHaveLength(1);
+        expect(newer.getSnapshot().items[0].x).toBe(90);
+        newerSave.resolve(newer.getSnapshot().items);
+        await newFlush;
+        expect(createRoomDraft("room-1", storage).load()).toBeNull();
+        newer.dispose();
+    });
+
+    test("storage denial still permits a navigation save", async () => {
+        const saves: RoomItem[][] = [];
+        const session = createRoomEditingSession({ roomId: "room-1", persistence: {
+            load: () => [chair],
+            draft: createRoomDraft("room-1", {
+                getItem: () => { throw new Error("denied"); },
+                setItem: () => { throw new Error("denied"); },
+            }),
+            save: async (items) => { saves.push(items); return items; },
+        } });
+        session.enterEditMode();
+        session.move(chair.id, { x: 90, y: 20 });
+        session.dispose();
+        await session.flush();
+        expect(saves).toHaveLength(1);
+        expect(saves[0][0].x).toBe(90);
+    });
+
     test("older acknowledgements cannot erase a newer session's draft", () => {
         const storage = memoryStorage();
         const old = createRoomDraft("room-1", storage);

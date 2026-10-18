@@ -32,6 +32,7 @@ export interface RoomDraft {
     load(): RoomItem[] | null;
     write(items: RoomItem[]): void;
     acknowledge(items: RoomItem[]): void;
+    isCurrent?(items: RoomItem[]): boolean;
 }
 
 export interface RoomPersistence {

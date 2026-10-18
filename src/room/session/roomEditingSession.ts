@@ -78,6 +78,7 @@ export function createRoomEditingSession({
 
     const saveCurrentRevision = (): Promise<void> => {
         if (revision === savedRevision) return Promise.resolve();
+        if (disposed && persistence.draft?.isCurrent?.(snapshot.items) === false) return Promise.resolve();
         if (inFlight) {
             saveRequestedWhileInFlight = true;
             return inFlight;
@@ -226,13 +227,13 @@ export function createRoomEditingSession({
             if (disposed) return;
             cancelScheduledSave?.();
             cancelScheduledSave = null;
+            disposed = true;
             // Detach immediately, but drain a pending revision after any older
             // request. Failed requests leave the synchronous draft for recovery.
             void (async () => {
                 if (inFlight) await inFlight;
                 if (revision !== savedRevision) await saveCurrentRevision();
             })();
-            disposed = true;
             listeners.clear();
         },
     };
