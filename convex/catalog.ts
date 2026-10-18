@@ -2,6 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { catalogItemCategoryValidator, gameTypeValidator } from "./lib/categories";
 import { requireAdmin } from "./lib/auth";
+import { assertValidPrice } from "./lib/price";
 
 export const list = query({
     args: {},
@@ -32,6 +33,7 @@ export const addItem = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+        assertValidPrice(args.basePrice);
 
         const existing = await ctx.db
             .query("catalogItems")
@@ -63,6 +65,7 @@ export const updateItem = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+        if (args.basePrice !== undefined) assertValidPrice(args.basePrice);
 
         const { id, gameType, ...otherUpdates } = args;
 

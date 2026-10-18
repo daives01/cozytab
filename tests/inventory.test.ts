@@ -51,4 +51,30 @@ describe("inventory purchases", () => {
         expect(await t.run((ctx) => ctx.db.query("inventory").collect())).toEqual([]);
         expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(1);
     });
+
+    test("rejects invalid stored prices without changing currency", async () => {
+        for (const basePrice of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+            const t = createConvexTest();
+            const userId = await seedUser(t, "buyer", 10);
+            const catalogItemId = await seedCatalogItem(t, { basePrice });
+
+            await expect(asUser(t, "buyer").mutation(api.inventory.purchaseItem, {
+                catalogItemId,
+                requestId: `invalid-${basePrice}`,
+            })).rejects.toThrow("Price must be a finite nonnegative integer");
+            expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(10);
+            expect(await t.run((ctx) => ctx.db.query("inventory").collect())).toEqual([]);
+            expect(await t.run((ctx) => ctx.db.query("currencyTransactions").collect())).toEqual([]);
+        }
+    });
+
+    test("allows free catalog item purchases", async () => {
+        const t = createConvexTest();
+        const userId = await seedUser(t, "buyer", 10);
+        const catalogItemId = await seedCatalogItem(t, { basePrice: 0 });
+
+        expect(await asUser(t, "buyer").mutation(api.inventory.purchaseItem, { catalogItemId }))
+            .toEqual({ success: true, newBalance: 10 });
+        expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(10);
+    });
 });

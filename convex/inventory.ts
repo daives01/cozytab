@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import type { Doc } from "./_generated/dataModel";
 import { applyCurrencyChange } from "./lib/currency";
 import { randomId } from "./lib/id";
+import { assertValidPrice } from "./lib/price";
 
 export const getMyInventory = query({
     args: {},
@@ -137,6 +138,8 @@ export const purchaseItem = mutation({
         if (!catalogItem) {
             return { success: false, message: "Item not found" };
         }
+
+        assertValidPrice(catalogItem.basePrice);
 
         if (user.currency < catalogItem.basePrice) {
             return { success: false, message: "Insufficient funds" };

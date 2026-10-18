@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { applyCurrencyChange } from "./lib/currency";
 import { randomId } from "./lib/id";
 import { getCurrentUser as getUser, requireAdmin } from "./lib/auth";
+import { assertValidPrice } from "./lib/price";
 
 // List all room templates (for shop)
 export const list = query({
@@ -59,6 +60,7 @@ export const addTemplate = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+        assertValidPrice(args.basePrice);
 
         // If setting as default, unset any existing default
         if (args.isDefault) {
@@ -89,6 +91,7 @@ export const updateTemplate = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+        if (args.basePrice !== undefined) assertValidPrice(args.basePrice);
 
         const { id, ...updates } = args;
 
@@ -160,6 +163,8 @@ export const purchaseRoom = mutation({
         if (!template) {
             return { success: false, message: "Template not found" };
         }
+
+        assertValidPrice(template.basePrice);
 
         // Check if user can afford
         if (user.currency < template.basePrice) {

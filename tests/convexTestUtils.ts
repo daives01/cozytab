@@ -11,6 +11,8 @@ const modules = {
     "@convex/friends.ts": () => import("@convex/friends"),
     "@convex/guestConversion.ts": () => import("@convex/guestConversion"),
     "@convex/inventory.ts": () => import("@convex/inventory"),
+    "@convex/catalog.ts": () => import("@convex/catalog"),
+    "@convex/roomTemplates.ts": () => import("@convex/roomTemplates"),
 };
 
 export function createConvexTest() {
