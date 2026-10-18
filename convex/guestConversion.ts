@@ -3,11 +3,13 @@ import { mutation } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import { GUEST_STARTING_COINS, type GuestShortcut, type RoomItem } from "@shared/guestTypes";
+import { MAX_ROOM_ITEMS } from "@shared/roomLimits";
 import { applyCurrencyChange } from "./lib/currency";
 import { requireIdentity } from "./lib/auth";
 import { isValidPrice } from "./lib/price";
 import { normalizeShortcutsWithGrid, randomBrightColor } from "./lib/userSettings";
 
+// Inventory and shortcuts have separate conversion bounds from room capacity.
 const MAX_GUEST_ITEMS = 100;
 const MAX_POSITION = 1_400;
 const MAX_TIME_POSITION_MS = 86_400_000;
@@ -155,6 +157,7 @@ function preserveOwnedPlacements(
         const count = remaining.get(catalogItem._id) ?? 0;
         if (count <= 0) continue;
         preserved.push(sanitizeRoomItem(item, catalogItem._id));
+        if (preserved.length === MAX_ROOM_ITEMS) break;
         remaining.set(catalogItem._id, count - 1);
     }
     return preserved;

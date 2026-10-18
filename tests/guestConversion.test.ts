@@ -112,6 +112,30 @@ describe("Guest Conversion", () => {
         expect(state.rooms[0]?.items.map(({ id }) => id)).toEqual(["starter", "lamp"]);
     });
 
+    test.each([50, 51, 100])("caps %i guest placements while preserving all inventory and coins", async (count) => {
+        const t = createConvexTest();
+        await seedTemplate(t);
+        const freeId = await seedCatalogItem(t, { name: "Free decor", basePrice: 0 });
+        const paidId = await seedCatalogItem(t, { name: "Purchased lamp", basePrice: 2 });
+        const inventoryIds = [...Array.from({ length: count - 1 }, () => freeId), paidId];
+        const roomItems = inventoryIds.map((catalogItemId, index) => ({ id: `item-${index}`, catalogItemId, x: 1, y: 2 }));
+        // Invalid placements must not consume capacity ahead of valid owned items.
+        const invalid = { id: "unknown", catalogItemId: "unknown" as typeof freeId, x: 0, y: 0 };
+        const caller = asUser(t, `guest-${count}`);
+        await caller.mutation(api.guestConversion.resolveGuestProgress, {
+            username: "Guest",
+            guestProgress: guestProgress({ coins: 3, inventoryIds, roomItems: [invalid, ...roomItems] }),
+        });
+
+        const state = await allConversionState(t);
+        expect(state.rooms[0].items).toEqual(roomItems.slice(0, 50));
+        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([[freeId, count - 1], [paidId, 1]]);
+        expect(state.users[0].currency).toBe(3);
+        expect(state.transactions[0].delta).toBe(3);
+        // Converted rooms remain editable under the backend's placement limit.
+        await caller.mutation(api.rooms.saveMyRoom, { roomId: state.rooms[0]._id, items: state.rooms[0].items });
+    });
+
     test("reconstructs tampered economy within the fixed guest budget", async () => {
         const t = createConvexTest();
         await seedTemplate(t);

@@ -12,12 +12,12 @@ import {
     hasHostOnlyExpired,
     isInviteOpen,
 } from "./lib/inviteLifecycle";
+import { MAX_ROOM_ITEMS, ROOM_FULL_MESSAGE } from "@shared/roomLimits";
 import { roomItemValidator } from "./validators/room";
 
 // Heartbeat TTL slightly larger than interval buffer.
 const HOST_ONLY_INACTIVE_ERROR = "host-only-timeout";
 
-const MAX_ROOM_ITEMS = 50;
 const MIN_POSITION = 0;
 const MAX_X_POSITION = 1700;
 const MAX_Y_POSITION = 1400;
@@ -55,7 +55,7 @@ function clampStringLength(value: string, maxLength: number) {
 
 function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogItems">>): RoomItem[] {
     if (items.length > MAX_ROOM_ITEMS) {
-        throw new Error("Too many items");
+        throw new Error(ROOM_FULL_MESSAGE);
     }
 
     return items.map((item, index) => {

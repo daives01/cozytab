@@ -12,6 +12,7 @@ export type GuestDrawerItem = {
     hidden?: boolean;
     count: number;
     remaining: number;
+    roomAtCapacity?: boolean;
 };
 
 export interface AssetDrawerProps {

@@ -122,10 +122,39 @@ describe("Room Editing Session", () => {
         });
         session.enterEditMode();
 
-        expect(session.placementEligibility(chairId)).toEqual({ allowed: false, ownedCount: 1, placedCount: 1, remaining: 0 });
+        expect(session.placementEligibility(chairId)).toEqual({ allowed: false, roomAtCapacity: false, ownedCount: 1, placedCount: 1, remaining: 0 });
         expect(session.place({ catalogItemId: chairId, x: 0, y: 0 })).toEqual({ accepted: false, reason: "insufficient-ownership" });
         expect(session.place({ catalogItemId: lampId, x: 0, y: 0 })).toEqual({ accepted: false, reason: "insufficient-ownership" });
         expect(session.getSnapshot().items).toEqual([chair]);
+    });
+
+    test("allows the 50th placement, rejects the 51st, and frees capacity on removal", async () => {
+        const initial = Array.from({ length: 49 }, (_, index) => ({ ...chair, id: `chair-${index}` }));
+        const { adapter, saves } = persistence(initial);
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: adapter,
+            ownedCount: () => 100,
+            createItemId: () => "last-chair",
+        });
+        session.enterEditMode();
+        expect(session.beginPlacement(chairId)).toEqual({ accepted: true });
+        expect(session.place({ catalogItemId: chairId, x: 1, y: 2 }).accepted).toBe(true);
+        const fullSnapshot = session.getSnapshot();
+        expect(fullSnapshot.items).toHaveLength(50);
+        expect(session.placementEligibility(lampId)).toMatchObject({ allowed: false, roomAtCapacity: true, remaining: 100 });
+        expect(session.beginPlacement(lampId)).toEqual({ accepted: false, reason: "room-full" });
+        expect(session.place({ catalogItemId: lampId, x: 1, y: 2 })).toEqual({ accepted: false, reason: "room-full" });
+        expect(session.getSnapshot()).toBe(fullSnapshot);
+        await session.flush();
+        expect(saves[0]).toHaveLength(50);
+
+        session.remove("last-chair");
+        expect(session.placementEligibility(lampId)).toMatchObject({ allowed: true, roomAtCapacity: false });
+        expect(session.place({ catalogItemId: lampId, x: 1, y: 2 }).accepted).toBe(true);
+        await session.flush();
+        expect(saves.at(-1)).toHaveLength(50);
+        session.dispose();
     });
 
     test("coalesces debounced structural edits into one save", async () => {

@@ -18,12 +18,13 @@ export interface RoomEditingSnapshot {
 
 export interface PlacementEligibility {
     allowed: boolean;
+    roomAtCapacity: boolean;
     ownedCount: number;
     placedCount: number;
     remaining: number;
 }
 
-export type EditingRejection = "not-editing" | "item-not-found" | "insufficient-ownership";
+export type EditingRejection = "not-editing" | "item-not-found" | "insufficient-ownership" | "room-full";
 export type EditingResult = { accepted: true } | { accepted: false; reason: EditingRejection };
 export type PlacementResult = { accepted: true; itemId: string } | { accepted: false; reason: EditingRejection };
 

@@ -1,3 +1,4 @@
+import { MAX_ROOM_ITEMS } from "@shared/roomLimits";
 import { createId } from "@/utils/id";
 import { clampItemPosition } from "../utils/roomActions";
 import type {
@@ -116,7 +117,8 @@ export function createRoomEditingSession({
         const owned = Math.max(0, ownedCountSource(catalogItemId));
         const placed = snapshot.items.filter((item) => item.catalogItemId === catalogItemId).length;
         const remaining = Math.max(0, owned - placed);
-        return { allowed: remaining > 0, ownedCount: owned, placedCount: placed, remaining };
+        const roomAtCapacity = snapshot.items.length >= MAX_ROOM_ITEMS;
+        return { allowed: remaining > 0 && !roomAtCapacity, roomAtCapacity, ownedCount: owned, placedCount: placed, remaining };
     };
 
     return {
@@ -145,6 +147,7 @@ export function createRoomEditingSession({
         endDrag: () => publish({ draggedItemId: null }),
         beginPlacement: (catalogItemId) => {
             if (snapshot.mode !== "edit") return { accepted: false, reason: "not-editing" };
+            if (snapshot.items.length >= MAX_ROOM_ITEMS) return { accepted: false, reason: "room-full" };
             if (!placementEligibility(catalogItemId).allowed) {
                 return { accepted: false, reason: "insufficient-ownership" };
             }
@@ -155,6 +158,7 @@ export function createRoomEditingSession({
         placementEligibility,
         place: ({ catalogItemId, x, y }): PlacementResult => {
             if (snapshot.mode !== "edit") return { accepted: false, reason: "not-editing" };
+            if (snapshot.items.length >= MAX_ROOM_ITEMS) return { accepted: false, reason: "room-full" };
             if (!placementEligibility(catalogItemId).allowed) return { accepted: false, reason: "insufficient-ownership" };
             const itemId = createItemId();
             recordItems([...snapshot.items, clampItemPosition({ id: itemId, catalogItemId, x, y, flipped: false })], "structural");

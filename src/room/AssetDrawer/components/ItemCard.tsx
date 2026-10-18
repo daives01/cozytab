@@ -28,7 +28,7 @@ export function ItemCard({
         ? "-translate-y-[2px] bg-[var(--color-secondary)] shadow-[var(--shadow-6)] ring-2 ring-[var(--color-accent)]"
         : "";
     const shouldShowToggle = !isGuest && showHideControls;
-    const isDepleted = (item.remaining ?? 0) <= 0;
+    const isDepleted = (item.remaining ?? 0) <= 0 || item.roomAtCapacity === true;
     const imageWrapperClass = compact
         ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15"
         : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20";
@@ -73,6 +73,7 @@ export function ItemCard({
             tabIndex={0}
             role="button"
             aria-label={`${item.name} item`}
+            aria-disabled={isDepleted}
         >
             <div className={`${imageWrapperClass} ${selectedImageClass} transition-colors`}>
                 <AssetImage assetUrl={item.assetUrl} alt={item.name} className="h-full w-full object-contain" draggable={false} />

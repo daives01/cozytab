@@ -8,6 +8,7 @@ import { HiddenItemsSection } from "./components/HiddenItemsSection";
 import { ItemCard } from "./components/ItemCard";
 import { ASSET_DRAWER_WIDTH, ASSET_DRAWER_BOTTOM_HEIGHT, HIDE_TOGGLE_THRESHOLD, handwritingFont } from "./constants";
 import type { AssetDrawerProps, GuestDrawerItem } from "./types";
+import { ROOM_FULL_MESSAGE } from "@shared/roomLimits";
 import { Package } from "lucide-react";
 
 export function AssetDrawer({
@@ -29,17 +30,17 @@ export function AssetDrawer({
     const [pendingHides, setPendingHides] = useState<Record<string, boolean>>({});
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
-    const items: GuestDrawerItem[] = useMemo(() => {
-        const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
-        return source.map((item) => {
-            const eligibility = placementEligibility(item.catalogItemId as Id<"catalogItems">);
-            return {
-                ...item,
-                count: eligibility.ownedCount,
-                remaining: eligibility.remaining,
-            } as GuestDrawerItem;
-        });
-    }, [guestItems, inventoryItems, isGuest, placementEligibility]);
+    // Eligibility changes with the session snapshot, even though its function is stable.
+    const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
+    const items: GuestDrawerItem[] = source.map((item) => {
+        const eligibility = placementEligibility(item.catalogItemId as Id<"catalogItems">);
+        return {
+            ...item,
+            count: eligibility.ownedCount,
+            remaining: eligibility.remaining,
+            roomAtCapacity: eligibility.roomAtCapacity,
+        } as GuestDrawerItem;
+    });
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
     const showHideControls = !isGuest && items.length > HIDE_TOGGLE_THRESHOLD;
 
@@ -152,6 +153,12 @@ export function AssetDrawer({
                     selectedFilter={selectedFilter}
                     onFilterChange={setSelectedFilter}
                 />
+
+                {items.some((item) => item.roomAtCapacity) && (
+                    <p role="status" className="px-4 py-2 text-sm font-bold text-[var(--color-foreground)]">
+                        {ROOM_FULL_MESSAGE}
+                    </p>
+                )}
 
                 <ScrollArea className="flex-1 bg-[var(--color-background)] min-h-0">
                     <div className="space-y-6 p-4 pb-6">
