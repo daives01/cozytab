@@ -174,6 +174,9 @@ export function useRoomOverlaysModel({
             },
             onPointerMove: handlers.handleCursorMove,
             canSwitchRooms: roomState.canSwitchRooms,
+            saveStatus: roomState.saveStatus,
+            saveError: roomState.saveError,
+            onRetrySave: () => roomState.editingSession.retrySave(),
         };
 
         const music: RoomOverlaysProps["music"] = {

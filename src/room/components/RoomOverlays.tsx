@@ -100,6 +100,9 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                 onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
                 inRoomVisitors={visibleRoomVisitors}
                 canSwitchRooms={computer.canSwitchRooms}
+                saveStatus={computer.saveStatus}
+                saveError={computer.saveError}
+                onRetrySave={computer.onRetrySave}
             /></Suspense>}
 
             {activeMusicItem && (

@@ -5,7 +5,7 @@ import type { DailyRewardToastPayload, TimeOfDay } from "../types";
 import type { GuestDrawerItem } from "../AssetDrawer/types";
 import type { VisitorState, ConnectionState, ConnectionError } from "@/hooks/useWebSocketPresence";
 import type { OnboardingStep } from "../Onboarding";
-import type { PlacementEligibility } from "../session";
+import type { PlacementEligibility, RoomSaveStatus } from "../session";
 
 export interface DrawerProps {
     offset: number;
@@ -58,6 +58,9 @@ export interface ComputerProps {
     onboardingCallbacks: OnboardingCallbacksProps;
     onPointerMove: (x: number, y: number) => void;
     canSwitchRooms: boolean;
+    saveStatus: RoomSaveStatus;
+    saveError: string | null;
+    onRetrySave: () => Promise<void>;
 }
 
 export interface MusicProps {

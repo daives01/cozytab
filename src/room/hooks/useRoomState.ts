@@ -125,6 +125,7 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         guestCursorColor: cursorColor,
         setGuestCursorColor: setCursorColor,
         saveStatus: editing.saveStatus,
+        saveError: editing.saveError,
         canSwitchRooms: editing.canSwitchRooms,
     };
 }

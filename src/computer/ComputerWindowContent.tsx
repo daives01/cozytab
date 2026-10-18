@@ -7,6 +7,7 @@ import { FriendsPanel } from "./FriendsPanel";
 import type { ComputerWindowApp } from "./types";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
+import type { RoomSaveStatus } from "@/room/session/types";
 
 type ShopWindowProps = ComponentProps<typeof Shop>;
 
@@ -14,6 +15,9 @@ interface RoomsWindowProps {
     myRooms: Doc<"rooms">[];
     switchingRoom: Id<"rooms"> | null;
     canSwitchRooms: boolean;
+    saveStatus?: RoomSaveStatus;
+    saveError?: string | null;
+    onRetrySave?: () => Promise<void>;
     onSwitchRoom: (roomId: Id<"rooms">) => Promise<void>;
 }
 
@@ -48,6 +52,9 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, customizePro
                 myRooms={roomsProps.myRooms}
                 switchingRoom={roomsProps.switchingRoom}
                 canSwitchRooms={roomsProps.canSwitchRooms}
+                saveStatus={roomsProps.saveStatus}
+                saveError={roomsProps.saveError}
+                onRetrySave={roomsProps.onRetrySave}
                 onSwitchRoom={roomsProps.onSwitchRoom}
             />
         );

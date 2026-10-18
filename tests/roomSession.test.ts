@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ConvexError } from "convex/values";
 import type { Id } from "@convex/_generated/dataModel";
 import type { GuestSessionState, RoomItem } from "@shared/guestTypes";
 import {
@@ -265,11 +266,67 @@ describe("Room Editing Session", () => {
         session.move("chair-1", { x: 25, y: 35 });
 
         await session.flush();
-        expect(session.getSnapshot().saveStatus).toBe("unsaved");
+        expect(session.getSnapshot().saveStatus).toBe("error");
         await session.flush();
 
         expect(attempts).toBe(2);
         expect(session.getSnapshot().saveStatus).toBe("clean");
+    });
+
+    test("preserves failed edits and explicitly retries the latest revision before allowing switches", async () => {
+        const retry = deferred<RoomItem[]>();
+        const saves: RoomItem[][] = [];
+        const clock = manualScheduler();
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            scheduler: clock.scheduler,
+            persistence: {
+                load: () => [chair],
+                save: async (items) => {
+                    saves.push(items);
+                    if (saves.length === 1) throw new Error("Reconnect and try again");
+                    return retry.promise;
+                },
+            },
+        });
+        session.enterEditMode();
+        session.move("chair-1", { x: 25, y: 35 });
+        await session.flush();
+        expect(session.getSnapshot()).toMatchObject({
+            saveStatus: "error", saveError: "Reconnect and try again", canSwitchRooms: false,
+        });
+        expect(session.getSnapshot().items[0]).toMatchObject({ x: 25, y: 35 });
+        session.move("chair-1", { x: 50, y: 60 });
+        expect(session.getSnapshot().saveError).toBe("Reconnect and try again");
+        const pendingRetry = session.retrySave();
+        expect(session.getSnapshot().saveStatus).toBe("saving");
+        expect(session.getSnapshot().saveError).toBe("Reconnect and try again");
+        expect(clock.size()).toBe(0);
+        session.exitEditMode();
+        expect(session.getSnapshot().canSwitchRooms).toBe(false);
+        expect(saves[1][0]).toMatchObject({ x: 50, y: 60 });
+        retry.resolve(saves[1]);
+        await pendingRetry;
+        expect(saves).toHaveLength(2);
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "clean", saveError: null, canSwitchRooms: true });
+    });
+
+    test.each([
+        ["Convex error", new ConvexError("Sign in again to save your room"), "Sign in again to save your room"],
+        ["string", "Reconnect and retry", "Reconnect and retry"],
+        ["unknown", null, "Check your connection and try again."],
+        ["empty error", new Error(""), "Check your connection and try again."],
+    ])("keeps an actionable message for save rejection %s", async (_kind, error, message) => {
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: { load: () => [chair], save: async () => { throw error; } },
+        });
+        session.enterEditMode();
+        session.flip("chair-1");
+        await session.flush();
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "error", saveError: message });
+        await session.retrySave();
+        expect(session.getSnapshot()).toMatchObject({ saveStatus: "error", saveError: message });
     });
 
     test("does not let an older save response overwrite newer edits", async () => {

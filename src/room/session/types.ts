@@ -2,7 +2,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { RoomItem } from "@shared/guestTypes";
 
 export type RoomEditingMode = "view" | "edit";
-export type RoomSaveStatus = "clean" | "saving" | "unsaved";
+export type RoomSaveStatus = "clean" | "saving" | "unsaved" | "error";
 export type PersistedChangeVisibility = "structural" | "visitor-observable";
 
 export interface RoomEditingSnapshot {
@@ -13,6 +13,7 @@ export interface RoomEditingSnapshot {
     readonly draggedItemId: string | null;
     readonly placingCatalogItemId: Id<"catalogItems"> | null;
     readonly saveStatus: RoomSaveStatus;
+    readonly saveError: string | null;
     readonly canSwitchRooms: boolean;
 }
 
@@ -69,6 +70,7 @@ export interface RoomEditingSession {
         visibility?: PersistedChangeVisibility
     ): EditingResult;
     flush(): Promise<void>;
+    retrySave(): Promise<void>;
     dispose(): void;
 }
 

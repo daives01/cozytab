@@ -3,6 +3,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import { ComputerScreen } from "./ComputerScreen";
 import type { TimeOfDay } from "../room/types";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
+import type { RoomSaveStatus } from "@/room/session/types";
 
 export interface ComputerOverlayProps {
     isGuest: boolean;
@@ -34,6 +35,9 @@ export interface ComputerOverlayProps {
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
     inRoomVisitors?: VisitorState[];
     canSwitchRooms: boolean;
+    saveStatus?: RoomSaveStatus;
+    saveError?: string | null;
+    onRetrySave?: () => Promise<void>;
 }
 
 export function ComputerOverlay({
@@ -66,6 +70,9 @@ export function ComputerOverlay({
     onSetDevTimeOfDay,
     inRoomVisitors,
     canSwitchRooms,
+    saveStatus,
+    saveError,
+    onRetrySave,
 }: ComputerOverlayProps) {
     if (!isComputerOpen) return null;
 
@@ -99,6 +106,9 @@ export function ComputerOverlay({
             onSetDevTimeOfDay={onSetDevTimeOfDay}
             inRoomVisitors={inRoomVisitors}
             canSwitchRooms={canSwitchRooms}
+            saveStatus={saveStatus}
+            saveError={saveError}
+            onRetrySave={onRetrySave}
         />
     );
 }

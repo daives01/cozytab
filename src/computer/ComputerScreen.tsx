@@ -58,6 +58,9 @@ export interface ComputerScreenProps {
     onSetDevTimeOfDay: (value: TimeOfDay | null) => void;
     inRoomVisitors?: import("@/hooks/useWebSocketPresence").VisitorState[];
     canSwitchRooms: boolean;
+    saveStatus?: import("@/room/session/types").RoomSaveStatus;
+    saveError?: string | null;
+    onRetrySave?: () => Promise<void>;
 }
 
 import { createId } from "@/utils/id";
@@ -91,6 +94,9 @@ export function ComputerScreen({
     onSetDevTimeOfDay,
     inRoomVisitors,
     canSwitchRooms,
+    saveStatus,
+    saveError,
+    onRetrySave,
 }: ComputerScreenProps) {
     const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -629,6 +635,9 @@ export function ComputerScreen({
                                                 myRooms: myRooms ?? [],
                                                 switchingRoom,
                                                 canSwitchRooms,
+                                                saveStatus,
+                                                saveError,
+                                                onRetrySave,
                                                 onSwitchRoom: (roomId) => handleSwitchRoom(roomId, win.id),
                                             }}
                                             customizeProps={

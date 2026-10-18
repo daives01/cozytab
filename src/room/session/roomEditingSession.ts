@@ -1,4 +1,5 @@
 import { MAX_ROOM_ITEMS } from "@shared/roomLimits";
+import { ConvexError } from "convex/values";
 import { createId } from "@/utils/id";
 import { clampItemPosition } from "../utils/roomActions";
 import type {
@@ -36,6 +37,7 @@ export function createRoomEditingSession({
         draggedItemId: null,
         placingCatalogItemId: null,
         saveStatus: recoveredItems ? "unsaved" : "clean",
+        saveError: null,
         canSwitchRooms: !recoveredItems,
     };
     let revision = recoveredItems ? 1 : 0;
@@ -66,7 +68,7 @@ export function createRoomEditingSession({
         if (disposed) return;
         persistence.draft?.write(items);
         revision += 1;
-        publish({ items, saveStatus: "unsaved" });
+        publish({ items, saveStatus: snapshot.saveStatus === "error" ? "error" : "unsaved" });
         if (visibility === "visitor-observable") {
             cancelScheduledSave?.();
             cancelScheduledSave = null;
@@ -98,13 +100,19 @@ export function createRoomEditingSession({
                 savedRevision = Math.max(savedRevision, savingRevision);
                 persistence.draft?.acknowledge(savingItems);
                 if (!disposed && revision === savingRevision) {
-                    publish({ items: canonicalItems.map(clampItemPosition), saveStatus: "clean" });
+                    publish({ items: canonicalItems.map(clampItemPosition), saveStatus: "clean", saveError: null });
                 } else if (!disposed) {
                     publish({ saveStatus: "unsaved" });
                 }
             })
-            .catch(() => {
-                if (!disposed) publish({ saveStatus: "unsaved" });
+            .catch((error: unknown) => {
+                const message = error instanceof ConvexError && typeof error.data === "string"
+                    ? error.data
+                    : error instanceof Error ? error.message : typeof error === "string" ? error : "";
+                if (!disposed) publish({
+                    saveStatus: "error",
+                    saveError: message.trim() || "Check your connection and try again.",
+                });
             })
             .finally(() => {
                 inFlight = null;
@@ -129,6 +137,13 @@ export function createRoomEditingSession({
         const remaining = Math.max(0, owned - placed);
         const roomAtCapacity = snapshot.items.length >= MAX_ROOM_ITEMS;
         return { allowed: remaining > 0 && !roomAtCapacity, roomAtCapacity, ownedCount: owned, placedCount: placed, remaining };
+    };
+
+    const flush = async () => {
+        cancelScheduledSave?.();
+        cancelScheduledSave = null;
+        if (inFlight) await inFlight;
+        if (revision !== savedRevision) await saveCurrentRevision();
     };
 
     return {
@@ -217,12 +232,8 @@ export function createRoomEditingSession({
             recordItems(snapshot.items.map((candidate) => candidate.id === itemId ? clampItemPosition({ ...candidate, ...changes }) : candidate), visibility);
             return { accepted: true };
         },
-        flush: async () => {
-            cancelScheduledSave?.();
-            cancelScheduledSave = null;
-            if (inFlight) await inFlight;
-            if (revision !== savedRevision) await saveCurrentRevision();
-        },
+        flush,
+        retrySave: flush,
         dispose: () => {
             if (disposed) return;
             cancelScheduledSave?.();

@@ -1,6 +1,8 @@
 import { CheckCircle2, Home } from "lucide-react";
 import type { Id } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
+import { RoomSaveFeedback } from "@/room/components/RoomSaveFeedback";
+import type { RoomSaveStatus } from "@/room/session/types";
 
 interface Room {
     _id: Id<"rooms">;
@@ -16,6 +18,9 @@ interface RoomsPanelProps {
     myRooms: Room[] | undefined;
     switchingRoom: Id<"rooms"> | null;
     canSwitchRooms: boolean;
+    saveStatus?: RoomSaveStatus;
+    saveError?: string | null;
+    onRetrySave?: () => Promise<void>;
     onSwitchRoom: (roomId: Id<"rooms">) => Promise<void>;
 }
 
@@ -23,6 +28,9 @@ export function RoomsPanel({
     myRooms,
     switchingRoom,
     canSwitchRooms,
+    saveStatus,
+    saveError,
+    onRetrySave,
     onSwitchRoom,
 }: RoomsPanelProps) {
     const baseContainerClass = "bg-stone-50 w-full h-full overflow-hidden flex flex-col";
@@ -96,8 +104,13 @@ export function RoomsPanel({
                 )}
             </div>
 
-            <div className="bg-stone-200 border-t border-stone-300 px-3 py-2 text-size-md text-stone-500 text-center shrink-0">
-                {canSwitchRooms ? "Buy more rooms from the Item Shop!" : "Finish saving your room before switching."}
+            <div className="bg-[var(--color-secondary)] border-t-2 border-[var(--color-foreground)] px-3 py-2 text-sm text-center shrink-0">
+                {saveStatus && <RoomSaveFeedback saveStatus={saveStatus} saveError={saveError} onRetrySave={onRetrySave} />}
+                <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
+                    {canSwitchRooms ? "Buy more rooms from the Item Shop!" : saveStatus === "clean"
+                        ? "Exit edit mode before switching rooms."
+                        : saveStatus ? "Your room must be saved before switching." : "Room switching is unavailable while visiting."}
+                </p>
             </div>
         </div>
     );

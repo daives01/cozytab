@@ -1,3 +1,4 @@
+import { RoomSaveFeedback } from "./components/RoomSaveFeedback";
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { Id } from "@convex/_generated/dataModel";
@@ -567,7 +568,19 @@ function RoomPageOwner({
                     transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
                 roomContent={roomContent}
-                overlays={<RoomOverlays {...overlaysModel} />}
+                overlays={<>
+                    <RoomOverlays {...overlaysModel} />
+                    <div className="absolute top-24 right-4 z-50 max-w-80 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] p-3 text-[var(--color-foreground)] shadow-[var(--shadow-4)] pointer-events-auto"
+                        style={{ left: drawerOrientation === "left" ? 16 + toolbarOffset : 16 }}
+                        onPointerDown={(event) => event.stopPropagation()}
+                    >
+                        <RoomSaveFeedback
+                            saveStatus={roomState.saveStatus}
+                            saveError={roomState.saveError}
+                            onRetrySave={() => roomState.editingSession.retrySave()}
+                        />
+                    </div>
+                </>}
             />
             <MobileZoomButton zoomLevel={zoomLevel} zoomLabel={zoomLabel} onCycleZoom={cycleZoom} />
         </>
