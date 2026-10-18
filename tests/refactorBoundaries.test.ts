@@ -13,8 +13,8 @@ const room = {
 
 describe("visitor room source normalization", () => {
     test("keeps invite closure and referral capabilities explicit", () => {
-        const source = normalizeInviteRoomSource({ room, ownerName: "Host", ownerReferralCode: "ABC", closed: true });
-        expect(source).toMatchObject({ kind: "invite", access: "closed", ownerName: "Host", ownerReferralCode: "ABC" });
+        const source = normalizeInviteRoomSource({ room, ownerName: "Host", ownerReferralCode: "ABC" });
+        expect(source).toMatchObject({ kind: "invite", access: "open", ownerName: "Host", ownerReferralCode: "ABC" });
     });
 
     test("friend access remains open independently of invite TTL", () => {

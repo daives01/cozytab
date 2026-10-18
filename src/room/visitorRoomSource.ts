@@ -33,14 +33,13 @@ export function normalizeInviteRoomSource(input: {
     room: NormalizableRoom;
     ownerName: string;
     ownerReferralCode?: string | null;
-    closed?: boolean;
 }): VisitorRoomSource {
     return {
         kind: "invite",
         room: normalizeRoom(input.room),
         ownerName: input.ownerName,
         ownerReferralCode: input.ownerReferralCode ?? undefined,
-        access: input.closed ? "closed" : "open",
+        access: "open",
     };
 }
 

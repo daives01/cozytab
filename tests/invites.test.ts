@@ -47,11 +47,12 @@ describe("invite lifecycle", () => {
         expect(after?.hostOnlySince).toBeUndefined();
 
         const openLookup = await t.query(api.rooms.getRoomByInvite, { token: invite.code });
-        expect(openLookup?.closed).toBe(false);
+        expect(openLookup).toMatchObject({ closed: false, room: { _id: roomId } });
+        expect(openLookup).toHaveProperty("ownerReferralCode", "REF-owner");
 
         const closed = await owner.mutation(api.rooms.closeInviteSession, { roomId });
         expect(closed.closed).toBe(true);
-        expect((await t.query(api.rooms.getRoomByInvite, { token: invite.code }))?.closed).toBe(true);
+        expect(await t.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
         await t.run((ctx) => ctx.db.patch(invite.inviteId, { expiresAt: closed.expiresAt - 1 }));
         expect(await t.query(api.invites.getInviteByToken, { token: invite.code })).toBeNull();
     });

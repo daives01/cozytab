@@ -43,6 +43,7 @@ export function VisitorRoomPage() {
     if (!token) return <InviteState message="Invalid invite link" />;
     if (ownerLoading || roomData === undefined) return <InviteState message="Loading room..." />;
     if (roomData === null) return <InviteState message="This invite link is invalid or has expired" />;
+    if (roomData.closed) return <InviteState message="The host stepped away." />;
     if (isSignedIn && authedUser?._id === roomData.room.userId) return <RoomPage isGuest={false} />;
 
     return <InviteRoomContent roomData={roomData} authedUser={authedUser} />;

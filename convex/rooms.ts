@@ -329,6 +329,10 @@ export const getRoomByInvite = query({
         const now = Date.now();
         const inviteOpen = isInviteOpen(invite, now);
 
+        if (!inviteOpen) {
+            return { closed: true as const };
+        }
+
         const room = await ctx.db.get(invite.roomId);
         if (!room) return null;
 
@@ -339,7 +343,7 @@ export const getRoomByInvite = query({
             room: { ...room, template },
             ownerName: owner?.displayName ?? owner?.username ?? "Unknown",
             ownerReferralCode: owner?.referralCode ?? null,
-            closed: !inviteOpen,
+            closed: false as const,
         };
     },
 });
