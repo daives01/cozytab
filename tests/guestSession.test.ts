@@ -172,6 +172,8 @@ test("guest autosave reports storage failure and retries only the newest room it
     const session = createRoomEditingSession({ roomId: "guest-owner", persistence: createGuestRoomPersistence() });
     session.enterEditMode();
     session.move(chair.id, { x: 30, y: 40 });
+    // The immediate checkpoint must report failure without losing the edit.
+    expect(session.getSnapshot()).toMatchObject({ saveStatus: "error", items: [{ ...chair, x: 30, y: 40 }] });
     await session.flush();
     expect(session.getSnapshot().saveStatus).toBe("error");
     expect(session.getSnapshot().saveError).toContain("Allow storage or free up space");
@@ -182,5 +184,12 @@ test("guest autosave reports storage failure and retries only the newest room it
     expect(session.getSnapshot()).toMatchObject({ saveStatus: "clean", saveError: null });
     expect(JSON.parse(storage.getItem(GUEST_ROOM_STORAGE_KEY)!).items[0]).toMatchObject({ x: 80, y: 90 });
     expect(storage.getItem(GUEST_COINS_STORAGE_KEY)).toBe("123");
+    // Guest Conversion may clear a successful synchronous checkpoint before
+    // its debounced save runs, including after an earlier storage failure.
+    session.move(chair.id, { x: 100, y: 110 });
+    expect(JSON.parse(storage.getItem(GUEST_ROOM_STORAGE_KEY)!).items[0]).toMatchObject({ x: 100, y: 110 });
+    storage.removeItem(GUEST_ROOM_STORAGE_KEY);
     session.dispose();
+    await session.flush();
+    expect(storage.getItem(GUEST_ROOM_STORAGE_KEY)).toBeNull();
 });

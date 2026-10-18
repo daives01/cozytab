@@ -28,12 +28,15 @@ describe("room active-state and saving invariants", () => {
         expect(lastDelete).toEqual({ success: false, message: "Cannot delete your last room" });
     });
 
-    test("saves 50 items and atomically rejects 51 without requiring inventory ownership", async () => {
+    test("enforces the 50-item cap together with inventory ownership", async () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "owner");
         const templateId = await seedTemplate(t);
         const roomId = await seedRoom(t, userId, templateId);
         const catalogItemId = await seedCatalogItem(t);
+        await t.run((ctx) => ctx.db.insert("inventory", {
+            userId, catalogItemId, purchasedAt: Date.now(), count: 51,
+        }));
         const items = Array.from({ length: 51 }, (_, index) => ({ id: `item-${index}`, catalogItemId, x: 1, y: 2 }));
         const owner = asUser(t, "owner");
         await owner.mutation(api.rooms.saveMyRoom, { roomId, items: items.slice(0, 50) });
