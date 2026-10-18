@@ -72,6 +72,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
             });
         }
         return createAuthenticatedRoomPersistence({
+            roomId: roomData.room?._id,
             initialItems: (roomData.room?.items ?? []) as RoomItem[],
             saveItems: async (items) => (await saveRoom({ roomId: roomData.room!._id, items })) as RoomItem[],
         });

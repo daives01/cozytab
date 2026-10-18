@@ -22,6 +22,20 @@ export function RoomSessionProvider({ roomId, persistence, ownedCount, children 
     const [activateSessionLifecycle] = useState(() => createRoomSessionLifecycle(session));
 
     useEffect(() => activateSessionLifecycle(), [activateSessionLifecycle]);
+    useEffect(() => {
+        // The draft is already synchronous; these are best-effort early flushes
+        // for backgrounding/shutdown and BFCache, not our recovery guarantee.
+        const flush = () => { void session.flush(); };
+        const onVisibilityChange = () => {
+            if (document.visibilityState === "hidden") flush();
+        };
+        window.addEventListener("pagehide", flush);
+        document.addEventListener("visibilitychange", onVisibilityChange);
+        return () => {
+            window.removeEventListener("pagehide", flush);
+            document.removeEventListener("visibilitychange", onVisibilityChange);
+        };
+    }, [session]);
     useEffect(() => session.updateOwnedCount(ownedCount), [ownedCount, session]);
 
     return <RoomSessionContext.Provider value={session}>{children}</RoomSessionContext.Provider>;

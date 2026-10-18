@@ -11,6 +11,8 @@ export function createRoomSessionLifecycle(
     return () => {
         generation += 1;
         const mountedGeneration = generation;
+        // Recovered drafts retry on mount, outside React render/initialization.
+        void session.flush();
 
         return () => {
             defer(() => {

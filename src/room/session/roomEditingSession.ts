@@ -27,17 +27,18 @@ export function createRoomEditingSession({
     debounceMs = 400,
 }: CreateRoomEditingSessionOptions): RoomEditingSession {
     let ownedCountSource = ownedCount;
+    const recoveredItems = persistence.draft?.load();
     let snapshot: RoomEditingSnapshot = {
         roomId,
-        items: persistence.load().map(clampItemPosition),
+        items: (recoveredItems ?? persistence.load()).map(clampItemPosition),
         mode: "view",
         selectedItemId: null,
         draggedItemId: null,
         placingCatalogItemId: null,
-        saveStatus: "clean",
-        canSwitchRooms: true,
+        saveStatus: recoveredItems ? "unsaved" : "clean",
+        canSwitchRooms: !recoveredItems,
     };
-    let revision = 0;
+    let revision = recoveredItems ? 1 : 0;
     let savedRevision = 0;
     let disposed = false;
     let cancelScheduledSave: (() => void) | null = null;
@@ -62,6 +63,8 @@ export function createRoomEditingSession({
     };
 
     const recordItems = (items: RoomEditingSnapshot["items"], visibility: PersistedChangeVisibility) => {
+        if (disposed) return;
+        persistence.draft?.write(items);
         revision += 1;
         publish({ items, saveStatus: "unsaved" });
         if (visibility === "visitor-observable") {
@@ -74,7 +77,7 @@ export function createRoomEditingSession({
     };
 
     const saveCurrentRevision = (): Promise<void> => {
-        if (disposed || revision === savedRevision) return Promise.resolve();
+        if (revision === savedRevision) return Promise.resolve();
         if (inFlight) {
             saveRequestedWhileInFlight = true;
             return inFlight;
@@ -83,13 +86,19 @@ export function createRoomEditingSession({
         const savingRevision = revision;
         const savingItems = snapshot.items;
         publish({ saveStatus: "saving" });
-        inFlight = persistence.save(savingItems)
+        let saving: Promise<RoomEditingSnapshot["items"]>;
+        try {
+            saving = persistence.save(savingItems);
+        } catch (error) {
+            saving = Promise.reject(error);
+        }
+        inFlight = saving
             .then((canonicalItems) => {
-                if (disposed) return;
                 savedRevision = Math.max(savedRevision, savingRevision);
-                if (revision === savingRevision) {
+                persistence.draft?.acknowledge(savingItems);
+                if (!disposed && revision === savingRevision) {
                     publish({ items: canonicalItems.map(clampItemPosition), saveStatus: "clean" });
-                } else {
+                } else if (!disposed) {
                     publish({ saveStatus: "unsaved" });
                 }
             })
@@ -100,7 +109,7 @@ export function createRoomEditingSession({
                 inFlight = null;
                 const shouldSaveAgain = saveRequestedWhileInFlight;
                 saveRequestedWhileInFlight = false;
-                if (shouldSaveAgain && !disposed && revision !== savedRevision) {
+                if (shouldSaveAgain && revision !== savedRevision) {
                     void saveCurrentRevision();
                 }
             });
@@ -214,8 +223,15 @@ export function createRoomEditingSession({
             if (revision !== savedRevision) await saveCurrentRevision();
         },
         dispose: () => {
+            if (disposed) return;
             cancelScheduledSave?.();
             cancelScheduledSave = null;
+            // Detach immediately, but drain a pending revision after any older
+            // request. Failed requests leave the synchronous draft for recovery.
+            void (async () => {
+                if (inFlight) await inFlight;
+                if (revision !== savedRevision) await saveCurrentRevision();
+            })();
             disposed = true;
             listeners.clear();
         },

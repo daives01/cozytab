@@ -28,7 +28,14 @@ export type EditingRejection = "not-editing" | "item-not-found" | "insufficient-
 export type EditingResult = { accepted: true } | { accepted: false; reason: EditingRejection };
 export type PlacementResult = { accepted: true; itemId: string } | { accepted: false; reason: EditingRejection };
 
+export interface RoomDraft {
+    load(): RoomItem[] | null;
+    write(items: RoomItem[]): void;
+    acknowledge(items: RoomItem[]): void;
+}
+
 export interface RoomPersistence {
+    draft?: RoomDraft;
     load(): RoomItem[];
     save(items: RoomItem[]): Promise<RoomItem[]>;
 }
