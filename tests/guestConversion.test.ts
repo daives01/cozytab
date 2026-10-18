@@ -158,6 +158,10 @@ describe("Guest Conversion", () => {
         expect(state.friendships[0]).toMatchObject({ status: "pending", initiator: referred?._id });
         expect(state.transactions.filter(({ reason }) => reason === "referral")).toHaveLength(1);
         expect(state.rooms.filter(({ userId }) => userId === referred?._id)).toHaveLength(1);
+        expect(await asUser(t, "referrer").query(api.users.getReferralStats, {})).toEqual({
+            referralCount: 1,
+            referralCoins: 3,
+        });
     });
 
     test("ignores invalid referral codes", async () => {

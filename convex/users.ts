@@ -76,11 +76,16 @@ export const getReferralStats = query({
             )
             .collect();
 
-        const referralCount = referredUsers.length;
+        const referralTransactions = await ctx.db
+            .query("currencyTransactions")
+            .withIndex("by_user", (q) => q.eq("userId", user._id))
+            .filter((q) => q.eq(q.field("reason"), "referral"))
+            .collect();
 
         return {
-            referralCount,
-            referralCoins: referralCount, // one cozy coin per referral
+            referralCount: referredUsers.length,
+            // Use recorded rewards so historical amounts survive reward-rate changes.
+            referralCoins: referralTransactions.reduce((total, transaction) => total + transaction.delta, 0),
         };
     },
 });

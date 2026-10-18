@@ -347,14 +347,16 @@ export function Shop({
                                     <Clock className="h-3.5 w-3.5 text-neutral-400" />
                                     <span>{nextRewardText}</span>
                                 </div>
-                                {(referralStats?.referralCoins ?? 0) > 0 && (
+                                {referralStats && (referralStats.referralCount > 0 || referralStats.referralCoins > 0) && (
                                     <>
                                         <div className="h-1 w-1 rounded-full bg-neutral-300" />
                                         <div className="flex items-center gap-1.5" title="Referral Earnings">
                                             <Users className="h-3.5 w-3.5 text-blue-500" />
                                             <span>
-                                                {referralStats?.referralCoins} referral
-                                                {referralStats?.referralCoins === 1 ? "" : "s"}
+                                                {referralStats.referralCount} referral
+                                                {referralStats.referralCount === 1 ? "" : "s"}
+                                                {" · "}{referralStats.referralCoins} cozy coin
+                                                {referralStats.referralCoins === 1 ? "" : "s"} earned
                                             </span>
                                         </div>
                                     </>
