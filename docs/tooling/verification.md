@@ -11,3 +11,7 @@ Hono is updated to 4.13.16; compatible Workers types to 4.20260702.1. Workers ty
 Publication is blocked: gh reports invalid credentials and connected GitHub issue creation returned 403 Resource not accessible by integration. No PR or issue publication is confirmed. Do not use GitKraken. Issue and PR drafts remain local.
 
 First independent review identified check failures, missing worker typecheck/update and missing formatting step. Those are addressed. A fresh review accepted the revised application/dependency changes. A subsequent fresh review accepted music/profile coverage and found that the invite test did not prove timer execution; the test now controls Date.now and asserts the link remains until the callback runs. The focused three-test suite passes after this correction; the full check passed with 110 tests before this test-only correction. Existing Taskbar stash and docs/research/quoridor-engine.md are untouched.
+
+## Preview deployment correction
+
+Vercel compiled the app successfully, then Convex analysis failed on missing STRIPE_PRICE_10_COINS in the preview deployment. Price configuration is now validated inside checkout/webhook request handling through a shared helper. Missing or blank prices still throw; no placeholder prices or secrets are introduced. Tests verify modules load without billing configuration and payment validation still fails closed. Full check passes with 113 tests across 18 files. Fresh review covers this correction.
