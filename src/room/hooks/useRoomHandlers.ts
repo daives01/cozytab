@@ -49,11 +49,13 @@ export function useRoomHandlers({
     const handlePlaceCatalogItem = useCallback(
         (catalogItemId: Id<"catalogItems">, clientX: number, clientY: number) => {
             if (mode !== "edit") return;
+
             if (!containerRef.current) return;
 
             const rect = containerRef.current.getBoundingClientRect();
             const relativeX = clientX - rect.left;
             const relativeY = clientY - rect.top;
+
             const isInsideRoom =
                 relativeX >= 0 && relativeX <= rect.width && relativeY >= 0 && relativeY <= rect.height;
 
@@ -63,6 +65,7 @@ export function useRoomHandlers({
             const y = relativeY / scale;
 
             const result = editingSession.place({ catalogItemId, x, y });
+
             if (!result.accepted) return;
 
             if (onboardingStep === "place-computer") {
@@ -77,6 +80,7 @@ export function useRoomHandlers({
             const now = Date.now();
             const current = editingSession.getSnapshot().items;
             const updated = updateItemsForMusicToggle(current, itemId, playing, now).find((item) => item.id === itemId);
+
             if (!updated) return;
             const changes: Partial<RoomItem> = { ...updated };
             delete changes.id;
@@ -90,12 +94,14 @@ export function useRoomHandlers({
         if (mode === "edit") {
             editingSession.exitEditMode();
             setIsDrawerOpen(false);
+
             if (onboardingStep === "switch-to-view") {
                 advanceOnboarding();
             }
         } else {
             editingSession.enterEditMode();
             setIsDrawerOpen(true);
+
             if (onboardingStep === "enter-edit-mode") {
                 advanceOnboarding();
             }
@@ -107,6 +113,7 @@ export function useRoomHandlers({
     const handleDrop = useCallback(
         (e: DragEvent) => {
             e.preventDefault();
+
             if (mode !== "edit") return;
 
             if (e.target instanceof HTMLElement && e.target.closest("[data-asset-drawer]")) {
@@ -114,6 +121,7 @@ export function useRoomHandlers({
             }
 
             const catalogItemId = e.dataTransfer.getData("catalogItemId");
+
             if (!catalogItemId) return;
             handlePlaceCatalogItem(catalogItemId as Id<"catalogItems">, e.clientX, e.clientY);
         },
@@ -123,6 +131,7 @@ export function useRoomHandlers({
     const handleCursorMove = useCallback(
         (clientX: number, clientY: number) => {
             const rect = containerRef.current?.getBoundingClientRect();
+
             const clamped = clampCursorToRoom({
                 clientX,
                 clientY,
@@ -132,6 +141,7 @@ export function useRoomHandlers({
                 roomHeight: ROOM_HEIGHT,
                 lastPosition: lastRoomPositionRef.current,
             });
+
             lastRoomPositionRef.current = clamped;
             updateCursor(clamped.x, clamped.y, clientX, clientY, hasVisitors);
         },
@@ -142,8 +152,10 @@ export function useRoomHandlers({
 
     const handleComputerClick = useCallback(() => {
         if (mode !== "view") return;
+
         if (!computerGuardAllowOpen) return;
         setIsComputerOpen(true);
+
         if (onboardingStep === "click-computer") {
             advanceOnboarding();
         }
@@ -188,6 +200,7 @@ export function useRoomHandlers({
         },
         [editingSession],
     );
+
     const handleDragEnd = useCallback(() => editingSession.endDrag(), [editingSession]);
 
     const handleBringToFront = useCallback(
@@ -196,6 +209,7 @@ export function useRoomHandlers({
         },
         [editingSession],
     );
+
     const handleSendToBack = useCallback(
         (id: string) => {
             editingSession.sendToBack(id);

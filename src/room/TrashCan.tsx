@@ -34,6 +34,7 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
                 clearTimeout(showTimeoutRef.current);
                 showTimeoutRef.current = null;
             }
+
             setShouldShow(false);
             setIsHovered(false);
         };
@@ -47,6 +48,7 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
         const checkTrashHover = (clientX: number, clientY: number): boolean => {
             if (!trashRef.current) return false;
             const rect = trashRef.current.getBoundingClientRect();
+
             return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
         };
 
@@ -57,11 +59,13 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
         const handleMouseUp = (e: MouseEvent) => {
             // Use ref to get the current value, even if prop was cleared
             const currentItemId = draggedItemIdRef.current;
+
             if (!currentItemId) return;
 
             if (checkTrashHover(e.clientX, e.clientY)) {
                 onDelete(currentItemId);
             }
+
             setIsHovered(false);
             setShouldShow(false);
 
@@ -79,11 +83,13 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
         const handlePointerUp = (e: PointerEvent) => {
             if (e.pointerType !== "touch") return;
             const currentItemId = draggedItemIdRef.current;
+
             if (!currentItemId) return;
 
             if (checkTrashHover(e.clientX, e.clientY)) {
                 onDelete(currentItemId);
             }
+
             setIsHovered(false);
             setShouldShow(false);
 

@@ -13,6 +13,7 @@ interface AssetImageProps {
 export function AssetImage({ assetUrl, alt = "", className, draggable, style }: AssetImageProps) {
     const isStorageUrl = assetUrl?.startsWith("storage:");
     const storageId = isStorageUrl ? assetUrl.replace("storage:", "") : null;
+
     const resolvedUrl = useQuery(
         api.catalog.getImageUrl,
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip",

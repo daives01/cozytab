@@ -117,3 +117,13 @@ Explicitly defer `no-shape-in-symbol-names`, 0 before → 0 after. Exact semanti
 No runtime changes or additional tests are needed. Existing policies, vendor bytes and exclusions remain unchanged.
 
 Validation: `bun run check` passes (formatting, Oxlint, ESLint, worker types, build, 117 tests / 611 assertions). Full audit: 1674 diagnostics; both selected rules remain zero. Vendor SHA256SUMS and `git diff --check` pass.
+
+## Readable spacing policy (issue #7, base 9243c9e)
+
+Globally enforce pinned anti-slop/require-readable-spacing at error (13 enforced rules). The isolated .oxlintrc.spacing.json enables only spacing and disables default correctness rules. Existing exclusions are preserved. Assertion policy remains advisory.
+
+Workflow: bun run format runs Oxfmt → isolated spacing --fix → Oxfmt → spacing check. bun run format:check checks both and remains the first normal check gate.
+
+Exact audit before → after: total 1674 → 248; spacing 1426 → 0; safety comments 127; runtime typeof 76; dictionaries 18; unknown parameters 16; known-value widening 11; all other audit counts zero and unchanged.
+
+Full checks pass before and after: 117 tests / 611 assertions. All 159 changed source files pass whitespace-only comparison and transpileModule emitted runtime AST equivalence including JSX, normalizing parentheses. Adjacent JSX literal normalization was unnecessary. This verifies emitted syntax under ESNext/ReactJSX options, not arbitrary compiler settings or browser behavior. Vendor checksums and git diff --check pass. Complete formatting is byte-idempotent.

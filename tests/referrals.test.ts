@@ -24,6 +24,7 @@ describe("referral stats", () => {
             for (const userId of [firstId, secondId, unrecordedId]) {
                 await ctx.db.patch(userId, { referredBy: referrerId });
             }
+
             // Different historical reward rates, unrelated income/spending, and
             // another user's reward must not be replaced by count * today's rate.
             const transactions = [
@@ -33,6 +34,7 @@ describe("referral stats", () => {
                 { userId: referrerId, reason: "purchase", delta: -6 },
                 { userId: otherId, reason: "referral", delta: 3 },
             ];
+
             for (const [index, transaction] of transactions.entries()) {
                 await ctx.db.insert("currencyTransactions", {
                     ...transaction,

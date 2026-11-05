@@ -19,6 +19,7 @@ export function setDragImageFromElement(event: React.DragEvent, element: HTMLEle
     canvas.style.height = `${height}px`;
 
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
     try {

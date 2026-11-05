@@ -17,9 +17,11 @@ export function setTypingVolumeMultiplier(multiplier: number) {
 }
 
 type SampleCategory = "key" | "enter" | "space" | "backspace";
+
 type Phase = "down" | "up";
 
 const SOUND_BASE = "/assets/sounds/alpacas";
+
 const SAMPLE_PATHS: Record<Phase, Record<SampleCategory, string>> = {
     down: {
         key: `${SOUND_BASE}/key-down.mp3`,
@@ -46,16 +48,20 @@ function randomInRange(min: number, max: number) {
 async function loadBuffer(url: string): Promise<AudioBuffer | null> {
     if (bufferCache.has(url)) return bufferCache.get(url) ?? null;
     const ctx = getAudioContext();
+
     if (!ctx) return null;
+
     try {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
         const decoded = await ctx.decodeAudioData(arrayBuffer);
         bufferCache.set(url, decoded);
+
         return decoded;
     } catch (err) {
         console.error("[TypingAudio] Failed to load buffer", url, err);
         bufferCache.set(url, null);
+
         return null;
     }
 }
@@ -63,8 +69,10 @@ async function loadBuffer(url: string): Promise<AudioBuffer | null> {
 function shouldPlay(key: string): boolean {
     const now = performance.now();
     const last = lastPlayed.get(key) ?? 0;
+
     if (now - last < TYPING_AUDIO_THROTTLE_MS) return false;
     lastPlayed.set(key, now);
+
     return true;
 }
 
@@ -72,6 +80,7 @@ function limitVoices() {
     if (activeSources.size < TYPING_AUDIO_MAX_SIMULTANEOUS) return;
     // Stop the oldest source to keep the mix clean.
     const [oldest] = activeSources;
+
     try {
         oldest.stop();
     } catch {
@@ -82,13 +91,18 @@ function limitVoices() {
 async function playSample(path: string) {
     if (!isAudioUnlocked()) {
         const ready = await ensureAudioReady();
+
         if (!ready) return;
     }
+
     const ctx = getAudioContext();
+
     if (!ctx) return;
+
     if (!shouldPlay(path)) return;
 
     const buffer = await loadBuffer(path);
+
     if (!buffer) return;
 
     limitVoices();
@@ -117,13 +131,17 @@ async function playSample(path: string) {
 
 function resolveCategory(key: string): SampleCategory {
     if (key === "Enter") return "enter";
+
     if (key === "Backspace") return "backspace";
+
     if (key === " " || key === "Spacebar") return "space";
+
     return "key";
 }
 
 function getPath(phase: Phase, key: string): string {
     const category = resolveCategory(key);
+
     return SAMPLE_PATHS[phase][category];
 }
 

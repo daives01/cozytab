@@ -37,20 +37,25 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                 onClose();
             }
         };
+
         window.addEventListener("keydown", onKeyDown);
+
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [onClose]);
 
     useEffect(() => {
         if (!videoId) return;
         let cancelled = false;
+
         const fetchTitle = async () => {
             try {
                 const response = await fetch(
                     `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`,
                 );
+
                 if (!response.ok) throw new Error("Unable to fetch title");
                 const data = (await response.json()) as { title?: string | null };
+
                 if (!cancelled) {
                     setResult({ videoId, title: typeof data?.title === "string" ? data.title : null });
                 }
@@ -58,7 +63,9 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                 if (!cancelled) setResult({ videoId, title: null });
             }
         };
+
         void fetchTitle();
+
         return () => {
             cancelled = true;
         };

@@ -25,8 +25,10 @@ export function useVisitorGameState({
     const activeGameType = useMemo((): GameType | null => {
         if (!activeGameItemId || !items || !catalogItems) return null;
         const roomItem = items.find((i) => i.id === activeGameItemId);
+
         if (!roomItem) return null;
         const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
+
         return catalogItem?.gameType ?? null;
     }, [activeGameItemId, items, catalogItems]);
 

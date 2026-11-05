@@ -36,6 +36,7 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
             if (event.pointerType !== "touch") return;
             event.preventDefault();
             event.stopPropagation();
+
             if (!roomState.editingSession.beginPlacement(catalogItemId).accepted) return;
             setTouchPlacementOrigin({ x: event.clientX, y: event.clientY });
             touchPlacementPointerIdRef.current = event.pointerId;
@@ -46,7 +47,9 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
     const handleTouchPlaceRoom = useCallback(
         (event: React.PointerEvent) => {
             if (event.pointerType !== "touch") return;
+
             if (!touchPlacementId) return;
+
             if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current)
                 return;
             event.preventDefault();
@@ -73,6 +76,7 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
                 setTouchPlacementOrigin(null);
                 touchPlacementPointerIdRef.current = null;
             }, 0);
+
             return () => clearTimeout(timeoutId);
         }
     }, [roomState.editingSession, roomState.mode]);
@@ -83,11 +87,14 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
 
         const handlePointerMove = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
+
             if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
+
             const dx = event.clientX - touchPlacementOrigin.x;
             const dy = event.clientY - touchPlacementOrigin.y;
+
             if (Math.hypot(dx, dy) > MOVEMENT_THRESHOLD) {
                 setTouchPlacementOrigin(null);
                 roomState.editingSession.cancelPlacement();
@@ -97,9 +104,11 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
 
         const handlePointerCancel = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
+
             if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
+
             setTouchPlacementOrigin(null);
             roomState.editingSession.cancelPlacement();
             touchPlacementPointerIdRef.current = null;
@@ -107,9 +116,11 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
 
         const handlePointerUp = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
+
             if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
+
             setTouchPlacementOrigin(null);
             touchPlacementPointerIdRef.current = null;
         };

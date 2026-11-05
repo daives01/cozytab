@@ -17,6 +17,7 @@ app.use(
     cors({
         origin: (origin, c) => {
             const appUrl = c.env.PUBLIC_APP_URL || "https://your-app-url.com";
+
             const ALLOWED_ORIGINS = new Set<string>([
                 appUrl,
                 "http://localhost:8787",
@@ -27,6 +28,7 @@ app.use(
 
             if (!origin) return origin;
             const normalized = origin.toLowerCase();
+
             return ALLOWED_ORIGINS.has(normalized) ? origin : undefined;
         },
         allowMethods: ["GET", "POST", "OPTIONS"],
@@ -60,6 +62,7 @@ app.get("/ws/:roomId", async (c) => {
 app.get("/room/:roomId", async (c) => {
     const secret = c.env.DEBUG_PRESENCE_SECRET;
     const provided = c.req.header("x-debug-secret");
+
     if (!secret || !provided || provided !== secret) {
         return c.text("Not found", 404);
     }
@@ -69,6 +72,7 @@ app.get("/room/:roomId", async (c) => {
     const stub = c.env.PRESENCE_ROOM.get(id);
 
     const response = await stub.fetch(new Request("http://internal/state"));
+
     return response;
 });
 

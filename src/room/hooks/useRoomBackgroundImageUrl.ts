@@ -26,6 +26,7 @@ export function useRoomBackgroundImageUrl(
 
     if (isStorageUrl) {
         if (resolvedUrl) return resolvedUrl;
+
         return "/assets/brown-room.svg";
     }
 

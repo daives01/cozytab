@@ -48,10 +48,13 @@ export function CursorDisplay({
     const pointerColor = cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)");
     const textOnPointerColor = getReadableTextColor(pointerColor);
     const chatTextOnCustomColor = cursorColor ? getReadableTextColor(cursorColor) : undefined;
+
     const chatBubbleClasses =
         "text-base px-4 py-2 rounded-2xl border shadow-lg max-w-[220px] whitespace-pre-wrap break-words flex items-center justify-center min-w-[40px] min-h-[32px]";
+
     // Keep name badge + chat bubble aligned and nudged away from the cursor
     const textStackOffsetClasses = isLocal ? "ml-10 mt-4" : rotated ? "ml-2 -mt-10" : "ml-8 mb-2";
+
     const handwritingFont = {
         fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
         fontWeight: 400,
@@ -62,6 +65,7 @@ export function CursorDisplay({
     };
 
     const presenceOpacity = dimmed ? 0.3 : tabbedOut ? 0.25 : inMenu ? 0.3 : 1;
+
     const cursorStyle = {
         position: useFixedPosition ? "fixed" : "absolute",
         left: x,

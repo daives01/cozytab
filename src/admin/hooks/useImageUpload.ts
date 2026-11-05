@@ -19,6 +19,7 @@ export function useImageUpload<T extends TableNames>({
 
         try {
             const uploadUrl = await generateUploadUrl();
+
             const result = await fetch(uploadUrl, {
                 method: "POST",
                 headers: { "Content-Type": file.type },

@@ -18,6 +18,7 @@ export function MobileChatInput({ onMessageChange, disabled = false }: MobileCha
     const clearChat = useCallback(() => {
         setValue("");
         onMessageChange(null);
+
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -28,6 +29,7 @@ export function MobileChatInput({ onMessageChange, disabled = false }: MobileCha
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
+
         timeoutRef.current = setTimeout(clearChat, CHAT_TIMEOUT_MS);
     }, [clearChat]);
 
@@ -55,6 +57,7 @@ export function MobileChatInput({ onMessageChange, disabled = false }: MobileCha
 
     const handleBlur = () => {
         setIsFocused(false);
+
         if (!value) {
             clearChat();
         }

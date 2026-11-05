@@ -13,6 +13,7 @@ export function countIds(ids: CatalogId[] = []): Map<string, number> {
         const key = toKey(id);
         counts.set(key, (counts.get(key) ?? 0) + 1);
     });
+
     return counts;
 }
 
@@ -29,6 +30,7 @@ export function addInventoryCounts(
         const key = toKey(item.catalogItemId);
         counts.set(key, (counts.get(key) ?? 0) + (item.count ?? 1));
     });
+
     return counts;
 }
 
@@ -40,6 +42,7 @@ export function remainingForId(
     const key = toKey(catalogItemId);
     const owned = ownedCounts.get(key) ?? 0;
     const placed = placedCounts.get(key) ?? 0;
+
     return {
         ownedCount: owned,
         placedCount: placed,

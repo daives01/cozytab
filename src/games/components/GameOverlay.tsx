@@ -78,8 +78,10 @@ export function GameOverlay({
                 const rest = Object.fromEntries(
                     Object.entries(gameMetadataRef.current).filter(([k]) => k !== "gameSignal"),
                 );
+
                 gameMetadataRef.current = rest;
                 setGameMetadata(Object.keys(rest).length > 0 ? rest : null);
+
                 return;
             }
 
@@ -88,18 +90,23 @@ export function GameOverlay({
             // Immediately show game-end UI for the initiator (don't wait for presence echo)
             if (signal === "drawAccept") {
                 handleGameEndRef.current?.("Draw agreed!");
+
                 return;
             }
+
             if (signal === "resign") {
                 // Use local ref for side to avoid stale closure from presence delay
                 const currentSide = gameMetadataRef.current.side as "white" | "black" | undefined;
+
                 const msg =
                     currentSide === "white"
                         ? "Black wins by resignation!"
                         : currentSide === "black"
                           ? "White wins by resignation!"
                           : "Game over by resignation!";
+
                 handleGameEndRef.current?.(msg);
+
                 return;
             }
         },
@@ -110,11 +117,14 @@ export function GameOverlay({
     // Self-heal effect: if I claimed a side but lost the tie-break, clear my claim
     useEffect(() => {
         if (!mySide || !isOpen) return;
+
         const claimants = playersInGame
             .filter((p) => p.gameMetadata?.side === mySide)
             .map((p) => p.visitorId)
             .sort();
+
         const winner = claimants[0];
+
         if (winner && winner !== visitorId) {
             gameMetadataRef.current = {};
             setGameMetadata(null);
@@ -131,10 +141,13 @@ export function GameOverlay({
         if (!isOpen) {
             pendingAutoClaimRef.current = null;
             gameMetadataRef.current = {};
+
             return;
         }
+
         // On open, check localStorage for a saved side to potentially auto-claim
         const savedSide = getSavedChessSide(itemId);
+
         if (savedSide) {
             pendingAutoClaimRef.current = savedSide;
             // Don't set gameMetadataRef yet—only publish once auto-claim validates conditions
@@ -145,12 +158,16 @@ export function GameOverlay({
     useEffect(() => {
         if (!isOpen || isLoading) return;
         const savedSide = pendingAutoClaimRef.current;
+
         if (!savedSide) return;
+
         // If presence already has a side, don't override it
         if (presenceSide) {
             pendingAutoClaimRef.current = null;
+
             return;
         }
+
         // Only auto-claim if a game is in progress (not starting position)
         if (fen === STARTING_FEN) {
             pendingAutoClaimRef.current = null;
@@ -158,23 +175,31 @@ export function GameOverlay({
             const rest = { ...gameMetadataRef.current };
             delete rest.side;
             gameMetadataRef.current = rest;
+
             return;
         }
+
         // Only auto-claim if the seat is not already occupied by someone else
         const isOccupied = playersInGame.some((p) => p.visitorId !== visitorId && p.gameMetadata?.side === savedSide);
+
         if (isOccupied) {
             pendingAutoClaimRef.current = null;
+
             return;
         }
+
         // Defer to next tick so it runs AFTER setInGame clears metadata
         const timeoutId = setTimeout(() => {
             mergeGameMetadata({ side: savedSide });
             pendingAutoClaimRef.current = null;
         }, 0);
+
         return () => clearTimeout(timeoutId);
     }, [isOpen, isLoading, fen, presenceSide, playersInGame, visitorId, mergeGameMetadata]);
+
     const makeChessMove = useMutation(api.games.makeChessMove).withOptimisticUpdate((localStore, args) => {
         const current = localStore.getQuery(api.games.getChessBoardState, { itemId: args.itemId });
+
         if (current) {
             localStore.setQuery(
                 api.games.getChessBoardState,
@@ -187,6 +212,7 @@ export function GameOverlay({
             );
         }
     });
+
     const resetChessBoard = useMutation(api.games.resetChessBoard);
     const lastMove = chessBoardState?.lastMove ?? undefined;
 
@@ -214,6 +240,7 @@ export function GameOverlay({
         (message: string) => {
             // Prevent double-trigger if presence echo calls this after local immediate end
             if (resultOverlay) return;
+
             if (resultTimeoutRef.current) clearTimeout(resultTimeoutRef.current);
             setResultOverlay(message);
             resultTimeoutRef.current = setTimeout(() => {
@@ -239,12 +266,15 @@ export function GameOverlay({
 
     useEffect(() => {
         if (!isOpen) return;
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
                 onClose();
             }
         };
+
         window.addEventListener("keydown", handleKeyDown);
+
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [isOpen, onClose]);
 
@@ -256,6 +286,7 @@ export function GameOverlay({
     const updateGameCursor = useCallback(
         (x: number, y: number) => {
             const now = Date.now();
+
             if (now - lastCursorSendRef.current < THROTTLE_MS) return;
             lastCursorSendRef.current = now;
             // Merge cursor position into metadata using ref for fresh values

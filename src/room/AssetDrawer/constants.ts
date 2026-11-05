@@ -15,6 +15,7 @@ export const pillClass =
 
 export const cardClass =
     "group relative flex cursor-grab select-none flex-col gap-2 rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-3 shadow-[var(--shadow-4)] transition-all active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-[var(--shadow-6)]";
+
 export const compactCardClass =
     "group relative flex cursor-grab select-none flex-col gap-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] p-2 shadow-[var(--shadow-4-soft)] transition-all active:cursor-grabbing hover:-translate-y-[1px] hover:shadow-[var(--shadow-4)]";
 

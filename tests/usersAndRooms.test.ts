@@ -55,6 +55,7 @@ describe("room active-state and saving invariants", () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "owner");
         const templateId = await seedTemplate(t);
+
         const roomId = await t.run((ctx) =>
             ctx.db.insert("rooms", {
                 userId,
@@ -64,6 +65,7 @@ describe("room active-state and saving invariants", () => {
                 items: [],
             }),
         );
+
         const catalogItemId = await seedCatalogItem(t);
         await t.run((ctx) =>
             ctx.db.insert("inventory", {
@@ -111,6 +113,7 @@ describe("room active-state and saving invariants", () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "owner");
         const templateId = await seedTemplate(t);
+
         const roomId = await t.run((ctx) =>
             ctx.db.insert("rooms", {
                 userId,
@@ -120,6 +123,7 @@ describe("room active-state and saving invariants", () => {
                 items: [],
             }),
         );
+
         const paidItemId = await seedCatalogItem(t, { name: "Paid item" });
         const unpaidItemId = await seedCatalogItem(t, { name: "Unpaid item" });
         const otherUserId = await seedUser(t, "other");
@@ -164,6 +168,7 @@ describe("room active-state and saving invariants", () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "owner");
         const templateId = await seedTemplate(t);
+
         const roomId = await t.run((ctx) =>
             ctx.db.insert("rooms", {
                 userId,
@@ -173,6 +178,7 @@ describe("room active-state and saving invariants", () => {
                 items: [],
             }),
         );
+
         const starterItemId = await seedCatalogItem(t, { name: "Starter item", isStarterItem: true });
         const legacyItemId = await seedCatalogItem(t, { name: "Legacy item" });
         await t.run((ctx) =>
@@ -192,6 +198,7 @@ describe("room active-state and saving invariants", () => {
         });
         const saved = (await t.run((ctx) => ctx.db.get(roomId)))?.items;
         expect(saved).toHaveLength(2);
+
         for (const catalogItemId of [starterItemId, legacyItemId]) {
             await expect(
                 asUser(t, "owner").mutation(api.rooms.saveMyRoom, {
@@ -231,13 +238,16 @@ describe("room active-state and saving invariants", () => {
             }
         });
         const owner = asUser(t, "owner");
+
         const items = [paidItemId, paidItemId, paidItemId, starterItemId, starterItemId].map((catalogItemId, i) => ({
             id: String(i),
             catalogItemId,
             x: i,
             y: i,
         }));
+
         expect(await owner.mutation(api.rooms.saveMyRoom, { roomId, items })).toEqual(items);
+
         for (const catalogItemId of [paidItemId, starterItemId, zeroItemId]) {
             await expect(
                 owner.mutation(api.rooms.saveMyRoom, {
@@ -247,6 +257,7 @@ describe("room active-state and saving invariants", () => {
             ).rejects.toThrow("Room contains items you do not own");
             expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(items);
         }
+
         expect(await owner.mutation(api.rooms.saveMyRoom, { roomId, items: [] })).toEqual([]);
     });
 
@@ -254,6 +265,7 @@ describe("room active-state and saving invariants", () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "url-owner");
         const templateId = await seedTemplate(t);
+
         const roomId = await t.run((ctx) =>
             ctx.db.insert("rooms", {
                 userId,
@@ -263,6 +275,7 @@ describe("room active-state and saving invariants", () => {
                 items: [],
             }),
         );
+
         const catalogItemId = await seedCatalogItem(t, { isStarterItem: true });
         const owner = asUser(t, "url-owner");
 

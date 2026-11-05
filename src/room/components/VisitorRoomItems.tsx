@@ -47,6 +47,7 @@ export function VisitorRoomItems({
         <>
             {items?.map((item) => {
                 const musicState = visitorMusicState[item.id];
+
                 const localMusicItem = musicState
                     ? {
                           ...item,
@@ -60,6 +61,7 @@ export function VisitorRoomItems({
                           musicStartedAt: item.musicStartedAt ?? 0,
                           musicPositionAtStart: item.musicPositionAtStart ?? 0,
                       };
+
                 const catalogItem = catalogItems?.find((c) => c._id === item.catalogItemId);
 
                 return (

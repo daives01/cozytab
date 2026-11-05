@@ -10,15 +10,20 @@ export function createGuestRoomPersistence(
     } = {},
 ): RoomPersistence {
     const loadSession = options.loadSession ?? readGuestSession;
+
     const persistItems = (items: RoomItem[]) =>
         options.saveSession ? options.saveSession({ roomItems: items }).roomItems : persistGuestRoomItems(items);
+
     const checkpointItems = (items: RoomItem[]) => {
         canonicalCheckpoint = persistItems(items);
         checkpoint = items;
+
         return canonicalCheckpoint;
     };
+
     let checkpoint: RoomItem[] | null = null;
     let canonicalCheckpoint: RoomItem[] = [];
+
     return {
         load: () => loadSession().roomItems,
         draft: {

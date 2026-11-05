@@ -18,6 +18,7 @@ import type { RoomItem } from "@shared/guestTypes";
 const ComputerOverlay = lazy(() =>
     import("@/computer/ComputerOverlay").then((module) => ({ default: module.ComputerOverlay })),
 );
+
 const GameOverlay = lazy(() =>
     import("@/games/components/GameOverlay").then((module) => ({ default: module.GameOverlay })),
 );
@@ -29,6 +30,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
         [music.localItems, music.musicPlayerItemId],
     );
+
     const visibleRoomVisitors = useMemo(
         () => presence.visitors.filter((visitor) => visitor.visitorId !== game.visitorId),
         [presence.visitors, game.visitorId],
@@ -43,6 +45,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
     );
 
     const isTouchPlacementActive = isTouchOnly && ui.mode === "edit" && Boolean(ui.touchPlacementItemId);
+
     return (
         <>
             <RoomToolbar

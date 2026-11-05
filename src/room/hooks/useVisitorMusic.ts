@@ -18,6 +18,7 @@ export function useVisitorMusic(items: RoomItem[] | undefined) {
     const baseVisitorMusicState = useMemo(() => {
         if (!items) return {};
         const next: Record<string, MusicState> = {};
+
         for (const item of items) {
             if (!isMusicItem(item)) continue;
             next[item.id] = {
@@ -27,11 +28,13 @@ export function useVisitorMusic(items: RoomItem[] | undefined) {
                 positionAtStart: item.musicPositionAtStart ?? 0,
             };
         }
+
         return next;
     }, [items]);
 
     const visitorMusicState = useMemo(() => {
         const next: Record<string, MusicState> = {};
+
         for (const [itemId, baseState] of Object.entries(baseVisitorMusicState)) {
             const override = visitorMusicOverrides[itemId];
             const useOverride = override && override.urlKey === baseState.urlKey;
@@ -43,14 +46,17 @@ export function useVisitorMusic(items: RoomItem[] | undefined) {
                 positionAtStart: baseState.positionAtStart,
             };
         }
+
         return next;
     }, [baseVisitorMusicState, visitorMusicOverrides]);
 
     const activeMusicItem = useMemo(() => {
         if (!activeMusicItemId || !items) return null;
         const rawItem = items.find((i) => i.id === activeMusicItemId);
+
         if (!rawItem) return null;
         const musicState = visitorMusicState[rawItem.id];
+
         return musicState
             ? {
                   ...rawItem,
@@ -68,6 +74,7 @@ export function useVisitorMusic(items: RoomItem[] | undefined) {
         setVisitorMusicOverrides((prev) => {
             const existing = prev[itemId] ?? baseVisitorMusicState[itemId];
             const key = urlKey ?? existing?.urlKey ?? "";
+
             return {
                 ...prev,
                 [itemId]: {

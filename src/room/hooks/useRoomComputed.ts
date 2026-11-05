@@ -47,8 +47,10 @@ export function useRoomComputed({
         return Array.from(inventoryCounts.entries())
             .map(([idKey, total]) => {
                 const item = catalogItems.find((c) => String(c._id) === idKey);
+
                 if (!item) return null;
                 const eligibility = placementEligibility(item._id);
+
                 return {
                     inventoryId: idKey,
                     catalogItemId: item._id,

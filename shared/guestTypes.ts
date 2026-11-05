@@ -13,6 +13,7 @@ export type RoomItem = Doc<"rooms">["items"][number];
 
 /** Shortcut type derived from Convex schema */
 type UserComputer = NonNullable<Doc<"users">["computer"]>;
+
 export type Shortcut = UserComputer["shortcuts"][number];
 
 /**

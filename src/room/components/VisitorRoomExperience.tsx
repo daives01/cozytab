@@ -35,6 +35,7 @@ export function VisitorRoomExperience({
 }: VisitorRoomExperienceProps) {
     const touchOnly = useTouchOnly();
     const { source, identity, music, game, presence, cursor, economy } = controller;
+
     const roomContent = (
         <VisitorRoomItems
             items={source.room.items}
@@ -50,6 +51,7 @@ export function VisitorRoomExperience({
             currentGameId={game.activeGameItemId}
         />
     );
+
     const overlays = (
         <>
             <VisitorHeader ownerName={source.ownerName} visitorCount={presence.visitors.length} />

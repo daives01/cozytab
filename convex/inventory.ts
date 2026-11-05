@@ -9,6 +9,7 @@ export const getMyInventory = query({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return [];
 
         const user = await ctx.db
@@ -28,9 +29,11 @@ export const getMyInventory = query({
         const detailedInventory = await Promise.all(
             inventoryItems.map(async (inv) => {
                 const count = inv.count ?? 1;
+
                 if (count <= 0) return null;
                 const cached = catalogCache.get(inv.catalogItemId);
                 const catalogItem = cached ?? (await ctx.db.get(inv.catalogItemId));
+
                 if (!catalogItem) return null;
                 catalogCache.set(inv.catalogItemId, catalogItem);
 
@@ -59,6 +62,7 @@ export const getMyInventoryIds = query({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return [];
 
         const user = await ctx.db
@@ -81,6 +85,7 @@ export const hasItem = query({
     args: { catalogItemId: v.id("catalogItems") },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return false;
 
         const user = await ctx.db
@@ -106,6 +111,7 @@ export const purchaseItem = mutation({
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) throw new Error("Not authenticated");
 
         const user = await ctx.db
@@ -121,6 +127,7 @@ export const purchaseItem = mutation({
             .unique();
 
         const catalogItem = await ctx.db.get(args.catalogItemId);
+
         if (!catalogItem) {
             return { success: false, message: "Item not found" };
         }
@@ -132,6 +139,7 @@ export const purchaseItem = mutation({
         }
 
         const requestId = args.requestId ?? randomId();
+
         const change = await applyCurrencyChange({
             ctx,
             userId: user._id,
@@ -140,6 +148,7 @@ export const purchaseItem = mutation({
             idempotencyKey: `purchase:${user._id}:${requestId}`,
             metadata: { catalogItemId: args.catalogItemId },
         });
+
         if (!change.applied) {
             return { success: true, newBalance: change.balance };
         }
@@ -170,6 +179,7 @@ export const setHidden = mutation({
     args: { inventoryId: v.id("inventory"), hidden: v.boolean() },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) throw new Error("Not authenticated");
 
         const user = await ctx.db
@@ -180,6 +190,7 @@ export const setHidden = mutation({
         if (!user) throw new Error("User not found");
 
         const inventoryItem = await ctx.db.get(args.inventoryId);
+
         if (!inventoryItem || inventoryItem.userId !== user._id) {
             throw new Error("Not authorized to update this item");
         }
@@ -194,17 +205,21 @@ export const backfillInventoryCounts = internalMutation({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
             ?.NODE_ENV;
+
         if (!identity) {
             throw new Error("Not authenticated");
         }
+
         if (nodeEnv !== "development") {
             throw new Error("Backfill is dev-only");
         }
 
         const updated: string[] = [];
         const inventoryItems = await ctx.db.query("inventory").collect();
+
         for (const item of inventoryItems) {
             if (item.count === undefined) {
                 await ctx.db.patch(item._id, { count: 1 });

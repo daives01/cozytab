@@ -28,6 +28,7 @@ export function RoomTemplatesTab() {
     const { editing, editValue, startEdit, saveEdit, cancelEdit, setEditValue } = useEditableField<"roomTemplates">({
         onSave: async (id, field, value) => {
             const updates: Record<string, string | number | boolean> = { [field]: value };
+
             return await updateTemplate({ id: id as Id<"roomTemplates">, ...updates });
         },
         onError: setError,
@@ -54,12 +55,15 @@ export function RoomTemplatesTab() {
     const handleAddTemplate = async () => {
         if (!newTemplate.name || !newTemplate.backgroundUrl) {
             setError("Name and background image are required");
+
             return;
         }
 
         const result = await addTemplate(newTemplate);
+
         if (!result.success) {
             setError("Failed to add template");
+
             return;
         }
 
@@ -76,6 +80,7 @@ export function RoomTemplatesTab() {
     const handleSeedDefault = async () => {
         try {
             const result = await seedDefault();
+
             if (!result.success) {
                 setError(result.message ?? "Failed to seed default template");
             }
@@ -171,6 +176,7 @@ export function RoomTemplatesTab() {
                                         className="hidden"
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
+
                                             if (file) handleImageUpload("new", file);
                                         }}
                                     />
@@ -241,6 +247,7 @@ export function RoomTemplatesTab() {
                                                 className="hidden"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
+
                                                     if (file) handleImageUpload(template._id, file);
                                                 }}
                                             />

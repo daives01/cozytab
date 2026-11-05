@@ -45,6 +45,7 @@ export function RoomsTab({
                     const canAfford = !guestLocked && userCurrency >= template.basePrice;
                     const isPurchasing = purchasingRoom === template._id;
                     const resultForRoom = lastRoomResult?.templateId === template._id ? lastRoomResult : null;
+
                     const cardClasses = isOwned
                         ? "border-[var(--success)] bg-[var(--success-light)]"
                         : "border-[var(--ink)] hover:border-[var(--danger)] hover:shadow-lg hover:-translate-y-1";

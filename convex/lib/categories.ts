@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+
 export { CATALOG_ITEM_CATEGORIES, GAME_TYPES } from "@shared/categories";
+
 export type { CatalogItemCategory, GameType } from "@shared/categories";
 
 /** Convex validator for catalog item category field (source of truth). */

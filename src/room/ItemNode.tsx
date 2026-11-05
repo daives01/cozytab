@@ -81,6 +81,7 @@ export function ItemNode({
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (mode !== "edit") return;
+
         if (isTouchOnly) return;
         e.stopPropagation();
         e.preventDefault();
@@ -95,6 +96,7 @@ export function ItemNode({
 
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
         if (mode !== "edit") return;
+
         if (e.pointerType !== "touch") return;
         e.stopPropagation();
         e.preventDefault();
@@ -140,18 +142,22 @@ export function ItemNode({
 
         const handlePointerMove = (e: PointerEvent) => {
             if (e.pointerType !== "touch") return;
+
             if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return;
             updatePosition(e.clientX, e.clientY);
         };
 
         const handlePointerUp = (e: PointerEvent) => {
             if (e.pointerType !== "touch") return;
+
             if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return;
             pointerIdRef.current = null;
             shouldPreventDefaultClick.current = false;
+
             if (e.target instanceof Element && "releasePointerCapture" in e.target) {
                 (e.target as Element).releasePointerCapture(e.pointerId);
             }
+
             setIsDragging(false);
             onDragEndRef.current?.();
         };
@@ -176,6 +182,7 @@ export function ItemNode({
     const isMusicCategory = category === "music";
     const isGameCategory = category === "games";
     const hasUrl = Boolean(item.url);
+
     const isInteractable =
         mode === "view" &&
         (isVisitor
@@ -215,29 +222,36 @@ export function ItemNode({
             onPointerDown={handlePointerDown}
             onClick={(e) => {
                 e.stopPropagation();
+
                 if (shouldPreventDefaultClick.current) {
                     shouldPreventDefaultClick.current = false;
+
                     return;
                 }
+
                 if (mode !== "view" || !isInteractable) return;
 
                 if (isMusicCategory && onMusicPlayerClick) {
                     onMusicPlayerClick();
+
                     return;
                 }
 
                 if (isGameCategory && onGameClick) {
                     onGameClick();
+
                     return;
                 }
 
                 if (isVisitor && item.url) {
                     openRoomItemLink(item.url);
+
                     return;
                 }
 
                 if (isComputerCategory && onComputerClick) {
                     onComputerClick();
+
                     return;
                 }
 

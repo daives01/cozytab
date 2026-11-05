@@ -62,6 +62,7 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const loadedGuestSession = useMemo(() => guestSession ?? readGuestSession(), [guestSession]);
+
     const initialGuestItems = useMemo(
         () =>
             loadedGuestSession.roomItems.length > 0
@@ -71,31 +72,40 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
                   []),
         [loadedGuestSession, roomData.guestRoom, roomData.guestTemplate],
     );
+
     const persistence = useMemo(() => {
         if (isGuest) {
             return createGuestRoomPersistence({
                 loadSession: () => ({ ...loadedGuestSession, roomItems: initialGuestItems }),
             });
         }
+
         return createAuthenticatedRoomPersistence({
             roomId: roomData.room?._id,
             initialItems: (roomData.room?.items ?? []) as RoomItem[],
             saveItems: async (items) => (await saveRoom({ roomId: roomData.room!._id, items })) as RoomItem[],
         });
     }, [initialGuestItems, isGuest, loadedGuestSession, roomData.room, saveRoom]);
+
     const ownedCounts = useMemo(() => {
         if (isGuest) return countIds(loadedGuestSession.inventoryIds);
+
         if (inventoryWithCounts === undefined) return null;
+
         return addInventoryCounts(inventoryWithCounts);
     }, [inventoryWithCounts, isGuest, loadedGuestSession.inventoryIds]);
+
     const ownedCount = useCallback(
         (catalogItemId: Id<"catalogItems">) => {
             if (isGuest) return countIds(readGuestSession().inventoryIds).get(String(catalogItemId)) ?? 0;
+
             if (ownedCounts === null) return 0;
+
             return ownedCounts.get(String(catalogItemId)) ?? 0;
         },
         [isGuest, ownedCounts],
     );
+
     const roomIdentity = isGuest
         ? "guest-owner"
         : String(roomData.room?._id ?? (roomData.room === undefined ? "authenticated-loading" : "authenticated-empty"));
@@ -135,6 +145,7 @@ function RoomPageOwner({
     const { user: clerkUser } = useUser();
     useAudioUnlock();
     const { timeOfDay, overrideTimeOfDay, setOverrideTimeOfDay } = timeControls;
+
     const {
         room,
         guestTemplate,
@@ -145,6 +156,7 @@ function RoomPageOwner({
         roomBackgroundImageUrl,
         resolvedComputerAssetUrl,
     } = roomData;
+
     const roomState = useRoomState({ isGuest, guestSession, catalogItems });
 
     const localItems = roomState.localItems;
@@ -158,6 +170,7 @@ function RoomPageOwner({
     const claimDailyReward = useMutation(api.users.claimDailyReward);
     const completeOnboarding = useMutation(api.users.completeOnboarding);
     const { viewportWidth, viewportHeight, scale } = useRoomViewportScale();
+
     const {
         zoomLevel,
         zoomLabel,
@@ -169,12 +182,16 @@ function RoomPageOwner({
         handlePanMove,
         handlePanEnd,
     } = useMobileZoom({ baseScale: scale, viewportWidth, viewportHeight });
+
     const [dailyRewardToast, setDailyRewardToast] = useState<DailyRewardToastPayload | null>(null);
+
     const [showStripeSuccessToast, setShowStripeSuccessToast] = useState(() => {
         if (typeof window === "undefined") return false;
         const params = new URLSearchParams(window.location.search);
+
         return params.get("success") === "stripe";
     });
+
     const [friendRefToast, setFriendRefToast] = useState<{ message: string; tone: "success" | "default" } | null>(null);
     const sendFriendRequest = useMutation(api.friends.sendFriendRequest);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -183,15 +200,19 @@ function RoomPageOwner({
     const reconciledGuestOnboarding = useRef(false);
 
     useCozyCursor(true);
+
     const cursorColor =
         (isGuest
             ? roomState.guestCursorColor
             : (roomState.authedCursorColor ?? user?.cursorColor ?? computerState?.cursorColor)) ?? "var(--chart-4)";
+
     useCursorColor(cursorColor);
 
     useEffect(() => {
         if (isGuest) return;
+
         if (inviteLoading) return;
+
         if (typeof window === "undefined") return;
 
         const desiredPath = activeInviteCode ? `/visit/${activeInviteCode}` : "/";
@@ -232,7 +253,9 @@ function RoomPageOwner({
     const handleCursorColorChange = useCallback(
         (next: string) => {
             const color = next?.trim();
+
             if (!color) return;
+
             if (isGuest) {
                 roomState.setGuestCursorColor(color);
             } else {
@@ -255,6 +278,7 @@ function RoomPageOwner({
     const visitorId = clerkUser?.id ?? null;
     const ownerName = user?.displayName ?? user?.username ?? "Me";
     const presenceRoomId = !isGuest && room && visitorId ? room._id : null;
+
     const {
         visitors,
         updateCursor,
@@ -332,6 +356,7 @@ function RoomPageOwner({
     useEffect(() => {
         if (typeof window === "undefined") return;
         const params = new URLSearchParams(window.location.search);
+
         if (params.get("success") === "stripe") {
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete("success");
@@ -342,6 +367,7 @@ function RoomPageOwner({
     useEffect(() => {
         if (!showStripeSuccessToast) return;
         const timer = window.setTimeout(() => setShowStripeSuccessToast(false), 5000);
+
         return () => window.clearTimeout(timer);
     }, [showStripeSuccessToast]);
 
@@ -351,6 +377,7 @@ function RoomPageOwner({
         if (!friendRefCode) return;
 
         const storageKey = `friendRef_handled_${friendRefCode}`;
+
         if (sessionStorage.getItem(storageKey)) return;
 
         if (isGuest) {
@@ -358,6 +385,7 @@ function RoomPageOwner({
             queueMicrotask(() => {
                 setFriendRefToast({ message: "Create an account to add your friend!", tone: "default" });
             });
+
             return;
         }
 
@@ -367,6 +395,7 @@ function RoomPageOwner({
         sendFriendRequest({ friendCode: friendRefCode })
             .then((result) => {
                 sessionStorage.setItem(storageKey, "done");
+
                 if (result.alreadyFriends) {
                     setFriendRefToast({ message: "You're already friends!", tone: "success" });
                 } else if (result.alreadyPending) {
@@ -388,6 +417,7 @@ function RoomPageOwner({
     useEffect(() => {
         if (!friendRefToast) return;
         const timer = window.setTimeout(() => setFriendRefToast(null), 5000);
+
         return () => window.clearTimeout(timer);
     }, [friendRefToast]);
 
@@ -448,6 +478,7 @@ function RoomPageOwner({
     const handlePointerEvent = (e: React.PointerEvent) => {
         if (e.pointerType !== "touch") return;
         handlers.handleCursorMove(e.clientX, e.clientY);
+
         if (isZoomed && roomState.mode === "view") {
             handlePanMove(e.clientX, e.clientY);
         }
@@ -455,6 +486,7 @@ function RoomPageOwner({
 
     const handlePointerDown = (e: React.PointerEvent) => {
         if (e.pointerType !== "touch") return;
+
         if (isZoomed && roomState.mode === "view") {
             handlePanStart(e.clientX, e.clientY);
         }

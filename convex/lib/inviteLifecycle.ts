@@ -11,6 +11,7 @@ export async function getPrimaryInviteForRoom(ctx: RequestCtx, roomId: Id<"rooms
         .query("roomInvites")
         .withIndex("by_room", (query) => query.eq("roomId", roomId))
         .collect();
+
     return invites.sort((left, right) => right.createdAt - left.createdAt)[0] ?? null;
 }
 
@@ -21,7 +22,9 @@ export function isInviteOpen(invite: { expiresAt?: number | null }, now = Date.n
 
 export async function closePrimaryInvite(ctx: MutationCtx, roomId: Id<"rooms">, now = Date.now()) {
     const invite = await getPrimaryInviteForRoom(ctx, roomId);
+
     if (invite) await ctx.db.patch(invite._id, { expiresAt: now, hostOnlySince: undefined });
+
     return { invite, expiresAt: now };
 }
 

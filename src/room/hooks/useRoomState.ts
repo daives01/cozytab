@@ -15,11 +15,15 @@ export type UseRoomStateArgs = {
 export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomStateArgs) {
     const { session: editingSession, state: editing } = useActiveRoomSession();
     const catalogLookup = useMemo(() => buildCatalogLookup(catalogItems ?? undefined), [catalogItems]);
+
     const initialGuestSession = useMemo(() => {
         if (guestSession) return guestSession;
+
         if (isGuest) return readGuestSession(catalogLookup ?? null);
+
         return null;
     }, [guestSession, isGuest, catalogLookup]);
+
     const initial = initialGuestSession ?? {
         shortcuts: [],
         cursorColor: null,
@@ -47,47 +51,61 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
             setLocalShortcutsState((previous) => {
                 const next = typeof update === "function" ? update(previous) : update;
                 authedShortcutsRef.current = next;
+
                 if (isGuest) saveGuestSession({ shortcuts: next });
+
                 return next;
             });
         },
         [isGuest],
     );
+
     const setCursorColor = useCallback(
         (update: Updater<string | null>) => {
             setCursorColorState((previous) => {
                 const next = typeof update === "function" ? update(previous) : update;
+
                 if (isGuest && next) saveGuestSession({ cursorColor: next });
+
                 return next;
             });
         },
         [isGuest],
     );
+
     const setOnboardingCompleted = useCallback(
         (update: Updater<boolean>) => {
             setOnboardingCompletedState((previous) => {
                 const next = typeof update === "function" ? update(previous) : update;
+
                 if (isGuest && next) saveGuestSession({ onboardingCompleted: true });
+
                 return next;
             });
         },
         [isGuest],
     );
+
     const setCoins = useCallback(
         (update: Updater<number>) => {
             setCoinsState((previous) => {
                 const next = typeof update === "function" ? update(previous) : update;
+
                 if (isGuest) saveGuestSession({ coins: next });
+
                 return next;
             });
         },
         [isGuest],
     );
+
     const setInventory = useCallback(
         (update: Updater<Id<"catalogItems">[]>) => {
             setInventoryState((previous) => {
                 const next = typeof update === "function" ? update(previous) : update;
+
                 if (isGuest) saveGuestSession({ inventoryIds: next });
+
                 return next;
             });
         },
@@ -101,6 +119,7 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     useEffect(() => {
         if (!isGuest || !catalogLookup || inventory.length > 0 || catalogLookup.starterIds.length === 0) return;
         const timer = setTimeout(() => setInventory([...catalogLookup.starterIds]), 0);
+
         return () => clearTimeout(timer);
     }, [catalogLookup, inventory.length, isGuest, setInventory]);
 

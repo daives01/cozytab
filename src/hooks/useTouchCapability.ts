@@ -12,6 +12,7 @@ function hasNavigator() {
 
 function matchMediaQuery(query: string) {
     if (!hasWindow() || typeof window.matchMedia !== "function") return undefined;
+
     return window.matchMedia(query);
 }
 
@@ -39,6 +40,7 @@ export function isTouchOnlyDevice(): boolean {
     if (!hasWindow()) return false;
     const coarse = matchMediaQuery("(pointer: coarse)");
     const fine = matchMediaQuery("(pointer: fine)");
+
     return Boolean(coarse?.matches) && !fine?.matches;
 }
 
@@ -53,6 +55,7 @@ function useMediaQueryState(detector: () => boolean): boolean {
         const mql = matchMediaQuery("(pointer: coarse)");
 
         window.addEventListener("touchstart", update, { once: true, passive: true });
+
         if (mql) {
             if (typeof mql.addEventListener === "function") {
                 mql.addEventListener("change", update);
@@ -63,6 +66,7 @@ function useMediaQueryState(detector: () => boolean): boolean {
 
         return () => {
             window.removeEventListener("touchstart", update);
+
             if (mql) {
                 if (typeof mql.removeEventListener === "function") {
                     mql.removeEventListener("change", update);

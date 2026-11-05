@@ -36,6 +36,7 @@ export function CatalogItemsTab() {
     const { editing, editValue, startEdit, saveEdit, cancelEdit, setEditValue } = useEditableField<"catalogItems">({
         onSave: async (id, field, value) => {
             const updates: Record<string, string | number | boolean> = { [field]: value };
+
             return await updateItem({ id: id as Id<"catalogItems">, ...updates });
         },
         onError: setError,
@@ -62,12 +63,15 @@ export function CatalogItemsTab() {
     const handleAddItem = async () => {
         if (!newItem.name || !newItem.assetUrl) {
             setError("Name and image are required");
+
             return;
         }
 
         const result = await addItem(newItem);
+
         if (!result.success) {
             setError(result.message ?? "Failed to add item");
+
             return;
         }
 
@@ -173,6 +177,7 @@ export function CatalogItemsTab() {
                                         className="hidden"
                                         onChange={(e) => {
                                             const file = e.target.files?.[0];
+
                                             if (file) handleImageUpload("new", file);
                                         }}
                                     />
@@ -249,6 +254,7 @@ export function CatalogItemsTab() {
                                                 className="hidden"
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0];
+
                                                     if (file) handleImageUpload(item._id, file);
                                                 }}
                                             />

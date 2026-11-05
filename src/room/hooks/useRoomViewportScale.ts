@@ -11,6 +11,7 @@ interface UseRoomViewportScaleOptions {
 export function useRoomViewportScale(options?: UseRoomViewportScaleOptions) {
     const { maxScale = DEFAULT_MAX_SCALE } = options ?? {};
     const { width: viewportWidth, height: viewportHeight } = useViewportSize();
+
     const scale = useRoomScale(ROOM_WIDTH, ROOM_HEIGHT, {
         viewportWidth,
         viewportHeight,

@@ -8,7 +8,9 @@ const keys = [
     "STRIPE_PRICE_150_COINS",
     "STRIPE_PRICE_500_COINS",
 ] as const;
+
 const saved = keys.map((key) => process.env[key]);
+
 afterEach(() => {
     keys.forEach((key, index) => {
         if (saved[index] === undefined) delete process.env[key];
@@ -27,6 +29,7 @@ test("payment configuration requires every pack and rejects blank prices", () =>
     keys.forEach((key, index) => {
         process.env[key] = `price_${index}`;
     });
+
     for (const key of keys) {
         const price = process.env[key];
         process.env[key] = "  ";

@@ -17,6 +17,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
         setIsActive(false);
         messageRef.current = "";
         onMessageChange(null);
+
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
             timeoutRef.current = null;
@@ -27,6 +28,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
         }
+
         timeoutRef.current = setTimeout(clearChat, CHAT_TIMEOUT_MS);
     }, [clearChat]);
 
@@ -35,6 +37,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
 
         const handleKeyDown = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement;
+
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
                 return;
             }
@@ -45,6 +48,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                 messageRef.current = "";
                 onMessageChange("");
                 resetTimeout();
+
                 return;
             }
 
@@ -52,12 +56,14 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                 if (e.key === "Escape") {
                     e.preventDefault();
                     clearChat();
+
                     return;
                 }
 
                 if (e.key === "Enter") {
                     e.preventDefault();
                     clearChat();
+
                     return;
                 }
 
@@ -68,19 +74,23 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
                     // Send empty string "" to keep bubble visible with typing indicator
                     onMessageChange(newMessage);
                     resetTimeout();
+
                     return;
                 }
 
                 if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                     e.preventDefault();
                     const updatedMessage = messageRef.current + e.key;
+
                     const newMessage =
                         updatedMessage.length > MAX_CHAT_LENGTH
                             ? updatedMessage.slice(-MAX_CHAT_LENGTH)
                             : updatedMessage;
+
                     messageRef.current = newMessage;
                     onMessageChange(newMessage);
                     resetTimeout();
+
                     return;
                 }
             }
@@ -88,6 +98,7 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
 
         const handleKeyUp = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement;
+
             if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
                 return;
             }
@@ -95,9 +106,11 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
 
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
+
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
             window.removeEventListener("keyup", handleKeyUp);
+
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }

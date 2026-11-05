@@ -32,8 +32,10 @@ export function AssetDrawer({
 
     // Eligibility changes with the session snapshot, even though its function is stable.
     const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
+
     const items: GuestDrawerItem[] = source.map((item) => {
         const eligibility = placementEligibility(item.catalogItemId as Id<"catalogItems">);
+
         return {
             ...item,
             count: eligibility.ownedCount,
@@ -41,6 +43,7 @@ export function AssetDrawer({
             roomAtCapacity: eligibility.roomAtCapacity,
         } as GuestDrawerItem;
     });
+
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
     const showHideControls = !isGuest && items.length > HIDE_TOGGLE_THRESHOLD;
 
@@ -61,6 +64,7 @@ export function AssetDrawer({
                 setPendingHides((prev) => {
                     const updated = { ...prev };
                     delete updated[key];
+
                     return updated;
                 });
             }
@@ -97,6 +101,7 @@ export function AssetDrawer({
     const handleUnhideAll = useCallback(async () => {
         if (isGuest || hiddenItems.length === 0) return;
         setIsBulkUnhiding(true);
+
         try {
             await Promise.all(
                 hiddenItems.map((item) =>
@@ -109,9 +114,11 @@ export function AssetDrawer({
     }, [hiddenItems, isGuest, setHiddenMutation]);
 
     const isLeft = orientation === "left";
+
     const drawerSizeStyle = isLeft
         ? { width: ASSET_DRAWER_WIDTH, height: "100%" }
         : { width: "100%", height: ASSET_DRAWER_BOTTOM_HEIGHT };
+
     const translateClass = isLeft
         ? isOpen
             ? "translate-x-0"
@@ -119,10 +126,12 @@ export function AssetDrawer({
         : isOpen
           ? "translate-y-0"
           : "translate-y-full";
+
     const positionClass = isLeft ? "left-0 top-0 bottom-0" : "left-0 right-0 bottom-0";
     const containerRadii = isLeft ? "rounded-r-3xl" : "rounded-t-3xl";
     const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
     const isBottom = orientation === "bottom";
+
     const gridClass = isBottom
         ? "grid grid-cols-[repeat(auto-fit,minmax(130px,160px))] auto-rows-min justify-center gap-3"
         : "grid grid-cols-2 gap-3";
@@ -131,6 +140,7 @@ export function AssetDrawer({
         (event: React.PointerEvent<HTMLDivElement>) => {
             if (event.pointerType !== "touch") return;
             const target = event.target as HTMLElement | null;
+
             if (target?.closest("[data-touch-place-item]")) return;
             onTouchPlacementCancel?.();
         },
@@ -138,9 +148,11 @@ export function AssetDrawer({
     );
 
     const showTouchHint = Boolean(touchPlacementItemId);
+
     const hintWrapperClass = isLeft
         ? "absolute left-full top-auto bottom-4 pl-3 animate-in fade-in slide-in-from-left-2 duration-200"
         : "absolute left-auto right-4 top-0 -translate-y-full animate-in fade-in slide-in-from-bottom-2 duration-200";
+
     const hintBubbleClass = isLeft
         ? "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-foreground)] shadow-[var(--shadow-4)]"
         : "rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-card)] px-3 py-2 text-[11px] font-black uppercase tracking-[0.22em] text-[var(--color-foreground)] shadow-[var(--shadow-4)]";

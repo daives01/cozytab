@@ -14,6 +14,7 @@ export function useChessSounds() {
                 audioRef.current.pause();
                 audioRef.current.currentTime = 0;
             }
+
             const audio = new Audio(SOUNDS[type]);
             audio.volume = 0.5;
             audioRef.current = audio;

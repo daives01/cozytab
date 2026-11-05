@@ -35,13 +35,16 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
     // Handle state updates when videoId changes (React pattern: update state during render, not in effect)
     const [prevVideoId, setPrevVideoId] = useState(videoId);
+
     if (videoId !== prevVideoId) {
         setPrevVideoId(videoId);
+
         if (!videoId) {
             setTitle(null);
             setIsFetchingTitle(false);
         } else {
             const cached = titleCache.get(videoId);
+
             if (cached) {
                 setTitle(cached);
                 setIsFetchingTitle(false);
@@ -51,6 +54,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
+
         if (abortRef.current) abortRef.current.abort();
 
         if (!videoId) {
@@ -58,6 +62,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
         }
 
         const cached = titleCache.get(videoId);
+
         if (cached) {
             return;
         }
@@ -74,11 +79,13 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             })
                 .then((res) => {
                     if (!res.ok) throw new Error("Unable to fetch title");
+
                     return res.json();
                 })
                 .then((data) => {
                     if (requestIdRef.current !== requestId || controller.signal.aborted) return;
                     const t = typeof data?.title === "string" ? data.title : null;
+
                     if (t) titleCache.set(videoId, t);
                     setTitle(t);
                 })
@@ -94,6 +101,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
         return () => {
             if (debounceRef.current) clearTimeout(debounceRef.current);
+
             if (abortRef.current) abortRef.current.abort();
         };
     }, [videoId]);
@@ -105,15 +113,19 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
         if (unchanged) {
             onClose();
+
             return;
         }
 
         if (!trimmedUrl) {
             setSaveError("Please enter a YouTube URL.");
+
             return;
         }
+
         if (!videoId) {
             setSaveError("Invalid YouTube URL.");
+
             return;
         }
 
@@ -125,6 +137,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             musicStartedAt: Date.now() + 1000,
             musicPositionAtStart: 0,
         };
+
         onSave(updatedItem);
         onClose();
     };
@@ -138,6 +151,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             musicStartedAt: undefined,
             musicPositionAtStart: undefined,
         };
+
         onSave(updatedItem);
         setMusicUrl("");
         setSaveError(null);
@@ -149,7 +163,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                 onClose();
             }
         };
+
         window.addEventListener("keydown", onKeyDown);
+
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [onClose]);
 

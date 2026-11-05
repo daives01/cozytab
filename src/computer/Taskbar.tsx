@@ -105,6 +105,7 @@ export function Taskbar({
         { label: "Day", value: "day" },
         { label: "Night", value: "night" },
     ];
+
     const visibleTimeOfDay = devTimeOfDay ?? currentTimeOfDay;
     const VolumeIcon = volumeLevel === 0 ? VolumeX : volumeLevel < 0.5 ? Volume1 : Volume2;
 
@@ -252,6 +253,7 @@ export function Taskbar({
                                         <div className="flex gap-1">
                                             {devTimeOfDayOptions.map((opt) => {
                                                 const active = opt.value === devTimeOfDay;
+
                                                 return (
                                                     <button
                                                         key={opt.label}

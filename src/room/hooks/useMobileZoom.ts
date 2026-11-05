@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { ROOM_WIDTH, ROOM_HEIGHT } from "@/time/roomConstants";
 
 const ZOOM_LEVELS = [1, 2, 3] as const;
+
 export type ZoomLevel = (typeof ZOOM_LEVELS)[number];
 
 interface UseMobileZoomOptions {
@@ -37,6 +38,7 @@ export function useMobileZoom(options: UseMobileZoomOptions) {
         const timeoutId = setTimeout(() => {
             setPanOffset((prev) => clampPan(prev.x, prev.y));
         }, 0);
+
         return () => clearTimeout(timeoutId);
     }, [clampPan]);
 
@@ -45,9 +47,11 @@ export function useMobileZoom(options: UseMobileZoomOptions) {
             const currentIndex = ZOOM_LEVELS.indexOf(prev);
             const nextIndex = (currentIndex + 1) % ZOOM_LEVELS.length;
             const next = ZOOM_LEVELS[nextIndex];
+
             if (next === 1) {
                 setPanOffset({ x: 0, y: 0 });
             }
+
             return next;
         });
     }, []);

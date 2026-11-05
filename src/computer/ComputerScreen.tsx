@@ -104,32 +104,39 @@ export function ComputerScreen({
     const [renamingId, setRenamingId] = useState<string | null>(null);
     const [renameValue, setRenameValue] = useState("");
     const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+
     const [inlineAddPrompt, setInlineAddPrompt] = useState<{
         x: number;
         y: number;
         row: number;
         col: number;
     } | null>(null);
+
     const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
     const [isVolumePanelOpen, setIsVolumePanelOpen] = useState(false);
     const [now, setNow] = useState(() => new Date());
     const [desktopScale, setDesktopScale] = useState(1);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
+
     const [pendingShortcutPosition, setPendingShortcutPosition] = useState<{
         row: number;
         col: number;
     } | null>(null);
+
     const {
         volume: keyboardVolume,
         musicVolume,
         setVolume: setKeyboardVolume,
         setMusicVolume,
     } = useKeyboardSoundPreferences();
+
     const isDevEnv = import.meta.env.DEV;
     const { signOut, deleteUser: handleDevDeleteUser, resetStorage: handleDevResetStorage } = useComputerDevActions();
+
     const { currentDisplayName, isSavingDisplayName, displayNameError, handleSaveDisplayName } =
         useComputerProfileActions({ displayName, username, onDisplayNameUpdated });
+
     const pendingFriendRequestCount = useQuery(api.friends.getPendingRequestCount, isGuest ? "skip" : undefined);
 
     const myRooms = useQuery(api.rooms.getMyRooms, isGuest ? "skip" : undefined);
@@ -153,10 +160,13 @@ export function ComputerScreen({
     const recomputeScale = useCallback(() => {
         if (!desktopRef.current) return;
         const availableHeight = desktopRef.current.clientHeight - DESKTOP_PADDING_Y;
+
         if (availableHeight <= 0 || gridHeight <= 0) {
             setDesktopScale(1);
+
             return;
         }
+
         const scale = Math.min(1, availableHeight / gridHeight);
         setDesktopScale(scale);
     }, [gridHeight]);
@@ -167,6 +177,7 @@ export function ComputerScreen({
 
     useEffect(() => {
         const interval = setInterval(() => setNow(new Date()), 30_000);
+
         return () => clearInterval(interval);
     }, []);
 
@@ -177,6 +188,7 @@ export function ComputerScreen({
     useEffect(() => {
         const onResize = () => recomputeScale();
         window.addEventListener("resize", onResize);
+
         return () => window.removeEventListener("resize", onResize);
     }, [recomputeScale]);
 
@@ -187,6 +199,7 @@ export function ComputerScreen({
         },
         [onPointerMove],
     );
+
     const { windows, activeWindowId, openWindow, closeWindow, bringToFront, startDragWindow, startResizeWindow } =
         useWindowManager({ desktopRef, onPointerMove: forwardPointerMove, onShopOpened });
 
@@ -244,6 +257,7 @@ export function ComputerScreen({
         const { row, col } = pendingShortcutPosition;
         const newId = createId();
         const initialName = deriveShortcutName(url);
+
         const newShortcut: Shortcut = {
             id: newId,
             name: initialName,
@@ -265,6 +279,7 @@ export function ComputerScreen({
     const handleDeleteShortcut = useCallback(
         (id: string) => {
             const target = desktopShortcuts.find((s) => s.id === id);
+
             if (!target) return;
             normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
             setContextMenu(null);
@@ -275,6 +290,7 @@ export function ComputerScreen({
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             const target = e.target as HTMLElement | null;
+
             const isTypingTarget =
                 target &&
                 (target.tagName === "INPUT" ||
@@ -284,21 +300,26 @@ export function ComputerScreen({
             if (e.key === "Escape") {
                 setIsStartMenuOpen(false);
                 setContextMenu(null);
+
                 if (renamingId) {
                     cancelRename();
                 }
+
                 if (inlineAddPrompt) {
                     setInlineAddPrompt(null);
                     setPendingShortcutPosition(null);
                     setNewShortcutUrl("");
                 }
+
                 onClose();
+
                 return;
             }
 
             if (e.key === "Enter") {
                 if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
                 const selected = desktopShortcuts.find((s) => s.id === selectedId);
+
                 if (selected) {
                     e.preventDefault();
                     setContextMenu(null);
@@ -310,13 +331,16 @@ export function ComputerScreen({
             if (e.key === "Backspace" || e.key === "Delete") {
                 if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
                 const selected = desktopShortcuts.find((s) => s.id === selectedId);
+
                 if (selected) {
                     e.preventDefault();
                     handleDeleteShortcut(selected.id);
                 }
             }
         };
+
         window.addEventListener("keydown", handleKey);
+
         return () => window.removeEventListener("keydown", handleKey);
     }, [
         cancelRename,
@@ -331,15 +355,21 @@ export function ComputerScreen({
 
     function commitRename(id: string) {
         const target = desktopShortcuts.find((s) => s.id === id);
+
         if (!target) {
             cancelRename();
+
             return;
         }
+
         const trimmedName = renameValue.trim();
+
         if (!trimmedName) {
             cancelRename();
+
             return;
         }
+
         normalizeAndSave(desktopShortcuts.map((s) => (s.id === id ? { ...s, name: trimmedName } : s)));
         setSelectedId(id);
         cancelRename();
@@ -347,6 +377,7 @@ export function ComputerScreen({
 
     const startRename = (id: string) => {
         const target = desktopShortcuts.find((s) => s.id === id);
+
         if (!target) return;
         setSelectedId(id);
         setContextMenu(null);
@@ -357,16 +388,22 @@ export function ComputerScreen({
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;
+
         if (!canSwitchRooms) return;
+
         if (!myRooms || myRooms.length <= 1) return;
         const targetRoom = myRooms.find((room: Doc<"rooms">) => room._id === roomId);
+
         if (!targetRoom || targetRoom.isActive) return;
         setSwitchingRoom(roomId);
+
         try {
             await setActiveRoom({ roomId });
+
             if (windowId) {
                 closeWindow(windowId);
             }
+
             onClose();
         } catch (error) {
             console.error("Failed to switch room:", error);
@@ -377,6 +414,7 @@ export function ComputerScreen({
 
     const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
+
         if (!draggingId || !desktopRef.current) return;
 
         forwardPointerMove(event.clientX, event.clientY);
@@ -415,9 +453,11 @@ export function ComputerScreen({
         setContextMenu(null);
         setIsStartMenuOpen(false);
         setIsVolumePanelOpen(false);
+
         if (renamingId) {
             cancelRename();
         }
+
         if (inlineAddPrompt) {
             setInlineAddPrompt(null);
             setPendingShortcutPosition(null);
@@ -446,7 +486,9 @@ export function ComputerScreen({
     const handleDesktopContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
         const target = event.target as HTMLElement;
+
         if (target.closest("[data-window]")) return;
+
         if (!desktopRef.current) return;
         const { row, col } = findCellFromPoint(event.clientX, event.clientY, desktopRef.current, desktopScale);
         setSelectedId(null);
@@ -547,6 +589,7 @@ export function ComputerScreen({
                             onPointerMove={(e) => {
                                 if (e.pointerType !== "touch") return;
                                 const target = e.target as HTMLElement;
+
                                 if (
                                     target?.tagName === "INPUT" ||
                                     target?.tagName === "TEXTAREA" ||
@@ -554,6 +597,7 @@ export function ComputerScreen({
                                 ) {
                                     return;
                                 }
+
                                 forwardPointerMove(e.clientX, e.clientY);
                             }}
                             onContextMenu={handleDesktopContextMenu}

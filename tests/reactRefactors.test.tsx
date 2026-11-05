@@ -10,31 +10,40 @@ import type { Doc } from "@convex/_generated/dataModel";
 const originalWindow = globalThis.window;
 const originalActEnvironment = Object.getOwnPropertyDescriptor(globalThis, "IS_REACT_ACT_ENVIRONMENT");
 const client = new ConvexReactClient("https://example.convex.cloud", { disabled: true });
+
 spyOn(client, "watchQuery").mockImplementation(() => ({
     onUpdate: () => noop,
     localQueryResult: () => null,
     journal: () => undefined,
 }));
+
 let renderer: ReactTestRenderer;
 const noop = () => {};
+
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+
 afterAll(() => {
     if (originalActEnvironment) Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", originalActEnvironment);
     else Reflect.deleteProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT");
 });
+
 afterEach(async () => {
     if (renderer) await act(() => renderer.unmount());
     Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
 });
+
 async function render(element: React.ReactNode) {
     await act(() => {
         renderer = create(<ConvexProvider client={client}>{element}</ConvexProvider>);
     });
 }
+
 async function update(element: React.ReactNode) {
     await act(() => renderer.update(<ConvexProvider client={client}>{element}</ConvexProvider>));
 }
+
 const output = () => JSON.stringify(renderer.toJSON());
+
 function browser() {
     Object.defineProperty(globalThis, "window", {
         configurable: true,
@@ -46,6 +55,7 @@ function browser() {
         },
     });
 }
+
 const item = (id?: string) =>
     ({
         id: "music",
@@ -59,9 +69,11 @@ const item = (id?: string) =>
 test("visitor track switches ignore late titles and settle failed or missing videos", async () => {
     browser();
     const pending: Array<(response: Response) => void> = [];
+
     const fetch = spyOn(globalThis, "fetch").mockImplementation(
         () => new Promise<Response>((resolve) => pending.push(resolve)),
     );
+
     try {
         await render(<VisitorMusicModal item={item("aaaaaaaaaaa")} onClose={noop} />);
         expect(output()).toContain("Finding title...");
@@ -86,12 +98,15 @@ test("visitor track switches ignore late titles and settle failed or missing vid
 
 test("saved profile name follows subsequent display-name prop updates", async () => {
     const mutation = spyOn(client, "mutation").mockResolvedValue({ displayName: "Saved name" });
+
     function Profile({ name }: { name: string }) {
         const profile = useComputerProfileActions({ displayName: name });
+
         return (
             <button onClick={() => profile.handleSaveDisplayName(" Saved name ")}>{profile.currentDisplayName}</button>
         );
     }
+
     try {
         await render(<Profile name="Original" />);
         await act(async () => renderer.root.findByType("button").props.onClick());
@@ -108,6 +123,7 @@ test("an expired invite update removes the share link and live access", async ()
     browser();
     const initialTime = 1_000_000;
     const clock = spyOn(Date, "now").mockReturnValue(initialTime);
+
     try {
         const invite = { _id: "invite", code: "ABCDEF", expiresAt: initialTime + 60000 } as Doc<"roomInvites">;
         await render(<ShareModal activeInvites={[invite]} onClose={noop} />);

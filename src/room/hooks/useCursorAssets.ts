@@ -13,14 +13,17 @@ async function loadSvg(path: string): Promise<string> {
     if (svgCache.has(path)) {
         return svgCache.get(path) as string;
     }
+
     const response = await fetch(path);
     const text = await response.text();
     svgCache.set(path, text);
+
     return text;
 }
 
 function toDataUri(svg: string, color: string): string {
     const tinted = svg.replace(/currentColor/gi, color);
+
     return `url("data:image/svg+xml;utf8,${encodeURIComponent(tinted)}")`;
 }
 

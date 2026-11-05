@@ -28,6 +28,7 @@ export function useOnboarding({
         if (onboardingInitialized.current || !autoStart) return;
 
         const alreadyCompleted = isGuest ? guestOnboardingCompleted : user?.onboardingCompleted === true;
+
         const shouldStart =
             !alreadyCompleted &&
             ((isGuest && !guestOnboardingCompleted) || (!isGuest && user?.onboardingCompleted === false));
@@ -52,6 +53,7 @@ export function useOnboarding({
 
         if (isGuest) {
             markGuestOnboardingComplete();
+
             return;
         }
 
@@ -61,6 +63,7 @@ export function useOnboarding({
     const advanceOnboarding = useCallback(() => {
         if (onboardingStep && onboardingActive) {
             const nextStep = getNextStep(onboardingStep);
+
             if (nextStep === "complete") {
                 setOnboardingStep("complete");
                 setTimeout(() => {

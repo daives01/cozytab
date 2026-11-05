@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 
 type CursorKind = "default" | "click" | "drag" | "text";
+
 type CursorValueMap = Record<CursorKind, string>;
 
 const STORAGE_KEY = "cozy-cursor-cache-v1";
@@ -13,12 +14,14 @@ const cursorSources: Record<CursorKind, { path: string; hotspot: string }> = {
 };
 
 const cursorKinds = Object.keys(cursorSources) as CursorKind[];
+
 const fallbackCursorValues: CursorValueMap = {
     default: `url("/cursor.svg") ${cursorSources.default.hotspot}`,
     click: `url("/cursor-click.svg") ${cursorSources.click.hotspot}`,
     drag: `url("/cursor-drag.svg") ${cursorSources.drag.hotspot}`,
     text: `url("/cursor-text.svg") ${cursorSources.text.hotspot}`,
 };
+
 const templateCache: Partial<Record<CursorKind, string>> = {};
 let fetchPromise: Promise<void> | null = null;
 const DEFAULT_CURSOR_COLOR = "#f59e0b";
@@ -26,11 +29,15 @@ const isBrowser = typeof window !== "undefined";
 
 function resolveColor(color: string | undefined): string {
     if (!color) return DEFAULT_CURSOR_COLOR;
+
     if (!color.startsWith("var(")) return color;
     const match = color.match(/var\((--[^),\s]+)/);
+
     if (!match) return DEFAULT_CURSOR_COLOR;
+
     if (typeof window === "undefined" || !document?.documentElement) return DEFAULT_CURSOR_COLOR;
     const resolved = getComputedStyle(document.documentElement).getPropertyValue(match[1]);
+
     return resolved?.trim() || DEFAULT_CURSOR_COLOR;
 }
 
@@ -43,6 +50,7 @@ if (isBrowser && typeof requestIdleCallback !== "undefined") {
 
 async function ensureTemplates() {
     if (!isBrowser) return null;
+
     if (fetchPromise) return fetchPromise;
 
     fetchPromise = (async () => {
@@ -51,6 +59,7 @@ async function ensureTemplates() {
                 cursorKinds.map(async (kind) => {
                     if (templateCache[kind]) return;
                     const res = await fetch(cursorSources[kind].path);
+
                     if (!res.ok) return;
                     templateCache[kind] = await res.text();
                 }),
@@ -67,6 +76,7 @@ async function ensureTemplates() {
 
 function toDataUri(template: string, color: string, hotspot: string) {
     const colored = template.replace(/currentColor/gi, color);
+
     return `url("data:image/svg+xml;utf8,${encodeURIComponent(colored)}") ${hotspot}`;
 }
 
@@ -85,6 +95,7 @@ function buildCursorValues(color: string): CursorValueMap {
 
     cursorKinds.forEach((kind) => {
         const template = templateCache[kind];
+
         if (template) {
             values[kind] = toDataUri(template, color, cursorSources[kind].hotspot);
         }
@@ -105,10 +116,14 @@ function applyCursorVariables(values: CursorValueMap) {
 function readCachedValues(color: string): CursorValueMap | null {
     if (!isBrowser) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
+
     if (!raw) return null;
+
     try {
         const parsed = JSON.parse(raw) as { color?: string; values?: CursorValueMap };
+
         if (parsed.color !== color || !parsed.values) return null;
+
         return parsed.values;
     } catch {
         return null;
@@ -117,6 +132,7 @@ function readCachedValues(color: string): CursorValueMap | null {
 
 function writeCachedValues(color: string, values: CursorValueMap) {
     if (!isBrowser) return;
+
     try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ color, values }));
     } catch {
@@ -129,11 +145,13 @@ export function useCursorColor(color?: string) {
         if (!isBrowser) return;
 
         const resolvedColor = resolveColor(color);
+
         if (!resolvedColor) return;
 
         let mounted = true;
 
         const cachedValues = readCachedValues(resolvedColor);
+
         if (cachedValues) {
             applyCursorVariables(cachedValues);
         }
@@ -143,6 +161,7 @@ export function useCursorColor(color?: string) {
                 const values = buildCursorValues(resolvedColor);
                 applyCursorVariables(values);
                 const hasTemplates = cursorKinds.every((kind) => Boolean(templateCache[kind]));
+
                 if (hasTemplates) {
                     writeCachedValues(resolvedColor, values);
                 }

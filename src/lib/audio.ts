@@ -6,19 +6,25 @@ const unlockListeners = new Set<() => void>();
 
 function createAudioContext(): AudioContext | null {
     if (typeof window === "undefined") return null;
+
     const Ctor =
         window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
     if (!Ctor) return null;
+
     if (!audioCtx) {
         audioCtx = new Ctor();
     }
+
     return audioCtx;
 }
 
 function updateUnlockedState(ctx: AudioContext | null) {
     const nextUnlocked = Boolean(ctx && ctx.state === "running");
+
     if (nextUnlocked === audioUnlocked) return;
     audioUnlocked = nextUnlocked;
+
     if (audioUnlocked) {
         unlockListeners.forEach((listener) => listener());
     }
@@ -30,15 +36,19 @@ export function getAudioContext(): AudioContext | null {
 
 export function isAudioUnlocked(): boolean {
     updateUnlockedState(audioCtx);
+
     return audioUnlocked;
 }
 
 export async function ensureAudioReady(): Promise<boolean> {
     const ctx = createAudioContext();
+
     if (!ctx) {
         updateUnlockedState(null);
+
         return false;
     }
+
     if (ctx.state !== "running") {
         try {
             await ctx.resume();
@@ -46,12 +56,15 @@ export async function ensureAudioReady(): Promise<boolean> {
             // ignore resume errors; caller will treat as not ready
         }
     }
+
     updateUnlockedState(ctx);
+
     return audioUnlocked;
 }
 
 export function onAudioUnlocked(listener: () => void): () => void {
     unlockListeners.add(listener);
+
     return () => unlockListeners.delete(listener);
 }
 
@@ -62,7 +75,9 @@ export function useAudioUnlock() {
 
     useEffect(() => {
         if (isAudioUnlocked()) return;
+
         if (typeof window === "undefined") return;
+
         const handleUserGesture = () => {
             requestUnlock();
         };

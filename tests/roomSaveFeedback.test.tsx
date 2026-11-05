@@ -33,6 +33,7 @@ describe("room save feedback", () => {
                 onSwitchRoom={async () => {}}
             />,
         );
+
         expect(html).toContain("Couldn’t save your room.");
         expect(html).toContain("Reconnect &amp; try again");
         expect(html).toContain('aria-label="Retry saving room"');

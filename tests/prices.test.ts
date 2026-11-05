@@ -26,6 +26,7 @@ describe("price validation", () => {
             const t = createConvexTest();
             const adminId = await seedUser(t, "admin");
             await t.run((ctx) => ctx.db.patch(adminId, { admin: true }));
+
             const catalogId = await t.run((ctx) =>
                 ctx.db.insert("catalogItems", {
                     name: "Chair",
@@ -35,6 +36,7 @@ describe("price validation", () => {
                     defaultWidth: 100,
                 }),
             );
+
             const templateId = await seedTemplate(t);
             const admin = asUser(t, "admin");
 
@@ -64,6 +66,7 @@ describe("price validation", () => {
             const userId = await seedUser(t, "admin", 10);
             await t.run((ctx) => ctx.db.patch(userId, { admin: true }));
             const admin = asUser(t, "admin");
+
             const item = await admin.mutation(api.catalog.addItem, {
                 name: "Chair",
                 category: "furniture",
@@ -71,12 +74,14 @@ describe("price validation", () => {
                 assetUrl: "/chair.png",
                 defaultWidth: 100,
             });
+
             const template = await admin.mutation(api.roomTemplates.addTemplate, {
                 name: "Room",
                 basePrice,
                 backgroundUrl: "/room.png",
                 isDefault: false,
             });
+
             expect(item.success).toBe(true);
             expect(template.success).toBe(true);
             const catalogItemId = item.id!;
@@ -104,6 +109,7 @@ describe("price validation", () => {
         for (const basePrice of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
             const t = createConvexTest();
             const userId = await seedUser(t, "buyer", 10);
+
             const templateId = await t.run((ctx) =>
                 ctx.db.insert("roomTemplates", {
                     name: "Bad",

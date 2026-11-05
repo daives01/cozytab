@@ -19,12 +19,14 @@ export function useTimeOfDay() {
         const tick = () => setActualTimeOfDay(getLocalTimeOfDay());
         tick();
         const id = setInterval(tick, 60_000);
+
         return () => clearInterval(id);
     }, [setActualTimeOfDay]);
 
     useEffect(() => {
         const root = document.documentElement;
         root.classList.toggle("night-mode", effectiveTimeOfDay === "night");
+
         return () => root.classList.remove("night-mode");
     }, [effectiveTimeOfDay]);
 

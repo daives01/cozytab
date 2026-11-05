@@ -28,6 +28,7 @@ export function DesktopContextMenu({
 
     if (contextMenu.target === "shortcut") {
         const shortcut = shortcuts.find((s) => s.id === contextMenu.id);
+
         if (!shortcut) return null;
 
         return (

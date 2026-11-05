@@ -27,6 +27,7 @@ export function useCursorColorSaver(
             if (typeof (debounced as { cancel?: () => void }).cancel === "function") {
                 (debounced as { cancel?: () => void }).cancel?.();
             }
+
             debouncedSaveRef.current = null;
         };
     }, [authedShortcutsRef, saveComputer]);
@@ -35,6 +36,7 @@ export function useCursorColorSaver(
         saveAuthedCursorColorRef.current = (next) => {
             debouncedSaveRef.current?.(next);
         };
+
         return () => {
             saveAuthedCursorColorRef.current = null;
         };
@@ -170,9 +172,13 @@ export function useLeaseHeartbeat({
 
     useEffect(() => {
         if (isGuest) return;
+
         if (!roomId) return;
+
         if (!currentUserId) return;
+
         if (!room || room.userId !== currentUserId) return;
+
         if (!isSharingActive) return;
 
         let intervalId: ReturnType<typeof setInterval> | null = null;
@@ -190,6 +196,7 @@ export function useLeaseHeartbeat({
                 clearInterval(intervalId);
                 intervalId = null;
             }
+
             stopHiddenHeartbeats();
         };
 
@@ -201,10 +208,12 @@ export function useLeaseHeartbeat({
                         typeof result === "object" && result !== null && "closed" in result
                             ? (result as { closed?: boolean }).closed
                             : false;
+
                     const reason =
                         typeof result === "object" && result !== null && "reason" in result
                             ? (result as { reason?: string }).reason
                             : undefined;
+
                     if (closed || reason === "host-only-timeout") {
                         stopHeartbeats();
                     }
@@ -212,6 +221,7 @@ export function useLeaseHeartbeat({
                 .catch((err) => {
                     console.error("[Room] heartbeatInvite failed", err);
                     const message = err instanceof Error ? err.message : String(err);
+
                     if (
                         message.includes("host-only-timeout") ||
                         message.includes("invite-missing") ||
@@ -234,8 +244,10 @@ export function useLeaseHeartbeat({
 
             const handleVisibilityChange = () => {
                 const hidden = document.visibilityState === "hidden";
+
                 if (hidden) {
                     sendHeartbeat();
+
                     if (!hiddenHeartbeatRef.current) {
                         hiddenHeartbeatRef.current = setInterval(sendHeartbeat, 60_000);
                     }
@@ -246,6 +258,7 @@ export function useLeaseHeartbeat({
 
             document.addEventListener("visibilitychange", handleVisibilityChange);
             handleVisibilityChange();
+
             return () => {
                 document.removeEventListener("visibilitychange", handleVisibilityChange);
                 stopHiddenHeartbeats();
@@ -265,6 +278,7 @@ export function useLeaseHeartbeat({
     useEffect(() => {
         return () => {
             const latestRoomId = latestRoomIdRef.current;
+
             if (sharingActiveRef.current && latestRoomId) {
                 closeInviteSession({ roomId: latestRoomId }).catch(() => {});
             }
@@ -287,10 +301,12 @@ export function useSyncComputerState({
 }) {
     useEffect(() => {
         if (isGuest) return;
+
         if (!computerState) return;
         startTransition(() => {
             setLocalShortcuts(computerState.shortcuts);
             const color = userCursorColor ?? computerState.cursorColor;
+
             if (color) {
                 setAuthedCursorColor(color);
             }
@@ -314,6 +330,7 @@ export function useViewportSize() {
 
         handleResize();
         window.addEventListener("resize", handleResize);
+
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
@@ -327,6 +344,7 @@ export function useDailyRewardToastTimer(
     useEffect(() => {
         if (!dailyRewardToast) return;
         const timer = window.setTimeout(() => setDailyRewardToast(null), 4500);
+
         return () => window.clearTimeout(timer);
     }, [dailyRewardToast, setDailyRewardToast]);
 }
@@ -338,7 +356,9 @@ export function useOnboardingAssetPrefetch(
 ) {
     useEffect(() => {
         if (!onboardingActive) return;
+
         if (computerPrefetchedRef.current) return;
+
         if (!resolvedComputerAssetUrl) return;
 
         const img = new Image();
@@ -352,18 +372,23 @@ export function useEscapeToExitEditMode(mode: "view" | "edit", onExit: () => voi
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
             const target = event.target as HTMLElement | null;
+
             const isTypingTarget =
                 target &&
                 (target.tagName === "INPUT" ||
                     target.tagName === "TEXTAREA" ||
                     target.getAttribute("contenteditable") === "true");
+
             if (isTypingTarget) return;
+
             if (mode === "edit") {
                 event.preventDefault();
                 onExit();
             }
         };
+
         window.addEventListener("keydown", handleKeyDown);
+
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [mode, onExit]);
 }
