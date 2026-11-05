@@ -13,8 +13,8 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [ ] Assess remaining major dependency migrations separately, including Workers types 5, ESLint, Vite, TypeScript, lucide, convex-test and Stripe component compatibility. Record updates or concrete deferrals.
 - [x] Pin an upstream anti-slop commit, review and vendor generic plugin sources with license, provenance and upgrade instructions. Add opt-in audit only; inventory every rule with counts and false positives. Do not add Effect rules without Effect usage.
 - [x] Review accumulator copying and eager pipelines: oxc/no-accumulating-spread, no-reduce-accumulator-copy, no-array-filter-map. Preserve callback order and immutability.
-- [ ] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
-- [ ] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.
+- [x] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
+- [x] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.
 - [ ] Review no-conditional-empty-object-spread; preserve omitted fields at Convex, storage and guest import boundaries.
 - [ ] Evaluate no-object-parameters, no-unsafe-dictionary-type and no-known-value-widening separately; preserve safe runtime lookups.
 - [ ] Inventory external inputs; evaluate no-unknown-parameters, no-unknown-returns and no-unknown-type-aliases individually after boundary validation exists.
@@ -27,3 +27,11 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 For each step start from the merged predecessor, change one rule/group in one bounded subsystem, record before/after counts and exact scope, inspect every finding, preserve auth/presence/music/guest contracts, and add behavioral tests only where behavior changes. No blanket disables, broad casts or cosmetic rewrites. Enable errors only at zero unexplained findings. Run check plus targeted tests, obtain fresh review and merge before beginning the next piece. Keep formatting-only work separate. User authorization does not mandate adopting every opinionated rule.
 
 Worker registry assessment: Hono 4.13.16 and compatible Workers types 4.20260702.1 selected. Workers types latest 5.20261104.1 is a separate major migration. Wrangler aligned with root 4.158.0.
+
+## Assertion and Reflect policy (base 087a7d5)
+
+Enable only no-chained-type-assertions, no-widen-then-assert, no-reflect-get and no-reflect-apply as global errors over the existing owned-source scope and exclusions. Each has 0 before → 0 after diagnostics; full audit remains 1646. No source changes or fixture builders needed. ESLint and vendored bytes remain unchanged.
+
+Pinned source review and temporary plugin probes: chained assertions report both parenthesized as chains and angle-bracket chains (2); single assertions and all-const chains pass. Widening reports a local const unknown initialized with a known object then asserted narrower (1); unknown boundary parameters pass. It uses syntax and same-function immutable binding evidence, not checker assignability; mutable, cross-function, imported and unsupported alias flows can escape detection.
+
+Reflect probes report direct and string-literal computed global get/apply calls (2 each), including missing-property get, get with explicit receiver, and apply with explicit this. Shadowed Reflect, aliases and dynamic computed names pass (known detection limits). Source search across src, shared, convex, presence-worker and tests found only Reflect.deleteProperty cleanup calls and unrelated Promise<unknown> annotations, no selected calls or assertion chains. No existing receiver-dependent or missing-property behavior requires migration. These bans do not prove direct property/call replacements equivalent: missing reads may yield undefined, getters use the supplied receiver, and apply preserves explicit this; any future exception requires individual semantic review. No automatic fixes. Probes were removed; no production fixtures or detector-mirroring tests added.
