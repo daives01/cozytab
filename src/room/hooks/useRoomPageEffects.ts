@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, startTransition } from "react";
 import type React from "react";
+import type { FunctionReturnType } from "convex/server";
+import type { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
 import type { Shortcut } from "@shared/guestTypes";
 import type { DailyRewardToastPayload } from "../types";
@@ -51,7 +53,7 @@ export function useReconcileGuestOnboarding({
     reconciledGuestOnboardingRef: React.MutableRefObject<boolean>;
     user: Doc<"users"> | null | undefined;
     initialGuestSession: { onboardingCompleted?: boolean } | null;
-    completeOnboarding: () => Promise<unknown>;
+    completeOnboarding: () => Promise<FunctionReturnType<typeof api.users.completeOnboarding>>;
     clearGuestSession: () => void;
 }) {
     useEffect(() => {
@@ -140,8 +142,13 @@ export function useLeaseHeartbeat({
 }: {
     isGuest: boolean;
     room: RoomRecord | null | undefined;
-    heartbeatInvite: (args: { roomId: Id<"rooms">; hasGuests?: boolean }) => Promise<unknown>;
-    closeInviteSession: (args: { roomId: Id<"rooms"> }) => Promise<unknown>;
+    heartbeatInvite: (args: {
+        roomId: Id<"rooms">;
+        hasGuests?: boolean;
+    }) => Promise<FunctionReturnType<typeof api.rooms.heartbeatInvite>>;
+    closeInviteSession: (args: {
+        roomId: Id<"rooms">;
+    }) => Promise<FunctionReturnType<typeof api.rooms.closeInviteSession>>;
     isSharingActive: boolean;
     hasVisitors?: boolean;
     currentUserId?: Id<"users"> | null;
@@ -189,7 +196,7 @@ export function useLeaseHeartbeat({
         const sendHeartbeat = () => {
             if (stopped) return;
             heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current })
-                .then((result: { closed?: boolean; reason?: string } | unknown) => {
+                .then((result) => {
                     const closed =
                         typeof result === "object" && result !== null && "closed" in result
                             ? (result as { closed?: boolean }).closed
