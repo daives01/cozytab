@@ -5,10 +5,7 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { OnboardingStep } from "../Onboarding";
 import type { RoomEditingSession } from "../session";
 import { ROOM_HEIGHT, ROOM_WIDTH } from "@/time/roomConstants";
-import {
-    clampCursorToRoom,
-    updateItemsForMusicToggle,
-} from "../utils/roomActions";
+import { clampCursorToRoom, updateItemsForMusicToggle } from "../utils/roomActions";
 
 type HandlersArgs = {
     isGuest: boolean;
@@ -72,7 +69,7 @@ export function useRoomHandlers({
                 advanceOnboarding();
             }
         },
-        [advanceOnboarding, containerRef, editingSession, mode, onboardingStep, scale]
+        [advanceOnboarding, containerRef, editingSession, mode, onboardingStep, scale],
     );
 
     const handleMusicToggle = useCallback(
@@ -86,7 +83,7 @@ export function useRoomHandlers({
             delete changes.catalogItemId;
             editingSession.changePersistedItem(itemId, changes, "visitor-observable");
         },
-        [editingSession]
+        [editingSession],
     );
 
     const handleModeToggle = useCallback(() => {
@@ -120,7 +117,7 @@ export function useRoomHandlers({
             if (!catalogItemId) return;
             handlePlaceCatalogItem(catalogItemId as Id<"catalogItems">, e.clientX, e.clientY);
         },
-        [handlePlaceCatalogItem, mode]
+        [handlePlaceCatalogItem, mode],
     );
 
     const handleCursorMove = useCallback(
@@ -138,7 +135,7 @@ export function useRoomHandlers({
             lastRoomPositionRef.current = clamped;
             updateCursor(clamped.x, clamped.y, clientX, clientY, hasVisitors);
         },
-        [containerRef, hasVisitors, lastRoomPositionRef, scale, updateCursor]
+        [containerRef, hasVisitors, lastRoomPositionRef, scale, updateCursor],
     );
 
     const handleBackgroundClick = useCallback(() => editingSession.select(null), [editingSession]);
@@ -158,7 +155,7 @@ export function useRoomHandlers({
                 setMusicPlayerItemId(id);
             }
         },
-        [mode, setMusicPlayerItemId]
+        [mode, setMusicPlayerItemId],
     );
 
     const handleUpdateShortcuts = useCallback(
@@ -169,7 +166,7 @@ export function useRoomHandlers({
                 saveComputer({ shortcuts, cursorColor });
             }
         },
-        [cursorColor, isGuest, saveComputer, updateGuestShortcuts]
+        [cursorColor, isGuest, saveComputer, updateGuestShortcuts],
     );
 
     const handleSelectItem = useCallback((id: string | null) => editingSession.select(id), [editingSession]);
@@ -182,26 +179,35 @@ export function useRoomHandlers({
             const id = newItem.id;
             editingSession.changePersistedItem(id, changes);
         },
-        [editingSession]
+        [editingSession],
     );
 
-    const handleDragStart = useCallback((id: string) => { editingSession.beginDrag(id); }, [editingSession]);
+    const handleDragStart = useCallback(
+        (id: string) => {
+            editingSession.beginDrag(id);
+        },
+        [editingSession],
+    );
     const handleDragEnd = useCallback(() => editingSession.endDrag(), [editingSession]);
 
     const handleBringToFront = useCallback(
-        (id: string) => { editingSession.bringToFront(id); },
-        [editingSession]
+        (id: string) => {
+            editingSession.bringToFront(id);
+        },
+        [editingSession],
     );
     const handleSendToBack = useCallback(
-        (id: string) => { editingSession.sendToBack(id); },
-        [editingSession]
+        (id: string) => {
+            editingSession.sendToBack(id);
+        },
+        [editingSession],
     );
 
     const handleDeleteItem = useCallback(
         (itemId: string) => {
             editingSession.remove(itemId);
         },
-        [editingSession]
+        [editingSession],
     );
 
     return {

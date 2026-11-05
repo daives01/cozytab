@@ -24,7 +24,7 @@ type FriendRequestResult = {
 async function createOrUpdateFriendship(
     ctx: MutationCtx,
     meId: Id<"users">,
-    targetId: Id<"users">
+    targetId: Id<"users">,
 ): Promise<FriendRequestResult> {
     const [user1, user2] = sortedPair(meId, targetId);
 
@@ -187,8 +187,7 @@ export const declineFriendRequest = mutation({
         if (friendship.status !== "pending") return { success: true as const }; // Already accepted/resolved
 
         const isRecipient =
-            (friendship.user1 === me._id || friendship.user2 === me._id) &&
-            friendship.initiator !== me._id;
+            (friendship.user1 === me._id || friendship.user2 === me._id) && friendship.initiator !== me._id;
         if (!isRecipient) throw new ConvexError("Not your request to decline");
 
         await ctx.db.delete(args.friendshipId);
@@ -262,9 +261,7 @@ export const getMyFriends = query({
                     ctx.db.get(friendId),
                     ctx.db
                         .query("rooms")
-                        .withIndex("by_user_active", (q) =>
-                            q.eq("userId", friendId).eq("isActive", true)
-                        )
+                        .withIndex("by_user_active", (q) => q.eq("userId", friendId).eq("isActive", true))
                         .first(),
                 ]);
                 if (!friendUser) return null;
@@ -278,7 +275,7 @@ export const getMyFriends = query({
                     activeRoomId: activeRoom?._id ?? null,
                     lastSeenAt: friendUser.lastSeenAt ?? null,
                 };
-            })
+            }),
         );
 
         return friends.filter((f): f is NonNullable<typeof f> => f !== null);
@@ -325,7 +322,7 @@ export const getMyPendingRequests = query({
                     createdAt: f.createdAt,
                     isOutgoing: f.initiator === me._id,
                 };
-            })
+            }),
         );
 
         const incoming = enriched.filter((e) => !e.isOutgoing);
@@ -372,7 +369,7 @@ export const getFriendshipWith = query({
             initiator: v.id("users"),
             isInitiator: v.boolean(),
         }),
-        v.null()
+        v.null(),
     ),
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -404,7 +401,7 @@ export const getFriendRoom = query({
             ownerName: v.string(),
             ownerReferralCode: v.union(v.string(), v.null()),
         }),
-        v.null()
+        v.null(),
     ),
     handler: async (ctx, args) => {
         const me = await getCurrentUser(ctx);
@@ -424,9 +421,7 @@ export const getFriendRoom = query({
         // Find friend's active room
         const room = await ctx.db
             .query("rooms")
-            .withIndex("by_user_active", (q) =>
-                q.eq("userId", friendUserId).eq("isActive", true)
-            )
+            .withIndex("by_user_active", (q) => q.eq("userId", friendUserId).eq("isActive", true))
             .first();
         if (!room) return null;
 
@@ -442,13 +437,16 @@ export const getFriendRoom = query({
 
 export const getFriendshipStatusBatch = query({
     args: { userIds: v.array(v.id("users")) },
-    returns: v.record(v.string(), v.union(
-        v.object({
-            status: v.union(v.literal("pending"), v.literal("accepted")),
-            isInitiator: v.boolean(),
-        }),
-        v.null()
-    )),
+    returns: v.record(
+        v.string(),
+        v.union(
+            v.object({
+                status: v.union(v.literal("pending"), v.literal("accepted")),
+                isInitiator: v.boolean(),
+            }),
+            v.null(),
+        ),
+    ),
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
         if (!identity) return {};
@@ -472,7 +470,7 @@ export const getFriendshipStatusBatch = query({
                         isInitiator: friendship.initiator === me._id,
                     };
                 }
-            })
+            }),
         );
 
         return results;

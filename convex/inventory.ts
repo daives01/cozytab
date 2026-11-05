@@ -13,9 +13,7 @@ export const getMyInventory = query({
 
         const user = await ctx.db
             .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
 
         if (!user) return [];
@@ -48,7 +46,7 @@ export const getMyInventory = query({
                     purchasedAt: inv.purchasedAt,
                     count,
                 };
-            })
+            }),
         );
 
         return detailedInventory
@@ -65,9 +63,7 @@ export const getMyInventoryIds = query({
 
         const user = await ctx.db
             .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
 
         if (!user) return [];
@@ -77,9 +73,7 @@ export const getMyInventoryIds = query({
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
 
-        return inventoryItems
-            .filter((inv) => (inv.count ?? 1) > 0)
-            .map((inv) => inv.catalogItemId);
+        return inventoryItems.filter((inv) => (inv.count ?? 1) > 0).map((inv) => inv.catalogItemId);
     },
 });
 
@@ -91,18 +85,14 @@ export const hasItem = query({
 
         const user = await ctx.db
             .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
 
         if (!user) return false;
 
         const inventoryItem = await ctx.db
             .query("inventory")
-            .withIndex("by_user_and_item", (q) =>
-                q.eq("userId", user._id).eq("catalogItemId", args.catalogItemId)
-            )
+            .withIndex("by_user_and_item", (q) => q.eq("userId", user._id).eq("catalogItemId", args.catalogItemId))
             .unique();
 
         return inventoryItem !== null && (inventoryItem.count ?? 1) > 0;
@@ -120,18 +110,14 @@ export const purchaseItem = mutation({
 
         const user = await ctx.db
             .query("users")
-            .withIndex("by_externalId", (q) =>
-                q.eq("externalId", identity.subject)
-            )
+            .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
 
         if (!user) throw new Error("User not found");
 
         const existingItem = await ctx.db
             .query("inventory")
-            .withIndex("by_user_and_item", (q) =>
-                q.eq("userId", user._id).eq("catalogItemId", args.catalogItemId)
-            )
+            .withIndex("by_user_and_item", (q) => q.eq("userId", user._id).eq("catalogItemId", args.catalogItemId))
             .unique();
 
         const catalogItem = await ctx.db.get(args.catalogItemId);
@@ -208,7 +194,8 @@ export const backfillInventoryCounts = internalMutation({
     args: {},
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
-        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.NODE_ENV;
+        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+            ?.NODE_ENV;
         if (!identity) {
             throw new Error("Not authenticated");
         }

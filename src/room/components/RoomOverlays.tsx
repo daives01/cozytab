@@ -15,19 +15,23 @@ import { useTouchOnly } from "@/hooks/useTouchCapability";
 import type { RoomOverlaysProps } from "./RoomOverlays.types";
 import type { RoomItem } from "@shared/guestTypes";
 
-const ComputerOverlay = lazy(() => import("@/computer/ComputerOverlay").then((module) => ({ default: module.ComputerOverlay })));
-const GameOverlay = lazy(() => import("@/games/components/GameOverlay").then((module) => ({ default: module.GameOverlay })));
+const ComputerOverlay = lazy(() =>
+    import("@/computer/ComputerOverlay").then((module) => ({ default: module.ComputerOverlay })),
+);
+const GameOverlay = lazy(() =>
+    import("@/games/components/GameOverlay").then((module) => ({ default: module.GameOverlay })),
+);
 
 export function RoomOverlays({ ui, computer, music, onboarding, presence, game }: RoomOverlaysProps) {
     const isTouchOnly = useTouchOnly();
 
     const activeMusicItem = useMemo(
         () => music.localItems.find((i) => i.id === music.musicPlayerItemId) ?? null,
-        [music.localItems, music.musicPlayerItemId]
+        [music.localItems, music.musicPlayerItemId],
     );
     const visibleRoomVisitors = useMemo(
         () => presence.visitors.filter((visitor) => visitor.visitorId !== game.visitorId),
-        [presence.visitors, game.visitorId]
+        [presence.visitors, game.visitorId],
     );
 
     const handleMusicSave = useCallback(
@@ -35,7 +39,7 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
             const updatedItems = music.localItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
             music.onSave(updatedItem, updatedItems);
         },
-        [music]
+        [music],
     );
 
     const isTouchPlacementActive = isTouchOnly && ui.mode === "edit" && Boolean(ui.touchPlacementItemId);
@@ -70,56 +74,64 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
 
             {isTouchPlacementActive && null}
 
-            {computer.isOpen && <Suspense fallback={null}><ComputerOverlay
-                isGuest={ui.isGuest}
-                isComputerOpen={computer.isOpen}
-                onCloseComputer={computer.onClose}
-                shortcuts={computer.shortcuts}
-                onUpdateShortcuts={computer.onUpdateShortcuts}
-                userCurrency={computer.economy.userCurrency}
-                nextRewardAt={computer.economy.nextRewardAt}
-                loginStreak={computer.economy.loginStreak}
-                onShopOpened={computer.onboardingCallbacks.onShopOpened}
-                onOnboardingPurchase={computer.onboardingCallbacks.onOnboardingPurchase}
-                isOnboardingShopStep={computer.onboardingCallbacks.isOnboardingShopStep}
-                onPointerMove={computer.onPointerMove}
-                guestCoins={computer.economy.guestCoins}
-                onGuestCoinsChange={computer.economy.onGuestCoinsChange}
-                startingCoins={computer.economy.startingCoins}
-                guestInventory={computer.economy.guestInventory}
-                onGuestPurchase={computer.economy.onGuestPurchase}
-                onOnboardingShortcutAdded={computer.onboardingCallbacks.onOnboardingShortcutAdded}
-                highlightFirstMusicItem={computer.onboardingCallbacks.highlightFirstMusicItem}
-                displayName={computer.profile.displayName}
-                username={computer.profile.username}
-                onDisplayNameUpdated={computer.profile.onDisplayNameUpdated}
-                cursorColor={computer.profile.cursorColor}
-                onCursorColorChange={computer.profile.onCursorColorChange}
-                timeOfDay={computer.time.timeOfDay}
-                devTimeOfDay={computer.time.devTimeOfDay}
-                onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
-                inRoomVisitors={visibleRoomVisitors}
-                canSwitchRooms={computer.canSwitchRooms}
-                saveStatus={computer.saveStatus}
-                saveError={computer.saveError}
-                onRetrySave={computer.onRetrySave}
-            /></Suspense>}
+            {computer.isOpen && (
+                <Suspense fallback={null}>
+                    <ComputerOverlay
+                        isGuest={ui.isGuest}
+                        isComputerOpen={computer.isOpen}
+                        onCloseComputer={computer.onClose}
+                        shortcuts={computer.shortcuts}
+                        onUpdateShortcuts={computer.onUpdateShortcuts}
+                        userCurrency={computer.economy.userCurrency}
+                        nextRewardAt={computer.economy.nextRewardAt}
+                        loginStreak={computer.economy.loginStreak}
+                        onShopOpened={computer.onboardingCallbacks.onShopOpened}
+                        onOnboardingPurchase={computer.onboardingCallbacks.onOnboardingPurchase}
+                        isOnboardingShopStep={computer.onboardingCallbacks.isOnboardingShopStep}
+                        onPointerMove={computer.onPointerMove}
+                        guestCoins={computer.economy.guestCoins}
+                        onGuestCoinsChange={computer.economy.onGuestCoinsChange}
+                        startingCoins={computer.economy.startingCoins}
+                        guestInventory={computer.economy.guestInventory}
+                        onGuestPurchase={computer.economy.onGuestPurchase}
+                        onOnboardingShortcutAdded={computer.onboardingCallbacks.onOnboardingShortcutAdded}
+                        highlightFirstMusicItem={computer.onboardingCallbacks.highlightFirstMusicItem}
+                        displayName={computer.profile.displayName}
+                        username={computer.profile.username}
+                        onDisplayNameUpdated={computer.profile.onDisplayNameUpdated}
+                        cursorColor={computer.profile.cursorColor}
+                        onCursorColorChange={computer.profile.onCursorColorChange}
+                        timeOfDay={computer.time.timeOfDay}
+                        devTimeOfDay={computer.time.devTimeOfDay}
+                        onSetDevTimeOfDay={computer.time.onSetDevTimeOfDay}
+                        inRoomVisitors={visibleRoomVisitors}
+                        canSwitchRooms={computer.canSwitchRooms}
+                        saveStatus={computer.saveStatus}
+                        saveError={computer.saveError}
+                        onRetrySave={computer.onRetrySave}
+                    />
+                </Suspense>
+            )}
 
             {activeMusicItem && (
                 <MusicPlayerModal item={activeMusicItem} onClose={music.onClose} onSave={handleMusicSave} />
             )}
 
-            {!!game.activeGameItemId && !!game.gameType && <Suspense fallback={null}><GameOverlay
-                isOpen={!!game.activeGameItemId && !!game.gameType}
-                gameType={game.gameType ?? "chess"}
-                itemId={game.activeGameItemId ?? ""}
-                visitorId={game.visitorId}
-                visitors={game.visitors}
-                setGameMetadata={game.setGameMetadata}
-                onClose={game.onClose}
-                onPointerMove={computer.onPointerMove}
-                onGameActiveChange={game.onGameActiveChange}
-            /></Suspense>}
+            {!!game.activeGameItemId && !!game.gameType && (
+                <Suspense fallback={null}>
+                    <GameOverlay
+                        isOpen={!!game.activeGameItemId && !!game.gameType}
+                        gameType={game.gameType ?? "chess"}
+                        itemId={game.activeGameItemId ?? ""}
+                        visitorId={game.visitorId}
+                        visitors={game.visitors}
+                        setGameMetadata={game.setGameMetadata}
+                        onClose={game.onClose}
+                        onPointerMove={computer.onPointerMove}
+                        onGameActiveChange={game.onGameActiveChange}
+                    />
+                </Suspense>
+            )}
 
             {!ui.isGuest && presence.isShareModalOpen && (
                 <ShareModal onClose={presence.onCloseShareModal} activeInvites={presence.activeInvites} />
@@ -169,7 +181,9 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
                     />
                     <div className="absolute bottom-4 left-4 z-50 pointer-events-none" data-onboarding="chat-hint">
                         <div className="bg-[var(--ink)]/80 text-white text-sm px-3 py-1.5 rounded-lg backdrop-blur-sm border-2 border-[var(--ink)] shadow-sm">
-                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">Enter</span>
+                            <span className="font-mono bg-[var(--ink-light)] px-2 py-0.5 rounded text-xs mr-1.5">
+                                Enter
+                            </span>
                             <span
                                 style={{
                                     fontFamily: "'Patrick Hand', 'Patrick Hand SC', sans-serif",
@@ -201,18 +215,22 @@ export function RoomOverlays({ ui, computer, music, onboarding, presence, game }
 
             {!ui.isGuest && presence.connectionState !== "connected" && (
                 <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 max-w-[90vw]">
-                    <div className={`rounded-xl border-2 px-4 py-3 flex flex-col gap-2 shadow-[4px_4px_0px_0px_var(--color-foreground)] ${
-                        presence.connectionState === "error"
-                            ? "border-red-600 bg-red-50"
-                            : "border-[var(--color-foreground)] bg-[var(--color-background)]"
-                    }`}>
+                    <div
+                        className={`rounded-xl border-2 px-4 py-3 flex flex-col gap-2 shadow-[4px_4px_0px_0px_var(--color-foreground)] ${
+                            presence.connectionState === "error"
+                                ? "border-red-600 bg-red-50"
+                                : "border-[var(--color-foreground)] bg-[var(--color-background)]"
+                        }`}
+                    >
                         <div className="flex items-center gap-3">
                             {presence.connectionState === "error" ? (
                                 <div className="h-4 w-4 rounded-full bg-red-600 flex-shrink-0" />
                             ) : (
                                 <div className="h-4 w-4 border-2 border-[var(--color-foreground)] border-t-transparent rounded-full animate-spin flex-shrink-0" />
                             )}
-                            <span className={`text-sm font-medium ${presence.connectionState === "error" ? "text-red-900" : ""}`}>
+                            <span
+                                className={`text-sm font-medium ${presence.connectionState === "error" ? "text-red-900" : ""}`}
+                            >
                                 {presence.connectionState === "connecting" && "Connecting..."}
                                 {presence.connectionState === "reconnecting" && "Reconnecting..."}
                                 {presence.connectionState === "error" && "Connection Failed"}

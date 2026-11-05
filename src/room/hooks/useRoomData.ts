@@ -15,10 +15,10 @@ interface RoomDataArgs {
 export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
-    const guestRoom = useQuery(
-        api.rooms.getDefaultRoom,
-        isGuest ? {} : "skip"
-    ) as { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;
+    const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip") as
+        | { template: Doc<"roomTemplates">; items: RoomItem[] }
+        | null
+        | undefined;
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list);
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
@@ -35,8 +35,10 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
         if (!catalogItems) return null;
         return (
             catalogItems.find(
-                (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase() === "computers"
-            ) ?? catalogItems.find((c: (typeof catalogItems)[number]) => c.isStarterItem) ?? null
+                (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase() === "computers",
+            ) ??
+            catalogItems.find((c: (typeof catalogItems)[number]) => c.isStarterItem) ??
+            null
         );
     }, [catalogItems]);
 
@@ -47,7 +49,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const computerResolvedUrl = useQuery(
         api.catalog.getImageUrl,
-        computerStorageId ? { storageId: computerStorageId as Id<"_storage"> } : "skip"
+        computerStorageId ? { storageId: computerStorageId as Id<"_storage"> } : "skip",
     );
 
     const resolvedComputerAssetUrl = useMemo(() => {

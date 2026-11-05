@@ -35,7 +35,7 @@ export function RetroVolumeFader({ value, onChange, muted = false, height }: Vol
                 rafRef.current = window.requestAnimationFrame(runInteraction);
             }
         },
-        [runInteraction]
+        [runInteraction],
     );
 
     const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
@@ -77,7 +77,7 @@ export function RetroVolumeFader({ value, onChange, muted = false, height }: Vol
                 cancelAnimationFrame(rafRef.current);
             }
         },
-        []
+        [],
     );
 
     const percentage = Math.round(clamp(value) * 100);

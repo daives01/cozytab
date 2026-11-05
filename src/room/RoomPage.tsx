@@ -62,10 +62,15 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
     const inventoryWithCounts = useQuery(api.inventory.getMyInventory, isGuest ? "skip" : {});
     const saveRoom = useMutation(api.rooms.saveMyRoom);
     const loadedGuestSession = useMemo(() => guestSession ?? readGuestSession(), [guestSession]);
-    const initialGuestItems = useMemo(() => loadedGuestSession.roomItems.length > 0
-        ? loadedGuestSession.roomItems
-        : (roomData.guestRoom?.items ?? (roomData.guestTemplate as { items?: RoomItem[] } | null | undefined)?.items ?? []),
-    [loadedGuestSession, roomData.guestRoom, roomData.guestTemplate]);
+    const initialGuestItems = useMemo(
+        () =>
+            loadedGuestSession.roomItems.length > 0
+                ? loadedGuestSession.roomItems
+                : (roomData.guestRoom?.items ??
+                  (roomData.guestTemplate as { items?: RoomItem[] } | null | undefined)?.items ??
+                  []),
+        [loadedGuestSession, roomData.guestRoom, roomData.guestTemplate],
+    );
     const persistence = useMemo(() => {
         if (isGuest) {
             return createGuestRoomPersistence({
@@ -83,17 +88,24 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
         if (inventoryWithCounts === undefined) return null;
         return addInventoryCounts(inventoryWithCounts);
     }, [inventoryWithCounts, isGuest, loadedGuestSession.inventoryIds]);
-    const ownedCount = useCallback((catalogItemId: Id<"catalogItems">) => {
-        if (isGuest) return countIds(readGuestSession().inventoryIds).get(String(catalogItemId)) ?? 0;
-        if (ownedCounts === null) return 0;
-        return ownedCounts.get(String(catalogItemId)) ?? 0;
-    }, [isGuest, ownedCounts]);
+    const ownedCount = useCallback(
+        (catalogItemId: Id<"catalogItems">) => {
+            if (isGuest) return countIds(readGuestSession().inventoryIds).get(String(catalogItemId)) ?? 0;
+            if (ownedCounts === null) return 0;
+            return ownedCounts.get(String(catalogItemId)) ?? 0;
+        },
+        [isGuest, ownedCounts],
+    );
     const roomIdentity = isGuest
         ? "guest-owner"
         : String(roomData.room?._id ?? (roomData.room === undefined ? "authenticated-loading" : "authenticated-empty"));
 
     if (isGuest && (roomData.guestRoom === undefined || roomData.guestTemplate === undefined)) {
-        return <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">Loading your cozytab...</div>;
+        return (
+            <div className="h-screen w-screen flex items-center justify-center font-['Patrick_Hand'] text-size-xl">
+                Loading your cozytab...
+            </div>
+        );
     }
 
     return (
@@ -140,7 +152,7 @@ function RoomPageOwner({
     const heartbeatInvite = useMutation(api.rooms.heartbeatInvite);
     const closeInviteSession = useMutation(api.rooms.closeInviteSession);
     const activeInvites = useQuery(api.invites.getMyActiveInvites, isGuest ? "skip" : {});
-    const activeInviteCode = !isGuest ? activeInvites?.[0]?.code ?? null : null;
+    const activeInviteCode = !isGuest ? (activeInvites?.[0]?.code ?? null) : null;
     const inviteLoading = !isGuest && activeInvites === undefined;
     const saveComputer = useMutation(api.users.saveMyComputer);
     const claimDailyReward = useMutation(api.users.claimDailyReward);
@@ -172,8 +184,9 @@ function RoomPageOwner({
 
     useCozyCursor(true);
     const cursorColor =
-        (isGuest ? roomState.guestCursorColor : roomState.authedCursorColor ?? user?.cursorColor ?? computerState?.cursorColor) ??
-        "var(--chart-4)";
+        (isGuest
+            ? roomState.guestCursorColor
+            : (roomState.authedCursorColor ?? user?.cursorColor ?? computerState?.cursorColor)) ?? "var(--chart-4)";
     useCursorColor(cursorColor);
 
     useEffect(() => {
@@ -191,11 +204,12 @@ function RoomPageOwner({
 
     useCursorColorSaver(saveComputer, roomState.authedShortcutsRef, roomState.saveAuthedCursorColorRef);
 
-    const { orientation: drawerOrientation, drawerInsetLeft, drawerInsetBottom, toolbarOffset } = useDrawerLayout(
-        roomState.isDrawerOpen,
-        viewportWidth,
-        viewportHeight
-    );
+    const {
+        orientation: drawerOrientation,
+        drawerInsetLeft,
+        drawerInsetBottom,
+        toolbarOffset,
+    } = useDrawerLayout(roomState.isDrawerOpen, viewportWidth, viewportHeight);
 
     const markGuestOnboardingComplete = useCallback(() => {
         roomState.setGuestOnboardingCompletedValue(true);
@@ -203,20 +217,17 @@ function RoomPageOwner({
 
     const updateGuestCoins = useCallback(
         (next: number | ((prev: number) => number)) => roomState.setGuestCoinsValue(next),
-        [roomState]
+        [roomState],
     );
 
     const updateGuestInventory = useCallback(
         (updater: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => {
             roomState.setGuestInventoryValue(updater);
         },
-        [roomState]
+        [roomState],
     );
 
-    const updateGuestShortcuts = useCallback(
-        (next: Shortcut[]) => roomState.setLocalShortcuts(next),
-        [roomState]
-    );
+    const updateGuestShortcuts = useCallback((next: Shortcut[]) => roomState.setLocalShortcuts(next), [roomState]);
 
     const handleCursorColorChange = useCallback(
         (next: string) => {
@@ -229,7 +240,7 @@ function RoomPageOwner({
                 roomState.saveAuthedCursorColorRef.current?.(color);
             }
         },
-        [isGuest, roomState]
+        [isGuest, roomState],
     );
 
     useReconcileGuestOnboarding({
@@ -271,9 +282,12 @@ function RoomPageOwner({
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
 
-    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
-        setInGame(gameItemId);
-    }, [setInGame]);
+    const handleGameActiveChange = useCallback(
+        (gameItemId: string | null) => {
+            setInGame(gameItemId);
+        },
+        [setInGame],
+    );
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
@@ -450,12 +464,10 @@ function RoomPageOwner({
         handlePanEnd();
     }, [handlePanEnd]);
 
-    const {
-        touchPlacementId,
-        handleTouchPlaceStart,
-        handleTouchPlaceRoom,
-        onTouchPlacementCancel,
-    } = useTouchPlacement(handlers, roomState);
+    const { touchPlacementId, handleTouchPlaceStart, handleTouchPlaceRoom, onTouchPlacementCancel } = useTouchPlacement(
+        handlers,
+        roomState,
+    );
 
     const gate = useRoomGate({
         isGuest,
@@ -496,8 +508,20 @@ function RoomPageOwner({
         },
         profile: { cursorColor, handleCursorColorChange },
         time: { timeOfDay: computed.timeOfDay, overrideTimeOfDay: computed.overrideTimeOfDay, setOverrideTimeOfDay },
-        toasts: { dailyRewardToast, showStripeSuccessToast, setShowStripeSuccessToast, friendRefToast, setFriendRefToast },
-        game: { activeGameItemId, setActiveGameItemId, handleGameActiveChange, visitorId: visitorId ?? "owner", setGameMetadata },
+        toasts: {
+            dailyRewardToast,
+            showStripeSuccessToast,
+            setShowStripeSuccessToast,
+            friendRefToast,
+            setFriendRefToast,
+        },
+        game: {
+            activeGameItemId,
+            setActiveGameItemId,
+            handleGameActiveChange,
+            visitorId: visitorId ?? "owner",
+            setGameMetadata,
+        },
     });
 
     const overlaysModel = {
@@ -568,19 +592,22 @@ function RoomPageOwner({
                     transition: "padding 300ms cubic-bezier(0.4, 0, 0.2, 1)",
                 }}
                 roomContent={roomContent}
-                overlays={<>
-                    <RoomOverlays {...overlaysModel} />
-                    <div className="absolute top-24 right-4 z-50 max-w-80 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] p-3 text-[var(--color-foreground)] shadow-[var(--shadow-4)] pointer-events-auto"
-                        style={{ left: drawerOrientation === "left" ? 16 + toolbarOffset : 16 }}
-                        onPointerDown={(event) => event.stopPropagation()}
-                    >
-                        <RoomSaveFeedback
-                            saveStatus={roomState.saveStatus}
-                            saveError={roomState.saveError}
-                            onRetrySave={() => roomState.editingSession.retrySave()}
-                        />
-                    </div>
-                </>}
+                overlays={
+                    <>
+                        <RoomOverlays {...overlaysModel} />
+                        <div
+                            className="absolute top-24 right-4 z-50 max-w-80 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] p-3 text-[var(--color-foreground)] shadow-[var(--shadow-4)] pointer-events-auto"
+                            style={{ left: drawerOrientation === "left" ? 16 + toolbarOffset : 16 }}
+                            onPointerDown={(event) => event.stopPropagation()}
+                        >
+                            <RoomSaveFeedback
+                                saveStatus={roomState.saveStatus}
+                                saveError={roomState.saveError}
+                                onRetrySave={() => roomState.editingSession.retrySave()}
+                            />
+                        </div>
+                    </>
+                }
             />
             <MobileZoomButton zoomLevel={zoomLevel} zoomLabel={zoomLabel} onCycleZoom={cycleZoom} />
         </>

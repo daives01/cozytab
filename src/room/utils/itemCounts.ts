@@ -22,7 +22,7 @@ export function countRoomItems(items: Pick<RoomItem, "catalogItemId">[] = []): M
 
 export function addInventoryCounts(
     inventory: Array<{ catalogItemId: Id<"catalogItems">; count?: number }> | undefined,
-    baseCounts: Map<string, number> = new Map()
+    baseCounts: Map<string, number> = new Map(),
 ): Map<string, number> {
     const counts = new Map(baseCounts);
     inventory?.forEach((item) => {
@@ -35,7 +35,7 @@ export function addInventoryCounts(
 export function remainingForId(
     catalogItemId: CatalogId,
     ownedCounts: Map<string, number>,
-    placedCounts: Map<string, number>
+    placedCounts: Map<string, number>,
 ) {
     const key = toKey(catalogItemId);
     const owned = ownedCounts.get(key) ?? 0;
@@ -46,4 +46,3 @@ export function remainingForId(
         remaining: Math.max(0, owned - placed),
     };
 }
-

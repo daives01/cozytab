@@ -34,9 +34,14 @@ describe("room active-state and saving invariants", () => {
         const templateId = await seedTemplate(t);
         const roomId = await seedRoom(t, userId, templateId);
         const catalogItemId = await seedCatalogItem(t);
-        await t.run((ctx) => ctx.db.insert("inventory", {
-            userId, catalogItemId, purchasedAt: Date.now(), count: 51,
-        }));
+        await t.run((ctx) =>
+            ctx.db.insert("inventory", {
+                userId,
+                catalogItemId,
+                purchasedAt: Date.now(),
+                count: 51,
+            }),
+        );
         const items = Array.from({ length: 51 }, (_, index) => ({ id: `item-${index}`, catalogItemId, x: 1, y: 2 }));
         const owner = asUser(t, "owner");
         await owner.mutation(api.rooms.saveMyRoom, { roomId, items: items.slice(0, 50) });
@@ -57,7 +62,7 @@ describe("room active-state and saving invariants", () => {
                 name: "Room",
                 isActive: true,
                 items: [],
-            })
+            }),
         );
         const catalogItemId = await seedCatalogItem(t);
         await t.run((ctx) =>
@@ -66,7 +71,7 @@ describe("room active-state and saving invariants", () => {
                 catalogItemId,
                 purchasedAt: Date.now(),
                 count: 1,
-            })
+            }),
         );
         const deletedCatalogId = await seedCatalogItem(t, { name: "Deleted" });
         await t.run((ctx) => ctx.db.delete(deletedCatalogId));
@@ -97,7 +102,7 @@ describe("room active-state and saving invariants", () => {
             owner.mutation(api.rooms.saveMyRoom, {
                 roomId,
                 items: [{ id: "gone", catalogItemId: deletedCatalogId, x: 1, y: 1 }],
-            })
+            }),
         ).rejects.toThrow("Invalid catalog item");
         expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(saved?.items);
     });
@@ -113,21 +118,26 @@ describe("room active-state and saving invariants", () => {
                 name: "Room",
                 isActive: true,
                 items: [],
-            })
+            }),
         );
         const paidItemId = await seedCatalogItem(t, { name: "Paid item" });
         const unpaidItemId = await seedCatalogItem(t, { name: "Unpaid item" });
         const otherUserId = await seedUser(t, "other");
-        await t.run((ctx) => ctx.db.insert("inventory", {
-            userId: otherUserId, catalogItemId: unpaidItemId, purchasedAt: Date.now(), count: 10,
-        }));
+        await t.run((ctx) =>
+            ctx.db.insert("inventory", {
+                userId: otherUserId,
+                catalogItemId: unpaidItemId,
+                purchasedAt: Date.now(),
+                count: 10,
+            }),
+        );
         await t.run((ctx) =>
             ctx.db.insert("inventory", {
                 userId,
                 catalogItemId: paidItemId,
                 purchasedAt: Date.now(),
                 count: 1,
-            })
+            }),
         );
         const owner = asUser(t, "owner");
 
@@ -135,7 +145,7 @@ describe("room active-state and saving invariants", () => {
             owner.mutation(api.rooms.saveMyRoom, {
                 roomId,
                 items: [{ id: "unpaid", catalogItemId: unpaidItemId, x: 1, y: 1 }],
-            })
+            }),
         ).rejects.toThrow("Room contains items you do not own");
 
         await expect(
@@ -145,7 +155,7 @@ describe("room active-state and saving invariants", () => {
                     { id: "paid-1", catalogItemId: paidItemId, x: 1, y: 1 },
                     { id: "paid-1", catalogItemId: paidItemId, x: 2, y: 2 },
                 ],
-            })
+            }),
         ).rejects.toThrow("Room contains items you do not own");
         expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual([]);
     });
@@ -161,7 +171,7 @@ describe("room active-state and saving invariants", () => {
                 name: "Room",
                 isActive: true,
                 items: [],
-            })
+            }),
         );
         const starterItemId = await seedCatalogItem(t, { name: "Starter item", isStarterItem: true });
         const legacyItemId = await seedCatalogItem(t, { name: "Legacy item" });
@@ -170,7 +180,7 @@ describe("room active-state and saving invariants", () => {
                 userId,
                 catalogItemId: legacyItemId,
                 purchasedAt: Date.now(),
-            })
+            }),
         );
 
         await asUser(t, "owner").mutation(api.rooms.saveMyRoom, {
@@ -183,13 +193,15 @@ describe("room active-state and saving invariants", () => {
         const saved = (await t.run((ctx) => ctx.db.get(roomId)))?.items;
         expect(saved).toHaveLength(2);
         for (const catalogItemId of [starterItemId, legacyItemId]) {
-            await expect(asUser(t, "owner").mutation(api.rooms.saveMyRoom, {
-                roomId,
-                items: [
-                    { id: "one", catalogItemId, x: 0, y: 0 },
-                    { id: "two", catalogItemId, x: 1, y: 1 },
-                ],
-            })).rejects.toThrow("Room contains items you do not own");
+            await expect(
+                asUser(t, "owner").mutation(api.rooms.saveMyRoom, {
+                    roomId,
+                    items: [
+                        { id: "one", catalogItemId, x: 0, y: 0 },
+                        { id: "two", catalogItemId, x: 1, y: 1 },
+                    ],
+                }),
+            ).rejects.toThrow("Room contains items you do not own");
             expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(saved);
         }
     });
@@ -203,19 +215,36 @@ describe("room active-state and saving invariants", () => {
         const starterItemId = await seedCatalogItem(t, { isStarterItem: true });
         const zeroItemId = await seedCatalogItem(t, { name: "Zero count" });
         await t.run(async (ctx) => {
-            for (const [catalogItemId, count] of [[paidItemId, 2], [paidItemId, 1], [starterItemId, 2], [zeroItemId, 0]] as const) {
-                await ctx.db.insert("inventory", { userId, catalogItemId, purchasedAt: Date.now(), count, hidden: true });
+            for (const [catalogItemId, count] of [
+                [paidItemId, 2],
+                [paidItemId, 1],
+                [starterItemId, 2],
+                [zeroItemId, 0],
+            ] as const) {
+                await ctx.db.insert("inventory", {
+                    userId,
+                    catalogItemId,
+                    purchasedAt: Date.now(),
+                    count,
+                    hidden: true,
+                });
             }
         });
         const owner = asUser(t, "owner");
         const items = [paidItemId, paidItemId, paidItemId, starterItemId, starterItemId].map((catalogItemId, i) => ({
-            id: String(i), catalogItemId, x: i, y: i,
+            id: String(i),
+            catalogItemId,
+            x: i,
+            y: i,
         }));
         expect(await owner.mutation(api.rooms.saveMyRoom, { roomId, items })).toEqual(items);
         for (const catalogItemId of [paidItemId, starterItemId, zeroItemId]) {
-            await expect(owner.mutation(api.rooms.saveMyRoom, {
-                roomId, items: [...items, { id: "extra", catalogItemId, x: 0, y: 0 }],
-            })).rejects.toThrow("Room contains items you do not own");
+            await expect(
+                owner.mutation(api.rooms.saveMyRoom, {
+                    roomId,
+                    items: [...items, { id: "extra", catalogItemId, x: 0, y: 0 }],
+                }),
+            ).rejects.toThrow("Room contains items you do not own");
             expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(items);
         }
         expect(await owner.mutation(api.rooms.saveMyRoom, { roomId, items: [] })).toEqual([]);
@@ -225,24 +254,54 @@ describe("room active-state and saving invariants", () => {
         const t = createConvexTest();
         const userId = await seedUser(t, "url-owner");
         const templateId = await seedTemplate(t);
-        const roomId = await t.run((ctx) => ctx.db.insert("rooms", {
-            userId, templateId, name: "Room", isActive: true, items: [],
-        }));
+        const roomId = await t.run((ctx) =>
+            ctx.db.insert("rooms", {
+                userId,
+                templateId,
+                name: "Room",
+                isActive: true,
+                items: [],
+            }),
+        );
         const catalogItemId = await seedCatalogItem(t, { isStarterItem: true });
         const owner = asUser(t, "url-owner");
 
         await owner.mutation(api.rooms.saveMyRoom, {
             roomId,
-            items: [{ id: "link", catalogItemId, x: 1, y: 1, url: " example.com/path ", musicUrl: "https://youtu.be/abc?t=20", musicType: "youtube" }],
+            items: [
+                {
+                    id: "link",
+                    catalogItemId,
+                    x: 1,
+                    y: 1,
+                    url: " example.com/path ",
+                    musicUrl: "https://youtu.be/abc?t=20",
+                    musicType: "youtube",
+                },
+            ],
         });
         const saved = await t.run((ctx) => ctx.db.get(roomId));
-        expect(saved?.items[0]).toMatchObject({ url: "https://example.com/path", musicUrl: "https://youtu.be/abc?t=20", musicType: "youtube" });
+        expect(saved?.items[0]).toMatchObject({
+            url: "https://example.com/path",
+            musicUrl: "https://youtu.be/abc?t=20",
+            musicType: "youtube",
+        });
 
-        for (const url of ["javascript:alert(1)", "data:text/html,hi", "file:///etc/passwd", "https://", "https://exa mple.com", "https://example.com/\nfoo", `https://example.com/${"é".repeat(400)}`]) {
-            await expect(owner.mutation(api.rooms.saveMyRoom, {
-                roomId,
-                items: [{ id: "bad-link", catalogItemId, x: 1, y: 1, url }],
-            })).rejects.toThrow("Invalid room item URL");
+        for (const url of [
+            "javascript:alert(1)",
+            "data:text/html,hi",
+            "file:///etc/passwd",
+            "https://",
+            "https://exa mple.com",
+            "https://example.com/\nfoo",
+            `https://example.com/${"é".repeat(400)}`,
+        ]) {
+            await expect(
+                owner.mutation(api.rooms.saveMyRoom, {
+                    roomId,
+                    items: [{ id: "bad-link", catalogItemId, x: 1, y: 1, url }],
+                }),
+            ).rejects.toThrow("Invalid room item URL");
             expect((await t.run((ctx) => ctx.db.get(roomId)))?.items).toEqual(saved?.items);
         }
     });

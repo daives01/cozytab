@@ -7,12 +7,7 @@ import {
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
 } from "@shared/guestTypes";
-import {
-    buildCatalogLookup,
-    clampGuestCoins,
-    readGuestSession,
-    saveGuestCoins,
-} from "@/guest/guestSession";
+import { buildCatalogLookup, clampGuestCoins, readGuestSession, saveGuestCoins } from "@/guest/guestSession";
 
 import { createGuestRoomPersistence, createRoomEditingSession } from "@/room/session";
 
@@ -81,7 +76,7 @@ describe("guest session storage", () => {
                 { id: 12, name: 42, url: "https://legacy.example", row: "2", col: null },
                 { id: "empty", name: "Empty", url: "" },
                 null,
-            ])
+            ]),
         );
 
         const session = readGuestSession();
@@ -105,11 +100,8 @@ describe("guest session storage", () => {
         localStorage.setItem(
             GUEST_ROOM_STORAGE_KEY,
             JSON.stringify({
-                items: [
-                    { id: 123, catalogItemId, x: -40, y: "bad" },
-                    null,
-                ],
-            })
+                items: [{ id: 123, catalogItemId, x: -40, y: "bad" }, null],
+            }),
         );
 
         const [item] = readGuestSession().roomItems;
@@ -136,7 +128,7 @@ describe("guest session storage", () => {
                     { id: "kept", catalogItemId: paidId, x: 1, y: 2 },
                     { id: "stale", catalogItemId: staleId, x: 1, y: 2 },
                 ],
-            })
+            }),
         );
 
         const session = readGuestSession(lookup);
@@ -162,13 +154,16 @@ test("guest autosave reports storage failure and retries only the newest room it
     localStorage.setItem(GUEST_COINS_STORAGE_KEY, "123");
     const storage = localStorage;
     let fail = true;
-    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
-        getItem: (key: string) => storage.getItem(key),
-        setItem: (key: string, value: string) => {
-            if (fail) throw new Error("QuotaExceededError");
-            storage.setItem(key, value);
+    Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: {
+            getItem: (key: string) => storage.getItem(key),
+            setItem: (key: string, value: string) => {
+                if (fail) throw new Error("QuotaExceededError");
+                storage.setItem(key, value);
+            },
         },
-    } });
+    });
     const session = createRoomEditingSession({ roomId: "guest-owner", persistence: createGuestRoomPersistence() });
     session.enterEditMode();
     session.move(chair.id, { x: 30, y: 40 });

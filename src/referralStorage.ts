@@ -27,10 +27,7 @@ export function saveReferralCode(code: string | null | undefined) {
 }
 
 export function getReferralCode(): string | null {
-    return (
-        getFromStorage((storage) => storage.getItem(REFERRAL_CODE_KEY)) ??
-        null
-    );
+    return getFromStorage((storage) => storage.getItem(REFERRAL_CODE_KEY)) ?? null;
 }
 
 export function clearReferralCode() {

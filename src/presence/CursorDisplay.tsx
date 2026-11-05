@@ -76,7 +76,11 @@ export function CursorDisplay({
     } as const;
 
     return (
-        <div className={onClick ? "pointer-events-auto cursor-pointer" : "pointer-events-none"} style={cursorStyle} onClick={onClick}>
+        <div
+            className={onClick ? "pointer-events-auto cursor-pointer" : "pointer-events-none"}
+            style={cursorStyle}
+            onClick={onClick}
+        >
             {!hidePointer && (
                 <CursorAvatar
                     color={pointerColor}
@@ -103,40 +107,47 @@ export function CursorDisplay({
                     </div>
                 )}
 
-                {
-                    chatMessage !== null && chatMessage !== undefined && (
-                        <div
-                            className={chatBubbleClasses}
-                            style={{
-                                ...handwritingFont,
-                                backgroundColor:
-                                    cursorColor ??
-                                    (isOwner
-                                        ? "color-mix(in srgb, var(--chart-4) 15%, var(--primary-foreground))"
-                                        : "color-mix(in srgb, var(--success) 15%, var(--primary-foreground))"),
-                                borderColor: cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)"),
-                                color: chatTextOnCustomColor,
-                                opacity: chatOpacity,
-                                transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
-                                overflowWrap: "anywhere",
-                                wordBreak: "break-word",
-                                width: "max-content",
-                                maxWidth: CHAT_MAX_WIDTH_PX,
-                            }}
-                        >
-                            {chatMessage === "" ? (
-                                <div className="flex items-center justify-center h-full">
-                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce mx-0.5" style={{ animationDelay: "150ms" }} />
-                                    <span className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                                </div>
-                            ) : (
-                                chatMessage
-                            )}
-                        </div>
-                    )
-                }
+                {chatMessage !== null && chatMessage !== undefined && (
+                    <div
+                        className={chatBubbleClasses}
+                        style={{
+                            ...handwritingFont,
+                            backgroundColor:
+                                cursorColor ??
+                                (isOwner
+                                    ? "color-mix(in srgb, var(--chart-4) 15%, var(--primary-foreground))"
+                                    : "color-mix(in srgb, var(--success) 15%, var(--primary-foreground))"),
+                            borderColor: cursorColor ?? (isOwner ? "var(--chart-4)" : "var(--success)"),
+                            color: chatTextOnCustomColor,
+                            opacity: chatOpacity,
+                            transition: `opacity ${CHAT_FADE_DURATION_MS}ms ease-out`,
+                            overflowWrap: "anywhere",
+                            wordBreak: "break-word",
+                            width: "max-content",
+                            maxWidth: CHAT_MAX_WIDTH_PX,
+                        }}
+                    >
+                        {chatMessage === "" ? (
+                            <div className="flex items-center justify-center h-full">
+                                <span
+                                    className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce"
+                                    style={{ animationDelay: "0ms" }}
+                                />
+                                <span
+                                    className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce mx-0.5"
+                                    style={{ animationDelay: "150ms" }}
+                                />
+                                <span
+                                    className="inline-block w-1.5 h-1.5 bg-current rounded-full animate-bounce"
+                                    style={{ animationDelay: "300ms" }}
+                                />
+                            </div>
+                        ) : (
+                            chatMessage
+                        )}
+                    </div>
+                )}
             </div>
-        </div >
+        </div>
     );
 }

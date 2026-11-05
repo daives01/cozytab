@@ -6,7 +6,8 @@ const unlockListeners = new Set<() => void>();
 
 function createAudioContext(): AudioContext | null {
     if (typeof window === "undefined") return null;
-    const Ctor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+        window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     if (!audioCtx) {
         audioCtx = new Ctor();

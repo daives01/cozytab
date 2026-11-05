@@ -53,8 +53,12 @@ export function HiddenItemsSection({
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-background)] px-4 py-6 text-center">
-                            <p className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-foreground)]">No hidden items</p>
-                            <p className="text-xs font-medium text-[var(--color-muted-foreground)]">Hide items to keep your room tidy.</p>
+                            <p className="text-sm font-black uppercase tracking-[0.2em] text-[var(--color-foreground)]">
+                                No hidden items
+                            </p>
+                            <p className="text-xs font-medium text-[var(--color-muted-foreground)]">
+                                Hide items to keep your room tidy.
+                            </p>
                         </div>
                     )}
                 </div>

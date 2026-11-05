@@ -12,641 +12,676 @@ import { useChessSounds } from "./useChessSounds";
 import { deriveChessGameEnd, selectClaimedSide, useChessController, type ChessGameSignal } from "./useChessController";
 
 interface ChessCursorProps {
-  displayX: number;
-  displayY: number;
-  cursorColor?: string;
-  chatMessage: string | null;
-  rotated: boolean;
+    displayX: number;
+    displayY: number;
+    cursorColor?: string;
+    chatMessage: string | null;
+    rotated: boolean;
 }
 
 function ChessCursor({ displayX, displayY, cursorColor, chatMessage, rotated }: ChessCursorProps) {
-  const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
+    const { displayedMessage, chatOpacity } = useChatFade(chatMessage);
 
-  return (
-    <div
-      className="absolute pointer-events-none"
-      style={{
-        left: `${displayX}%`,
-        top: `${displayY}%`,
-        transform: "translate(-50%, -50%)",
-        zIndex: 10,
-        transition: "left 50ms linear, top 50ms linear",
-      }}
-    >
-      <CursorDisplay
-        x={0}
-        y={0}
-        cursorColor={cursorColor}
-        chatMessage={displayedMessage}
-        chatOpacity={chatOpacity}
-        hidePointer={false}
-        scale={1}
-        rotated={rotated}
-      />
-    </div>
-  );
+    return (
+        <div
+            className="absolute pointer-events-none"
+            style={{
+                left: `${displayX}%`,
+                top: `${displayY}%`,
+                transform: "translate(-50%, -50%)",
+                zIndex: 10,
+                transition: "left 50ms linear, top 50ms linear",
+            }}
+        >
+            <CursorDisplay
+                x={0}
+                y={0}
+                cursorColor={cursorColor}
+                chatMessage={displayedMessage}
+                chatOpacity={chatOpacity}
+                hidePointer={false}
+                scale={1}
+                rotated={rotated}
+            />
+        </div>
+    );
 }
 
 export type GamePlayer = {
-  visitorId: string;
-  displayName: string;
-  cursorColor?: string;
-  side?: "white" | "black" | null;
+    visitorId: string;
+    displayName: string;
+    cursorColor?: string;
+    side?: "white" | "black" | null;
 };
 
 export type GameSignal = ChessGameSignal;
 
 interface ChessGameProps {
-  playersInGame: VisitorState[];
-  fen: string;
-  lastMove?: { from: string; to: string };
-  visitorId: string;
-  mySide: "white" | "black" | null;
-  visitors: VisitorState[];
-  resultOverlay: string | null;
-  onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
-  onClaimSide: (side: "white" | "black") => void;
-  onLeaveSide: () => void;
-  onSignal: (signal: GameSignal) => void;
-  onGameEnd: (message: string) => void;
-  onReset: () => void;
-  onCursorMove: (x: number, y: number) => void;
-  onClose: () => void;
+    playersInGame: VisitorState[];
+    fen: string;
+    lastMove?: { from: string; to: string };
+    visitorId: string;
+    mySide: "white" | "black" | null;
+    visitors: VisitorState[];
+    resultOverlay: string | null;
+    onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
+    onClaimSide: (side: "white" | "black") => void;
+    onLeaveSide: () => void;
+    onSignal: (signal: GameSignal) => void;
+    onGameEnd: (message: string) => void;
+    onReset: () => void;
+    onCursorMove: (x: number, y: number) => void;
+    onClose: () => void;
 }
 
-function DrawOfferBanner({
-  onAccept,
-  onDecline,
-}: {
-  onAccept: () => void;
-  onDecline: () => void;
-}) {
-  return (
-    <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-medium whitespace-nowrap">Draw offer</span>
-        <button
-          type="button"
-          onClick={onAccept}
-          className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-share-accent)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-        >
-          Accept
-        </button>
-        <button
-          type="button"
-          onClick={onDecline}
-          className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-        >
-          Decline
-        </button>
-      </div>
-    </div>
-  );
+function DrawOfferBanner({ onAccept, onDecline }: { onAccept: () => void; onDecline: () => void }) {
+    return (
+        <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-medium whitespace-nowrap">Draw offer</span>
+                <button
+                    type="button"
+                    onClick={onAccept}
+                    className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-share-accent)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                    Accept
+                </button>
+                <button
+                    type="button"
+                    onClick={onDecline}
+                    className="px-2 py-1 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] text-xs font-medium shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                >
+                    Decline
+                </button>
+            </div>
+        </div>
+    );
 }
 
 function DrawDeclinedBanner() {
-  return (
-    <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
-      <span className="text-xs font-medium whitespace-nowrap">Draw declined</span>
-    </div>
-  );
+    return (
+        <div className="bg-[var(--color-background)] rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-4)] px-3 py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <span className="text-xs font-medium whitespace-nowrap">Draw declined</span>
+        </div>
+    );
 }
 
 function PromotionOverlay({ onPromote }: { onPromote: (piece: "q" | "r" | "b" | "n") => void }) {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
-        <p className="text-center font-bold mb-3">Promote to:</p>
-        <div className="flex gap-2">
-          {(["q", "r", "b", "n"] as const).map((piece) => (
-            <button key={piece} type="button" onClick={() => onPromote(piece)} className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none">
-              {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
-            </button>
-          ))}
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] p-4">
+                <p className="text-center font-bold mb-3">Promote to:</p>
+                <div className="flex gap-2">
+                    {(["q", "r", "b", "n"] as const).map((piece) => (
+                        <button
+                            key={piece}
+                            type="button"
+                            onClick={() => onPromote(piece)}
+                            className="w-12 h-12 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-muted)] hover:bg-[var(--color-accent)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-2)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
+                        >
+                            {piece === "q" ? "♕" : piece === "r" ? "♖" : piece === "b" ? "♗" : "♘"}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 function ResultOverlay({ message }: { message: string }) {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-      <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
-        <p className="text-xl font-bold text-center">{message}</p>
-      </div>
-    </div>
-  );
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-[var(--color-background)] rounded-2xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-8)] px-8 py-6 animate-in fade-in zoom-in duration-200">
+                <p className="text-xl font-bold text-center">{message}</p>
+            </div>
+        </div>
+    );
 }
 
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
-  return (
-    <div className="relative group">
-      {children}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[var(--color-foreground)] text-[var(--color-background)] text-xs font-medium rounded-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
-        {text}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-foreground)]" />
-      </div>
-    </div>
-  );
+    return (
+        <div className="relative group">
+            {children}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[var(--color-foreground)] text-[var(--color-background)] text-xs font-medium rounded-lg whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50">
+                {text}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[var(--color-foreground)]" />
+            </div>
+        </div>
+    );
 }
 
 function PlayerBadge({
-  side,
-  player,
-  isMe,
-  canJoin,
-  onJoin,
-  onLeave,
+    side,
+    player,
+    isMe,
+    canJoin,
+    onJoin,
+    onLeave,
 }: {
-  side: "white" | "black";
-  player: GamePlayer | undefined;
-  isMe: boolean;
-  canJoin: boolean;
-  onJoin: () => void;
-  onLeave: () => void;
+    side: "white" | "black";
+    player: GamePlayer | undefined;
+    isMe: boolean;
+    canJoin: boolean;
+    onJoin: () => void;
+    onLeave: () => void;
 }) {
-  const colors = side === "black"
-    ? "bg-[var(--color-foreground)] text-[var(--color-background)]"
-    : "bg-[var(--color-background)] text-[var(--color-foreground)]";
+    const colors =
+        side === "black"
+            ? "bg-[var(--color-foreground)] text-[var(--color-background)]"
+            : "bg-[var(--color-background)] text-[var(--color-foreground)]";
 
-  const baseClasses = `flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-2)] ${colors}`;
+    const baseClasses = `flex items-center gap-2 px-3 py-2 rounded-xl border-2 border-[var(--color-foreground)] shadow-[var(--shadow-2)] ${colors}`;
 
-  if (player) {
+    if (player) {
+        return (
+            <div className={baseClasses}>
+                <Crown className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-medium truncate max-w-[100px]">{player.displayName}</span>
+                {isMe && (
+                    <button
+                        type="button"
+                        onClick={onLeave}
+                        className={`p-1 rounded-md -mr-1 transition-colors ${side === "black" ? "hover:bg-[var(--color-background)]/20" : "hover:bg-[var(--color-foreground)]/10"}`}
+                        title="Leave side"
+                    >
+                        <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                )}
+            </div>
+        );
+    }
+
     return (
-      <div className={baseClasses}>
-        <Crown className="w-4 h-4 shrink-0" />
-        <span className="text-sm font-medium truncate max-w-[100px]">{player.displayName}</span>
-        {isMe && (
-          <button
+        <button
             type="button"
-            onClick={onLeave}
-            className={`p-1 rounded-md -mr-1 transition-colors ${side === "black" ? "hover:bg-[var(--color-background)]/20" : "hover:bg-[var(--color-foreground)]/10"}`}
-            title="Leave side"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
+            onClick={onJoin}
+            disabled={!canJoin}
+            className={`${baseClasses} ${!canJoin ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
+        >
+            <Crown className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-medium opacity-60">Join</span>
+        </button>
     );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={onJoin}
-      disabled={!canJoin}
-      className={`${baseClasses} ${!canJoin ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:scale-105 transition-transform"}`}
-    >
-      <Crown className="w-4 h-4 shrink-0" />
-      <span className="text-sm font-medium opacity-60">Join</span>
-    </button>
-  );
 }
 
 export function ChessGame({
-  playersInGame,
-  fen: serverFen,
-  lastMove: serverLastMove,
-  visitorId,
-  mySide,
-  visitors,
-  resultOverlay,
-  onMove,
-  onClaimSide,
-  onLeaveSide,
-  onSignal,
-  onGameEnd,
-  onReset,
-  onCursorMove,
-  onClose,
+    playersInGame,
+    fen: serverFen,
+    lastMove: serverLastMove,
+    visitorId,
+    mySide,
+    visitors,
+    resultOverlay,
+    onMove,
+    onClaimSide,
+    onLeaveSide,
+    onSignal,
+    onGameEnd,
+    onReset,
+    onCursorMove,
+    onClose,
 }: ChessGameProps) {
-  const boardRef = useRef<HTMLDivElement>(null);
-  const handledResultRef = useRef<string | null>(null);
-  const { playMoveSound } = useChessSounds();
-  const prevFenRef = useRef(serverFen);
-  const [drawDeclinedAt, setDrawDeclinedAt] = useState<number | null>(null);
+    const boardRef = useRef<HTMLDivElement>(null);
+    const handledResultRef = useRef<string | null>(null);
+    const { playMoveSound } = useChessSounds();
+    const prevFenRef = useRef(serverFen);
+    const [drawDeclinedAt, setDrawDeclinedAt] = useState<number | null>(null);
 
-  const [isLandscape, setIsLandscape] = useState(() => typeof window !== "undefined" && window.innerWidth > window.innerHeight);
-
-  useEffect(() => {
-    const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const fen = serverFen;
-  const lastMove = serverLastMove;
-
-  const { chess, isMyTurn, gameStatus, pendingPromotion, handleDrop, handleSquareClick, handlePromotion, squareStyles } =
-    useChessController({ fen, lastMove, mySide, resultOverlay, onMove });
-
-  useEffect(() => {
-    if (prevFenRef.current !== fen && lastMove) {
-      const prevChess = new Chess();
-      try {
-        prevChess.load(prevFenRef.current);
-        const capturedPiece = prevChess.get(lastMove.to as Square);
-        const movingPiece = prevChess.get(lastMove.from as Square);
-        const isEnPassant = movingPiece?.type === "p" && lastMove.from[0] !== lastMove.to[0] && !capturedPiece;
-        playMoveSound(!!capturedPiece || isEnPassant);
-      } catch {
-        playMoveSound(false);
-      }
-    }
-    prevFenRef.current = fen;
-  }, [fen, lastMove, playMoveSound]);
-
-  const boardOrientation = mySide === "black" ? "black" : "white";
-
-
-  // Extract signals from players: { visitorId, side, signal }
-  const playerSignals = useMemo(() => {
-    return playersInGame
-      .filter((p) => p.gameMetadata?.side && p.gameMetadata?.gameSignal)
-      .map((p) => ({
-        visitorId: p.visitorId,
-        side: p.gameMetadata?.side as "white" | "black",
-        signal: p.gameMetadata?.gameSignal as GameSignal,
-      }));
-  }, [playersInGame]);
-
-  // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
-  const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
-  const opponent = mySide
-    ? playerSignals.find((p) => p.visitorId !== visitorId && p.side !== mySide)
-    : undefined;
-  const opponentSignal = opponent?.signal;
-  const opponentDrawOffer =
-    mySide && opponentSignal === "drawOffer" && mySignal !== "drawDecline" && mySignal !== "drawOffer"
-      ? opponent
-      : undefined;
-
-  // Signal handshake lifecycle:
-  // 1. Offerer clears their "drawOffer" when opponent declines
-  // 2. Decliner clears their "drawDecline" when offerer's offer is gone (or new offer arrives)
-  const prevOpponentSignalRef = useRef<GameSignal | undefined>(undefined);
-  useEffect(() => {
-    const prevOpponent = prevOpponentSignalRef.current;
-    prevOpponentSignalRef.current = opponentSignal;
-
-    if (!mySide) return;
-
-    // Offerer: clear my offer when opponent declines, show declined message
-    if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
-      queueMicrotask(() => setDrawDeclinedAt(Date.now()));
-      onSignal(null);
-      return;
-    }
-
-    // Decliner: clear my decline when offer is gone OR a new offer arrives
-    if (mySignal === "drawDecline") {
-      const opponentNowOffering = opponentSignal === "drawOffer";
-      const opponentWasOffering = prevOpponent === "drawOffer";
-      // Clear if: offer gone, or new offer detected (heals missed transitions)
-      if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
-        onSignal(null);
-      }
-    }
-  }, [mySide, mySignal, opponentSignal, onSignal]);
-
-  // Auto-clear draw declined message after 2 seconds
-  useEffect(() => {
-    if (drawDeclinedAt === null) return;
-    const timer = setTimeout(() => setDrawDeclinedAt(null), 2000);
-    return () => clearTimeout(timer);
-  }, [drawDeclinedAt]);
-
-  const showDrawDeclined = drawDeclinedAt !== null;
-
-  // Clear local UI state when game resets to starting position
-  useEffect(() => {
-    if (fen === STARTING_FEN) {
-      handledResultRef.current = null;
-    }
-  }, [fen]);
-
-  const gameEnd = useMemo(() => deriveChessGameEnd(chess, fen, playerSignals), [chess, fen, playerSignals]);
-  const resultKey = gameEnd?.key ?? null;
-
-  // Notify parent of game-ending signals (resign, draw accept, checkmate, stalemate)
-  useEffect(() => {
-    if (!resultKey || handledResultRef.current === resultKey) return;
-    handledResultRef.current = resultKey;
-
-    if (gameEnd) onGameEnd(gameEnd.message);
-  }, [gameEnd, onGameEnd, resultKey]);
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!boardRef.current) return;
-      const rect = boardRef.current.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 100;
-      const y = ((e.clientY - rect.top) / rect.height) * 100;
-      onCursorMove(x, y);
-    },
-    [onCursorMove]
-  );
-
-  const getCursorOwnerSide = useCallback(
-    (cursorVisitorId: string): "white" | "black" | null => {
-      const player = playersInGame.find((p) => p.visitorId === cursorVisitorId);
-      const side = player?.gameMetadata?.side;
-      if (side === "white" || side === "black") return side;
-      return null;
-    },
-    [playersInGame]
-  );
-
-  const otherCursors = useMemo(() => {
-    return playersInGame
-      .filter((p) => p.visitorId !== visitorId)
-      .map((player) => {
-        const rawX = player.gameMetadata?.gameCursorX;
-        const rawY = player.gameMetadata?.gameCursorY;
-        const gameCursorX = typeof rawX === "number" && Number.isFinite(rawX) ? rawX : 50;
-        const gameCursorY = typeof rawY === "number" && Number.isFinite(rawY) ? rawY : 50;
-        const ownerSide = getCursorOwnerSide(player.visitorId);
-        const ownerViewsAsBlack = ownerSide === "black";
-        const iViewAsBlack = mySide === "black";
-        const needsFlip = ownerViewsAsBlack !== iViewAsBlack;
-        const visitor = visitors.find((v) => v.visitorId === player.visitorId);
-
-        return {
-          visitorId: player.visitorId,
-          cursorColor: player.cursorColor,
-          displayX: needsFlip ? 100 - gameCursorX : gameCursorX,
-          displayY: needsFlip ? 100 - gameCursorY : gameCursorY,
-          needsFlip,
-          chatMessage: visitor?.chatMessage ?? null,
-        };
-      });
-  }, [playersInGame, visitorId, mySide, getCursorOwnerSide, visitors]);
-
-  // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
-  const whitePlayerId = useMemo(() => {
-    return selectClaimedSide(playersInGame.map((player) => ({
-      visitorId: player.visitorId,
-      side: player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black" ? player.gameMetadata.side : null,
-    })), "white");
-  }, [playersInGame]);
-
-  const blackPlayerId = useMemo(() => {
-    return selectClaimedSide(playersInGame.map((player) => ({
-      visitorId: player.visitorId,
-      side: player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black" ? player.gameMetadata.side : null,
-    })), "black");
-  }, [playersInGame]);
-
-  const whitePlayer: GamePlayer | undefined = useMemo(() => {
-    const p = playersInGame.find((p) => p.visitorId === whitePlayerId);
-    return p ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "white" } : undefined;
-  }, [playersInGame, whitePlayerId]);
-
-  const blackPlayer: GamePlayer | undefined = useMemo(() => {
-    const p = playersInGame.find((p) => p.visitorId === blackPlayerId);
-    return p ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" } : undefined;
-  }, [playersInGame, blackPlayerId]);
-
-  // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
-  const otherPlayerExists = (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
-  const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
-  const canJoinBlack = !blackPlayer && (!mySide || !otherPlayerExists);
-
-  const topBadgeSide = boardOrientation === "white" ? "black" : "white";
-  const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
-  const topPlayer = topBadgeSide === "white" ? whitePlayer : blackPlayer;
-  const bottomPlayer = bottomBadgeSide === "white" ? whitePlayer : blackPlayer;
-  const canJoinTop = topBadgeSide === "white" ? canJoinWhite : canJoinBlack;
-  const canJoinBottom = bottomBadgeSide === "white" ? canJoinWhite : canJoinBlack;
-
-  const BOARD_SIZE = "min(85vw, 85vh, 700px)";
-
-  const controlButtons = (
-    <div className="flex items-center gap-2 h-8">
-      <Tooltip text={otherPlayerExists ? "Resign" : "Reset"}>
-        <button
-          type="button"
-          onClick={() => (otherPlayerExists ? onSignal("resign") : onReset())}
-          disabled={!mySide}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
-        >
-          {otherPlayerExists ? <Flag className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
-        </button>
-      </Tooltip>
-      <Tooltip text="Offer draw">
-        <button
-          type="button"
-          onClick={() => onSignal("drawOffer")}
-          disabled={!otherPlayerExists || !!opponentDrawOffer || mySignal === "drawOffer"}
-          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
-        >
-          <Handshake className="w-3 h-3" />
-        </button>
-      </Tooltip>
-      <button
-        type="button"
-        onClick={onClose}
-        className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
-  );
-
-  const statusIndicator = (
-    <div className="h-10 flex items-center justify-center min-w-[100px]">
-      {gameStatus ? (
-        <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
-          {gameStatus}
-        </div>
-      ) : (
-        <div
-          className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-colors ${
-            !mySide ? "opacity-0" : isMyTurn ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" : "bg-[var(--color-muted)] text-[var(--color-foreground)]"
-          }`}
-        >
-          {isMyTurn ? "Your turn!" : "Waiting..."}
-        </div>
-      )}
-    </div>
-  );
-
-  if (isLandscape) {
-    return (
-      <div
-        className="relative flex items-center justify-center select-none animate-in fade-in duration-150"
-        style={{ "--board-size": BOARD_SIZE } as React.CSSProperties}
-      >
-        {/* Left panel - player badges aligned to board edges */}
-        <div
-          className="absolute flex flex-col justify-between items-end pr-4"
-          style={{ height: `var(--board-size)`, right: `calc(50% + var(--board-size) / 2)` }}
-        >
-          <PlayerBadge
-            side={topBadgeSide}
-            player={topPlayer}
-            isMe={mySide === topBadgeSide}
-            canJoin={canJoinTop}
-            onJoin={() => onClaimSide(topBadgeSide)}
-            onLeave={onLeaveSide}
-          />
-          <PlayerBadge
-            side={bottomBadgeSide}
-            player={bottomPlayer}
-            isMe={mySide === bottomBadgeSide}
-            canJoin={canJoinBottom}
-            onJoin={() => onClaimSide(bottomBadgeSide)}
-            onLeave={onLeaveSide}
-          />
-        </div>
-
-        {/* Board - always centered */}
-        <div
-          ref={boardRef}
-          className="relative aspect-square"
-          style={{ width: `var(--board-size)` }}
-          onMouseMove={handleMouseMove}
-          onPointerMove={handleMouseMove}
-        >
-          <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
-            <Chessboard
-              options={{
-                position: fen,
-                onPieceDrop: handleDrop,
-                onSquareClick: handleSquareClick,
-                boardOrientation,
-                squareStyles,
-                allowDragging: !!mySide && isMyTurn && !resultOverlay,
-                boardStyle: { borderRadius: "0" },
-                darkSquareStyle: { backgroundColor: "#b58863" },
-                lightSquareStyle: { backgroundColor: "#f0d9b5" },
-              } satisfies ChessboardOptions}
-            />
-          </div>
-          {otherCursors.map((cursor) => (
-            <ChessCursor
-              key={cursor.visitorId}
-              displayX={cursor.displayX}
-              displayY={cursor.displayY}
-              cursorColor={cursor.cursorColor}
-              chatMessage={cursor.chatMessage}
-              rotated={cursor.needsFlip}
-            />
-          ))}
-          {opponentDrawOffer && mySide && (
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-              <DrawOfferBanner
-                onAccept={() => onSignal("drawAccept")}
-                onDecline={() => onSignal("drawDecline")}
-              />
-            </div>
-          )}
-          {showDrawDeclined && (
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-              <DrawDeclinedBanner />
-            </div>
-          )}
-        </div>
-
-        {/* Right panel - controls top, status bottom */}
-        <div
-          className="absolute flex flex-col justify-between items-start pl-4"
-          style={{ height: `var(--board-size)`, left: `calc(50% + var(--board-size) / 2)` }}
-        >
-          {controlButtons}
-          {statusIndicator}
-        </div>
-
-        {/* Promotion modal */}
-        {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
-
-        {/* Result overlay */}
-        {resultOverlay && <ResultOverlay message={resultOverlay} />}
-      </div>
+    const [isLandscape, setIsLandscape] = useState(
+        () => typeof window !== "undefined" && window.innerWidth > window.innerHeight,
     );
-  }
 
-  return (
-    <div className="flex flex-col items-center gap-3 select-none animate-in fade-in duration-150" style={{ width: BOARD_SIZE }}>
-      {/* Top controls - portrait */}
-      <div className="flex items-center justify-between w-full">
-        <PlayerBadge
-          side={topBadgeSide}
-          player={topPlayer}
-          isMe={mySide === topBadgeSide}
-          canJoin={canJoinTop}
-          onJoin={() => onClaimSide(topBadgeSide)}
-          onLeave={onLeaveSide}
-        />
-        {controlButtons}
-      </div>
+    useEffect(() => {
+        const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
-      {/* Board */}
-      <div
-        ref={boardRef}
-        className="relative aspect-square w-full"
-        onMouseMove={handleMouseMove}
-        onPointerMove={handleMouseMove}
-      >
-        <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
-          <Chessboard
-            options={{
-              position: fen,
-              onPieceDrop: handleDrop,
-              onSquareClick: handleSquareClick,
-              boardOrientation,
-              squareStyles,
-              allowDragging: !!mySide && isMyTurn && !resultOverlay,
-              boardStyle: { borderRadius: "0" },
-              darkSquareStyle: { backgroundColor: "#b58863" },
-              lightSquareStyle: { backgroundColor: "#f0d9b5" },
-            } satisfies ChessboardOptions}
-          />
+    const fen = serverFen;
+    const lastMove = serverLastMove;
+
+    const {
+        chess,
+        isMyTurn,
+        gameStatus,
+        pendingPromotion,
+        handleDrop,
+        handleSquareClick,
+        handlePromotion,
+        squareStyles,
+    } = useChessController({ fen, lastMove, mySide, resultOverlay, onMove });
+
+    useEffect(() => {
+        if (prevFenRef.current !== fen && lastMove) {
+            const prevChess = new Chess();
+            try {
+                prevChess.load(prevFenRef.current);
+                const capturedPiece = prevChess.get(lastMove.to as Square);
+                const movingPiece = prevChess.get(lastMove.from as Square);
+                const isEnPassant = movingPiece?.type === "p" && lastMove.from[0] !== lastMove.to[0] && !capturedPiece;
+                playMoveSound(!!capturedPiece || isEnPassant);
+            } catch {
+                playMoveSound(false);
+            }
+        }
+        prevFenRef.current = fen;
+    }, [fen, lastMove, playMoveSound]);
+
+    const boardOrientation = mySide === "black" ? "black" : "white";
+
+    // Extract signals from players: { visitorId, side, signal }
+    const playerSignals = useMemo(() => {
+        return playersInGame
+            .filter((p) => p.gameMetadata?.side && p.gameMetadata?.gameSignal)
+            .map((p) => ({
+                visitorId: p.visitorId,
+                side: p.gameMetadata?.side as "white" | "black",
+                signal: p.gameMetadata?.gameSignal as GameSignal,
+            }));
+    }, [playersInGame]);
+
+    // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
+    const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
+    const opponent = mySide ? playerSignals.find((p) => p.visitorId !== visitorId && p.side !== mySide) : undefined;
+    const opponentSignal = opponent?.signal;
+    const opponentDrawOffer =
+        mySide && opponentSignal === "drawOffer" && mySignal !== "drawDecline" && mySignal !== "drawOffer"
+            ? opponent
+            : undefined;
+
+    // Signal handshake lifecycle:
+    // 1. Offerer clears their "drawOffer" when opponent declines
+    // 2. Decliner clears their "drawDecline" when offerer's offer is gone (or new offer arrives)
+    const prevOpponentSignalRef = useRef<GameSignal | undefined>(undefined);
+    useEffect(() => {
+        const prevOpponent = prevOpponentSignalRef.current;
+        prevOpponentSignalRef.current = opponentSignal;
+
+        if (!mySide) return;
+
+        // Offerer: clear my offer when opponent declines, show declined message
+        if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
+            queueMicrotask(() => setDrawDeclinedAt(Date.now()));
+            onSignal(null);
+            return;
+        }
+
+        // Decliner: clear my decline when offer is gone OR a new offer arrives
+        if (mySignal === "drawDecline") {
+            const opponentNowOffering = opponentSignal === "drawOffer";
+            const opponentWasOffering = prevOpponent === "drawOffer";
+            // Clear if: offer gone, or new offer detected (heals missed transitions)
+            if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
+                onSignal(null);
+            }
+        }
+    }, [mySide, mySignal, opponentSignal, onSignal]);
+
+    // Auto-clear draw declined message after 2 seconds
+    useEffect(() => {
+        if (drawDeclinedAt === null) return;
+        const timer = setTimeout(() => setDrawDeclinedAt(null), 2000);
+        return () => clearTimeout(timer);
+    }, [drawDeclinedAt]);
+
+    const showDrawDeclined = drawDeclinedAt !== null;
+
+    // Clear local UI state when game resets to starting position
+    useEffect(() => {
+        if (fen === STARTING_FEN) {
+            handledResultRef.current = null;
+        }
+    }, [fen]);
+
+    const gameEnd = useMemo(() => deriveChessGameEnd(chess, fen, playerSignals), [chess, fen, playerSignals]);
+    const resultKey = gameEnd?.key ?? null;
+
+    // Notify parent of game-ending signals (resign, draw accept, checkmate, stalemate)
+    useEffect(() => {
+        if (!resultKey || handledResultRef.current === resultKey) return;
+        handledResultRef.current = resultKey;
+
+        if (gameEnd) onGameEnd(gameEnd.message);
+    }, [gameEnd, onGameEnd, resultKey]);
+
+    const handleMouseMove = useCallback(
+        (e: React.MouseEvent) => {
+            if (!boardRef.current) return;
+            const rect = boardRef.current.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            onCursorMove(x, y);
+        },
+        [onCursorMove],
+    );
+
+    const getCursorOwnerSide = useCallback(
+        (cursorVisitorId: string): "white" | "black" | null => {
+            const player = playersInGame.find((p) => p.visitorId === cursorVisitorId);
+            const side = player?.gameMetadata?.side;
+            if (side === "white" || side === "black") return side;
+            return null;
+        },
+        [playersInGame],
+    );
+
+    const otherCursors = useMemo(() => {
+        return playersInGame
+            .filter((p) => p.visitorId !== visitorId)
+            .map((player) => {
+                const rawX = player.gameMetadata?.gameCursorX;
+                const rawY = player.gameMetadata?.gameCursorY;
+                const gameCursorX = typeof rawX === "number" && Number.isFinite(rawX) ? rawX : 50;
+                const gameCursorY = typeof rawY === "number" && Number.isFinite(rawY) ? rawY : 50;
+                const ownerSide = getCursorOwnerSide(player.visitorId);
+                const ownerViewsAsBlack = ownerSide === "black";
+                const iViewAsBlack = mySide === "black";
+                const needsFlip = ownerViewsAsBlack !== iViewAsBlack;
+                const visitor = visitors.find((v) => v.visitorId === player.visitorId);
+
+                return {
+                    visitorId: player.visitorId,
+                    cursorColor: player.cursorColor,
+                    displayX: needsFlip ? 100 - gameCursorX : gameCursorX,
+                    displayY: needsFlip ? 100 - gameCursorY : gameCursorY,
+                    needsFlip,
+                    chatMessage: visitor?.chatMessage ?? null,
+                };
+            });
+    }, [playersInGame, visitorId, mySide, getCursorOwnerSide, visitors]);
+
+    // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
+    const whitePlayerId = useMemo(() => {
+        return selectClaimedSide(
+            playersInGame.map((player) => ({
+                visitorId: player.visitorId,
+                side:
+                    player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black"
+                        ? player.gameMetadata.side
+                        : null,
+            })),
+            "white",
+        );
+    }, [playersInGame]);
+
+    const blackPlayerId = useMemo(() => {
+        return selectClaimedSide(
+            playersInGame.map((player) => ({
+                visitorId: player.visitorId,
+                side:
+                    player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black"
+                        ? player.gameMetadata.side
+                        : null,
+            })),
+            "black",
+        );
+    }, [playersInGame]);
+
+    const whitePlayer: GamePlayer | undefined = useMemo(() => {
+        const p = playersInGame.find((p) => p.visitorId === whitePlayerId);
+        return p
+            ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "white" }
+            : undefined;
+    }, [playersInGame, whitePlayerId]);
+
+    const blackPlayer: GamePlayer | undefined = useMemo(() => {
+        const p = playersInGame.find((p) => p.visitorId === blackPlayerId);
+        return p
+            ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" }
+            : undefined;
+    }, [playersInGame, blackPlayerId]);
+
+    // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
+    const otherPlayerExists =
+        (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
+    const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
+    const canJoinBlack = !blackPlayer && (!mySide || !otherPlayerExists);
+
+    const topBadgeSide = boardOrientation === "white" ? "black" : "white";
+    const bottomBadgeSide = boardOrientation === "white" ? "white" : "black";
+    const topPlayer = topBadgeSide === "white" ? whitePlayer : blackPlayer;
+    const bottomPlayer = bottomBadgeSide === "white" ? whitePlayer : blackPlayer;
+    const canJoinTop = topBadgeSide === "white" ? canJoinWhite : canJoinBlack;
+    const canJoinBottom = bottomBadgeSide === "white" ? canJoinWhite : canJoinBlack;
+
+    const BOARD_SIZE = "min(85vw, 85vh, 700px)";
+
+    const controlButtons = (
+        <div className="flex items-center gap-2 h-8">
+            <Tooltip text={otherPlayerExists ? "Resign" : "Reset"}>
+                <button
+                    type="button"
+                    onClick={() => (otherPlayerExists ? onSignal("resign") : onReset())}
+                    disabled={!mySide}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)]" : "opacity-0 pointer-events-none"}`}
+                >
+                    {otherPlayerExists ? <Flag className="w-3 h-3" /> : <RotateCcw className="w-3 h-3" />}
+                </button>
+            </Tooltip>
+            <Tooltip text="Offer draw">
+                <button
+                    type="button"
+                    onClick={() => onSignal("drawOffer")}
+                    disabled={!otherPlayerExists || !!opponentDrawOffer || mySignal === "drawOffer"}
+                    className={`flex items-center gap-1 px-2 py-1.5 rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-background)] text-xs font-medium transition-colors ${mySide ? "hover:bg-[var(--color-muted)] disabled:opacity-50 disabled:cursor-not-allowed" : "opacity-0 pointer-events-none"}`}
+                >
+                    <Handshake className="w-3 h-3" />
+                </button>
+            </Tooltip>
+            <button
+                type="button"
+                onClick={onClose}
+                className="flex items-center justify-center w-8 h-8 rounded-full border-2 border-[var(--color-foreground)] bg-[var(--color-background)] hover:bg-[var(--color-muted)] transition-colors shadow-[var(--shadow-2)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+            >
+                <X className="w-4 h-4" />
+            </button>
         </div>
-        {otherCursors.map((cursor) => (
-          <ChessCursor
-            key={cursor.visitorId}
-            displayX={cursor.displayX}
-            displayY={cursor.displayY}
-            cursorColor={cursor.cursorColor}
-            chatMessage={cursor.chatMessage}
-            rotated={cursor.needsFlip}
-          />
-        ))}
-        {opponentDrawOffer && mySide && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-            <DrawOfferBanner
-              onAccept={() => onSignal("drawAccept")}
-              onDecline={() => onSignal("drawDecline")}
-            />
-          </div>
-        )}
-        {showDrawDeclined && (
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-            <DrawDeclinedBanner />
-          </div>
-        )}
-      </div>
+    );
 
-      {/* Bottom controls - portrait */}
-      <div className="flex items-center justify-between w-full">
-        <PlayerBadge
-          side={bottomBadgeSide}
-          player={bottomPlayer}
-          isMe={mySide === bottomBadgeSide}
-          canJoin={canJoinBottom}
-          onJoin={() => onClaimSide(bottomBadgeSide)}
-          onLeave={onLeaveSide}
-        />
-        {statusIndicator}
-      </div>
+    const statusIndicator = (
+        <div className="h-10 flex items-center justify-center min-w-[100px]">
+            {gameStatus ? (
+                <div className="px-3 py-1.5 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] text-sm font-bold shadow-[var(--shadow-2)]">
+                    {gameStatus}
+                </div>
+            ) : (
+                <div
+                    className={`px-4 py-2 rounded-xl border-2 border-[var(--color-foreground)] font-medium shadow-[var(--shadow-2)] transition-colors ${
+                        !mySide
+                            ? "opacity-0"
+                            : isMyTurn
+                              ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]"
+                              : "bg-[var(--color-muted)] text-[var(--color-foreground)]"
+                    }`}
+                >
+                    {isMyTurn ? "Your turn!" : "Waiting..."}
+                </div>
+            )}
+        </div>
+    );
 
-      {/* Promotion modal */}
-      {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
+    if (isLandscape) {
+        return (
+            <div
+                className="relative flex items-center justify-center select-none animate-in fade-in duration-150"
+                style={{ "--board-size": BOARD_SIZE } as React.CSSProperties}
+            >
+                {/* Left panel - player badges aligned to board edges */}
+                <div
+                    className="absolute flex flex-col justify-between items-end pr-4"
+                    style={{ height: `var(--board-size)`, right: `calc(50% + var(--board-size) / 2)` }}
+                >
+                    <PlayerBadge
+                        side={topBadgeSide}
+                        player={topPlayer}
+                        isMe={mySide === topBadgeSide}
+                        canJoin={canJoinTop}
+                        onJoin={() => onClaimSide(topBadgeSide)}
+                        onLeave={onLeaveSide}
+                    />
+                    <PlayerBadge
+                        side={bottomBadgeSide}
+                        player={bottomPlayer}
+                        isMe={mySide === bottomBadgeSide}
+                        canJoin={canJoinBottom}
+                        onJoin={() => onClaimSide(bottomBadgeSide)}
+                        onLeave={onLeaveSide}
+                    />
+                </div>
 
-      {/* Result overlay */}
-      {resultOverlay && <ResultOverlay message={resultOverlay} />}
-    </div>
-  );
+                {/* Board - always centered */}
+                <div
+                    ref={boardRef}
+                    className="relative aspect-square"
+                    style={{ width: `var(--board-size)` }}
+                    onMouseMove={handleMouseMove}
+                    onPointerMove={handleMouseMove}
+                >
+                    <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
+                        <Chessboard
+                            options={
+                                {
+                                    position: fen,
+                                    onPieceDrop: handleDrop,
+                                    onSquareClick: handleSquareClick,
+                                    boardOrientation,
+                                    squareStyles,
+                                    allowDragging: !!mySide && isMyTurn && !resultOverlay,
+                                    boardStyle: { borderRadius: "0" },
+                                    darkSquareStyle: { backgroundColor: "#b58863" },
+                                    lightSquareStyle: { backgroundColor: "#f0d9b5" },
+                                } satisfies ChessboardOptions
+                            }
+                        />
+                    </div>
+                    {otherCursors.map((cursor) => (
+                        <ChessCursor
+                            key={cursor.visitorId}
+                            displayX={cursor.displayX}
+                            displayY={cursor.displayY}
+                            cursorColor={cursor.cursorColor}
+                            chatMessage={cursor.chatMessage}
+                            rotated={cursor.needsFlip}
+                        />
+                    ))}
+                    {opponentDrawOffer && mySide && (
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                            <DrawOfferBanner
+                                onAccept={() => onSignal("drawAccept")}
+                                onDecline={() => onSignal("drawDecline")}
+                            />
+                        </div>
+                    )}
+                    {showDrawDeclined && (
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                            <DrawDeclinedBanner />
+                        </div>
+                    )}
+                </div>
+
+                {/* Right panel - controls top, status bottom */}
+                <div
+                    className="absolute flex flex-col justify-between items-start pl-4"
+                    style={{ height: `var(--board-size)`, left: `calc(50% + var(--board-size) / 2)` }}
+                >
+                    {controlButtons}
+                    {statusIndicator}
+                </div>
+
+                {/* Promotion modal */}
+                {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
+
+                {/* Result overlay */}
+                {resultOverlay && <ResultOverlay message={resultOverlay} />}
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="flex flex-col items-center gap-3 select-none animate-in fade-in duration-150"
+            style={{ width: BOARD_SIZE }}
+        >
+            {/* Top controls - portrait */}
+            <div className="flex items-center justify-between w-full">
+                <PlayerBadge
+                    side={topBadgeSide}
+                    player={topPlayer}
+                    isMe={mySide === topBadgeSide}
+                    canJoin={canJoinTop}
+                    onJoin={() => onClaimSide(topBadgeSide)}
+                    onLeave={onLeaveSide}
+                />
+                {controlButtons}
+            </div>
+
+            {/* Board */}
+            <div
+                ref={boardRef}
+                className="relative aspect-square w-full"
+                onMouseMove={handleMouseMove}
+                onPointerMove={handleMouseMove}
+            >
+                <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
+                    <Chessboard
+                        options={
+                            {
+                                position: fen,
+                                onPieceDrop: handleDrop,
+                                onSquareClick: handleSquareClick,
+                                boardOrientation,
+                                squareStyles,
+                                allowDragging: !!mySide && isMyTurn && !resultOverlay,
+                                boardStyle: { borderRadius: "0" },
+                                darkSquareStyle: { backgroundColor: "#b58863" },
+                                lightSquareStyle: { backgroundColor: "#f0d9b5" },
+                            } satisfies ChessboardOptions
+                        }
+                    />
+                </div>
+                {otherCursors.map((cursor) => (
+                    <ChessCursor
+                        key={cursor.visitorId}
+                        displayX={cursor.displayX}
+                        displayY={cursor.displayY}
+                        cursorColor={cursor.cursorColor}
+                        chatMessage={cursor.chatMessage}
+                        rotated={cursor.needsFlip}
+                    />
+                ))}
+                {opponentDrawOffer && mySide && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                        <DrawOfferBanner
+                            onAccept={() => onSignal("drawAccept")}
+                            onDecline={() => onSignal("drawDecline")}
+                        />
+                    </div>
+                )}
+                {showDrawDeclined && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                        <DrawDeclinedBanner />
+                    </div>
+                )}
+            </div>
+
+            {/* Bottom controls - portrait */}
+            <div className="flex items-center justify-between w-full">
+                <PlayerBadge
+                    side={bottomBadgeSide}
+                    player={bottomPlayer}
+                    isMe={mySide === bottomBadgeSide}
+                    canJoin={canJoinBottom}
+                    onJoin={() => onClaimSide(bottomBadgeSide)}
+                    onLeave={onLeaveSide}
+                />
+                {statusIndicator}
+            </div>
+
+            {/* Promotion modal */}
+            {pendingPromotion && <PromotionOverlay onPromote={handlePromotion} />}
+
+            {/* Result overlay */}
+            {resultOverlay && <ResultOverlay message={resultOverlay} />}
+        </div>
+    );
 }

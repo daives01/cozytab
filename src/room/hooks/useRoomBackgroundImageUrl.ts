@@ -10,14 +10,14 @@ import { type TimeOfDay } from "../types";
  */
 export function useRoomBackgroundImageUrl(
     roomTemplateBackgroundUrl: string | undefined,
-    _overrideTimeOfDay?: TimeOfDay
+    _overrideTimeOfDay?: TimeOfDay,
 ) {
     const isStorageUrl = roomTemplateBackgroundUrl?.startsWith("storage:");
     const storageId = isStorageUrl ? roomTemplateBackgroundUrl?.replace("storage:", "") : null;
 
     const resolvedUrl = useQuery(
         api.catalog.getImageUrl,
-        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
+        storageId ? { storageId: storageId as Id<"_storage"> } : "skip",
     );
 
     if (!roomTemplateBackgroundUrl) {

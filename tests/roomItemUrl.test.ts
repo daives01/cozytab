@@ -3,11 +3,22 @@ import { normalizeRoomItemUrl } from "../shared/roomItemUrl";
 import { openRoomItemLink } from "../src/room/roomItemLink";
 
 const invalidUrls = [
-    "", "javascript:alert(1)", "JaVaScRiPt:alert(1)", "data:text/html,hi",
-    "file:///etc/passwd", "vbscript:msgbox(1)", "mailto:hi@example.com",
-    "https://", "https://exa mple.com", "https://example.com/\nfoo",
-    "https://example.com/\tfoo", "java\nscript:alert(1)", "https://example.com/\0foo",
-    "https://example.com:99999", "https://[invalid]", "a".repeat(2049),
+    "",
+    "javascript:alert(1)",
+    "JaVaScRiPt:alert(1)",
+    "data:text/html,hi",
+    "file:///etc/passwd",
+    "vbscript:msgbox(1)",
+    "mailto:hi@example.com",
+    "https://",
+    "https://exa mple.com",
+    "https://example.com/\nfoo",
+    "https://example.com/\tfoo",
+    "java\nscript:alert(1)",
+    "https://example.com/\0foo",
+    "https://example.com:99999",
+    "https://[invalid]",
+    "a".repeat(2049),
     `https://example.com/${"é".repeat(400)}`,
 ];
 

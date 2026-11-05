@@ -15,3 +15,13 @@ First independent review identified check failures, missing worker typecheck/upd
 ## Preview deployment correction
 
 Vercel compiled the app successfully, then Convex analysis failed on missing STRIPE_PRICE_10_COINS in the preview deployment. Price configuration is now validated inside checkout/webhook request handling through a shared helper. Missing or blank prices still throw; no placeholder prices or secrets are introduced. Tests verify modules load without billing configuration and payment validation still fails closed. Full check passes with 113 tests across 18 files. Fresh review covers this correction.
+
+## Formatting baseline (issue #7)
+
+Baseline from cc7cbd3: four-space indentation is prevalent (1,661 sampled statement lines at four spaces versus 146 at two); double quotes and semicolons retained, 120-column wrapping selected. Oxfmt 0.76 requires explicit --ignore-path: .oxfmtignore is not automatically discovered. Both format scripts now pass .gitignore and .oxfmtignore. Vendor, generated Convex, agent assets, public assets, lockfiles, unrelated Markdown and research remain excluded. Vendor SHA256SUMS verifies unchanged.
+
+Full check passes including format:check and 113 tests. A second formatting check passes; git diff --check passes. TypeScript AST comparison was attempted with parentheses and JSX whitespace normalization; residual JSX representation differences require reviewer inspection, so full AST equivalence is not claimed. No semantic refactors are intended.
+
+Pinned require-readable-spacing trial used temporary copies of tracked owned TS/TSX and a temporary rule-only config: 1,398 findings after Oxfmt, zero after rule --fix, and zero after rerunning Oxfmt. The broader repository audit reports 1,816 findings; the tracked-copy trial intentionally limits scope. The tools are compatible, but adopting spacing requires a separate reviewed blank-line baseline and enforcement decision. No spacing fixes or policy changes are included here.
+
+Foundation #8 and audit #9 are merged; earlier publication-blocked notes above are historical. Formatting PR awaits fresh independent review by the parent; no merge or deployment performed by this implementation agent.

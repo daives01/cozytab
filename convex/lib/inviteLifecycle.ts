@@ -26,7 +26,7 @@ export async function closePrimaryInvite(ctx: MutationCtx, roomId: Id<"rooms">, 
 }
 
 export function computeHostOnlySince(hasGuests: boolean, existing: number | undefined, now: number) {
-    return hasGuests ? undefined : existing ?? now;
+    return hasGuests ? undefined : (existing ?? now);
 }
 
 export function hasHostOnlyExpired(hostOnlySince: number | undefined, now: number) {

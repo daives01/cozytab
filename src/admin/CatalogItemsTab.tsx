@@ -41,7 +41,12 @@ export function CatalogItemsTab() {
         onError: setError,
     });
 
-    const { uploading, error: uploadError, handleImageUpload, setError: setUploadError } = useImageUpload<"catalogItems">({
+    const {
+        uploading,
+        error: uploadError,
+        handleImageUpload,
+        setError: setUploadError,
+    } = useImageUpload<"catalogItems">({
         generateUploadUrl,
         onUploadComplete: async (itemId, imageUrl) => {
             if (itemId === "new") {
@@ -91,7 +96,13 @@ export function CatalogItemsTab() {
             {currentError && (
                 <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
-                    <button onClick={() => { setError(undefined); setUploadError(undefined); }} className="ml-4 underline">
+                    <button
+                        onClick={() => {
+                            setError(undefined);
+                            setUploadError(undefined);
+                        }}
+                        className="ml-4 underline"
+                    >
                         Dismiss
                     </button>
                 </div>
@@ -114,11 +125,15 @@ export function CatalogItemsTab() {
                             <label className="block text-sm text-[var(--ink-muted)] mb-1">Category</label>
                             <select
                                 value={newItem.category}
-                                onChange={(e) => setNewItem((p) => ({ ...p, category: e.target.value as CatalogItemCategory }))}
+                                onChange={(e) =>
+                                    setNewItem((p) => ({ ...p, category: e.target.value as CatalogItemCategory }))
+                                }
                                 className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             >
                                 {CATALOG_ITEM_CATEGORIES.map((cat) => (
-                                    <option key={cat} value={cat}>{cat}</option>
+                                    <option key={cat} value={cat}>
+                                        {cat}
+                                    </option>
                                 ))}
                             </select>
                         </div>
@@ -169,12 +184,19 @@ export function CatalogItemsTab() {
                                 <label className="block text-sm text-[var(--ink-muted)] mb-1">Game Type</label>
                                 <select
                                     value={newItem.gameType ?? ""}
-                                    onChange={(e) => setNewItem((p) => ({ ...p, gameType: (e.target.value as GameType) || undefined }))}
+                                    onChange={(e) =>
+                                        setNewItem((p) => ({
+                                            ...p,
+                                            gameType: (e.target.value as GameType) || undefined,
+                                        }))
+                                    }
                                     className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                                 >
                                     <option value="">None</option>
                                     {GAME_TYPES.map((type) => (
-                                        <option key={type} value={type}>{type}</option>
+                                        <option key={type} value={type}>
+                                            {type}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -220,9 +242,7 @@ export function CatalogItemsTab() {
                                             className="w-12 h-12 object-contain rounded"
                                         />
                                         <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
-                                            <span className="text-xs">
-                                                {uploading === item._id ? "..." : "📤"}
-                                            </span>
+                                            <span className="text-xs">{uploading === item._id ? "..." : "📤"}</span>
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -263,13 +283,18 @@ export function CatalogItemsTab() {
                                             value={item.gameType ?? ""}
                                             onChange={async (e) => {
                                                 const value = e.target.value;
-                                                await updateItem({ id: item._id, gameType: value ? (value as GameType) : null });
+                                                await updateItem({
+                                                    id: item._id,
+                                                    gameType: value ? (value as GameType) : null,
+                                                });
                                             }}
                                             className="px-2 py-1 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm text-sm"
                                         >
                                             <option value="">None</option>
                                             {GAME_TYPES.map((type) => (
-                                                <option key={type} value={type}>{type}</option>
+                                                <option key={type} value={type}>
+                                                    {type}
+                                                </option>
                                             ))}
                                         </select>
                                     ) : (

@@ -67,7 +67,7 @@ export interface RoomEditingSession {
     changePersistedItem(
         itemId: string,
         changes: Partial<Omit<RoomItem, "id" | "catalogItemId">>,
-        visibility?: PersistedChangeVisibility
+        visibility?: PersistedChangeVisibility,
     ): EditingResult;
     flush(): Promise<void>;
     retrySave(): Promise<void>;

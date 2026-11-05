@@ -47,9 +47,7 @@ export function ShortcutsEditor({
             </div>
 
             <div className="flex items-center justify-end gap-3">
-                <span className="text-xs text-stone-500">
-                    Right-click a shortcut to rename or delete it
-                </span>
+                <span className="text-xs text-stone-500">Right-click a shortcut to rename or delete it</span>
                 <button
                     onClick={() => signOut()}
                     className="p-1.5 hover:bg-red-100 rounded transition-colors group border border-transparent hover:border-red-200"
@@ -61,4 +59,3 @@ export function ShortcutsEditor({
         </div>
     );
 }
-

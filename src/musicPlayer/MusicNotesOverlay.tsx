@@ -48,7 +48,7 @@ const createSeededRandom = (seed: string) => {
 export function MusicNotesOverlay({ playing, seed, className }: MusicNotesOverlayProps) {
     const prefersReducedMotion = useMemo(
         () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-        []
+        [],
     );
 
     const notes = useMemo(() => {
@@ -90,24 +90,26 @@ export function MusicNotesOverlay({ playing, seed, className }: MusicNotesOverla
                 <span
                     key={`note-${index}`}
                     className="absolute block text-[var(--ink)]"
-                    style={{
-                        left: `${note.left}%`,
-                        bottom: 0,
-                        width: `${note.size}px`,
-                        height: `${note.size}px`,
-                        opacity: note.opacity,
-                        animationName: "cozy-note-float",
-                        animationDuration: `${note.duration}ms`,
-                        animationDelay: `${note.delay}ms`,
-                        animationTimingFunction: "ease-in-out",
-                        animationIterationCount: "infinite",
-                        color: "black",
-                        filter: "drop-shadow(1px 1px 0 var(--shadow-edge-soft))",
-                        "--note-rise": `${-note.rise}px`,
-                        "--note-wobble": `${note.wobble}px`,
-                        "--note-scale": note.scale,
-                        lineHeight: 0,
-                    } as CSSProperties}
+                    style={
+                        {
+                            left: `${note.left}%`,
+                            bottom: 0,
+                            width: `${note.size}px`,
+                            height: `${note.size}px`,
+                            opacity: note.opacity,
+                            animationName: "cozy-note-float",
+                            animationDuration: `${note.duration}ms`,
+                            animationDelay: `${note.delay}ms`,
+                            animationTimingFunction: "ease-in-out",
+                            animationIterationCount: "infinite",
+                            color: "black",
+                            filter: "drop-shadow(1px 1px 0 var(--shadow-edge-soft))",
+                            "--note-rise": `${-note.rise}px`,
+                            "--note-wobble": `${note.wobble}px`,
+                            "--note-scale": note.scale,
+                            lineHeight: 0,
+                        } as CSSProperties
+                    }
                     aria-hidden
                     dangerouslySetInnerHTML={{ __html: note.asset }}
                 />

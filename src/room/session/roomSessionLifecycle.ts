@@ -2,10 +2,7 @@ import type { RoomEditingSession } from "./types";
 
 type DeferredTask = (task: () => void) => void;
 
-export function createRoomSessionLifecycle(
-    session: RoomEditingSession,
-    defer: DeferredTask = queueMicrotask
-) {
+export function createRoomSessionLifecycle(session: RoomEditingSession, defer: DeferredTask = queueMicrotask) {
     let generation = 0;
 
     return () => {

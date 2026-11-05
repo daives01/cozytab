@@ -57,14 +57,7 @@ interface TaskbarIconButtonProps {
     ariaLabel?: string;
 }
 
-function TaskbarIconButton({
-    label,
-    onClick,
-    children,
-    className,
-    dataOnboarding,
-    ariaLabel,
-}: TaskbarIconButtonProps) {
+function TaskbarIconButton({ label, onClick, children, className, dataOnboarding, ariaLabel }: TaskbarIconButtonProps) {
     return (
         <div className="relative group h-full">
             <button

@@ -158,10 +158,7 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
             className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
             onClick={onClose}
         >
-            <div
-                className="relative w-full max-w-2xl font-hand group"
-                onClick={(e) => e.stopPropagation()}
-            >
+            <div className="relative w-full max-w-2xl font-hand group" onClick={(e) => e.stopPropagation()}>
                 <div className="relative overflow-hidden rounded-3xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-8)]">
                     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-8 py-6">
                         <div className="flex items-center gap-4">
@@ -169,8 +166,12 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                 <Music className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black leading-tight text-[var(--color-foreground)]">Now Spinning</h2>
-                                <p className="mt-1 text-sm font-medium text-[var(--color-muted-foreground)]">Curate the room's vibe</p>
+                                <h2 className="text-3xl font-black leading-tight text-[var(--color-foreground)]">
+                                    Now Spinning
+                                </h2>
+                                <p className="mt-1 text-sm font-medium text-[var(--color-muted-foreground)]">
+                                    Curate the room's vibe
+                                </p>
                             </div>
                         </div>
                         <button
@@ -187,8 +188,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                             <div className="relative flex flex-1 min-h-[16rem] sm:min-h-[20rem] items-center justify-center">
                                 <div className="relative flex items-center justify-center scale-75 sm:scale-100">
                                     <div
-                                        className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
-                                            }`}
+                                        className={`absolute flex items-center justify-center transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] ${
+                                            previewUrl ? "translate-x-16 rotate-6" : "translate-x-0"
+                                        }`}
                                     >
                                         <div className="flex h-52 w-52 animate-[spin_6s_linear_infinite] items-center justify-center rounded-full border-4 border-[var(--color-foreground)] bg-[var(--vinyl-primary)] shadow-[var(--shadow-6-soft)]">
                                             <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-tr from-white/10 to-transparent" />
@@ -201,8 +203,9 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
                                     </div>
 
                                     <div
-                                        className={`relative z-20 flex h-[19rem] w-[19rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${previewUrl ? "-rotate-2" : "rotate-0"
-                                            }`}
+                                        className={`relative z-20 flex h-[19rem] w-[19rem] overflow-hidden rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] shadow-[var(--shadow-6-soft)] transition-transform duration-500 ${
+                                            previewUrl ? "-rotate-2" : "rotate-0"
+                                        }`}
                                     >
                                         {previewUrl && !validationError ? (
                                             <img
@@ -226,7 +229,11 @@ export function MusicPlayerModal({ item, onClose, onSave }: MusicPlayerModalProp
 
                             <div className="space-y-3 text-center px-2 sm:px-4">
                                 <div className="text-xl sm:text-2xl font-black text-[var(--color-foreground)] leading-snug line-clamp-2">
-                                    {displayTitle ? displayTitle : isFetchingTitle ? "Finding title..." : "Enter a YouTube link below"}
+                                    {displayTitle
+                                        ? displayTitle
+                                        : isFetchingTitle
+                                          ? "Finding title..."
+                                          : "Enter a YouTube link below"}
                                 </div>
                             </div>
 

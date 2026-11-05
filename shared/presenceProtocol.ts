@@ -14,9 +14,27 @@ export type PresenceVisitor = {
 };
 
 export type PresenceMessage =
-    | { type: "join"; visitorId: string; displayName: string; isOwner: boolean; cursorColor?: string; tabbedOut?: boolean; convexUserId?: string }
+    | {
+          type: "join";
+          visitorId: string;
+          displayName: string;
+          isOwner: boolean;
+          cursorColor?: string;
+          tabbedOut?: boolean;
+          convexUserId?: string;
+      }
     | { type: "leave"; visitorId: string }
     | { type: "rename"; visitorId: string; displayName: string; cursorColor?: string }
-    | { type: "cursor"; visitorId: string; x: number; y: number; cursorColor?: string; inMenu?: boolean; tabbedOut?: boolean; inGame?: string | null; gameMetadata?: Record<string, unknown> | null }
+    | {
+          type: "cursor";
+          visitorId: string;
+          x: number;
+          y: number;
+          cursorColor?: string;
+          inMenu?: boolean;
+          tabbedOut?: boolean;
+          inGame?: string | null;
+          gameMetadata?: Record<string, unknown> | null;
+      }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: PresenceVisitor[] };

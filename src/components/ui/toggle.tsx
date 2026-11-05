@@ -3,23 +3,21 @@ import type { ComponentPropsWithoutRef } from "react";
 
 type ToggleSize = "sm" | "md";
 
-const sizeStyles: Record<
-    ToggleSize,
-    { track: string; knobBase: string; knobChecked: string; knobUnchecked: string }
-> = {
-    md: {
-        track: "h-9 w-16",
-        knobBase: "top-1 left-1 h-6 w-6",
-        knobChecked: "translate-x-7",
-        knobUnchecked: "translate-x-0",
-    },
-    sm: {
-        track: "h-6 w-11",
-        knobBase: "top-1 left-1 h-4 w-4",
-        knobChecked: "translate-x-[18px]",
-        knobUnchecked: "translate-x-0",
-    },
-};
+const sizeStyles: Record<ToggleSize, { track: string; knobBase: string; knobChecked: string; knobUnchecked: string }> =
+    {
+        md: {
+            track: "h-9 w-16",
+            knobBase: "top-1 left-1 h-6 w-6",
+            knobChecked: "translate-x-7",
+            knobUnchecked: "translate-x-0",
+        },
+        sm: {
+            track: "h-6 w-11",
+            knobBase: "top-1 left-1 h-4 w-4",
+            knobChecked: "translate-x-[18px]",
+            knobUnchecked: "translate-x-0",
+        },
+    };
 
 type ToggleSwitchProps = {
     checked: boolean;
@@ -66,10 +64,12 @@ export function ToggleSwitch({
                 "relative rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-foreground)]",
                 disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
                 styles.track,
-                checked ? activeClassName ?? "bg-[var(--color-share-accent)]" : inactiveClassName ?? "bg-[var(--color-muted)]",
+                checked
+                    ? (activeClassName ?? "bg-[var(--color-share-accent)]")
+                    : (inactiveClassName ?? "bg-[var(--color-muted)]"),
                 trackBorderClassName ?? "border-2 border-[var(--color-foreground)]",
                 trackClassName,
-                className
+                className,
             )}
             {...buttonProps}
         >
@@ -79,7 +79,7 @@ export function ToggleSwitch({
                     knobBorderClassName ?? "border-2 border-[var(--color-foreground)]",
                     styles.knobBase,
                     checked ? styles.knobChecked : styles.knobUnchecked,
-                    knobClassName
+                    knobClassName,
                 )}
             />
         </button>

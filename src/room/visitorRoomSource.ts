@@ -46,10 +46,7 @@ export function normalizeInviteRoomSource(input: {
     };
 }
 
-export function normalizeFriendRoomSource(input: {
-    room: NormalizableRoom;
-    ownerName: string;
-}): VisitorRoomSource {
+export function normalizeFriendRoomSource(input: { room: NormalizableRoom; ownerName: string }): VisitorRoomSource {
     return {
         kind: "friend",
         room: normalizeRoom(input.room),

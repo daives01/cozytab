@@ -17,14 +17,14 @@ export function useVisitorCursorTracking({
             const roomY = (clientY - rect.top) / scale;
             updateCursor(roomX, roomY, clientX, clientY);
         },
-        [containerRef, scale, updateCursor]
+        [containerRef, scale, updateCursor],
     );
 
     const handleMouseEvent = useCallback(
         (e: React.MouseEvent) => {
             updateCursorFromClient(e.clientX, e.clientY);
         },
-        [updateCursorFromClient]
+        [updateCursorFromClient],
     );
 
     const handlePointerEvent = useCallback(
@@ -32,7 +32,7 @@ export function useVisitorCursorTracking({
             if (e.pointerType !== "touch") return;
             updateCursorFromClient(e.clientX, e.clientY);
         },
-        [updateCursorFromClient]
+        [updateCursorFromClient],
     );
 
     return {

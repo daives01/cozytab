@@ -33,31 +33,41 @@ export function ItemCard({
         ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15"
         : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20";
     const selectedImageClass = isTouchSelected ? "border-[var(--color-accent)] bg-[var(--color-secondary)]/20" : "";
-    const toggleVisibilityClass = isPending ? "opacity-60" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
+    const toggleVisibilityClass = isPending
+        ? "opacity-60"
+        : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
     const togglePositionClass = compact ? "right-1.5 top-1.5 h-8 w-8 shadow-[var(--shadow-3)]" : "";
     const titleClass = compact
         ? "line-clamp-2 text-size-sm font-black uppercase tracking-normal text-[var(--color-foreground)] leading-snug"
         : "line-clamp-2 text-size-lg font-black uppercase tracking-normal text-[var(--color-foreground)] leading-tight";
-    const titleRowClass = compact ? "flex items-start justify-between gap-1.5" : "flex items-start justify-between gap-2";
+    const titleRowClass = compact
+        ? "flex items-start justify-between gap-1.5"
+        : "flex items-start justify-between gap-2";
 
-    const handlePointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        if (event.pointerType !== "touch") return;
-        if (isDepleted) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onTouchPlace?.(item.catalogItemId, event);
-    }, [isDepleted, onTouchPlace, item.catalogItemId]);
+    const handlePointerDown = useCallback(
+        (event: React.PointerEvent<HTMLDivElement>) => {
+            if (event.pointerType !== "touch") return;
+            if (isDepleted) return;
+            event.preventDefault();
+            event.stopPropagation();
+            onTouchPlace?.(item.catalogItemId, event);
+        },
+        [isDepleted, onTouchPlace, item.catalogItemId],
+    );
 
-    const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-        if (isDepleted) {
-            e.preventDefault();
-            return;
-        }
-        e.dataTransfer.effectAllowed = "move";
-        const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
-        setDragImageFromElement(e, img);
-        onDragStart(e, item.catalogItemId);
-    }, [isDepleted, onDragStart, item.catalogItemId]);
+    const handleDragStart = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            if (isDepleted) {
+                e.preventDefault();
+                return;
+            }
+            e.dataTransfer.effectAllowed = "move";
+            const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
+            setDragImageFromElement(e, img);
+            onDragStart(e, item.catalogItemId);
+        },
+        [isDepleted, onDragStart, item.catalogItemId],
+    );
 
     return (
         <Card
@@ -76,7 +86,12 @@ export function ItemCard({
             aria-disabled={isDepleted}
         >
             <div className={`${imageWrapperClass} ${selectedImageClass} transition-colors`}>
-                <AssetImage assetUrl={item.assetUrl} alt={item.name} className="h-full w-full object-contain" draggable={false} />
+                <AssetImage
+                    assetUrl={item.assetUrl}
+                    alt={item.name}
+                    className="h-full w-full object-contain"
+                    draggable={false}
+                />
                 {shouldShowToggle && (
                     <button
                         type="button"

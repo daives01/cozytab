@@ -114,14 +114,19 @@ function validateMessage(raw: unknown): PresenceMessage | null {
 
     switch (data.type) {
         case "join": {
-            if (!isValidId(data.visitorId) || !isValidDisplayName(data.displayName) || typeof data.isOwner !== "boolean") {
+            if (
+                !isValidId(data.visitorId) ||
+                !isValidDisplayName(data.displayName) ||
+                typeof data.isOwner !== "boolean"
+            ) {
                 return null;
             }
             if (!isValidCursorColor(data.cursorColor)) return null;
             if (!isValidBoolean(data.tabbedOut)) return null;
-            const convexUserId = typeof data.convexUserId === "string" && data.convexUserId.length <= 128
-                ? data.convexUserId
-                : undefined;
+            const convexUserId =
+                typeof data.convexUserId === "string" && data.convexUserId.length <= 128
+                    ? data.convexUserId
+                    : undefined;
             return {
                 type: "join",
                 visitorId: data.visitorId,
@@ -500,5 +505,4 @@ export class PresenceRoom extends DurableObject<Env> {
             }
         }
     }
-
 }

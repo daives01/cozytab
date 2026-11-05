@@ -140,11 +140,7 @@ export function VolumePanel({
                                 aria-label={musicVolume === 0 ? "Unmute music" : "Mute music"}
                                 className="flex items-center justify-center gap-2 rounded-md border-2 border-[var(--color-foreground)] bg-[var(--color-background)] px-3 py-1 shadow-[3px_3px_0px_0px_var(--color-foreground)] transition-transform active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                             >
-                                {musicVolume === 0 ? (
-                                    <VolumeX className="h-4 w-4" />
-                                ) : (
-                                    <Volume2 className="h-4 w-4" />
-                                )}
+                                {musicVolume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                             </button>
                         </div>
                     </div>

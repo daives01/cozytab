@@ -18,31 +18,34 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
     const pendingPositionRef = useRef<{ x: number; y: number } | null>(null);
     const activeTouchIdRef = useRef<number | null>(null);
 
-    const handleTouch = useCallback((e: TouchEvent) => {
-        const touch =
-            activeTouchIdRef.current === null
-                ? e.touches[0]
-                : Array.from(e.touches).find((item) => item.identifier === activeTouchIdRef.current);
-        if (!touch) return;
+    const handleTouch = useCallback(
+        (e: TouchEvent) => {
+            const touch =
+                activeTouchIdRef.current === null
+                    ? e.touches[0]
+                    : Array.from(e.touches).find((item) => item.identifier === activeTouchIdRef.current);
+            if (!touch) return;
 
-        if (activeTouchIdRef.current === null) {
-            activeTouchIdRef.current = touch.identifier;
-        }
+            if (activeTouchIdRef.current === null) {
+                activeTouchIdRef.current = touch.identifier;
+            }
 
-        pendingPositionRef.current = { x: touch.clientX, y: touch.clientY };
-        if (!hasTouch) {
-            setHasTouch(true);
-        }
+            pendingPositionRef.current = { x: touch.clientX, y: touch.clientY };
+            if (!hasTouch) {
+                setHasTouch(true);
+            }
 
-        if (rafIdRef.current === null) {
-            rafIdRef.current = requestAnimationFrame(() => {
-                if (pendingPositionRef.current !== null) {
-                    setPosition(pendingPositionRef.current);
-                }
-                rafIdRef.current = null;
-            });
-        }
-    }, [hasTouch]);
+            if (rafIdRef.current === null) {
+                rafIdRef.current = requestAnimationFrame(() => {
+                    if (pendingPositionRef.current !== null) {
+                        setPosition(pendingPositionRef.current);
+                    }
+                    rafIdRef.current = null;
+                });
+            }
+        },
+        [hasTouch],
+    );
 
     const handleTouchEnd = useCallback((e: TouchEvent) => {
         if (activeTouchIdRef.current === null) return;
@@ -87,12 +90,8 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
                 top: position.y - POINTER_HOTSPOT.y,
             }}
         >
-            <CursorAvatar
-                color={cursorColor}
-                width={POINTER_SIZE.width}
-                height={POINTER_SIZE.height}
-            />
+            <CursorAvatar color={cursorColor} width={POINTER_SIZE.width} height={POINTER_SIZE.height} />
         </div>,
-        document.body
+        document.body,
     );
 }

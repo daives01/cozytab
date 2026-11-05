@@ -158,11 +158,10 @@ export const getInviteByToken = query({
     args: { token: v.string() },
     handler: async (ctx, args) => {
         const now = Date.now();
-        const invite =
-            (await ctx.db
-                .query("roomInvites")
-                .withIndex("by_code", (q) => q.eq("code", args.token))
-                .unique());
+        const invite = await ctx.db
+            .query("roomInvites")
+            .withIndex("by_code", (q) => q.eq("code", args.token))
+            .unique();
 
         if (!invite) return null;
         if (!isInviteOpen(invite, now)) return null;
@@ -196,9 +195,7 @@ export const getMyActiveInvites = query({
             .collect();
 
         const now = Date.now();
-        const active = invites
-            .filter((invite) => invite.expiresAt > now)
-            .sort((a, b) => b.createdAt - a.createdAt);
+        const active = invites.filter((invite) => invite.expiresAt > now).sort((a, b) => b.createdAt - a.createdAt);
 
         const primary = active[0];
 

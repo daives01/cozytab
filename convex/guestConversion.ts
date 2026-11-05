@@ -54,18 +54,22 @@ function normalizeString(value: unknown) {
 }
 
 function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fallbackUsername: string) {
-    const givenName = normalizeString((identity as { firstName?: string }).firstName)
-        ?? normalizeString((identity as { givenName?: string }).givenName);
-    const familyName = normalizeString((identity as { lastName?: string }).lastName)
-        ?? normalizeString((identity as { familyName?: string }).familyName);
-    const identityName = normalizeString(identity.name)
-        ?? (givenName && familyName ? `${givenName} ${familyName}` : undefined)
-        ?? givenName
-        ?? familyName;
+    const givenName =
+        normalizeString((identity as { firstName?: string }).firstName) ??
+        normalizeString((identity as { givenName?: string }).givenName);
+    const familyName =
+        normalizeString((identity as { lastName?: string }).lastName) ??
+        normalizeString((identity as { familyName?: string }).familyName);
+    const identityName =
+        normalizeString(identity.name) ??
+        (givenName && familyName ? `${givenName} ${familyName}` : undefined) ??
+        givenName ??
+        familyName;
     const tokenTail = identity.tokenIdentifier?.split(":").pop();
-    const rawEmail = normalizeString((identity as { email?: string }).email)
-        ?? normalizeString((identity as { emailAddress?: string }).emailAddress)
-        ?? (tokenTail?.includes("@") ? tokenTail : undefined);
+    const rawEmail =
+        normalizeString((identity as { email?: string }).email) ??
+        normalizeString((identity as { emailAddress?: string }).emailAddress) ??
+        (tokenTail?.includes("@") ? tokenTail : undefined);
     const emailLocal = rawEmail?.split("@")[0];
     const providedUsername = normalizeString(fallbackUsername);
     const identityUsername = normalizeString(identity.username);
@@ -87,7 +91,12 @@ function generateReferralCode() {
 
 async function generateUniqueReferralCode(ctx: MutationCtx) {
     let code = generateReferralCode();
-    while (await ctx.db.query("users").withIndex("by_referralCode", (query) => query.eq("referralCode", code)).unique()) {
+    while (
+        await ctx.db
+            .query("users")
+            .withIndex("by_referralCode", (query) => query.eq("referralCode", code))
+            .unique()
+    ) {
         code = generateReferralCode();
     }
     return code;
@@ -113,8 +122,10 @@ function sanitizeRoomItem(item: GuestRoomItem, catalogItemId: Id<"catalogItems">
     if (item.musicUrl !== undefined) sanitized.musicUrl = item.musicUrl.slice(0, MAX_URL_LENGTH);
     if (item.musicType === "youtube") sanitized.musicType = "youtube";
     if (item.musicPlaying !== undefined) sanitized.musicPlaying = item.musicPlaying;
-    if (item.musicStartedAt !== undefined) sanitized.musicStartedAt = clamp(item.musicStartedAt, 0, MAX_TIME_POSITION_MS);
-    if (item.musicPositionAtStart !== undefined) sanitized.musicPositionAtStart = clamp(item.musicPositionAtStart, 0, MAX_TIME_POSITION_MS);
+    if (item.musicStartedAt !== undefined)
+        sanitized.musicStartedAt = clamp(item.musicStartedAt, 0, MAX_TIME_POSITION_MS);
+    if (item.musicPositionAtStart !== undefined)
+        sanitized.musicPositionAtStart = clamp(item.musicPositionAtStart, 0, MAX_TIME_POSITION_MS);
     return sanitized;
 }
 
@@ -168,13 +179,15 @@ function preserveOwnedPlacements(
 }
 
 function sanitizeShortcuts(shortcuts: GuestShortcut[]) {
-    return normalizeShortcutsWithGrid(shortcuts.slice(0, MAX_GUEST_ITEMS).map(({ id, name, url, row, col }) => ({
-        id,
-        name,
-        url,
-        row,
-        col,
-    })));
+    return normalizeShortcutsWithGrid(
+        shortcuts.slice(0, MAX_GUEST_ITEMS).map(({ id, name, url, row, col }) => ({
+            id,
+            name,
+            url,
+            row,
+            col,
+        })),
+    );
 }
 
 export const resolveGuestProgress = mutation({
@@ -212,7 +225,10 @@ export const resolveGuestProgress = mutation({
 
         const providedReferralCode = normalizeString(args.referralCode);
         const referrer = providedReferralCode
-            ? await ctx.db.query("users").withIndex("by_referralCode", (query) => query.eq("referralCode", providedReferralCode)).unique()
+            ? await ctx.db
+                  .query("users")
+                  .withIndex("by_referralCode", (query) => query.eq("referralCode", providedReferralCode))
+                  .unique()
             : null;
         const referralCode = await generateUniqueReferralCode(ctx);
         const userId = await ctx.db.insert("users", {
@@ -258,7 +274,8 @@ export const resolveGuestProgress = mutation({
                 idempotencyKey: `referral:${referrer._id}:${identity.subject}`,
                 metadata: { referredExternalId: identity.subject },
             });
-            const [user1, user2] = referrer._id < userId ? [referrer._id, userId] as const : [userId, referrer._id] as const;
+            const [user1, user2] =
+                referrer._id < userId ? ([referrer._id, userId] as const) : ([userId, referrer._id] as const);
             await ctx.db.insert("friendships", {
                 user1,
                 user2,

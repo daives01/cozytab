@@ -60,7 +60,7 @@ export function RoomCanvas({
 
     const baseBackground = useMemo(
         () => (timeOfDay === "day" ? BASE_BACKGROUND_DAY : BASE_BACKGROUND_NIGHT),
-        [timeOfDay]
+        [timeOfDay],
     );
 
     const baseFilter = "brightness(1) saturate(1)";

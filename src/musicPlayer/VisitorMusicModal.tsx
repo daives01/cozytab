@@ -46,7 +46,9 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
         let cancelled = false;
         const fetchTitle = async () => {
             try {
-                const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                const response = await fetch(
+                    `https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`,
+                );
                 if (!response.ok) throw new Error("Unable to fetch title");
                 const data = (await response.json()) as { title?: string | null };
                 if (!cancelled) {
@@ -75,7 +77,9 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                                 <Music className="h-6 w-6 text-[var(--color-foreground)]" />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold leading-none text-[var(--color-foreground)]">Now Spinning</h2>
+                                <h2 className="text-2xl font-bold leading-none text-[var(--color-foreground)]">
+                                    Now Spinning
+                                </h2>
                                 <p className="mt-1 text-sm font-medium text-[var(--color-muted-foreground)]">
                                     {isPlaying ? "Host is playing" : "Host paused"}
                                 </p>

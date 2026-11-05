@@ -55,9 +55,8 @@ export function RoomToolbar({
                 <button
                     data-onboarding="mode-toggle"
                     onClick={onToggleMode}
-                    className={`${circleBaseStyles} ${mode === "edit"
-                        ? "bg-[var(--warning)] text-white"
-                        : "bg-[var(--paper)]"
+                    className={`${circleBaseStyles} ${
+                        mode === "edit" ? "bg-[var(--warning)] text-white" : "bg-[var(--paper)]"
                     }`}
                     aria-label={mode === "view" ? "Enter edit mode" : "Exit edit mode"}
                 >

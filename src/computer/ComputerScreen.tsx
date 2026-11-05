@@ -136,28 +136,19 @@ export function ComputerScreen({
     const setActiveRoom = useMutation(api.rooms.setActiveRoom);
     const [switchingRoom, setSwitchingRoom] = useState<Id<"rooms"> | null>(null);
 
-    const desktopShortcuts = useMemo(
-        () => normalizeShortcuts(shortcuts ?? []),
-        [shortcuts]
-    );
+    const desktopShortcuts = useMemo(() => normalizeShortcuts(shortcuts ?? []), [shortcuts]);
 
     const orderedShortcuts = useMemo(
-        () =>
-            [...desktopShortcuts].sort((a, b) =>
-                a.row === b.row ? a.col - b.col : a.row - b.row
-            ),
-        [desktopShortcuts]
+        () => [...desktopShortcuts].sort((a, b) => (a.row === b.row ? a.col - b.col : a.row - b.row)),
+        [desktopShortcuts],
     );
 
     const maxRowIndex = useMemo(
         () => orderedShortcuts.reduce((max, s) => Math.max(max, s.row ?? 0), 0),
-        [orderedShortcuts]
+        [orderedShortcuts],
     );
 
-    const gridHeight = useMemo(
-        () => (Math.max(0, maxRowIndex) + 1) * ROW_HEIGHT,
-        [maxRowIndex]
-    );
+    const gridHeight = useMemo(() => (Math.max(0, maxRowIndex) + 1) * ROW_HEIGHT, [maxRowIndex]);
 
     const recomputeScale = useCallback(() => {
         if (!desktopRef.current) return;
@@ -194,24 +185,17 @@ export function ComputerScreen({
             if (!onPointerMove) return;
             onPointerMove(clientX, clientY);
         },
-        [onPointerMove]
+        [onPointerMove],
     );
-    const {
-        windows,
-        activeWindowId,
-        openWindow,
-        closeWindow,
-        bringToFront,
-        startDragWindow,
-        startResizeWindow,
-    } = useWindowManager({ desktopRef, onPointerMove: forwardPointerMove, onShopOpened });
+    const { windows, activeWindowId, openWindow, closeWindow, bringToFront, startDragWindow, startResizeWindow } =
+        useWindowManager({ desktopRef, onPointerMove: forwardPointerMove, onShopOpened });
 
     const normalizeAndSave = useCallback(
         (next: Shortcut[]) => {
             const normalized = normalizeShortcuts(next);
             onUpdateShortcuts(normalized);
         },
-        [onUpdateShortcuts]
+        [onUpdateShortcuts],
     );
 
     const cancelRename = useCallback(() => {
@@ -250,7 +234,7 @@ export function ComputerScreen({
             const offsetY = (event.clientY - rect.top) / scale;
             event.dataTransfer.setDragImage(clone, offsetX, offsetY);
         },
-        [cleanupDragImage, desktopScale]
+        [cleanupDragImage, desktopScale],
     );
 
     const handleAddShortcutInline = () => {
@@ -285,7 +269,7 @@ export function ComputerScreen({
             normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
             setContextMenu(null);
         },
-        [desktopShortcuts, normalizeAndSave]
+        [desktopShortcuts, normalizeAndSave],
     );
 
     useEffect(() => {
@@ -356,9 +340,7 @@ export function ComputerScreen({
             cancelRename();
             return;
         }
-        normalizeAndSave(
-            desktopShortcuts.map((s) => (s.id === id ? { ...s, name: trimmedName } : s))
-        );
+        normalizeAndSave(desktopShortcuts.map((s) => (s.id === id ? { ...s, name: trimmedName } : s)));
         setSelectedId(id);
         cancelRename();
     }
@@ -372,8 +354,6 @@ export function ComputerScreen({
         setRenamingId(id);
         setRenameValue(target.name);
     };
-
-
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;
@@ -402,9 +382,7 @@ export function ComputerScreen({
         forwardPointerMove(event.clientX, event.clientY);
         const { row, col } = findNearestCell(event, desktopRef.current, desktopScale);
 
-        const updated = desktopShortcuts.map((s) =>
-            s.id === draggingId ? { ...s, row, col } : s
-        );
+        const updated = desktopShortcuts.map((s) => (s.id === draggingId ? { ...s, row, col } : s));
 
         normalizeAndSave(updated);
         cleanupDragImage();
@@ -417,10 +395,7 @@ export function ComputerScreen({
         setIsStartMenuOpen(false);
     };
 
-    const startShortcutDrag = (
-        event: React.DragEvent<HTMLDivElement>,
-        shortcut: Shortcut
-    ) => {
+    const startShortcutDrag = (event: React.DragEvent<HTMLDivElement>, shortcut: Shortcut) => {
         event.dataTransfer.setData("text/plain", shortcut.id);
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.dropEffect = "move";
@@ -461,10 +436,7 @@ export function ComputerScreen({
         setIsVolumePanelOpen(false);
     };
 
-    const handleContextMenuOpen = (
-        event: React.MouseEvent,
-        shortcut: Shortcut
-    ) => {
+    const handleContextMenuOpen = (event: React.MouseEvent, shortcut: Shortcut) => {
         event.preventDefault();
         event.stopPropagation();
         setSelectedId(shortcut.id);
@@ -476,12 +448,7 @@ export function ComputerScreen({
         const target = event.target as HTMLElement;
         if (target.closest("[data-window]")) return;
         if (!desktopRef.current) return;
-        const { row, col } = findCellFromPoint(
-            event.clientX,
-            event.clientY,
-            desktopRef.current,
-            desktopScale
-        );
+        const { row, col } = findCellFromPoint(event.clientX, event.clientY, desktopRef.current, desktopScale);
         setSelectedId(null);
         setContextMenu({
             target: "desktop",
@@ -580,7 +547,11 @@ export function ComputerScreen({
                             onPointerMove={(e) => {
                                 if (e.pointerType !== "touch") return;
                                 const target = e.target as HTMLElement;
-                                if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.isContentEditable) {
+                                if (
+                                    target?.tagName === "INPUT" ||
+                                    target?.tagName === "TEXTAREA" ||
+                                    target?.isContentEditable
+                                ) {
                                     return;
                                 }
                                 forwardPointerMove(e.clientX, e.clientY);
@@ -645,19 +616,20 @@ export function ComputerScreen({
                                             customizeProps={
                                                 win.app === "customize"
                                                     ? {
-                                                        displayNameProps: isGuest
-                                                            ? undefined
-                                                            : {
-                                                                currentDisplayName: currentDisplayName ?? username ?? "You",
-                                                                usernameFallback: username,
-                                                                isSaving: isSavingDisplayName,
-                                                                error: displayNameError,
-                                                                onSave: handleSaveDisplayName,
-                                                            },
-                                                        color: cursorColor ?? "var(--warning)",
-                                                        onColorChange: onCursorColorChange ?? (() => {}),
-                                                        allowColorChange: !isGuest && Boolean(onCursorColorChange),
-                                                    }
+                                                          displayNameProps: isGuest
+                                                              ? undefined
+                                                              : {
+                                                                    currentDisplayName:
+                                                                        currentDisplayName ?? username ?? "You",
+                                                                    usernameFallback: username,
+                                                                    isSaving: isSavingDisplayName,
+                                                                    error: displayNameError,
+                                                                    onSave: handleSaveDisplayName,
+                                                                },
+                                                          color: cursorColor ?? "var(--warning)",
+                                                          onColorChange: onCursorColorChange ?? (() => {}),
+                                                          allowColorChange: !isGuest && Boolean(onCursorColorChange),
+                                                      }
                                                     : undefined
                                             }
                                             inRoomVisitors={inRoomVisitors}

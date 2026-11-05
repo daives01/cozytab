@@ -3,7 +3,14 @@ import type { Id } from "../convex/_generated/dataModel";
 import { normalizeFriendRoomSource, normalizeInviteRoomSource } from "../src/room/visitorRoomSource";
 import { clampWindowToBounds, type ComputerWindow } from "../src/computer/useWindowManager";
 import { applyPresenceMessage } from "../src/presence/presenceState";
-import { deriveChessGameEnd, deriveChessStatus, isSideToMove, loadChess, needsPawnPromotion, selectClaimedSide } from "../src/games/chess/useChessController";
+import {
+    deriveChessGameEnd,
+    deriveChessStatus,
+    isSideToMove,
+    loadChess,
+    needsPawnPromotion,
+    selectClaimedSide,
+} from "../src/games/chess/useChessController";
 
 const room = {
     _id: "room-1" as Id<"rooms">,
@@ -18,27 +25,61 @@ describe("visitor room source normalization", () => {
     });
 
     test("friend access remains open independently of invite TTL", () => {
-        expect(normalizeFriendRoomSource({ room, ownerName: "Friend" })).toMatchObject({ kind: "friend", access: "open" });
+        expect(normalizeFriendRoomSource({ room, ownerName: "Friend" })).toMatchObject({
+            kind: "friend",
+            access: "open",
+        });
     });
 });
 
 describe("window manager core", () => {
     test("clamps position, minimum size, and desktop overflow", () => {
-        const window: ComputerWindow = { id: "1", app: "about", title: "About", x: 900, y: -10, width: 100, height: 900, z: 1 };
-        expect(clampWindowToBounds(window, { width: 800, height: 600 })).toMatchObject({ x: 440, y: 0, width: 360, height: 600 });
+        const window: ComputerWindow = {
+            id: "1",
+            app: "about",
+            title: "About",
+            x: 900,
+            y: -10,
+            width: 100,
+            height: 900,
+            z: 1,
+        };
+        expect(clampWindowToBounds(window, { width: 800, height: 600 })).toMatchObject({
+            x: 440,
+            y: 0,
+            width: 360,
+            height: 600,
+        });
     });
 });
 
 describe("presence transitions", () => {
-    const visitor = { visitorId: "a", displayName: "A", isOwner: false, x: 10, y: 20, chatMessage: null, inMenu: false, tabbedOut: false };
+    const visitor = {
+        visitorId: "a",
+        displayName: "A",
+        isOwner: false,
+        x: 10,
+        y: 20,
+        chatMessage: null,
+        inMenu: false,
+        tabbedOut: false,
+    };
 
     test("filters cursor coordinates across menu contexts but updates metadata", () => {
-        const [next] = applyPresenceMessage([visitor], { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, cursorColor: "red" }, { inMenu: false, inGame: null });
+        const [next] = applyPresenceMessage(
+            [visitor],
+            { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, cursorColor: "red" },
+            { inMenu: false, inGame: null },
+        );
         expect(next).toMatchObject({ x: 10, y: 20, inMenu: true, cursorColor: "red" });
     });
 
     test("applies coordinates for visitors in the same game", () => {
-        const [next] = applyPresenceMessage([{ ...visitor, inGame: "chess" }], { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, inGame: "chess" }, { inMenu: false, inGame: "chess" });
+        const [next] = applyPresenceMessage(
+            [{ ...visitor, inGame: "chess" }],
+            { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, inGame: "chess" },
+            { inMenu: false, inGame: "chess" },
+        );
         expect(next).toMatchObject({ x: 100, y: 200 });
     });
 });
@@ -54,12 +95,24 @@ describe("chess controller rules", () => {
     });
 
     test("uses a deterministic side-claim tie break", () => {
-        expect(selectClaimedSide([{ visitorId: "z", side: "white" }, { visitorId: "a", side: "white" }], "white")).toBe("a");
+        expect(
+            selectClaimedSide(
+                [
+                    { visitorId: "z", side: "white" },
+                    { visitorId: "a", side: "white" },
+                ],
+                "white",
+            ),
+        ).toBe("a");
     });
 
     test("derives draw and resign signaling outcomes", () => {
         const chess = loadChess("invalid");
-        expect(deriveChessGameEnd(chess, chess.fen(), [{ visitorId: "w", side: "white", signal: "resign" }])?.message).toBe("Black wins by resignation!");
-        expect(deriveChessGameEnd(chess, chess.fen(), [{ visitorId: "b", side: "black", signal: "drawAccept" }])?.message).toBe("Draw agreed!");
+        expect(
+            deriveChessGameEnd(chess, chess.fen(), [{ visitorId: "w", side: "white", signal: "resign" }])?.message,
+        ).toBe("Black wins by resignation!");
+        expect(
+            deriveChessGameEnd(chess, chess.fen(), [{ visitorId: "b", side: "black", signal: "drawAccept" }])?.message,
+        ).toBe("Draw agreed!");
     });
 });

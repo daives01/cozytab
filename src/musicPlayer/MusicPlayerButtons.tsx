@@ -56,10 +56,10 @@ export function MusicPlayerButtons({
             if (!isReady || !iframeRef.current?.contentWindow) return;
             iframeRef.current.contentWindow.postMessage(
                 JSON.stringify({ event: "command", func: command, args: args ?? "" }),
-                "https://www.youtube.com"
+                "https://www.youtube.com",
             );
         },
-        [isReady]
+        [isReady],
     );
 
     const computeLivePositionSeconds = useCallback(() => {
@@ -78,7 +78,7 @@ export function MusicPlayerButtons({
             sendCommand("seekTo", [seconds, true]);
             lastSeekRef.current = seconds;
         },
-        [isReady, sendCommand, videoId]
+        [isReady, sendCommand, videoId],
     );
 
     useEffect(() => {
@@ -101,7 +101,6 @@ export function MusicPlayerButtons({
         if (iframeLoadTimeoutRef.current) clearTimeout(iframeLoadTimeoutRef.current);
         iframeLoadTimeoutRef.current = setTimeout(() => setIsReady(true), 400);
     }, []);
-
 
     useEffect(() => {
         return () => {

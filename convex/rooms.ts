@@ -107,9 +107,7 @@ export const getMyActiveRoom = query({
 
         const rooms = await ctx.db
             .query("rooms")
-            .withIndex("by_user_active", (q) => 
-                q.eq("userId", user._id).eq("isActive", true)
-            )
+            .withIndex("by_user_active", (q) => q.eq("userId", user._id).eq("isActive", true))
             .collect();
 
         const room = rooms[0];
@@ -158,7 +156,7 @@ export const getMyRooms = query({
             rooms.map(async (room) => {
                 const template = await ctx.db.get(room.templateId);
                 return { ...room, template };
-            })
+            }),
         );
 
         return roomsWithTemplates;
@@ -178,7 +176,7 @@ export const createRoom = mutation({
                 .query("roomTemplates")
                 .withIndex("by_default", (q) => q.eq("isDefault", true))
                 .collect();
-            
+
             if (defaultTemplates.length === 0) {
                 throw new ConvexError("No default room template found. Please seed the default template first.");
             }
@@ -190,9 +188,7 @@ export const createRoom = mutation({
 
         const roomsForTemplate = await ctx.db
             .query("rooms")
-            .withIndex("by_user_template", (q) =>
-                q.eq("userId", user._id).eq("templateId", templateId)
-            )
+            .withIndex("by_user_template", (q) => q.eq("userId", user._id).eq("templateId", templateId))
             .collect();
 
         if (roomsForTemplate.length > 0) {
@@ -273,7 +269,7 @@ export const deleteRoom = mutation({
         await ctx.db.delete(args.roomId);
 
         if (wasActive) {
-            const remainingRooms = allRooms.filter(r => r._id !== args.roomId);
+            const remainingRooms = allRooms.filter((r) => r._id !== args.roomId);
             if (remainingRooms.length > 0) {
                 await ctx.db.patch(remainingRooms[0]._id, { isActive: true });
             }
@@ -284,7 +280,7 @@ export const deleteRoom = mutation({
 });
 
 export const renameRoom = mutation({
-    args: { 
+    args: {
         roomId: v.id("rooms"),
         name: v.string(),
     },
@@ -381,7 +377,7 @@ async function heartbeatRoom(
     args: {
         roomId: Id<"rooms">;
         hasGuests?: boolean;
-    }
+    },
 ) {
     const user = await requireUser(ctx);
     const room = await getRoomOrThrow(ctx, args.roomId);

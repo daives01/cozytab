@@ -69,7 +69,9 @@ export function WindowFrame({
                 </button>
             </div>
 
-            <div className="flex-1 bg-[color-mix(in_srgb,var(--card)_90%,transparent)] overflow-hidden p-2">{children}</div>
+            <div className="flex-1 bg-[color-mix(in_srgb,var(--card)_90%,transparent)] overflow-hidden p-2">
+                {children}
+            </div>
 
             <div
                 className="absolute bottom-1 right-1 w-4 h-4 border-2 border-[color-mix(in_srgb,var(--ink)_30%,transparent)] bg-[color-mix(in_srgb,var(--taskbar-to)_80%,transparent)] rounded-sm cursor-se-resize"
@@ -78,4 +80,3 @@ export function WindowFrame({
         </div>
     );
 }
-

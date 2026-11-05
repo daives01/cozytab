@@ -7,6 +7,7 @@ Compatible dependency refresh uses existing manifest ranges across workspaces. D
 ESLint remains authoritative for React hooks and refresh. Oxlint adds default correctness diagnostics only. No anti-slop plugin is vendored or enabled. Formatting is opt-in; format:check reports the baseline and is deliberately excluded from check until formatting adoption. Generated Convex, build output, dependencies, Wrangler output and unrelated research are excluded. Public assets and lockfile are also excluded from formatting.
 
 ## Sequential checklist (issue body)
+
 - [ ] Merge dependency/tooling foundation after fresh independent review. Record build, lint, tests, Oxlint and formatting baseline.
 - [ ] Land a dedicated formatting baseline PR, verify readable-spacing compatibility, then add format:check to the normal check gate.
 - [ ] Assess remaining major dependency migrations separately, including Workers types 5, ESLint, Vite, TypeScript, lucide, convex-test and Stripe component compatibility. Record updates or concrete deferrals.

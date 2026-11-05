@@ -21,3 +21,12 @@ vendor
 .agents
 .codex
 **/.cache
+
+# Preserve unrelated documentation and static assets.
+*.md
+!docs/tooling/**
+**/*.lock
+**/*.svg
+**/*.png
+**/*.jpg
+**/*.webp

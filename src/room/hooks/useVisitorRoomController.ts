@@ -70,7 +70,7 @@ export function useVisitorRoomController({
             name: displayNameOverride ?? identitySeed.name,
             cursorColor: cursorColorOverride ?? identitySeed.cursorColor,
         }),
-        [cursorColorOverride, displayNameOverride, identitySeed]
+        [cursorColorOverride, displayNameOverride, identitySeed],
     );
     const items = source.room.items;
     const music = useVisitorMusic(items);
@@ -99,7 +99,7 @@ export function useVisitorRoomController({
 
     const shortcuts = useMemo(
         () => shortcutsOverride ?? computerState?.shortcuts ?? [],
-        [computerState?.shortcuts, shortcutsOverride]
+        [computerState?.shortcuts, shortcutsOverride],
     );
     const updateShortcuts = useCallback(
         (next: Shortcut[]) => {
@@ -107,7 +107,7 @@ export function useVisitorRoomController({
             if (isGuest) saveGuestShortcuts?.(next);
             else saveComputer({ shortcuts: next, cursorColor: identity.cursorColor });
         },
-        [identity.cursorColor, isGuest, saveComputer, saveGuestShortcuts]
+        [identity.cursorColor, isGuest, saveComputer, saveGuestShortcuts],
     );
     const updateCursorColor = useCallback(
         (next: string) => {
@@ -117,7 +117,7 @@ export function useVisitorRoomController({
             if (isGuest) saveGuestCursorColor?.(color);
             else saveComputer({ shortcuts, cursorColor: color });
         },
-        [isGuest, saveComputer, saveGuestCursorColor, shortcuts]
+        [isGuest, saveComputer, saveGuestCursorColor, shortcuts],
     );
 
     return {

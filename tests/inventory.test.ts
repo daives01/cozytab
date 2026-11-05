@@ -9,18 +9,24 @@ describe("inventory purchases", () => {
         const catalogItemId = await seedCatalogItem(t, { basePrice: 2 });
         const buyer = asUser(t, "buyer");
 
-        expect(await buyer.mutation(api.inventory.purchaseItem, {
-            catalogItemId,
-            requestId: "request-1",
-        })).toEqual({ success: true, newBalance: 8 });
-        expect(await buyer.mutation(api.inventory.purchaseItem, {
-            catalogItemId,
-            requestId: "request-1",
-        })).toEqual({ success: true, newBalance: 8 });
-        expect(await buyer.mutation(api.inventory.purchaseItem, {
-            catalogItemId,
-            requestId: "request-2",
-        })).toEqual({ success: true, newBalance: 6 });
+        expect(
+            await buyer.mutation(api.inventory.purchaseItem, {
+                catalogItemId,
+                requestId: "request-1",
+            }),
+        ).toEqual({ success: true, newBalance: 8 });
+        expect(
+            await buyer.mutation(api.inventory.purchaseItem, {
+                catalogItemId,
+                requestId: "request-1",
+            }),
+        ).toEqual({ success: true, newBalance: 8 });
+        expect(
+            await buyer.mutation(api.inventory.purchaseItem, {
+                catalogItemId,
+                requestId: "request-2",
+            }),
+        ).toEqual({ success: true, newBalance: 6 });
 
         const inventory = (await t.run((ctx) => ctx.db.query("inventory").first()))!;
         expect(inventory).toMatchObject({ userId, catalogItemId, count: 2, hidden: false });
@@ -44,10 +50,12 @@ describe("inventory purchases", () => {
         const userId = await seedUser(t, "buyer", 1);
         const catalogItemId = await seedCatalogItem(t, { basePrice: 2 });
 
-        expect(await asUser(t, "buyer").mutation(api.inventory.purchaseItem, {
-            catalogItemId,
-            requestId: "too-expensive",
-        })).toEqual({ success: false, message: "Insufficient funds" });
+        expect(
+            await asUser(t, "buyer").mutation(api.inventory.purchaseItem, {
+                catalogItemId,
+                requestId: "too-expensive",
+            }),
+        ).toEqual({ success: false, message: "Insufficient funds" });
         expect(await t.run((ctx) => ctx.db.query("inventory").collect())).toEqual([]);
         expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(1);
     });
@@ -58,10 +66,12 @@ describe("inventory purchases", () => {
             const userId = await seedUser(t, "buyer", 10);
             const catalogItemId = await seedCatalogItem(t, { basePrice });
 
-            await expect(asUser(t, "buyer").mutation(api.inventory.purchaseItem, {
-                catalogItemId,
-                requestId: `invalid-${basePrice}`,
-            })).rejects.toThrow("Price must be a finite nonnegative integer");
+            await expect(
+                asUser(t, "buyer").mutation(api.inventory.purchaseItem, {
+                    catalogItemId,
+                    requestId: `invalid-${basePrice}`,
+                }),
+            ).rejects.toThrow("Price must be a finite nonnegative integer");
             expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(10);
             expect(await t.run((ctx) => ctx.db.query("inventory").collect())).toEqual([]);
             expect(await t.run((ctx) => ctx.db.query("currencyTransactions").collect())).toEqual([]);
@@ -73,8 +83,10 @@ describe("inventory purchases", () => {
         const userId = await seedUser(t, "buyer", 10);
         const catalogItemId = await seedCatalogItem(t, { basePrice: 0 });
 
-        expect(await asUser(t, "buyer").mutation(api.inventory.purchaseItem, { catalogItemId }))
-            .toEqual({ success: true, newBalance: 10 });
+        expect(await asUser(t, "buyer").mutation(api.inventory.purchaseItem, { catalogItemId })).toEqual({
+            success: true,
+            newBalance: 10,
+        });
         expect((await t.run((ctx) => ctx.db.get(userId)))?.currency).toBe(10);
     });
 });

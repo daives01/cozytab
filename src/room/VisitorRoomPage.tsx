@@ -27,7 +27,10 @@ function InviteState({ message }: { message: string }) {
         <div className="h-screen w-screen flex flex-col items-center justify-center font-['Patrick_Hand'] text-xl gap-4">
             <p>{message}</p>
             <Link to="/">
-                <Button><Home className="mr-2 h-4 w-4" />Go Home</Button>
+                <Button>
+                    <Home className="mr-2 h-4 w-4" />
+                    Go Home
+                </Button>
             </Link>
         </div>
     );
@@ -69,8 +72,8 @@ function InviteRoomContent({
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
     const [fallbackCursorColor] = useState(() => randomBrightColor());
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
-    const [chatOnboardingDismissed, setChatOnboardingDismissed] = useState(() =>
-        typeof window !== "undefined" && Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY))
+    const [chatOnboardingDismissed, setChatOnboardingDismissed] = useState(
+        () => typeof window !== "undefined" && Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY)),
     );
 
     const source = useMemo(() => normalizeInviteRoomSource(roomData), [roomData]);
@@ -119,7 +122,23 @@ function InviteRoomContent({
     );
 }
 
-function InviteRoomExperience({ source, authedUser, clerkUser, computerState, catalogItems, saveComputer, isSignedIn, guestSession, updateGuestSession, guestVisitorId, guestVisitorName, fallbackCursorColor, zoom, showChatOnboarding, dismissChatOnboarding }: {
+function InviteRoomExperience({
+    source,
+    authedUser,
+    clerkUser,
+    computerState,
+    catalogItems,
+    saveComputer,
+    isSignedIn,
+    guestSession,
+    updateGuestSession,
+    guestVisitorId,
+    guestVisitorName,
+    fallbackCursorColor,
+    zoom,
+    showChatOnboarding,
+    dismissChatOnboarding,
+}: {
     source: ReturnType<typeof normalizeInviteRoomSource>;
     authedUser: ReturnType<typeof useQuery<typeof api.users.getMe>>;
     clerkUser: ReturnType<typeof useUser>["user"];
@@ -140,26 +159,32 @@ function InviteRoomExperience({ source, authedUser, clerkUser, computerState, ca
     const controller = useVisitorRoomController({
         source,
         identity: {
-            id: isSignedIn ? clerkUser?.id ?? "" : guestVisitorId,
+            id: isSignedIn ? (clerkUser?.id ?? "") : guestVisitorId,
             name: authedUser?.displayName ?? authedUser?.username ?? clerkUser?.username ?? guestVisitorName,
             username: clerkUser?.username ?? undefined,
             cursorColor: isGuest
-                ? guestSession.cursorColor ?? fallbackCursorColor
-                : authedUser?.cursorColor ?? computerState?.cursorColor ?? fallbackCursorColor,
+                ? (guestSession.cursorColor ?? fallbackCursorColor)
+                : (authedUser?.cursorColor ?? computerState?.cursorColor ?? fallbackCursorColor),
             convexUserId: authedUser?._id,
         },
         catalogItems,
-        computerState: isGuest ? { shortcuts: normalizeGuestShortcuts(guestSession.shortcuts), cursorColor: guestSession.cursorColor } : computerState,
+        computerState: isGuest
+            ? { shortcuts: normalizeGuestShortcuts(guestSession.shortcuts), cursorColor: guestSession.cursorColor }
+            : computerState,
         isGuest,
         economy: {
-            currency: isSignedIn ? authedUser?.currency ?? 0 : guestSession.coins,
-            nextRewardAt: isSignedIn ? authedUser?.nextRewardAt ?? undefined : undefined,
-            loginStreak: isSignedIn ? authedUser?.loginStreak ?? undefined : undefined,
+            currency: isSignedIn ? (authedUser?.currency ?? 0) : guestSession.coins,
+            nextRewardAt: isSignedIn ? (authedUser?.nextRewardAt ?? undefined) : undefined,
+            loginStreak: isSignedIn ? (authedUser?.loginStreak ?? undefined) : undefined,
             guestCoins: guestSession.coins,
             guestInventory: guestSession.inventoryIds,
             onGuestCoinsChange: (coins) => updateGuestSession({ coins }),
             onGuestPurchase: (catalogItemId: Id<"catalogItems">) =>
-                updateGuestSession({ inventoryIds: guestSession.inventoryIds.includes(catalogItemId) ? guestSession.inventoryIds : [...guestSession.inventoryIds, catalogItemId] }),
+                updateGuestSession({
+                    inventoryIds: guestSession.inventoryIds.includes(catalogItemId)
+                        ? guestSession.inventoryIds
+                        : [...guestSession.inventoryIds, catalogItemId],
+                }),
         },
         scale: zoom.effectiveScale,
         saveComputer: (computer) => void saveComputer(computer),
@@ -167,19 +192,33 @@ function InviteRoomExperience({ source, authedUser, clerkUser, computerState, ca
         saveGuestCursorColor: (cursorColor) => updateGuestSession({ cursorColor }),
     });
 
-    const handlePointerMove = useCallback((event: React.PointerEvent) => {
-        if (event.pointerType !== "touch") return;
-        controller.cursor.handlePointerEvent(event);
-        if (zoom.zoomLevel > 1) zoom.handlePanMove(event.clientX, event.clientY);
-    }, [controller.cursor, zoom]);
-    const handlePointerDown = useCallback((event: React.PointerEvent) => {
-        if (event.pointerType === "touch" && zoom.zoomLevel > 1) zoom.handlePanStart(event.clientX, event.clientY);
-    }, [zoom]);
+    const handlePointerMove = useCallback(
+        (event: React.PointerEvent) => {
+            if (event.pointerType !== "touch") return;
+            controller.cursor.handlePointerEvent(event);
+            if (zoom.zoomLevel > 1) zoom.handlePanMove(event.clientX, event.clientY);
+        },
+        [controller.cursor, zoom],
+    );
+    const handlePointerDown = useCallback(
+        (event: React.PointerEvent) => {
+            if (event.pointerType === "touch" && zoom.zoomLevel > 1) zoom.handlePanStart(event.clientX, event.clientY);
+        },
+        [zoom],
+    );
     const handlePointerUp = useCallback(() => zoom.handlePanEnd(), [zoom]);
     const onboarding = showChatOnboarding ? (
         <OnboardingSpotlight
             message="Press Enter to chat"
-            messageContent={<p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">Press <span className="rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-3 py-1 font-mono shadow-[var(--shadow-3)]">Enter</span> to chat</p>}
+            messageContent={
+                <p className="text-size-xl font-medium leading-relaxed text-[var(--color-foreground)]">
+                    Press{" "}
+                    <span className="rounded-lg border-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-3 py-1 font-mono shadow-[var(--shadow-3)]">
+                        Enter
+                    </span>{" "}
+                    to chat
+                </p>
+            }
             bubblePosition="bottom"
             bubbleWidth={600}
             onSkip={dismissChatOnboarding}

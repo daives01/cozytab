@@ -26,28 +26,29 @@ interface UseTouchPlacementResult extends TouchPlacementState {
     onTouchPlacementCancel: () => void;
 }
 
-export function useTouchPlacement(
-    handlers: Handlers,
-    roomState: RoomState
-): UseTouchPlacementResult {
+export function useTouchPlacement(handlers: Handlers, roomState: RoomState): UseTouchPlacementResult {
     const touchPlacementId = roomState.touchPlacementId;
     const [touchPlacementOrigin, setTouchPlacementOrigin] = useState<{ x: number; y: number } | null>(null);
     const touchPlacementPointerIdRef = useRef<number | null>(null);
 
-    const handleTouchPlaceStart = useCallback((catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => {
-        if (event.pointerType !== "touch") return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (!roomState.editingSession.beginPlacement(catalogItemId).accepted) return;
-        setTouchPlacementOrigin({ x: event.clientX, y: event.clientY });
-        touchPlacementPointerIdRef.current = event.pointerId;
-    }, [roomState.editingSession]);
+    const handleTouchPlaceStart = useCallback(
+        (catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => {
+            if (event.pointerType !== "touch") return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (!roomState.editingSession.beginPlacement(catalogItemId).accepted) return;
+            setTouchPlacementOrigin({ x: event.clientX, y: event.clientY });
+            touchPlacementPointerIdRef.current = event.pointerId;
+        },
+        [roomState.editingSession],
+    );
 
     const handleTouchPlaceRoom = useCallback(
         (event: React.PointerEvent) => {
             if (event.pointerType !== "touch") return;
             if (!touchPlacementId) return;
-            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) return;
+            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current)
+                return;
             event.preventDefault();
             event.stopPropagation();
             handlers.handlePlaceCatalogItem(touchPlacementId, event.clientX, event.clientY);
@@ -55,7 +56,7 @@ export function useTouchPlacement(
             setTouchPlacementOrigin(null);
             touchPlacementPointerIdRef.current = null;
         },
-        [handlers, roomState.editingSession, touchPlacementId]
+        [handlers, roomState.editingSession, touchPlacementId],
     );
 
     const onTouchPlacementCancel = useCallback(() => {
@@ -82,10 +83,7 @@ export function useTouchPlacement(
 
         const handlePointerMove = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
-            if (
-                touchPlacementPointerIdRef.current !== null &&
-                event.pointerId !== touchPlacementPointerIdRef.current
-            ) {
+            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
             const dx = event.clientX - touchPlacementOrigin.x;
@@ -99,10 +97,7 @@ export function useTouchPlacement(
 
         const handlePointerCancel = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
-            if (
-                touchPlacementPointerIdRef.current !== null &&
-                event.pointerId !== touchPlacementPointerIdRef.current
-            ) {
+            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
             setTouchPlacementOrigin(null);
@@ -112,10 +107,7 @@ export function useTouchPlacement(
 
         const handlePointerUp = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
-            if (
-                touchPlacementPointerIdRef.current !== null &&
-                event.pointerId !== touchPlacementPointerIdRef.current
-            ) {
+            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
                 return;
             }
             setTouchPlacementOrigin(null);

@@ -120,13 +120,25 @@ describe("Room Editing Session", () => {
         const session = createRoomEditingSession({
             roomId: "room-1",
             persistence: adapter,
-            ownedCount: (id) => id === chairId ? 1 : 0,
+            ownedCount: (id) => (id === chairId ? 1 : 0),
         });
         session.enterEditMode();
 
-        expect(session.placementEligibility(chairId)).toEqual({ allowed: false, roomAtCapacity: false, ownedCount: 1, placedCount: 1, remaining: 0 });
-        expect(session.place({ catalogItemId: chairId, x: 0, y: 0 })).toEqual({ accepted: false, reason: "insufficient-ownership" });
-        expect(session.place({ catalogItemId: lampId, x: 0, y: 0 })).toEqual({ accepted: false, reason: "insufficient-ownership" });
+        expect(session.placementEligibility(chairId)).toEqual({
+            allowed: false,
+            roomAtCapacity: false,
+            ownedCount: 1,
+            placedCount: 1,
+            remaining: 0,
+        });
+        expect(session.place({ catalogItemId: chairId, x: 0, y: 0 })).toEqual({
+            accepted: false,
+            reason: "insufficient-ownership",
+        });
+        expect(session.place({ catalogItemId: lampId, x: 0, y: 0 })).toEqual({
+            accepted: false,
+            reason: "insufficient-ownership",
+        });
         expect(session.getSnapshot().items).toEqual([chair]);
     });
 
@@ -144,7 +156,11 @@ describe("Room Editing Session", () => {
         expect(session.place({ catalogItemId: chairId, x: 1, y: 2 }).accepted).toBe(true);
         const fullSnapshot = session.getSnapshot();
         expect(fullSnapshot.items).toHaveLength(50);
-        expect(session.placementEligibility(lampId)).toMatchObject({ allowed: false, roomAtCapacity: true, remaining: 100 });
+        expect(session.placementEligibility(lampId)).toMatchObject({
+            allowed: false,
+            roomAtCapacity: true,
+            remaining: 100,
+        });
         expect(session.beginPlacement(lampId)).toEqual({ accepted: false, reason: "room-full" });
         expect(session.place({ catalogItemId: lampId, x: 1, y: 2 })).toEqual({ accepted: false, reason: "room-full" });
         expect(session.getSnapshot()).toBe(fullSnapshot);
@@ -162,7 +178,11 @@ describe("Room Editing Session", () => {
     test("coalesces debounced structural edits into one save", async () => {
         const clock = manualScheduler();
         const { adapter, saves } = persistence([chair]);
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: adapter, scheduler: clock.scheduler });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: adapter,
+            scheduler: clock.scheduler,
+        });
         session.enterEditMode();
 
         session.move("chair-1", { x: 30, y: 40 });
@@ -180,7 +200,11 @@ describe("Room Editing Session", () => {
     test("flushes a pending structural edit when the session is disposed", async () => {
         const clock = manualScheduler();
         const { adapter, saves } = persistence([chair]);
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: adapter, scheduler: clock.scheduler });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: adapter,
+            scheduler: clock.scheduler,
+        });
         session.enterEditMode();
         session.move("chair-1", { x: 73, y: 24 });
 
@@ -200,8 +224,12 @@ describe("Room Editing Session", () => {
             load: () => [chair],
             draft: {
                 load: () => draft,
-                write: (items) => { draft = items; },
-                acknowledge: (items) => { if (JSON.stringify(draft) === JSON.stringify(items)) draft = null; },
+                write: (items) => {
+                    draft = items;
+                },
+                acknowledge: (items) => {
+                    if (JSON.stringify(draft) === JSON.stringify(items)) draft = null;
+                },
             },
             save: async (items) => {
                 if (shouldFail) throw new Error("network");
@@ -224,9 +252,15 @@ describe("Room Editing Session", () => {
     test("saves visitor-observable item changes immediately", async () => {
         const clock = manualScheduler();
         const { adapter, saves } = persistence([chair]);
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: adapter, scheduler: clock.scheduler });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: adapter,
+            scheduler: clock.scheduler,
+        });
 
-        expect(session.changePersistedItem("chair-1", { musicPlaying: true, musicStartedAt: 123 }, "visitor-observable")).toEqual({ accepted: true });
+        expect(
+            session.changePersistedItem("chair-1", { musicPlaying: true, musicStartedAt: 123 }, "visitor-observable"),
+        ).toEqual({ accepted: true });
         await Promise.resolve();
         await Promise.resolve();
 
@@ -237,7 +271,11 @@ describe("Room Editing Session", () => {
     test("enters view mode immediately and flushes when editing ends", async () => {
         const clock = manualScheduler();
         const { adapter, saves } = persistence([chair]);
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: adapter, scheduler: clock.scheduler });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: adapter,
+            scheduler: clock.scheduler,
+        });
         session.enterEditMode();
         session.move("chair-1", { x: 50, y: 60 });
 
@@ -293,7 +331,9 @@ describe("Room Editing Session", () => {
         session.move("chair-1", { x: 25, y: 35 });
         await session.flush();
         expect(session.getSnapshot()).toMatchObject({
-            saveStatus: "error", saveError: "Reconnect and try again", canSwitchRooms: false,
+            saveStatus: "error",
+            saveError: "Reconnect and try again",
+            canSwitchRooms: false,
         });
         expect(session.getSnapshot().items[0]).toMatchObject({ x: 25, y: 35 });
         session.move("chair-1", { x: 50, y: 60 });
@@ -319,7 +359,12 @@ describe("Room Editing Session", () => {
     ])("keeps an actionable message for save rejection %s", async (_kind, error, message) => {
         const session = createRoomEditingSession({
             roomId: "room-1",
-            persistence: { load: () => [chair], save: async () => { throw error; } },
+            persistence: {
+                load: () => [chair],
+                save: async () => {
+                    throw error;
+                },
+            },
         });
         session.enterEditMode();
         session.flip("chair-1");
@@ -355,7 +400,8 @@ describe("Room Editing Session", () => {
         const saves: RoomItem[][] = [];
         const clock = manualScheduler();
         const session = createRoomEditingSession({
-            roomId: "room-1", scheduler: clock.scheduler,
+            roomId: "room-1",
+            scheduler: clock.scheduler,
             persistence: {
                 load: () => [chair],
                 save: (items) => {
@@ -392,7 +438,10 @@ describe("Room Editing Session", () => {
         const saving = oldSession.flush();
         oldSession.dispose();
         const countAtDisposal = notifications;
-        const nextSession = createRoomEditingSession({ roomId: "new-account-room", persistence: persistence([]).adapter });
+        const nextSession = createRoomEditingSession({
+            roomId: "new-account-room",
+            persistence: persistence([]).adapter,
+        });
         pending.reject(new Error("Old account disconnected"));
         await saving;
         expect(notifications).toBe(countAtDisposal);
@@ -458,33 +507,58 @@ function memoryStorage() {
     const values = new Map<string, string>();
     return {
         getItem: (key: string) => values.get(key) ?? null,
-        setItem: (key: string, value: string) => { values.set(key, value); },
+        setItem: (key: string, value: string) => {
+            values.set(key, value);
+        },
     };
 }
 
 describe("exit draft recovery", () => {
     test("checkpoints guest edits before debounce or shutdown, including empty rooms", () => {
-        let state: GuestSessionState = { coins: 5, inventoryIds: [chairId], roomItems: [chair], shortcuts: [], onboardingCompleted: false, cursorColor: "red" };
+        let state: GuestSessionState = {
+            coins: 5,
+            inventoryIds: [chairId],
+            roomItems: [chair],
+            shortcuts: [],
+            onboardingCompleted: false,
+            cursorColor: "red",
+        };
         const clock = manualScheduler();
         const adapter = createGuestRoomPersistence({
             loadSession: () => state,
             saveSession: (changes) => (state = { ...state, ...changes }),
         });
-        const session = createRoomEditingSession({ roomId: "guest-owner", persistence: adapter, scheduler: clock.scheduler });
+        const session = createRoomEditingSession({
+            roomId: "guest-owner",
+            persistence: adapter,
+            scheduler: clock.scheduler,
+        });
         session.enterEditMode();
         session.remove(chair.id);
         expect(clock.size()).toBe(1);
         expect(state.roomItems).toEqual([]);
-        expect(createRoomEditingSession({ roomId: "guest-owner", persistence: adapter }).getSnapshot().items).toEqual([]);
+        expect(createRoomEditingSession({ roomId: "guest-owner", persistence: adapter }).getSnapshot().items).toEqual(
+            [],
+        );
         session.dispose();
     });
 
     test("guest cleanup does not recreate progress cleared by Guest Conversion", async () => {
-        let state: GuestSessionState = { coins: 5, inventoryIds: [chairId], roomItems: [chair], shortcuts: [], onboardingCompleted: false, cursorColor: "red" };
-        const session = createRoomEditingSession({ roomId: "guest-owner", persistence: createGuestRoomPersistence({
-            loadSession: () => state,
-            saveSession: (changes) => (state = { ...state, ...changes }),
-        }) });
+        let state: GuestSessionState = {
+            coins: 5,
+            inventoryIds: [chairId],
+            roomItems: [chair],
+            shortcuts: [],
+            onboardingCompleted: false,
+            cursorColor: "red",
+        };
+        const session = createRoomEditingSession({
+            roomId: "guest-owner",
+            persistence: createGuestRoomPersistence({
+                loadSession: () => state,
+                saveSession: (changes) => (state = { ...state, ...changes }),
+            }),
+        });
         session.enterEditMode();
         session.move(chair.id, { x: 80, y: 20 });
         expect(state.roomItems[0].x).toBe(80);
@@ -499,15 +573,26 @@ describe("exit draft recovery", () => {
         const draft = createRoomDraft("room-1", storage);
         const clock = manualScheduler();
         const pending = deferred<RoomItem[]>();
-        const session = createRoomEditingSession({ roomId: "room-1", scheduler: clock.scheduler, persistence: {
-            load: () => [chair], draft, save: () => pending.promise,
-        } });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            scheduler: clock.scheduler,
+            persistence: {
+                load: () => [chair],
+                draft,
+                save: () => pending.promise,
+            },
+        });
         session.enterEditMode();
         session.move(chair.id, { x: 99, y: 20 });
         expect(createRoomDraft("room-2", storage).load()).toBeNull();
-        const recovered = createRoomEditingSession({ roomId: "room-1", persistence: {
-            load: () => [chair], draft: createRoomDraft("room-1", storage), save: async (items) => items,
-        } });
+        const recovered = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: {
+                load: () => [chair],
+                draft: createRoomDraft("room-1", storage),
+                save: async (items) => items,
+            },
+        });
         expect(recovered.getSnapshot().items[0].x).toBe(99);
         expect(recovered.getSnapshot().saveStatus).toBe("unsaved");
         // Starting the lifecycle retries recovery, without waiting for another edit.
@@ -519,84 +604,118 @@ describe("exit draft recovery", () => {
         cleanup();
     });
 
-    test.each([false, true])("disposal drains the newest revision after an older in-flight save (failure: %s)", async (failFirst) => {
-        const storage = memoryStorage();
-        const draft = createRoomDraft("room-1", storage);
-        const first = deferred<RoomItem[]>();
-        const second = deferred<RoomItem[]>();
-        const saves: RoomItem[][] = [];
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: {
-            load: () => [chair], draft,
-            save: (items) => { saves.push(items); return saves.length === 1 ? first.promise : second.promise; },
-        } });
-        session.enterEditMode();
-        session.move(chair.id, { x: 30, y: 20 });
-        const saving = session.flush();
-        session.move(chair.id, { x: 90, y: 20 });
-        session.dispose();
-        if (failFirst) first.reject(new Error("offline"));
-        else first.resolve(saves[0]);
-        await saving;
-        expect(saves).toHaveLength(2);
-        expect(saves[1][0].x).toBe(90);
-        expect(draft.load()?.[0].x).toBe(90);
-        second.reject(new Error("offline"));
-        await second.promise.catch(() => {});
-        // Let the session settle without triggering an explicit retry.
-        await Promise.resolve();
-        await Promise.resolve();
-        expect(saves).toHaveLength(2);
-        expect(draft.load()?.[0].x).toBe(90);
-    });
+    test.each([false, true])(
+        "disposal drains the newest revision after an older in-flight save (failure: %s)",
+        async (failFirst) => {
+            const storage = memoryStorage();
+            const draft = createRoomDraft("room-1", storage);
+            const first = deferred<RoomItem[]>();
+            const second = deferred<RoomItem[]>();
+            const saves: RoomItem[][] = [];
+            const session = createRoomEditingSession({
+                roomId: "room-1",
+                persistence: {
+                    load: () => [chair],
+                    draft,
+                    save: (items) => {
+                        saves.push(items);
+                        return saves.length === 1 ? first.promise : second.promise;
+                    },
+                },
+            });
+            session.enterEditMode();
+            session.move(chair.id, { x: 30, y: 20 });
+            const saving = session.flush();
+            session.move(chair.id, { x: 90, y: 20 });
+            session.dispose();
+            if (failFirst) first.reject(new Error("offline"));
+            else first.resolve(saves[0]);
+            await saving;
+            expect(saves).toHaveLength(2);
+            expect(saves[1][0].x).toBe(90);
+            expect(draft.load()?.[0].x).toBe(90);
+            second.reject(new Error("offline"));
+            await second.promise.catch(() => {});
+            // Let the session settle without triggering an explicit retry.
+            await Promise.resolve();
+            await Promise.resolve();
+            expect(saves).toHaveLength(2);
+            expect(draft.load()?.[0].x).toBe(90);
+        },
+    );
 
-    test.each([false, true])("detached sessions cannot drain over newer edits (new save completed: %s)", async (completeNewSave) => {
-        const storage = memoryStorage();
-        const first = deferred<RoomItem[]>();
-        const newerSave = deferred<RoomItem[]>();
-        const oldSaves: RoomItem[][] = [];
-        const old = createRoomEditingSession({ roomId: "room-1", persistence: {
-            load: () => [chair], draft: createRoomDraft("room-1", storage),
-            save: (items) => { oldSaves.push(items); return first.promise; },
-        } });
-        old.enterEditMode();
-        old.move(chair.id, { x: 30, y: 20 });
-        const oldFlush = old.flush();
-        old.move(chair.id, { x: 60, y: 20 });
-        old.dispose();
+    test.each([false, true])(
+        "detached sessions cannot drain over newer edits (new save completed: %s)",
+        async (completeNewSave) => {
+            const storage = memoryStorage();
+            const first = deferred<RoomItem[]>();
+            const newerSave = deferred<RoomItem[]>();
+            const oldSaves: RoomItem[][] = [];
+            const old = createRoomEditingSession({
+                roomId: "room-1",
+                persistence: {
+                    load: () => [chair],
+                    draft: createRoomDraft("room-1", storage),
+                    save: (items) => {
+                        oldSaves.push(items);
+                        return first.promise;
+                    },
+                },
+            });
+            old.enterEditMode();
+            old.move(chair.id, { x: 30, y: 20 });
+            const oldFlush = old.flush();
+            old.move(chair.id, { x: 60, y: 20 });
+            old.dispose();
 
-        const newer = createRoomEditingSession({ roomId: "room-1", persistence: {
-            load: () => [chair], draft: createRoomDraft("room-1", storage),
-            save: () => newerSave.promise,
-        } });
-        newer.enterEditMode();
-        newer.move(chair.id, { x: 90, y: 20 });
-        const newFlush = newer.flush();
-        if (completeNewSave) {
+            const newer = createRoomEditingSession({
+                roomId: "room-1",
+                persistence: {
+                    load: () => [chair],
+                    draft: createRoomDraft("room-1", storage),
+                    save: () => newerSave.promise,
+                },
+            });
+            newer.enterEditMode();
+            newer.move(chair.id, { x: 90, y: 20 });
+            const newFlush = newer.flush();
+            if (completeNewSave) {
+                newerSave.resolve(newer.getSnapshot().items);
+                await newFlush;
+            }
+            first.resolve(oldSaves[0]);
+            await oldFlush;
+            // Await detached drain without explicitly retrying either session.
+            await Promise.resolve();
+            expect(oldSaves).toHaveLength(1);
+            expect(newer.getSnapshot().items[0].x).toBe(90);
             newerSave.resolve(newer.getSnapshot().items);
             await newFlush;
-        }
-        first.resolve(oldSaves[0]);
-        await oldFlush;
-        // Await detached drain without explicitly retrying either session.
-        await Promise.resolve();
-        expect(oldSaves).toHaveLength(1);
-        expect(newer.getSnapshot().items[0].x).toBe(90);
-        newerSave.resolve(newer.getSnapshot().items);
-        await newFlush;
-        expect(createRoomDraft("room-1", storage).load()).toBeNull();
-        newer.dispose();
-    });
+            expect(createRoomDraft("room-1", storage).load()).toBeNull();
+            newer.dispose();
+        },
+    );
 
     test("storage denial still permits a navigation save", async () => {
         const saves: RoomItem[][] = [];
-        const session = createRoomEditingSession({ roomId: "room-1", persistence: {
-            load: () => [chair],
-            draft: createRoomDraft("room-1", {
-                getItem: () => { throw new Error("denied"); },
-                setItem: () => { throw new Error("denied"); },
-            }),
-            save: async (items) => { saves.push(items); return items; },
-        } });
+        const session = createRoomEditingSession({
+            roomId: "room-1",
+            persistence: {
+                load: () => [chair],
+                draft: createRoomDraft("room-1", {
+                    getItem: () => {
+                        throw new Error("denied");
+                    },
+                    setItem: () => {
+                        throw new Error("denied");
+                    },
+                }),
+                save: async (items) => {
+                    saves.push(items);
+                    return items;
+                },
+            },
+        });
         session.enterEditMode();
         session.move(chair.id, { x: 90, y: 20 });
         session.dispose();
@@ -619,8 +738,12 @@ describe("exit draft recovery", () => {
 
     test("storage denial and malformed data do not break normal persistence", () => {
         const denied = createRoomDraft("room-1", {
-            getItem: () => { throw new Error("denied"); },
-            setItem: () => { throw new Error("quota"); },
+            getItem: () => {
+                throw new Error("denied");
+            },
+            setItem: () => {
+                throw new Error("quota");
+            },
         });
         expect(denied.load()).toBeNull();
         expect(() => denied.write([chair])).not.toThrow();

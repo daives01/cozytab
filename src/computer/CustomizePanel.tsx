@@ -28,11 +28,7 @@ export function CustomizePanel({
                 <div className="min-w-[560px] p-6 space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <DisplayNameCard props={displayNameProps} />
-                        <CursorColorCard 
-                            color={color} 
-                            onColorChange={onColorChange} 
-                            disabled={!allowColorChange} 
-                        />
+                        <CursorColorCard color={color} onColorChange={onColorChange} disabled={!allowColorChange} />
                     </div>
                 </div>
             </div>
@@ -63,7 +59,7 @@ function DisplayNameCard({ props }: { props?: DisplayNameSectionProps }) {
         const trimmed = localName.trim();
         const fallback = props.usernameFallback ?? props.currentDisplayName ?? "";
         const target = trimmed || fallback;
-        
+
         // Only trigger a save if the target differs from the current authoritative value
         if (target === props.currentDisplayName) return;
 
@@ -86,23 +82,19 @@ function DisplayNameCard({ props }: { props?: DisplayNameSectionProps }) {
                 maxLength={50}
                 className="w-full rounded-xl border border-[color-mix(in_srgb,var(--ink)_10%,transparent)] bg-[var(--card)] px-3 py-2.5 text-base shadow-inner placeholder:text-[color-mix(in_srgb,var(--ink-subtle)_70%,transparent)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:border-[color-mix(in_srgb,var(--ink)_20%,transparent)] disabled:opacity-60 disabled:cursor-not-allowed"
             />
-            {props?.error && (
-                <p className="text-xs text-[var(--danger-dark)] mt-1">{props.error}</p>
-            )}
-            {!props && (
-                <p className="text-xs text-[var(--ink-subtle)] mt-1">Sign in to set a display name.</p>
-            )}
+            {props?.error && <p className="text-xs text-[var(--danger-dark)] mt-1">{props.error}</p>}
+            {!props && <p className="text-xs text-[var(--ink-subtle)] mt-1">Sign in to set a display name.</p>}
         </div>
     );
 }
 
-function CursorColorCard({ 
-    color, 
-    onColorChange, 
-    disabled 
-}: { 
-    color: string; 
-    onColorChange: (next: string) => void; 
+function CursorColorCard({
+    color,
+    onColorChange,
+    disabled,
+}: {
+    color: string;
+    onColorChange: (next: string) => void;
     disabled: boolean;
 }) {
     const hsl = useMemo<HslColor>(() => hexToHsl(color), [color]);
@@ -112,9 +104,8 @@ function CursorColorCard({
     const safeLightness = Math.max(30, Math.min(90, hsl.l ?? 55));
 
     const brightnessGradient = useMemo(
-        () =>
-            `linear-gradient(90deg, hsl(${safeHue}, 80%, 25%), hsl(${safeHue}, 90%, 60%), hsl(${safeHue}, 90%, 90%))`,
-        [safeHue]
+        () => `linear-gradient(90deg, hsl(${safeHue}, 80%, 25%), hsl(${safeHue}, 90%, 60%), hsl(${safeHue}, 90%, 90%))`,
+        [safeHue],
     );
 
     const applyHue = (nextHue: number) => {
@@ -132,11 +123,7 @@ function CursorColorCard({
     return (
         <div className="bg-[var(--card)] border border-[color-mix(in_srgb,var(--ink)_8%,transparent)] rounded-2xl p-4 shadow-md space-y-3 text-[var(--ink)]">
             <h3 className="text-lg font-semibold">Cursor color</h3>
-            {disabled && (
-                <p className="text-xs text-[var(--ink-subtle)]">
-                    Sign in to adjust your cursor color.
-                </p>
-            )}
+            {disabled && <p className="text-xs text-[var(--ink-subtle)]">Sign in to adjust your cursor color.</p>}
 
             <div className={`space-y-2 ${disabled ? "opacity-60" : ""}`}>
                 <p className="text-xs text-[var(--ink-subtle)]">Hue</p>

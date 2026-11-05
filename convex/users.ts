@@ -71,9 +71,7 @@ export const getReferralStats = query({
 
         const referredUsers = await ctx.db
             .query("users")
-            .withIndex("by_referredBy", (q) =>
-                q.eq("referredBy", user._id)
-            )
+            .withIndex("by_referredBy", (q) => q.eq("referredBy", user._id))
             .collect();
 
         const referralTransactions = await ctx.db
@@ -179,9 +177,8 @@ export const claimDailyReward = mutation({
 export const devDeleteMyAccount = mutation({
     args: {},
     handler: async (ctx) => {
-        const nodeEnv =
-            (globalThis as { process?: { env?: Record<string, string | undefined> } })
-                .process?.env?.NODE_ENV;
+        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
+            ?.NODE_ENV;
         if (nodeEnv !== "development") {
             throw new Error("Dev-only mutation");
         }
@@ -335,9 +332,7 @@ export const getMyComputer = query({
 
         const existingShortcuts = user.computer?.shortcuts ?? [];
         const needsNormalization = existingShortcuts.some(
-            (shortcut) =>
-                typeof shortcut.row !== "number" ||
-                typeof shortcut.col !== "number"
+            (shortcut) => typeof shortcut.row !== "number" || typeof shortcut.col !== "number",
         );
 
         const cursorColor = user.cursorColor ?? randomBrightColor();
@@ -366,7 +361,7 @@ export const saveMyComputer = mutation({
                 url: v.string(),
                 row: v.number(),
                 col: v.number(),
-            })
+            }),
         ),
         cursorColor: v.optional(v.string()),
     },

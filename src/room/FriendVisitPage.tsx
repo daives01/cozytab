@@ -37,13 +37,24 @@ export function FriendVisitPage() {
 
     if (!isLoaded || authedUser === undefined) return <RouteState message="Loading..." />;
     if (!isSignedIn) {
-        return <RouteState message="You need to sign in to visit a friend's room." action={<SignInButton mode="modal"><Button>Sign In</Button></SignInButton>} />;
+        return (
+            <RouteState
+                message="You need to sign in to visit a friend's room."
+                action={
+                    <SignInButton mode="modal">
+                        <Button>Sign In</Button>
+                    </SignInButton>
+                }
+            />
+        );
     }
     if (!plausibleId) return <RouteState message="Invalid friend link" />;
     if (authedUser === null) return <RouteState message="Unable to load your profile" />;
     if (authedUser._id === friendUserId) return <RoomPage isGuest={false} />;
 
-    return <FriendVisitContent friendUserId={friendUserId as Id<"users">} authedUser={authedUser} clerkUser={clerkUser} />;
+    return (
+        <FriendVisitContent friendUserId={friendUserId as Id<"users">} authedUser={authedUser} clerkUser={clerkUser} />
+    );
 }
 
 function FriendVisitContent({
@@ -80,7 +91,16 @@ function FriendVisitContent({
     );
 }
 
-function FriendRoomExperience({ source, authedUser, clerkUser, computerState, catalogItems, saveComputer, scale, fallbackCursorColor }: {
+function FriendRoomExperience({
+    source,
+    authedUser,
+    clerkUser,
+    computerState,
+    catalogItems,
+    saveComputer,
+    scale,
+    fallbackCursorColor,
+}: {
     source: ReturnType<typeof normalizeFriendRoomSource>;
     authedUser: NonNullable<ReturnType<typeof useQuery<typeof api.users.getMe>>>;
     clerkUser: ReturnType<typeof useUser>["user"];

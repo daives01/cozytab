@@ -1,5 +1,9 @@
 export type PresenceConnectionState = "connecting" | "connected" | "reconnecting" | "error";
-export type PresenceConnectionError = { type: "network" | "timeout" | "unknown"; message: string; attemptedUrl?: string };
+export type PresenceConnectionError = {
+    type: "network" | "timeout" | "unknown";
+    message: string;
+    attemptedUrl?: string;
+};
 
 const INITIAL_RETRY_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;
@@ -27,9 +31,14 @@ export class PresenceTransport {
         onState: (state: PresenceConnectionState) => void;
         onError: (error: PresenceConnectionError) => void;
         onSocket: (socket: WebSocket | null) => void;
-    }) { this.options = options; }
+    }) {
+        this.options = options;
+    }
 
-    start() { this.stopped = false; this.connect(); }
+    start() {
+        this.stopped = false;
+        this.connect();
+    }
     reconnect() {
         this.clearReconnect();
         this.stopped = false;
@@ -64,12 +73,19 @@ export class PresenceTransport {
         };
         socket.onmessage = this.options.onMessage;
         socket.onerror = () => {
-            this.options.onError({ type: "network", message: "Failed to connect to presence server", attemptedUrl: this.options.url });
+            this.options.onError({
+                type: "network",
+                message: "Failed to connect to presence server",
+                attemptedUrl: this.options.url,
+            });
             this.options.onState("error");
             socket.close();
         };
         socket.onclose = () => {
-            if (this.socket === socket) { this.socket = null; this.options.onSocket(null); }
+            if (this.socket === socket) {
+                this.socket = null;
+                this.options.onSocket(null);
+            }
             this.clearHeartbeat();
             if (this.stopped) return;
             this.options.onState("reconnecting");

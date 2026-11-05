@@ -44,13 +44,16 @@ interface ShopProps {
 }
 
 function groupByCategory(items: Doc<"catalogItems">[]) {
-    return items.reduce<Record<CatalogItemCategory, Doc<"catalogItems">[]>>((groups, item) => {
-        if (!groups[item.category]) {
-            groups[item.category] = [];
-        }
-        groups[item.category].push(item);
-        return groups;
-    }, {} as Record<CatalogItemCategory, Doc<"catalogItems">[]>);
+    return items.reduce<Record<CatalogItemCategory, Doc<"catalogItems">[]>>(
+        (groups, item) => {
+            if (!groups[item.category]) {
+                groups[item.category] = [];
+            }
+            groups[item.category].push(item);
+            return groups;
+        },
+        {} as Record<CatalogItemCategory, Doc<"catalogItems">[]>,
+    );
 }
 
 function getCategoryDisplayName(category: CatalogItemCategory): string {
@@ -89,12 +92,20 @@ export function Shop({
     const referralStats = useQuery(api.users.getReferralStats, isGuest ? "skip" : undefined);
     const purchaseItem = useMutation(api.inventory.purchaseItem);
     const [purchasing, setPurchasing] = useState<Id<"catalogItems"> | null>(null);
-    const [lastResult, setLastResult] = useState<{ itemId: Id<"catalogItems">; message: string; success: boolean } | null>(null);
+    const [lastResult, setLastResult] = useState<{
+        itemId: Id<"catalogItems">;
+        message: string;
+        success: boolean;
+    } | null>(null);
     const roomTemplates = useQuery(api.roomTemplates.list);
     const ownedTemplateIds = useQuery(api.roomTemplates.listOwnedTemplateIds, isGuest ? "skip" : undefined);
     const purchaseRoom = useMutation(api.roomTemplates.purchaseRoom);
     const [purchasingRoom, setPurchasingRoom] = useState<Id<"roomTemplates"> | null>(null);
-    const [lastRoomResult, setLastRoomResult] = useState<{ templateId: Id<"roomTemplates">; message: string; success: boolean } | null>(null);
+    const [lastRoomResult, setLastRoomResult] = useState<{
+        templateId: Id<"roomTemplates">;
+        message: string;
+        success: boolean;
+    } | null>(null);
     const [isCoinPanelOpen, setIsCoinPanelOpen] = useState(false);
     const [coinCheckoutError, setCoinCheckoutError] = useState<string | null>(null);
     const [coinCheckoutLoading, setCoinCheckoutLoading] = useState<string | null>(null);
@@ -114,7 +125,7 @@ export function Shop({
             price10: price10.trim(),
             price50: price50.trim(),
             price150: price150.trim(),
-            price500: price500.trim()
+            price500: price500.trim(),
         });
     }, []);
 
@@ -169,10 +180,10 @@ export function Shop({
             }
 
             const result = await purchaseRoom({ templateId });
-            setLastRoomResult({ 
-                templateId, 
-                message: result.message || "Room purchased! Switch to it from My Rooms.", 
-                success: result.success 
+            setLastRoomResult({
+                templateId,
+                message: result.message || "Room purchased! Switch to it from My Rooms.",
+                success: result.success,
             });
         } catch {
             setLastRoomResult({ templateId, message: "Purchase failed", success: false });
@@ -202,9 +213,7 @@ export function Shop({
                 setCoinCheckoutError("Unable to open Stripe checkout. Please try again.");
             }
         } catch (error) {
-            setCoinCheckoutError(
-                error instanceof Error ? error.message : "Coin purchase failed. Please try again.",
-            );
+            setCoinCheckoutError(error instanceof Error ? error.message : "Coin purchase failed. Please try again.");
         } finally {
             setCoinCheckoutLoading(null);
         }
@@ -247,13 +256,12 @@ export function Shop({
         return counts;
     }, [guestOwnedCounts, ownedInventory]);
     const ownedTemplateSet = useMemo(() => new Set<Id<"roomTemplates">>(ownedTemplateIds || []), [ownedTemplateIds]);
-    const groupedItems = catalogItems ? groupByCategory(catalogItems) : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
+    const groupedItems = catalogItems
+        ? groupByCategory(catalogItems)
+        : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
     const categories = sortCategories(Object.keys(groupedItems) as CatalogItemCategory[]);
-    const highlightItemId =
-        highlightFirstMusicItem && groupedItems.music?.length
-            ? groupedItems.music[0]._id
-            : null;
-    const purchasableRooms = roomTemplates?.filter(t => !t.isDefault) || [];
+    const highlightItemId = highlightFirstMusicItem && groupedItems.music?.length ? groupedItems.music[0]._id : null;
+    const purchasableRooms = roomTemplates?.filter((t) => !t.isDefault) || [];
 
     const isLoading = !catalogItems || !roomTemplates;
 
@@ -345,29 +353,31 @@ export function Shop({
                                     <Clock className="h-3.5 w-3.5 text-neutral-400" />
                                     <span>{nextRewardText}</span>
                                 </div>
-                                {referralStats && (referralStats.referralCount > 0 || referralStats.referralCoins > 0) && (
-                                    <>
-                                        <div className="h-1 w-1 rounded-full bg-neutral-300" />
-                                        <div className="flex items-center gap-1.5" title="Referral Earnings">
-                                            <Users className="h-3.5 w-3.5 text-blue-500" />
-                                            <span>
-                                                {referralStats.referralCount} referral
-                                                {referralStats.referralCount === 1 ? "" : "s"}
-                                                {" · "}{referralStats.referralCoins} cozy coin
-                                                {referralStats.referralCoins === 1 ? "" : "s"} earned
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
+                                {referralStats &&
+                                    (referralStats.referralCount > 0 || referralStats.referralCoins > 0) && (
+                                        <>
+                                            <div className="h-1 w-1 rounded-full bg-neutral-300" />
+                                            <div className="flex items-center gap-1.5" title="Referral Earnings">
+                                                <Users className="h-3.5 w-3.5 text-blue-500" />
+                                                <span>
+                                                    {referralStats.referralCount} referral
+                                                    {referralStats.referralCount === 1 ? "" : "s"}
+                                                    {" · "}
+                                                    {referralStats.referralCoins} cozy coin
+                                                    {referralStats.referralCoins === 1 ? "" : "s"} earned
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
                             </div>
                         )}
                         <div className="relative">
                             <button
                                 type="button"
-                                onClick={!isGuest && (isUS !== false) ? toggleCoinPanel : undefined}
+                                onClick={!isGuest && isUS !== false ? toggleCoinPanel : undefined}
                                 disabled={isGuest || isUS === false}
                                 className={`group flex items-center bg-secondary rounded-full border-2 border-foreground shadow-sm transition-all ${
-                                    !isGuest && (isUS !== false)
+                                    !isGuest && isUS !== false
                                         ? "hover:bg-background active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
                                         : "cursor-default"
                                 }`}
@@ -378,7 +388,7 @@ export function Shop({
                                         {effectiveCoins.toLocaleString()}
                                     </span>
                                 </div>
-                                {!isGuest && (isUS !== false) && !isLocationLoading && (
+                                {!isGuest && isUS !== false && !isLocationLoading && (
                                     <div
                                         className={`mr-1 sm:mr-1.5 h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center transition-all ${
                                             isCoinPanelOpen
@@ -386,11 +396,15 @@ export function Shop({
                                                 : "text-foreground group-hover:bg-foreground/10"
                                         }`}
                                     >
-                                        {isCoinPanelOpen ? <X className="h-3 w-3 sm:h-4 sm:w-4" /> : <Plus className="h-3 w-3 sm:h-4 sm:w-4" />}
+                                        {isCoinPanelOpen ? (
+                                            <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                                        ) : (
+                                            <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                                        )}
                                     </div>
                                 )}
                             </button>
-                            {!isGuest && (isUS !== false) && !isLocationLoading && isCoinPanelOpen && (
+                            {!isGuest && isUS !== false && !isLocationLoading && isCoinPanelOpen && (
                                 <div
                                     className="absolute right-0 top-full mt-3 w-[200px] sm:w-[240px] bg-background border-2 border-foreground rounded-2xl sm:rounded-3xl p-2 sm:p-3 shadow-md z-50 animate-in fade-in zoom-in-95 duration-200"
                                     onClick={(event) => event.stopPropagation()}
@@ -437,18 +451,18 @@ export function Shop({
                         <div className="animate-pulse text-xl">Loading shop...</div>
                     </div>
                 ) : activeTab === "items" ? (
-                <ItemsTab
-                    groupedItems={groupedItems}
-                    categories={categories}
-                    ownedCounts={ownedCounts}
-                    userCurrency={effectiveCoins}
-                    purchasing={purchasing}
-                    lastResult={lastResult}
-                    onPurchase={handlePurchase}
-                    getCategoryDisplayName={getCategoryDisplayName}
-                    getCategoryColor={getCategoryColor}
-                    highlightItemId={highlightItemId}
-                />
+                    <ItemsTab
+                        groupedItems={groupedItems}
+                        categories={categories}
+                        ownedCounts={ownedCounts}
+                        userCurrency={effectiveCoins}
+                        purchasing={purchasing}
+                        lastResult={lastResult}
+                        onPurchase={handlePurchase}
+                        getCategoryDisplayName={getCategoryDisplayName}
+                        getCategoryColor={getCategoryColor}
+                        highlightItemId={highlightItemId}
+                    />
                 ) : (
                     <RoomsTab
                         purchasableRooms={purchasableRooms}

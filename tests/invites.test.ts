@@ -67,9 +67,13 @@ describe("invite lifecycle", () => {
 
         expect(await t.query(api.invites.getInviteByToken, { token: invite.code })).toBeNull();
         expect(await t.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
-        expect((await t.query(api.rooms.getRoomStatus, {
-            roomId: (await t.run((ctx) => ctx.db.get(invite.inviteId)))!.roomId,
-        })).status).toBe("stale");
+        expect(
+            (
+                await t.query(api.rooms.getRoomStatus, {
+                    roomId: (await t.run((ctx) => ctx.db.get(invite.inviteId)))!.roomId,
+                })
+            ).status,
+        ).toBe("stale");
     });
 
     test("redacts populated rooms after expiration, closure, or revocation while preserving friend access", async () => {
@@ -79,7 +83,17 @@ describe("invite lifecycle", () => {
         const templateId = await seedTemplate(t);
         const roomId = await seedRoom(t, ownerId, templateId);
         const catalogItemId = await seedCatalogItem(t);
-        const items = [{ id: "private-item", catalogItemId, x: 10, y: 20, url: "https://private.example", musicUrl: "https://youtube.com/watch?v=private", musicType: "youtube" as const }];
+        const items = [
+            {
+                id: "private-item",
+                catalogItemId,
+                x: 10,
+                y: 20,
+                url: "https://private.example",
+                musicUrl: "https://youtube.com/watch?v=private",
+                musicType: "youtube" as const,
+            },
+        ];
         await t.run((ctx) => ctx.db.patch(roomId, { items }));
         const owner = asUser(t, "owner");
         const friend = asUser(t, "friend");
@@ -106,7 +120,9 @@ describe("invite lifecycle", () => {
             expect(await caller.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
         }
         expect(await t.query(api.invites.getInviteByToken, { token: invite.code })).toBeNull();
-        expect(await friend.query(api.friends.getFriendRoom, { friendUserId: ownerId })).toMatchObject({ room: { _id: roomId, items } });
+        expect(await friend.query(api.friends.getFriendRoom, { friendUserId: ownerId })).toMatchObject({
+            room: { _id: roomId, items },
+        });
     });
 
     test("missing tokens and missing rooms still return null, including for closed invites", async () => {

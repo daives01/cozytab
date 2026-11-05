@@ -47,12 +47,7 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
         const checkTrashHover = (clientX: number, clientY: number): boolean => {
             if (!trashRef.current) return false;
             const rect = trashRef.current.getBoundingClientRect();
-            return (
-                clientX >= rect.left &&
-                clientX <= rect.right &&
-                clientY >= rect.top &&
-                clientY <= rect.bottom
-            );
+            return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
         };
 
         const handleMouseMove = (e: MouseEvent) => {
@@ -114,7 +109,7 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
     }, [draggedItemId, onDelete]);
 
     const isActive = shouldShow;
-    
+
     return (
         <div
             ref={trashRef}
@@ -127,7 +122,7 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
                 bottom: `${bottomPosition}px`,
             }}
         >
-            <div 
+            <div
                 className={`
                    relative flex items-center justify-center
                    transition-transform duration-200 ease-out
@@ -135,24 +130,28 @@ export function TrashCan({ draggedItemId, onDelete, offsetLeft = 0, offsetBottom
                 `}
             >
                 {/* Visual Circle Background */}
-                <div className={`
+                <div
+                    className={`
                     w-16 h-16 rounded-full border-2 shadow-md flex items-center justify-center bg-white
                     ${isHovered ? "border-[var(--danger)] bg-[var(--danger-light)]" : "border-[var(--ink)]"}
-                `}>
-                   <Trash2 
-                       className={`
+                `}
+                >
+                    <Trash2
+                        className={`
                            w-8 h-8 transition-colors
                            ${isHovered ? "text-[var(--danger)]" : "text-[var(--ink)]"}
-                       `} 
-                   />
+                       `}
+                    />
                 </div>
 
                 {/* Text Label styling */}
-                <div className={`
+                <div
+                    className={`
                     absolute -top-8 bg-[var(--ink)] text-white text-xs px-2 py-1 rounded-lg border-2 border-[var(--ink)] shadow-sm font-['Patrick_Hand'] whitespace-nowrap
                     transition-opacity duration-200
                     ${isHovered ? "opacity-100" : "opacity-0"}
-                `}>
+                `}
+                >
                     Release to delete
                 </div>
             </div>

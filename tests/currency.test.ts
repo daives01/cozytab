@@ -16,7 +16,7 @@ async function setupUser(initialCurrency: number) {
             username: "user",
             currency: initialCurrency,
             referralCode: "REFCODE",
-        })
+        }),
     );
     const getUser = () => t.run((ctx) => ctx.db.get(userId));
     const getTxsByKey = (idempotencyKey: string) =>
@@ -24,7 +24,7 @@ async function setupUser(initialCurrency: number) {
             ctx.db
                 .query("currencyTransactions")
                 .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
-                .collect()
+                .collect(),
         );
 
     return { t, userId, getUser, getTxsByKey };
@@ -42,7 +42,7 @@ describe("applyCurrencyChange", () => {
                 reason: "purchase",
                 idempotencyKey: "purchase:user1:req1",
                 metadata: { item: "chair" },
-            })
+            }),
         );
 
         const user = await getUser();
@@ -65,7 +65,7 @@ describe("applyCurrencyChange", () => {
                 delta: 4,
                 reason: "referral",
                 idempotencyKey: "referral:user1:req1",
-            })
+            }),
         );
 
         const user = await getUser();
@@ -88,7 +88,7 @@ describe("applyCurrencyChange", () => {
                 delta: -2,
                 reason: "purchase",
                 idempotencyKey: "purchase:user1:req1",
-            })
+            }),
         );
         const second = await t.run((ctx) =>
             applyCurrencyChange({
@@ -97,7 +97,7 @@ describe("applyCurrencyChange", () => {
                 delta: -2,
                 reason: "purchase",
                 idempotencyKey: "purchase:user1:req1",
-            })
+            }),
         );
 
         const user = await getUser();
@@ -133,7 +133,7 @@ describe("applyCurrencyChange", () => {
                 delta: -1,
                 reason: "purchase",
                 idempotencyKey: "shared-key",
-            })
+            }),
         );
 
         await expect(
@@ -144,8 +144,8 @@ describe("applyCurrencyChange", () => {
                     delta: -1,
                     reason: "purchase",
                     idempotencyKey: "shared-key",
-                })
-            )
+                }),
+            ),
         ).rejects.toThrow("Idempotency key belongs to a different user");
     });
 
@@ -161,8 +161,8 @@ describe("applyCurrencyChange", () => {
                     delta: Number.NaN,
                     reason: "purchase",
                     idempotencyKey: "purchase:user1:bad",
-                })
-            )
+                }),
+            ),
         ).rejects.toThrow("Currency delta must be a finite number");
     });
 
@@ -177,8 +177,8 @@ describe("applyCurrencyChange", () => {
                     delta: 1,
                     reason: "purchase",
                     idempotencyKey: "   ",
-                })
-            )
+                }),
+            ),
         ).rejects.toThrow("Idempotency key is required");
     });
 
@@ -193,8 +193,8 @@ describe("applyCurrencyChange", () => {
                     delta: -5,
                     reason: "purchase",
                     idempotencyKey: "purchase:user1:req2",
-                })
-            )
+                }),
+            ),
         ).rejects.toThrow("Insufficient funds");
 
         const user = await t.run((ctx) => ctx.db.get(userId));

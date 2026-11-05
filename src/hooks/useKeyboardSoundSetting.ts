@@ -46,8 +46,7 @@ function updateCache(nextVolume: number, nextMusicVolume = cachedMusicVolume) {
     const clampedVolume = clampVolume(nextVolume, DEFAULT_VOLUME);
     const clampedMusicVolume = clampVolume(nextMusicVolume, DEFAULT_MUSIC_VOLUME);
     const changed =
-        Math.abs(clampedVolume - cachedVolume) > 0.0001 ||
-        Math.abs(clampedMusicVolume - cachedMusicVolume) > 0.0001;
+        Math.abs(clampedVolume - cachedVolume) > 0.0001 || Math.abs(clampedMusicVolume - cachedMusicVolume) > 0.0001;
     cachedVolume = clampedVolume;
     cachedMusicVolume = clampedMusicVolume;
     setTypingVolumeMultiplier(cachedVolume);
@@ -80,15 +79,23 @@ export function useKeyboardSoundPreferences() {
             debounce((nextVolume: number, nextMusicVolume: number) => {
                 void saveRemote({ volume: nextVolume, musicVolume: nextMusicVolume });
             }, 250),
-        [saveRemote]
+        [saveRemote],
     );
     const debouncedSaveMusicRemote = useMemo(
         () => debounce((nextMusicVolume: number) => void saveMusicRemote({ volume: nextMusicVolume }), 250),
-        [saveMusicRemote]
+        [saveMusicRemote],
     );
 
-    const volume = useSyncExternalStore(subscribe, () => cachedVolume, () => cachedVolume);
-    const musicVolume = useSyncExternalStore(subscribe, () => cachedMusicVolume, () => cachedMusicVolume);
+    const volume = useSyncExternalStore(
+        subscribe,
+        () => cachedVolume,
+        () => cachedVolume,
+    );
+    const musicVolume = useSyncExternalStore(
+        subscribe,
+        () => cachedMusicVolume,
+        () => cachedMusicVolume,
+    );
 
     const mode = remote === undefined ? "loading" : remote === null ? "guest" : "remote";
 
@@ -120,7 +127,7 @@ export function useKeyboardSoundPreferences() {
                 saveGuestPrefs(next.volume, next.musicVolume);
             }
         },
-        [debouncedSaveMusicRemote, debouncedSaveRemote, mode]
+        [debouncedSaveMusicRemote, debouncedSaveRemote, mode],
     );
 
     const setEnabled = useCallback(
@@ -128,7 +135,7 @@ export function useKeyboardSoundPreferences() {
             const targetVolume = nextEnabled ? DEFAULT_VOLUME : 0;
             persist({ volume: targetVolume, musicVolume: cachedMusicVolume }, "volume");
         },
-        [persist]
+        [persist],
     );
 
     const setVolume = useCallback(
@@ -136,7 +143,7 @@ export function useKeyboardSoundPreferences() {
             const clampedVolume = clampVolume(nextVolume, DEFAULT_VOLUME);
             persist({ volume: clampedVolume, musicVolume: cachedMusicVolume }, "volume");
         },
-        [persist]
+        [persist],
     );
 
     const setMusicVolume = useCallback(
@@ -144,9 +151,8 @@ export function useKeyboardSoundPreferences() {
             const clampedMusic = clampVolume(nextVolume, DEFAULT_MUSIC_VOLUME);
             persist({ volume: cachedVolume, musicVolume: clampedMusic }, "music");
         },
-        [persist]
+        [persist],
     );
 
     return { enabled: isKeyboardSoundEnabled(), volume, musicVolume, setEnabled, setVolume, setMusicVolume };
 }
-

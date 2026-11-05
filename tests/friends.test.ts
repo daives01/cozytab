@@ -8,16 +8,20 @@ describe("friendship lifecycle", () => {
         const aliceId = await seedUser(t, "alice");
         const bobId = await seedUser(t, "bob");
 
-        expect(await asUser(t, "alice").mutation(api.friends.sendFriendRequestByUserId, {
-            userId: bobId,
-        })).toEqual({ success: true });
+        expect(
+            await asUser(t, "alice").mutation(api.friends.sendFriendRequestByUserId, {
+                userId: bobId,
+            }),
+        ).toEqual({ success: true });
         let friendships = await t.run((ctx) => ctx.db.query("friendships").collect());
         expect(friendships).toHaveLength(1);
         expect(friendships[0]).toMatchObject({ status: "pending", initiator: aliceId });
 
-        expect(await asUser(t, "bob").mutation(api.friends.sendFriendRequestByUserId, {
-            userId: aliceId,
-        })).toEqual({ success: true, autoAccepted: true });
+        expect(
+            await asUser(t, "bob").mutation(api.friends.sendFriendRequestByUserId, {
+                userId: aliceId,
+            }),
+        ).toEqual({ success: true, autoAccepted: true });
         friendships = await t.run((ctx) => ctx.db.query("friendships").collect());
         expect(friendships).toHaveLength(1);
         expect(friendships[0].status).toBe("accepted");

@@ -13,9 +13,14 @@ import type {
 } from "./types";
 
 function saveErrorMessage(error: unknown): string {
-    const message = error instanceof ConvexError && typeof error.data === "string"
-        ? error.data
-        : error instanceof Error ? error.message : typeof error === "string" ? error : "";
+    const message =
+        error instanceof ConvexError && typeof error.data === "string"
+            ? error.data
+            : error instanceof Error
+              ? error.message
+              : typeof error === "string"
+                ? error
+                : "";
     return message.trim() || "Check your connection and try again.";
 }
 
@@ -119,10 +124,11 @@ export function createRoomEditingSession({
                 }
             })
             .catch((error: unknown) => {
-                if (!disposed) publish({
-                    saveStatus: "error",
-                    saveError: saveErrorMessage(error),
-                });
+                if (!disposed)
+                    publish({
+                        saveStatus: "error",
+                        saveError: saveErrorMessage(error),
+                    });
             })
             .finally(() => {
                 inFlight = null;
@@ -141,12 +147,20 @@ export function createRoomEditingSession({
         return null;
     };
 
-    const placementEligibility = (catalogItemId: Parameters<RoomEditingSession["placementEligibility"]>[0]): PlacementEligibility => {
+    const placementEligibility = (
+        catalogItemId: Parameters<RoomEditingSession["placementEligibility"]>[0],
+    ): PlacementEligibility => {
         const owned = Math.max(0, ownedCountSource(catalogItemId));
         const placed = snapshot.items.filter((item) => item.catalogItemId === catalogItemId).length;
         const remaining = Math.max(0, owned - placed);
         const roomAtCapacity = snapshot.items.length >= MAX_ROOM_ITEMS;
-        return { allowed: remaining > 0 && !roomAtCapacity, roomAtCapacity, ownedCount: owned, placedCount: placed, remaining };
+        return {
+            allowed: remaining > 0 && !roomAtCapacity,
+            roomAtCapacity,
+            ownedCount: owned,
+            placedCount: placed,
+            remaining,
+        };
     };
 
     const flush = async () => {
@@ -194,28 +208,41 @@ export function createRoomEditingSession({
         place: ({ catalogItemId, x, y }): PlacementResult => {
             if (snapshot.mode !== "edit") return { accepted: false, reason: "not-editing" };
             if (snapshot.items.length >= MAX_ROOM_ITEMS) return { accepted: false, reason: "room-full" };
-            if (!placementEligibility(catalogItemId).allowed) return { accepted: false, reason: "insufficient-ownership" };
+            if (!placementEligibility(catalogItemId).allowed)
+                return { accepted: false, reason: "insufficient-ownership" };
             const itemId = createItemId();
-            recordItems([...snapshot.items, clampItemPosition({ id: itemId, catalogItemId, x, y, flipped: false })], "structural");
+            recordItems(
+                [...snapshot.items, clampItemPosition({ id: itemId, catalogItemId, x, y, flipped: false })],
+                "structural",
+            );
             publish({ placingCatalogItemId: null });
             return { accepted: true, itemId };
         },
         move: (itemId, position) => {
             const rejected = editingItem(itemId);
             if (rejected) return rejected;
-            recordItems(snapshot.items.map((item) => item.id === itemId ? clampItemPosition({ ...item, ...position }) : item), "structural");
+            recordItems(
+                snapshot.items.map((item) => (item.id === itemId ? clampItemPosition({ ...item, ...position }) : item)),
+                "structural",
+            );
             return { accepted: true };
         },
         flip: (itemId) => {
             const rejected = editingItem(itemId);
             if (rejected) return rejected;
-            recordItems(snapshot.items.map((item) => item.id === itemId ? { ...item, flipped: !item.flipped } : item), "structural");
+            recordItems(
+                snapshot.items.map((item) => (item.id === itemId ? { ...item, flipped: !item.flipped } : item)),
+                "structural",
+            );
             return { accepted: true };
         },
         remove: (itemId) => {
             const rejected = editingItem(itemId);
             if (rejected) return rejected;
-            recordItems(snapshot.items.filter((item) => item.id !== itemId), "structural");
+            recordItems(
+                snapshot.items.filter((item) => item.id !== itemId),
+                "structural",
+            );
             publish({ selectedItemId: snapshot.selectedItemId === itemId ? null : snapshot.selectedItemId });
             return { accepted: true };
         },
@@ -239,7 +266,12 @@ export function createRoomEditingSession({
             }
             const item = snapshot.items.find((candidate) => candidate.id === itemId);
             if (!item) return { accepted: false, reason: "item-not-found" };
-            recordItems(snapshot.items.map((candidate) => candidate.id === itemId ? clampItemPosition({ ...candidate, ...changes }) : candidate), visibility);
+            recordItems(
+                snapshot.items.map((candidate) =>
+                    candidate.id === itemId ? clampItemPosition({ ...candidate, ...changes }) : candidate,
+                ),
+                visibility,
+            );
             return { accepted: true };
         },
         flush,

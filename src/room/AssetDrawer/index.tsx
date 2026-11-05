@@ -65,28 +65,44 @@ export function AssetDrawer({
                 });
             }
         },
-        [isGuest, setHiddenMutation]
+        [isGuest, setHiddenMutation],
     );
 
-    const categories = useMemo(() => Array.from(new Set(items.map((i) => i.category))).sort((a, b) => a.localeCompare(b)), [items]);
+    const categories = useMemo(
+        () => Array.from(new Set(items.map((i) => i.category))).sort((a, b) => a.localeCompare(b)),
+        [items],
+    );
 
-    const matchesFilter = useCallback((category: string) => selectedFilter === "all" || category === selectedFilter, [selectedFilter]);
+    const matchesFilter = useCallback(
+        (category: string) => selectedFilter === "all" || category === selectedFilter,
+        [selectedFilter],
+    );
 
     const visibleItems = useMemo(
-        () => items.filter((item) => !item.hidden && matchesFilter(item.category)).sort((a, b) => a.name.localeCompare(b.name)),
-        [items, matchesFilter]
+        () =>
+            items
+                .filter((item) => !item.hidden && matchesFilter(item.category))
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        [items, matchesFilter],
     );
 
     const hiddenItems = useMemo(
-        () => items.filter((item) => item.hidden && matchesFilter(item.category)).sort((a, b) => a.name.localeCompare(b.name)),
-        [items, matchesFilter]
+        () =>
+            items
+                .filter((item) => item.hidden && matchesFilter(item.category))
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        [items, matchesFilter],
     );
 
     const handleUnhideAll = useCallback(async () => {
         if (isGuest || hiddenItems.length === 0) return;
         setIsBulkUnhiding(true);
         try {
-            await Promise.all(hiddenItems.map((item) => setHiddenMutation({ inventoryId: item.inventoryId as Id<"inventory">, hidden: false })));
+            await Promise.all(
+                hiddenItems.map((item) =>
+                    setHiddenMutation({ inventoryId: item.inventoryId as Id<"inventory">, hidden: false }),
+                ),
+            );
         } finally {
             setIsBulkUnhiding(false);
         }
@@ -101,8 +117,8 @@ export function AssetDrawer({
             ? "translate-x-0"
             : "-translate-x-full"
         : isOpen
-            ? "translate-y-0"
-            : "translate-y-full";
+          ? "translate-y-0"
+          : "translate-y-full";
     const positionClass = isLeft ? "left-0 top-0 bottom-0" : "left-0 right-0 bottom-0";
     const containerRadii = isLeft ? "rounded-r-3xl" : "rounded-t-3xl";
     const shadowClass = isLeft ? "shadow-[var(--shadow-6)]" : "shadow-[var(--shadow-6-soft)]";
@@ -118,7 +134,7 @@ export function AssetDrawer({
             if (target?.closest("[data-touch-place-item]")) return;
             onTouchPlacementCancel?.();
         },
-        [onTouchPlacementCancel]
+        [onTouchPlacementCancel],
     );
 
     const showTouchHint = Boolean(touchPlacementItemId);
@@ -138,9 +154,7 @@ export function AssetDrawer({
         >
             {showTouchHint && (
                 <div className={hintWrapperClass}>
-                    <div className={`${hintBubbleClass} inline-flex items-center`}>
-                        (Tap room to place!)
-                    </div>
+                    <div className={`${hintBubbleClass} inline-flex items-center`}>(Tap room to place!)</div>
                 </div>
             )}
             <div
@@ -165,7 +179,9 @@ export function AssetDrawer({
                         {isLoading ? (
                             <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-card)] px-4 py-6 text-center shadow-[var(--shadow-4)]">
                                 <div className="h-12 w-12 animate-spin rounded-full border-2 border-dashed border-[var(--color-foreground)]/30" />
-                                <p className="text-sm font-medium text-[var(--color-muted-foreground)]">Loading storage…</p>
+                                <p className="text-sm font-medium text-[var(--color-muted-foreground)]">
+                                    Loading storage…
+                                </p>
                             </div>
                         ) : items.length > 0 ? (
                             <>
@@ -189,8 +205,12 @@ export function AssetDrawer({
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/10 px-4 py-6 text-center">
-                                        <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-foreground)]">No items match this filter</p>
-                                        <p className="mt-1 text-xs font-medium text-[var(--color-muted-foreground)]">Try another category or unhide items below.</p>
+                                        <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--color-foreground)]">
+                                            No items match this filter
+                                        </p>
+                                        <p className="mt-1 text-xs font-medium text-[var(--color-muted-foreground)]">
+                                            Try another category or unhide items below.
+                                        </p>
                                     </div>
                                 )}
 
@@ -217,8 +237,12 @@ export function AssetDrawer({
                                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] text-[var(--color-foreground)] shadow-[var(--shadow-4)]">
                                     <Package className="h-7 w-7" />
                                 </div>
-                                <p className="text-lg font-black uppercase tracking-[0.22em] text-[var(--color-foreground)]">Storage is empty</p>
-                                <p className="max-w-[220px] text-sm font-medium text-[var(--color-muted-foreground)]">Visit the shop on your computer to start decorating your room.</p>
+                                <p className="text-lg font-black uppercase tracking-[0.22em] text-[var(--color-foreground)]">
+                                    Storage is empty
+                                </p>
+                                <p className="max-w-[220px] text-sm font-medium text-[var(--color-muted-foreground)]">
+                                    Visit the shop on your computer to start decorating your room.
+                                </p>
                             </div>
                         )}
                     </div>

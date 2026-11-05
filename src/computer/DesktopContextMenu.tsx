@@ -70,9 +70,7 @@ export function DesktopContextMenu({
         >
             <button
                 className="px-3 py-2 hover:bg-slate-50 text-left w-full"
-                onClick={() =>
-                    onStartAdd(contextMenu.row, contextMenu.col, contextMenu.x, contextMenu.y)
-                }
+                onClick={() => onStartAdd(contextMenu.row, contextMenu.col, contextMenu.x, contextMenu.y)}
             >
                 New Shortcut
             </button>

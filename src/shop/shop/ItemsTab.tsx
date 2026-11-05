@@ -80,7 +80,11 @@ export function ItemsTab({
                                         )}
                                         <ItemCountBadge
                                             count={ownedCount}
-                                            icon={isOwned ? <Check className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--success-dark)]" /> : null}
+                                            icon={
+                                                isOwned ? (
+                                                    <Check className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--success-dark)]" />
+                                                ) : null
+                                            }
                                             className="border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)]"
                                         />
 
@@ -104,8 +108,8 @@ export function ItemsTab({
                                                 isPurchasing
                                                     ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                                                     : canAfford
-                                                    ? "bg-[var(--warning)] text-[var(--ink)] hover:bg-[var(--warning-dark)] border-[var(--ink)] shadow-md active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
-                                                    : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
+                                                      ? "bg-[var(--warning)] text-[var(--ink)] hover:bg-[var(--warning-dark)] border-[var(--ink)] shadow-md active:scale-95 active:shadow-sm active:translate-x-[1px] active:translate-y-[1px]"
+                                                      : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]"
                                             }`}
                                         >
                                             <Coins className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -115,7 +119,9 @@ export function ItemsTab({
                                         {resultForItem && (
                                             <div
                                                 className={`mt-1 sm:mt-1.5 text-size-xs sm:text-size-sm leading-tight text-center ${
-                                                    resultForItem.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
+                                                    resultForItem.success
+                                                        ? "text-[var(--success-dark)]"
+                                                        : "text-[var(--danger)]"
                                                 }`}
                                             >
                                                 {resultForItem.message}

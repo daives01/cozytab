@@ -41,7 +41,14 @@ interface ComputerWindowContentProps {
     inRoomVisitors?: VisitorState[];
 }
 
-export function ComputerWindowContent({ app, shopProps, roomsProps, customizeProps, isGuest, inRoomVisitors }: ComputerWindowContentProps) {
+export function ComputerWindowContent({
+    app,
+    shopProps,
+    roomsProps,
+    customizeProps,
+    isGuest,
+    inRoomVisitors,
+}: ComputerWindowContentProps) {
     if (app === "shop") {
         return <Shop {...shopProps} />;
     }
@@ -61,12 +68,7 @@ export function ComputerWindowContent({ app, shopProps, roomsProps, customizePro
     }
 
     if (app === "friends") {
-        return (
-            <FriendsPanel
-                isGuest={isGuest}
-                inRoomVisitors={inRoomVisitors}
-            />
-        );
+        return <FriendsPanel isGuest={isGuest} inRoomVisitors={inRoomVisitors} />;
     }
 
     if (app === "customize" && customizeProps) {

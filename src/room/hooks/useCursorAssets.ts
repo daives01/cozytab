@@ -50,19 +50,19 @@ export function useCursorAssets(color: string) {
 
                 root.style.setProperty(
                     "--cozy-cursor-default",
-                    buildCursorValue(toDataUri(defaultSvg, color), CURSOR_SOURCES.default.hotspot)
+                    buildCursorValue(toDataUri(defaultSvg, color), CURSOR_SOURCES.default.hotspot),
                 );
                 root.style.setProperty(
                     "--cozy-cursor-click",
-                    buildCursorValue(toDataUri(clickSvg, color), CURSOR_SOURCES.click.hotspot)
+                    buildCursorValue(toDataUri(clickSvg, color), CURSOR_SOURCES.click.hotspot),
                 );
                 root.style.setProperty(
                     "--cozy-cursor-drag",
-                    buildCursorValue(toDataUri(dragSvg, color), CURSOR_SOURCES.drag.hotspot)
+                    buildCursorValue(toDataUri(dragSvg, color), CURSOR_SOURCES.drag.hotspot),
                 );
                 root.style.setProperty(
                     "--cozy-cursor-text",
-                    buildCursorValue(toDataUri(textSvg, color), CURSOR_SOURCES.text.hotspot)
+                    buildCursorValue(toDataUri(textSvg, color), CURSOR_SOURCES.text.hotspot),
                 );
             } catch (error) {
                 console.error("[cursor] Failed to apply cursor color", error);

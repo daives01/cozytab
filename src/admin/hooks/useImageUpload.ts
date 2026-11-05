@@ -6,7 +6,10 @@ interface UseImageUploadOptions<T extends TableNames> {
     onUploadComplete: (itemId: Id<T> | "new", imageUrl: string) => Promise<void>;
 }
 
-export function useImageUpload<T extends TableNames>({ generateUploadUrl, onUploadComplete }: UseImageUploadOptions<T>) {
+export function useImageUpload<T extends TableNames>({
+    generateUploadUrl,
+    onUploadComplete,
+}: UseImageUploadOptions<T>) {
     const [uploading, setUploading] = useState<Id<T> | "new" | undefined>(undefined);
     const [error, setError] = useState<string | undefined>(undefined);
 
@@ -38,4 +41,3 @@ export function useImageUpload<T extends TableNames>({ generateUploadUrl, onUplo
 
     return { uploading, error, handleImageUpload, setError };
 }
-
