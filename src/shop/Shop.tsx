@@ -264,11 +264,9 @@ export function Shop({
         return () => window.clearInterval(id);
     }, []);
 
-    useEffect(() => {
-        if (isUS === false && isCoinPanelOpen) {
-            setIsCoinPanelOpen(false);
-        }
-    }, [isUS, isCoinPanelOpen]);
+    if (isUS === false && isCoinPanelOpen) {
+        setIsCoinPanelOpen(false);
+    }
 
     const nextRewardText = useMemo(() => {
         if (isGuest) return "";

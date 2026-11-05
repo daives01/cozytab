@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useClerk } from "@clerk/clerk-react";
 import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -15,7 +15,12 @@ export function useComputerProfileActions({ displayName, username, onDisplayName
     const [currentDisplayName, setCurrentDisplayName] = useState(displayName ?? username ?? "You");
     const [isSavingDisplayName, setIsSavingDisplayName] = useState(false);
     const [displayNameError, setDisplayNameError] = useState<string | null>(null);
-    useEffect(() => { setCurrentDisplayName(displayName ?? username ?? "You"); }, [displayName, username]);
+    const sourceName = displayName ?? username ?? "You";
+    const [previousSourceName, setPreviousSourceName] = useState(sourceName);
+    if (previousSourceName !== sourceName) {
+        setPreviousSourceName(sourceName);
+        setCurrentDisplayName(sourceName);
+    }
     const handleSaveDisplayName = useCallback(async (next: string) => {
         const trimmed = next.trim();
         if (!trimmed) { setDisplayNameError("Display name cannot be empty"); return; }

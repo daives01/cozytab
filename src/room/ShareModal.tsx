@@ -53,12 +53,7 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
         if (!expiresAt) return;
 
         const remaining = expiresAt - Date.now();
-        if (remaining <= 0) {
-            setNow(Date.now());
-            return;
-        }
-
-        const id = setTimeout(() => setNow(Date.now()), remaining + 10);
+        const id = setTimeout(() => setNow(Date.now()), Math.max(0, remaining) + 10);
         return () => clearTimeout(id);
     }, [expiresAt]);
 

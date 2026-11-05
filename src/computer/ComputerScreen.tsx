@@ -170,6 +170,10 @@ export function ComputerScreen({
         setDesktopScale(scale);
     }, [gridHeight]);
 
+    const handleOpenShortcut = (shortcut: Shortcut) => {
+        window.open(shortcut.url, "_blank", "noopener,noreferrer");
+    };
+
     useEffect(() => {
         const interval = setInterval(() => setNow(new Date()), 30_000);
         return () => clearInterval(interval);
@@ -369,9 +373,7 @@ export function ComputerScreen({
         setRenameValue(target.name);
     };
 
-    const handleOpenShortcut = (shortcut: Shortcut) => {
-        window.open(shortcut.url, "_blank", "noopener,noreferrer");
-    };
+
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
         if (isGuest) return;

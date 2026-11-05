@@ -14,11 +14,12 @@ export interface VisitorMusicModalProps {
 export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
     const { musicVolume, setMusicVolume } = useKeyboardSoundPreferences();
     const percent = Math.round(musicVolume * 100);
-    const [title, setTitle] = useState<string | null>(null);
-    const [isFetchingTitle, setIsFetchingTitle] = useState(false);
+    const [result, setResult] = useState<{ videoId: string; title: string | null } | null>(null);
     const [copied, setCopied] = useState(false);
 
     const videoId = item.musicType === "youtube" && item.musicUrl ? extractYouTubeId(item.musicUrl) : null;
+    const title = result?.videoId === videoId ? result?.title : null;
+    const isFetchingTitle = Boolean(videoId && result?.videoId !== videoId);
     const previewUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
     const isPlaying = Boolean(item.musicPlaying);
     const canCopy = Boolean(item.musicUrl);
@@ -41,25 +42,18 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
     }, [onClose]);
 
     useEffect(() => {
-        if (!videoId) {
-            setTitle(null);
-            setIsFetchingTitle(false);
-            return;
-        }
+        if (!videoId) return;
         let cancelled = false;
         const fetchTitle = async () => {
-            setIsFetchingTitle(true);
             try {
                 const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
                 if (!response.ok) throw new Error("Unable to fetch title");
                 const data = (await response.json()) as { title?: string | null };
                 if (!cancelled) {
-                    setTitle(typeof data?.title === "string" ? data.title : null);
+                    setResult({ videoId, title: typeof data?.title === "string" ? data.title : null });
                 }
             } catch {
-                if (!cancelled) setTitle(null);
-            } finally {
-                if (!cancelled) setIsFetchingTitle(false);
+                if (!cancelled) setResult({ videoId, title: null });
             }
         };
         void fetchTitle();
