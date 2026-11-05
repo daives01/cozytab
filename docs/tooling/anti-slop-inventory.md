@@ -105,3 +105,15 @@ Exact diagnostic inventory below distinguishes validation boundaries, concrete d
 Audit before → after: total 1,658 → 1,658; object parameters 0 → 0; unsafe dictionaries 18 → 18; known-value widening 11 → 11. Other audit counts unchanged.
 
 Validation: fresh `bun run check` passes including formatting, both linters, worker typecheck, application build and all 115 tests. Vendor SHA256SUMS all pass; `git diff --check` passes. No runtime changes or new tests.
+
+## Module mocking and symbol vocabulary assessment (base 391140e)
+
+Enable `no-module-mocking` globally at error with existing exclusions: 0 before → 0 after; twelve enforced rules total. This is specifically Jest/Vitest enforcement, not Bun enforcement. The pinned detector recognizes global vi/jest and named imports (including renamed imports) from vitest/@jest/globals, calling mock, doMock or unstable_mockModule through direct or literal-computed members. It does not follow local aliases, destructured methods, namespace imports or dynamic member names. Neither selected rule exposes configurable options.
+
+Owned-source audit across src, shared, convex, presence-worker/src and tests inspected framework imports and mock/spy usages including aliases: no Jest/Vitest imports or calls and no Bun mock.module calls or aliases. Bun imports use named test helpers; tests/roomItemUrl.test.ts uses mock as an injected window-open callback. tests/reactRefactors.test.tsx spies on watchQuery/mutation of a real disabled ConvexReactClient supplied through ConvexProvider, fetch and Date.now; tests/roomPageEffects.test.tsx spies on timers. These method seams do not replace modules and do not warrant a mock refactor or blanket spy ban. Backend tests use convex-test with real registered modules. Future Bun module replacement needs source review; this rule cannot catch it.
+
+Explicitly defer `no-shape-in-symbol-names`, 0 before → 0 after. Exact semantics are a hardcoded case-insensitive substring `shape` on Identifier, PrivateIdentifier and JSXIdentifier, excluding noncomputed borrowed member names. It does not ban square, circle or rect. Existing legitimate domain geometry includes chess Square/squareStyles, RoomToolbar circleBaseStyles, DOMRect room actions and drag/cursor bounds. No current shape match is evidence of clean counts only: future geometry names such as collisionShape would be rejected without understanding ownership; unrelated reshape names also match. This vocabulary restriction adds no demonstrated correctness benefit to a spatial room editor. Retain audit-only status, with no gratuitous renaming or custom ban.
+
+No runtime changes or additional tests are needed. Existing policies, vendor bytes and exclusions remain unchanged.
+
+Validation: `bun run check` passes (formatting, Oxlint, ESLint, worker types, build, 117 tests / 611 assertions). Full audit: 1674 diagnostics; both selected rules remain zero. Vendor SHA256SUMS and `git diff --check` pass.

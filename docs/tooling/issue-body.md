@@ -19,8 +19,8 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [ ] Evaluate no-object-parameters, no-unsafe-dictionary-type and no-known-value-widening separately; preserve safe runtime lookups.
 - [ ] Inventory external inputs; evaluate no-unknown-parameters, no-unknown-returns and no-unknown-type-aliases individually after boundary validation exists.
 - [ ] Evaluate no-runtime-typeof after parsing work, documenting predicate exemptions.
-- [ ] Audit no-module-mocking against actual Bun detection; replace relevant mocks with tested dependency seams.
-- [ ] Trial require-readable-spacing against Oxfmt and no-shape-in-symbol-names against domain vocabulary. Explicit deferral is acceptable.
+- [x] Audit module mocking: enable Jest/Vitest-only no-module-mocking (0); manual Bun audit found no module replacements. Existing method spies remain valid seams.
+- [ ] Trial require-readable-spacing against Oxfmt. Shape-name rule explicitly deferred after domain vocabulary review (0); see inventory.
 - [ ] Evaluate require-safety-comment-for-type-assertion after assertion cleanup; document concrete invariants, never boilerplate assurances.
 - [ ] Reinventory all pinned generic rules; record enabled/deferred status, remove temporary overrides and document synchronized upgrades. New upstream rules require new review.
 
@@ -37,3 +37,13 @@ Pinned source review and temporary plugin probes: chained assertions report both
 Reflect probes report direct and string-literal computed global get/apply calls (2 each), including missing-property get, get with explicit receiver, and apply with explicit this. Shadowed Reflect, aliases and dynamic computed names pass (known detection limits). Source search across src, shared, convex, presence-worker and tests found only Reflect.deleteProperty cleanup calls and unrelated Promise<unknown> annotations, no selected calls or assertion chains. No existing receiver-dependent or missing-property behavior requires migration. These bans do not prove direct property/call replacements equivalent: missing reads may yield undefined, getters use the supplied receiver, and apply preserves explicit this; any future exception requires individual semantic review. No automatic fixes. Probes were removed; no production fixtures or detector-mirroring tests added.
 
 Unknown contract assessment: [complete location inventory and decisions](unknown-contract-assessment.md). Parameters 17 → 16, returns 3 → 0, aliases 0, typeof 76. Alias and return rules now enforced (eleven rules total). Return deferral completed using exact Convex contracts and mounted lifecycle coverage; parameters and typeof remain deferred by subsystem.
+
+## Module mocking and symbol vocabulary assessment (base 391140e)
+
+Enable `no-module-mocking` globally at error with existing exclusions: 0 before → 0 after; twelve enforced rules total. This is specifically Jest/Vitest enforcement, not Bun enforcement. The pinned detector recognizes global vi/jest and named imports (including renamed imports) from vitest/@jest/globals, calling mock, doMock or unstable_mockModule through direct or literal-computed members. It does not follow local aliases, destructured methods, namespace imports or dynamic member names. Neither selected rule exposes configurable options.
+
+Owned-source audit across src, shared, convex, presence-worker/src and tests inspected framework imports and mock/spy usages including aliases: no Jest/Vitest imports or calls and no Bun mock.module calls or aliases. Bun imports use named test helpers; tests/roomItemUrl.test.ts uses mock as an injected window-open callback. tests/reactRefactors.test.tsx spies on watchQuery/mutation of a real disabled ConvexReactClient supplied through ConvexProvider, fetch and Date.now; tests/roomPageEffects.test.tsx spies on timers. These method seams do not replace modules and do not warrant a mock refactor or blanket spy ban. Backend tests use convex-test with real registered modules. Future Bun module replacement needs source review; this rule cannot catch it.
+
+Explicitly defer `no-shape-in-symbol-names`, 0 before → 0 after. Exact semantics are a hardcoded case-insensitive substring `shape` on Identifier, PrivateIdentifier and JSXIdentifier, excluding noncomputed borrowed member names. It does not ban square, circle or rect. Existing legitimate domain geometry includes chess Square/squareStyles, RoomToolbar circleBaseStyles, DOMRect room actions and drag/cursor bounds. No current shape match is evidence of clean counts only: future geometry names such as collisionShape would be rejected without understanding ownership; unrelated reshape names also match. This vocabulary restriction adds no demonstrated correctness benefit to a spatial room editor. Retain audit-only status, with no gratuitous renaming or custom ban.
+
+No runtime changes or additional tests are needed. Existing policies, vendor bytes and exclusions remain unchanged.
