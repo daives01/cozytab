@@ -33,12 +33,7 @@ export function needsPawnPromotion(chess: Chess, from: Square, to: Square, side:
 }
 
 export function selectClaimedSide(claimants: Array<{ visitorId: string; side?: ChessSide | null }>, side: ChessSide) {
-    return (
-        claimants
-            .filter((claimant) => claimant.side === side)
-            .map((claimant) => claimant.visitorId)
-            .sort()[0] ?? null
-    );
+    return claimants.flatMap((claimant) => (claimant.side === side ? [claimant.visitorId] : [])).sort()[0] ?? null;
 }
 
 export function deriveChessGameEnd(
