@@ -73,18 +73,19 @@ export const fulfillCoinPurchase = internalMutation({
     },
     handler: async (ctx, args): Promise<void> => {
         const idempotencyKey = `stripe:checkout:${args.stripeEventId}`;
+        const metadata: { stripeEventId: string; stripeSessionId?: string; priceId: string; coins: number } = {
+            stripeEventId: args.stripeEventId,
+            priceId: args.priceId,
+            coins: args.coins,
+        };
+        if (args.stripeSessionId) metadata.stripeSessionId = args.stripeSessionId;
         await applyCurrencyChange({
             ctx,
             userId: args.userId,
             delta: args.coins,
             reason: "purchase",
             idempotencyKey,
-            metadata: {
-                stripeEventId: args.stripeEventId,
-                ...(args.stripeSessionId ? { stripeSessionId: args.stripeSessionId } : {}),
-                priceId: args.priceId,
-                coins: args.coins,
-            },
+            metadata,
         });
     },
 });

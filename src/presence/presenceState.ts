@@ -54,20 +54,22 @@ export function applyPresenceMessage(
             const sameContext =
                 context.inGame === theirInGame &&
                 (context.inMenu === theirInMenu || (context.inGame !== null && theirInGame !== null));
-            return visitors.map((visitor) =>
-                visitor.visitorId === message.visitorId
-                    ? {
-                          ...visitor,
-                          ...(sameContext ? { x: message.x, y: message.y } : {}),
-                          cursorColor: message.cursorColor ?? visitor.cursorColor,
-                          inMenu: message.inMenu ?? visitor.inMenu,
-                          tabbedOut: message.tabbedOut ?? visitor.tabbedOut,
-                          inGame: message.inGame !== undefined ? message.inGame : visitor.inGame,
-                          gameMetadata:
-                              message.gameMetadata !== undefined ? message.gameMetadata : visitor.gameMetadata,
-                      }
-                    : visitor,
-            );
+            return visitors.map((visitor) => {
+                if (visitor.visitorId !== message.visitorId) return visitor;
+                const updated: PresenceVisitor = {
+                    ...visitor,
+                    cursorColor: message.cursorColor ?? visitor.cursorColor,
+                    inMenu: message.inMenu ?? visitor.inMenu,
+                    tabbedOut: message.tabbedOut ?? visitor.tabbedOut,
+                    inGame: message.inGame !== undefined ? message.inGame : visitor.inGame,
+                    gameMetadata: message.gameMetadata !== undefined ? message.gameMetadata : visitor.gameMetadata,
+                };
+                if (sameContext) {
+                    updated.x = message.x;
+                    updated.y = message.y;
+                }
+                return updated;
+            });
         }
     }
 }
