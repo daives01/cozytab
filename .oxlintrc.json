@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "dist/**",
+    "convex/_generated/**",
+    "**/node_modules/**",
+    "**/.wrangler/**",
+    "docs/research/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/vendor/**",
+    ".agents/**",
+    ".codex/**",
+    "**/.cache/**",
+    "**/*.tsbuildinfo"
+  ]
+}
