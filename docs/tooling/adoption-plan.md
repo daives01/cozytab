@@ -12,7 +12,7 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [ ] Land a dedicated formatting baseline PR, verify readable-spacing compatibility, then add format:check to the normal check gate.
 - [ ] Assess remaining major dependency migrations separately, including Workers types 5, ESLint, Vite, TypeScript, lucide, convex-test and Stripe component compatibility. Record updates or concrete deferrals.
 - [x] Pin an upstream anti-slop commit, review and vendor generic plugin sources with license, provenance and upgrade instructions. Add opt-in audit only; inventory every rule with counts and false positives. Do not add Effect rules without Effect usage.
-- [ ] Review accumulator copying and eager pipelines: oxc/no-accumulating-spread, no-reduce-accumulator-copy, no-array-filter-map. Preserve callback order and immutability.
+- [x] Review accumulator copying and eager pipelines: oxc/no-accumulating-spread, no-reduce-accumulator-copy, no-array-filter-map. Preserve callback order and immutability.
 - [ ] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
 - [ ] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.
 - [ ] Review no-conditional-empty-object-spread; preserve omitted fields at Convex, storage and guest import boundaries.

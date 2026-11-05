@@ -41,3 +41,9 @@ Representative findings (inspect before remediation):
 - anti-slop(no-known-value-widening): src/time/timezoneCoordinates.ts:6.
 - anti-slop(no-array-filter-map): src/games/chess/useChessController.ts:32.
 - anti-slop(no-unknown-returns): src/room/hooks/useRoomPageEffects.ts:54.
+
+## Pipeline policy adoption (after formatting baseline 95cd0d1)
+
+Fresh audit before: 1647 diagnostics; after: 1646. Selected counts before → after: no-array-filter-map 2 → 0; no-reduce-accumulator-copy 0 → 0; oxc/no-accumulating-spread 0 → 0. Spacing increases from 1398 to 1399 (the new multiline flatMap return); other counts are unchanged: safety comments 122, runtime typeof 76, dictionaries 18, unknown parameters 17, known-value widening 9, unknown returns 3, conditional empty spreads 2; remaining rules zero. The historical table above remains the foundation snapshot.
+
+Normal config now loads the pinned vendor plugin and explicitly enables only these three selected rules as errors, retaining all excludes. The audit keeps warning severity for inventories. Chess side selection and guest item sanitization use flatMap; neither callback uses indexes. The chess callbacks only read plain claimant fields; the guest predicate only checks object/null, so moving those checks between cloning callbacks has no observable effects. Sorting still uses a fresh array; sanitization still clones each retained item and preserves order, generated-ID order, clamping and input immutability. Existing boundary and guest persistence tests cover these contracts. Vendor sources and checksums are unchanged.

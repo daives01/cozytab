@@ -165,14 +165,17 @@ function parseJson<T>(raw: string | null, fallback: T): T {
 }
 
 function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
-    return items
-        .filter((item): item is RoomItem => typeof item === "object" && item !== null)
-        .map((item) => ({
-            ...item,
-            id: typeof item.id === "string" ? item.id : createId(),
-            x: clampNumber(item.x, 0, 0, Infinity),
-            y: clampNumber(item.y, 0, 0, Infinity),
-        }));
+    return items.flatMap((item) => {
+        if (typeof item !== "object" || item === null) return [];
+        return [
+            {
+                ...item,
+                id: typeof item.id === "string" ? item.id : createId(),
+                x: clampNumber(item.x, 0, 0, Infinity),
+                y: clampNumber(item.y, 0, 0, Infinity),
+            },
+        ];
+    });
 }
 
 function normalizeGuestSession(raw: GuestSessionState, catalogLookup: CatalogLookup | null): GuestSessionState {
