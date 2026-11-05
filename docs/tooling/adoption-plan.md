@@ -16,7 +16,7 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [x] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
 - [x] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.
 - [x] Review no-conditional-empty-object-spread; preserve omitted fields at Convex, storage and guest import boundaries.
-- [ ] Evaluate no-object-parameters, no-unsafe-dictionary-type and no-known-value-widening separately; preserve safe runtime lookups.
+- [x] Assess contract policies: enable no-object-parameters (0); explicitly defer unsafe dictionaries (18) and known-value widening (11). Per-location rationale and bounded follow-ups are in anti-slop-inventory.md.
 - [ ] Inventory external inputs; evaluate no-unknown-parameters, no-unknown-returns and no-unknown-type-aliases individually after boundary validation exists.
 - [ ] Evaluate no-runtime-typeof after parsing work, documenting predicate exemptions.
 - [ ] Audit no-module-mocking against actual Bun detection; replace relevant mocks with tested dependency seams.
