@@ -24,7 +24,8 @@
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "check": "bun run lint:ox && bun run lint && bun run typecheck:worker && bun run build && bun run test",
-    "typecheck:worker": "bunx tsc --noEmit -p presence-worker/tsconfig.json"
+    "typecheck:worker": "bunx tsc --noEmit -p presence-worker/tsconfig.json",
+    "lint:audit": "oxlint -c .oxlintrc.audit.json ."
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.61.3",
