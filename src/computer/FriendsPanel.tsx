@@ -13,6 +13,7 @@ function getErrorMessage(err: unknown): string {
     if (err instanceof ConvexError) {
         return err.data as string;
     }
+
     return "Something went wrong";
 }
 
@@ -111,6 +112,7 @@ function TabButton({
 }
 
 type FriendsQuery = ReturnType<typeof useQuery<typeof api.friends.getMyFriends>>;
+
 type PendingRequestsQuery = ReturnType<typeof useQuery<typeof api.friends.getMyPendingRequests>>;
 
 type FriendshipStatusMap = Record<string, { status: "pending" | "accepted"; isInitiator: boolean } | null>;
@@ -138,9 +140,11 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
         const currentNow = Date.now();
 
         let nextFlipAt: number | null = null;
+
         for (const f of friends) {
             if (!f?.lastSeenAt) continue;
             const offlineAt = f.lastSeenAt + ONLINE_THRESHOLD_MS;
+
             if (offlineAt > currentNow && (nextFlipAt === null || offlineAt < nextFlipAt)) {
                 nextFlipAt = offlineAt;
             }
@@ -150,6 +154,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
         const delay = Math.max(nextFlipAt - currentNow, 0) + 50;
         const timeout = setTimeout(() => setNow(Date.now()), delay);
+
         return () => clearTimeout(timeout);
     }, [friends, now]);
 
@@ -276,6 +281,7 @@ function InRoomVisitorRow({
     const convexUserId = visitor.convexUserId as Id<"users"> | undefined;
     const sendRequest = useMutation(api.friends.sendFriendRequestByUserId);
     const [sending, setSending] = useState(false);
+
     const [result, setResult] = useState<{
         type: "sent" | "autoAccepted" | "alreadyPending" | "alreadyFriends";
     } | null>(null);
@@ -286,8 +292,10 @@ function InRoomVisitorRow({
 
     const handleSend = async () => {
         setSending(true);
+
         try {
             const res = await sendRequest({ userId: convexUserId });
+
             if (res.alreadyFriends) {
                 setResult({ type: "alreadyFriends" });
             } else if (res.alreadyPending) {
@@ -305,6 +313,7 @@ function InRoomVisitorRow({
     };
 
     let actionContent;
+
     if (friendshipStatus === undefined) {
         actionContent = <span className="text-xs text-stone-400">...</span>;
     } else if (
@@ -438,6 +447,7 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
 
     const handleCopyLink = async () => {
         if (!friendLink) return;
+
         try {
             await navigator.clipboard.writeText(friendLink);
             setLinkCopied(true);
@@ -449,20 +459,26 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
 
     const handleSend = async () => {
         let code = inputCode.trim();
+
         if (!code) return;
+
         // Extract code from full URL if pasted (e.g., https://www.cozytab.club/?friendRef=JWJT2GVB)
         try {
             const url = new URL(code);
             const refCode = url.searchParams.get("friendRef");
+
             if (refCode) code = refCode;
         } catch {
             // Not a URL, use as-is
         }
+
         code = code.toUpperCase();
         setSending(true);
         setSendResult(null);
+
         try {
             const result = await sendRequest({ friendCode: code });
+
             if (result.alreadyFriends) {
                 setSendResult({ success: true, message: "You're already friends!" });
             } else if (result.alreadyPending) {
@@ -472,6 +488,7 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
             } else {
                 setSendResult({ success: true, message: "Friend request sent!" });
             }
+
             setInputCode("");
         } catch (err) {
             setSendResult({ success: false, message: getErrorMessage(err) });

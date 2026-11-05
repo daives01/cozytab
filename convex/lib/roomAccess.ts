@@ -6,7 +6,9 @@ type RequestCtx = QueryCtx | MutationCtx;
 
 export async function getRoomOrThrow(ctx: RequestCtx, roomId: Id<"rooms">) {
     const room = await ctx.db.get(roomId);
+
     if (!room) throw new ConvexError("Room not found");
+
     return room;
 }
 

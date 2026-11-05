@@ -22,8 +22,10 @@ interface ShareModalProps {
 
 export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
     const enableInvite = useMutation(api.invites.enableInvite);
+
     const revokeInvite = useMutation(api.invites.revokeInvite).withOptimisticUpdate((localStore, { inviteId }) => {
         const current = localStore.getQuery(api.invites.getMyActiveInvites, {});
+
         if (!current) return;
         localStore.setQuery(
             api.invites.getMyActiveInvites,
@@ -31,6 +33,7 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
             current.map((inv) => (inv._id === inviteId ? { ...inv, expiresAt: Date.now() } : inv)),
         );
     });
+
     const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
 
     const [copied, setCopied] = useState(false);
@@ -50,11 +53,13 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
 
         const remaining = expiresAt - Date.now();
         const id = setTimeout(() => setNow(Date.now()), Math.max(0, remaining) + 10);
+
         return () => clearTimeout(id);
     }, [expiresAt]);
 
     const handleResetCode = async () => {
         setIsRotating(true);
+
         try {
             if (activeInvite) await rotateInviteCode();
             else await enableInvite();
@@ -75,9 +80,12 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
         if (inviteIsLive && activeInvite) {
             await revokeInvite({ inviteId: activeInvite._id });
             setCopied(false);
+
             return;
         }
+
         setIsEnabling(true);
+
         try {
             await enableInvite();
         } finally {

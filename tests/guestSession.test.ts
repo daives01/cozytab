@@ -116,10 +116,12 @@ describe("guest session storage", () => {
         const starterId = "starter" as Id<"catalogItems">;
         const paidId = "paid" as Id<"catalogItems">;
         const staleId = "stale" as Id<"catalogItems">;
+
         const lookup = buildCatalogLookup([
             { _id: starterId, name: "Starter", isStarterItem: true },
             { _id: paidId, name: "Paid" },
         ]);
+
         localStorage.setItem(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify([paidId, paidId, staleId]));
         localStorage.setItem(
             GUEST_ROOM_STORAGE_KEY,

@@ -3,7 +3,9 @@ import type { RoomItem } from "@shared/guestTypes";
 import type { GuestSessionState } from "@shared/guestTypes";
 
 type HydratedRoom = (Doc<"rooms"> & { template?: Doc<"roomTemplates"> | null }) | null | undefined;
+
 type GuestDefaultRoom = { template: Doc<"roomTemplates">; items: RoomItem[] } | null | undefined;
+
 type DefaultTemplate = Doc<"roomTemplates"> | null | undefined;
 
 type GateArgs = {

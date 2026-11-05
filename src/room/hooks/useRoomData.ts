@@ -15,17 +15,21 @@ interface RoomDataArgs {
 export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
+
     const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip") as
         | { template: Doc<"roomTemplates">; items: RoomItem[] }
         | null
         | undefined;
+
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list);
     const computerState = useQuery(api.users.getMyComputer, isGuest ? "skip" : {});
 
     const roomTemplateBackgroundUrl = useMemo(() => {
         if (isGuest) return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
+
         if (room?.template?.backgroundUrl) return room.template.backgroundUrl;
+
         return guestTemplate?.backgroundUrl ?? guestRoom?.template?.backgroundUrl;
     }, [guestRoom?.template?.backgroundUrl, guestTemplate?.backgroundUrl, isGuest, room?.template?.backgroundUrl]);
 
@@ -33,6 +37,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const computerCatalogItem = useMemo(() => {
         if (!catalogItems) return null;
+
         return (
             catalogItems.find(
                 (c: (typeof catalogItems)[number]) => c.isStarterItem && c.category.toLowerCase() === "computers",
@@ -44,6 +49,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const computerStorageId = useMemo(() => {
         if (!computerCatalogItem?.assetUrl?.startsWith("storage:")) return null;
+
         return computerCatalogItem.assetUrl.replace("storage:", "");
     }, [computerCatalogItem]);
 
@@ -54,8 +60,11 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const resolvedComputerAssetUrl = useMemo(() => {
         const assetUrl = computerCatalogItem?.assetUrl;
+
         if (!assetUrl) return null;
+
         if (assetUrl.startsWith("storage:")) return computerResolvedUrl ?? null;
+
         return assetUrl;
     }, [computerCatalogItem?.assetUrl, computerResolvedUrl]);
 

@@ -30,6 +30,7 @@ export function EditableCell({
                 onBlur={onSave}
                 onKeyDown={(e) => {
                     if (e.key === "Enter") onSave();
+
                     if (e.key === "Escape") onCancel();
                 }}
                 className="w-full px-2 py-1 bg-stone-700 border border-amber-500 rounded text-stone-100 focus:outline-none"

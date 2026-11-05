@@ -5,6 +5,7 @@ const MIN_POSITION = 0;
 
 function clampCoordinate(value: number, max: number) {
     if (!Number.isFinite(value)) return MIN_POSITION;
+
     return Math.min(max, Math.max(MIN_POSITION, value));
 }
 
@@ -69,7 +70,9 @@ export function clampCursorToRoom({
         const roomY = (clientY - rect.top) / scale;
         const x = Math.max(0, Math.min(roomWidth, roomX));
         const y = Math.max(0, Math.min(roomHeight, roomY));
+
         return { x, y };
     }
+
     return lastPosition;
 }

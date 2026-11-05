@@ -15,26 +15,32 @@ let cachedMusicVolume = DEFAULT_MUSIC_VOLUME;
 
 function clampVolume(value: unknown, fallback: number): number {
     if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+
     return Math.max(0, Math.min(1, value));
 }
 
 function loadGuestPrefs(): KeyboardSoundPrefs | null {
     if (typeof window === "undefined") return null;
+
     try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
+
         if (!raw) return null;
         const parsed = JSON.parse(raw) as Partial<{ volume: unknown; musicVolume: unknown }>;
         const volume = clampVolume(parsed.volume, DEFAULT_VOLUME);
         const musicVolume = clampVolume(parsed.musicVolume, DEFAULT_MUSIC_VOLUME);
+
         return { volume, musicVolume };
     } catch (err) {
         console.warn("[KeyboardSound] Failed to read guest prefs", err);
+
         return null;
     }
 }
 
 function saveGuestPrefs(volume: number, musicVolume: number) {
     if (typeof window === "undefined") return;
+
     try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume, musicVolume }));
     } catch (err) {
@@ -45,11 +51,14 @@ function saveGuestPrefs(volume: number, musicVolume: number) {
 function updateCache(nextVolume: number, nextMusicVolume = cachedMusicVolume) {
     const clampedVolume = clampVolume(nextVolume, DEFAULT_VOLUME);
     const clampedMusicVolume = clampVolume(nextMusicVolume, DEFAULT_MUSIC_VOLUME);
+
     const changed =
         Math.abs(clampedVolume - cachedVolume) > 0.0001 || Math.abs(clampedMusicVolume - cachedMusicVolume) > 0.0001;
+
     cachedVolume = clampedVolume;
     cachedMusicVolume = clampedMusicVolume;
     setTypingVolumeMultiplier(cachedVolume);
+
     if (!changed) return;
     listeners.forEach((listener) => listener());
 }
@@ -59,6 +68,7 @@ updateCache(cachedVolume, cachedMusicVolume);
 
 function subscribe(listener: () => void) {
     listeners.add(listener);
+
     return () => listeners.delete(listener);
 }
 
@@ -74,6 +84,7 @@ export function useKeyboardSoundPreferences() {
     const remote = useQuery(api.users.getKeyboardSoundSettings, {});
     const saveRemote = useMutation(api.users.saveKeyboardSoundSettings);
     const saveMusicRemote = useMutation(api.users.saveMusicPlayerVolume);
+
     const debouncedSaveRemote = useMemo(
         () =>
             debounce((nextVolume: number, nextMusicVolume: number) => {
@@ -81,6 +92,7 @@ export function useKeyboardSoundPreferences() {
             }, 250),
         [saveRemote],
     );
+
     const debouncedSaveMusicRemote = useMemo(
         () => debounce((nextMusicVolume: number) => void saveMusicRemote({ volume: nextMusicVolume }), 250),
         [saveMusicRemote],
@@ -91,6 +103,7 @@ export function useKeyboardSoundPreferences() {
         () => cachedVolume,
         () => cachedVolume,
     );
+
     const musicVolume = useSyncExternalStore(
         subscribe,
         () => cachedMusicVolume,
@@ -102,10 +115,13 @@ export function useKeyboardSoundPreferences() {
     useEffect(() => {
         if (mode === "remote" && remote) {
             updateCache(remote.volume ?? DEFAULT_VOLUME, remote.musicVolume ?? DEFAULT_MUSIC_VOLUME);
+
             return;
         }
+
         if (mode === "guest") {
             const stored = loadGuestPrefs();
+
             if (stored) {
                 updateCache(stored.volume, stored.musicVolume);
             } else {
@@ -117,6 +133,7 @@ export function useKeyboardSoundPreferences() {
     const persist = useCallback(
         (next: KeyboardSoundPrefs, kind: "volume" | "music") => {
             updateCache(next.volume, next.musicVolume);
+
             if (mode === "remote") {
                 if (kind === "music") {
                     debouncedSaveMusicRemote(next.musicVolume);

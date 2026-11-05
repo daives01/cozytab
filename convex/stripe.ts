@@ -10,9 +10,11 @@ const stripeClient = new StripeSubscriptions(components.stripe, {});
 
 function getAppUrl(): string {
     const url = process.env.APP_URL;
+
     if (!url) {
         throw new Error("APP_URL environment variable is not set");
     }
+
     return url.replace(/\/+$/, "");
 }
 
@@ -26,14 +28,19 @@ export const createCoinCheckout = action({
     }),
     handler: async (ctx, args): Promise<{ sessionId: string; url: string | null }> => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) throw new Error("Not authenticated");
+
         const user = await ctx.runQuery(internal.users.getByExternalId, {
             externalId: identity.subject,
         });
+
         if (!user) {
             throw new Error("Authenticated user record not found");
         }
+
         const coinAmount = getCoinAmountForPriceId(args.priceId, getCoinPriceToAmount());
+
         if (coinAmount === undefined) {
             throw new Error("Unsupported coin pack");
         }
@@ -73,11 +80,13 @@ export const fulfillCoinPurchase = internalMutation({
     },
     handler: async (ctx, args): Promise<void> => {
         const idempotencyKey = `stripe:checkout:${args.stripeEventId}`;
+
         const metadata: { stripeEventId: string; stripeSessionId?: string; priceId: string; coins: number } = {
             stripeEventId: args.stripeEventId,
             priceId: args.priceId,
             coins: args.coins,
         };
+
         if (args.stripeSessionId) metadata.stripeSessionId = args.stripeSessionId;
         await applyCurrencyChange({
             ctx,

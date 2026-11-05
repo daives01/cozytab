@@ -35,6 +35,7 @@ class MemoryStorage implements Storage {
 const originalWindow = globalThis.window;
 const originalLocalStorage = globalThis.localStorage;
 const originalSessionStorage = globalThis.sessionStorage;
+
 const guestKeys = [
     GUEST_ROOM_STORAGE_KEY,
     GUEST_COINS_STORAGE_KEY,
@@ -69,10 +70,12 @@ describe("browser Guest Conversion", () => {
         "clears Guest Progress and referral after %s",
         async (disposition) => {
             let received: unknown;
+
             const result = await resolveBrowserGuestProgress({
                 username: "Guest",
                 resolveGuestProgress: async (args) => {
                     received = args;
+
                     return { disposition };
                 },
             });
@@ -83,10 +86,12 @@ describe("browser Guest Conversion", () => {
                 referralCode: "FRIEND",
                 guestProgress: { coins: 3, onboardingCompleted: true, cursorColor: "#123456" },
             });
+
             for (const key of guestKeys) {
                 expect(localStorage.getItem(key)).toBeNull();
                 expect(sessionStorage.getItem(key)).toBeNull();
             }
+
             expect(localStorage.getItem("cozytab_referral_code")).toBeNull();
             expect(sessionStorage.getItem("cozytab_referral_code")).toBeNull();
         },

@@ -18,6 +18,7 @@ interface UseDailyRewardOptions {
 
 export function useDailyReward({ user, isGuest, claimDailyReward, onReward }: UseDailyRewardOptions) {
     const [dailyRewardClaimed, setDailyRewardClaimed] = useState(false);
+
     const [rewardInfo, setRewardInfo] = useState<DailyRewardState>({
         awardedAt: undefined,
         nextRewardAt: undefined,
@@ -40,6 +41,7 @@ export function useDailyReward({ user, isGuest, claimDailyReward, onReward }: Us
                     lastDailyRewardDay: result.lastDailyRewardDay ?? prev.lastDailyRewardDay,
                     wasAttempted: true,
                 }));
+
                 if (result.success) {
                     onReward?.({
                         awardedAt: awardedAt ?? Date.now(),
@@ -47,6 +49,7 @@ export function useDailyReward({ user, isGuest, claimDailyReward, onReward }: Us
                         nextRewardAt: result.nextRewardAt,
                     });
                 }
+
                 setDailyRewardClaimed(true);
             })
             .catch(() => {

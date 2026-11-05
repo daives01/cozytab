@@ -10,6 +10,7 @@ const modules = {
 
 async function setupUser(initialCurrency: number) {
     const t = convexTest(schema, modules);
+
     const userId = await t.run(async (ctx) =>
         ctx.db.insert("users", {
             externalId: "user",
@@ -18,7 +19,9 @@ async function setupUser(initialCurrency: number) {
             referralCode: "REFCODE",
         }),
     );
+
     const getUser = () => t.run((ctx) => ctx.db.get(userId));
+
     const getTxsByKey = (idempotencyKey: string) =>
         t.run((ctx) =>
             ctx.db
@@ -90,6 +93,7 @@ describe("applyCurrencyChange", () => {
                 idempotencyKey: "purchase:user1:req1",
             }),
         );
+
         const second = await t.run((ctx) =>
             applyCurrencyChange({
                 ctx,
@@ -110,6 +114,7 @@ describe("applyCurrencyChange", () => {
 
     test("rejects cross-user idempotency reuse", async () => {
         const t = convexTest(schema, modules);
+
         const { userA, userB } = await t.run(async (ctx) => {
             const a = await ctx.db.insert("users", {
                 externalId: "userA",
@@ -117,12 +122,14 @@ describe("applyCurrencyChange", () => {
                 currency: 2,
                 referralCode: "REF-A",
             });
+
             const b = await ctx.db.insert("users", {
                 externalId: "userB",
                 username: "userB",
                 currency: 2,
                 referralCode: "REF-B",
             });
+
             return { userA: a, userB: b };
         });
 

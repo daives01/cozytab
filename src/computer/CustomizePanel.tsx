@@ -48,6 +48,7 @@ function DisplayNameCard({ props }: { props?: DisplayNameSectionProps }) {
     // Sync local state when the authoritative name changes (e.g., from DB or other tab)
     useEffect(() => {
         if (props?.currentDisplayName === undefined) return;
+
         if (props.currentDisplayName === lastSavedValue.current) return;
         syncRemoteName(props.currentDisplayName);
     }, [props?.currentDisplayName]);

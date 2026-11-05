@@ -24,6 +24,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
                 activeTouchIdRef.current === null
                     ? e.touches[0]
                     : Array.from(e.touches).find((item) => item.identifier === activeTouchIdRef.current);
+
             if (!touch) return;
 
             if (activeTouchIdRef.current === null) {
@@ -31,6 +32,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
             }
 
             pendingPositionRef.current = { x: touch.clientX, y: touch.clientY };
+
             if (!hasTouch) {
                 setHasTouch(true);
             }
@@ -40,6 +42,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
                     if (pendingPositionRef.current !== null) {
                         setPosition(pendingPositionRef.current);
                     }
+
                     rafIdRef.current = null;
                 });
             }
@@ -50,6 +53,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
     const handleTouchEnd = useCallback((e: TouchEvent) => {
         if (activeTouchIdRef.current === null) return;
         const stillActive = Array.from(e.touches).some((item) => item.identifier === activeTouchIdRef.current);
+
         if (!stillActive) {
             activeTouchIdRef.current = null;
             pendingPositionRef.current = null;
@@ -74,6 +78,7 @@ export function TouchCursor({ cursorColor = "var(--chart-4)" }: TouchCursorProps
                 cancelAnimationFrame(rafIdRef.current);
                 rafIdRef.current = null;
             }
+
             activeTouchIdRef.current = null;
         };
     }, [isTouchOnly, handleTouch, handleTouchEnd]);

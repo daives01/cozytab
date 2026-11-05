@@ -23,6 +23,7 @@ export function usePresenceHeartbeat(enabled: boolean) {
 
         setup();
         document.addEventListener("visibilitychange", setup);
+
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             document.removeEventListener("visibilitychange", setup);

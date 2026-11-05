@@ -60,6 +60,7 @@ describe("Guest Conversion", () => {
         await seedTemplate(t);
         const starterId = await seedCatalogItem(t, { isStarterItem: true });
         const urls = [" example.com/path ", "javascript:alert(1)", "https://", "https://example.com/\nfoo"];
+
         for (const [index, url] of urls.entries()) {
             await asUser(t, `url-guest-${index}`).mutation(api.guestConversion.resolveGuestProgress, {
                 username: "Guest",
@@ -78,8 +79,10 @@ describe("Guest Conversion", () => {
                 }),
             });
         }
+
         const state = await allConversionState(t);
         expect(state.rooms).toHaveLength(urls.length);
+
         for (const [index, room] of state.rooms.entries()) {
             expect(room.items).toHaveLength(1);
             expect(room.items[0]).toMatchObject({ id: "link", musicUrl: "https://youtu.be/abc", musicType: "youtube" });
@@ -160,12 +163,14 @@ describe("Guest Conversion", () => {
         const freeId = await seedCatalogItem(t, { name: "Free decor", basePrice: 0 });
         const paidId = await seedCatalogItem(t, { name: "Purchased lamp", basePrice: 2 });
         const inventoryIds = [...Array.from({ length: count - 1 }, () => freeId), paidId];
+
         const roomItems = inventoryIds.map((catalogItemId, index) => ({
             id: `item-${index}`,
             catalogItemId,
             x: 1,
             y: 2,
         }));
+
         // Invalid placements must not consume capacity ahead of valid owned items.
         const invalid = { id: "unknown", catalogItemId: "unknown" as typeof freeId, x: 0, y: 0 };
         const caller = asUser(t, `guest-${count}`);
@@ -243,6 +248,7 @@ describe("Guest Conversion", () => {
         await seedTemplate(t);
         const referrerId = await seedUser(t, "referrer", 10);
         const caller = asUser(t, "referred");
+
         const args = {
             username: "Referred",
             referralCode: "REF-referrer",

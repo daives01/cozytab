@@ -57,19 +57,24 @@ function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fall
     const givenName =
         normalizeString((identity as { firstName?: string }).firstName) ??
         normalizeString((identity as { givenName?: string }).givenName);
+
     const familyName =
         normalizeString((identity as { lastName?: string }).lastName) ??
         normalizeString((identity as { familyName?: string }).familyName);
+
     const identityName =
         normalizeString(identity.name) ??
         (givenName && familyName ? `${givenName} ${familyName}` : undefined) ??
         givenName ??
         familyName;
+
     const tokenTail = identity.tokenIdentifier?.split(":").pop();
+
     const rawEmail =
         normalizeString((identity as { email?: string }).email) ??
         normalizeString((identity as { emailAddress?: string }).emailAddress) ??
         (tokenTail?.includes("@") ? tokenTail : undefined);
+
     const emailLocal = rawEmail?.split("@")[0];
     const providedUsername = normalizeString(fallbackUsername);
     const identityUsername = normalizeString(identity.username);
@@ -83,14 +88,17 @@ function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fall
 function generateReferralCode() {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "";
+
     for (let index = 0; index < 8; index += 1) {
         code += chars[Math.floor(Math.random() * chars.length)];
     }
+
     return code;
 }
 
 async function generateUniqueReferralCode(ctx: MutationCtx) {
     let code = generateReferralCode();
+
     while (
         await ctx.db
             .query("users")
@@ -99,11 +107,13 @@ async function generateUniqueReferralCode(ctx: MutationCtx) {
     ) {
         code = generateReferralCode();
     }
+
     return code;
 }
 
 function clamp(value: number, minimum: number, maximum: number) {
     if (!Number.isFinite(value)) return minimum;
+
     return Math.min(maximum, Math.max(minimum, value));
 }
 
@@ -114,23 +124,33 @@ function sanitizeRoomItem(item: GuestRoomItem, catalogItemId: Id<"catalogItems">
         x: clamp(item.x, 0, MAX_POSITION),
         y: clamp(item.y, 0, MAX_POSITION),
     };
+
     if (item.url !== undefined) {
         const url = normalizeRoomItemUrl(item.url);
+
         if (url) sanitized.url = url;
     }
+
     if (item.flipped !== undefined) sanitized.flipped = item.flipped;
+
     if (item.musicUrl !== undefined) sanitized.musicUrl = item.musicUrl.slice(0, MAX_URL_LENGTH);
+
     if (item.musicType === "youtube") sanitized.musicType = "youtube";
+
     if (item.musicPlaying !== undefined) sanitized.musicPlaying = item.musicPlaying;
+
     if (item.musicStartedAt !== undefined)
         sanitized.musicStartedAt = clamp(item.musicStartedAt, 0, MAX_TIME_POSITION_MS);
+
     if (item.musicPositionAtStart !== undefined)
         sanitized.musicPositionAtStart = clamp(item.musicPositionAtStart, 0, MAX_TIME_POSITION_MS);
+
     return sanitized;
 }
 
 function reconstructEconomy(catalogItems: Doc<"catalogItems">[], requestedInventory: string[]) {
     const byIdOrName = new Map<string, Doc<"catalogItems">>();
+
     for (const item of catalogItems) {
         byIdOrName.set(item._id, item);
         byIdOrName.set(item.name, item);
@@ -142,13 +162,17 @@ function reconstructEconomy(catalogItems: Doc<"catalogItems">[], requestedInvent
 
     for (const idOrName of requestedInventory.slice(0, MAX_GUEST_ITEMS)) {
         const item = byIdOrName.get(idOrName);
+
         if (!item) continue;
         const isFreeStarter = item.isStarterItem === true && !freeStarters.has(item._id);
         const cost = isFreeStarter ? 0 : item.basePrice;
+
         if (!isValidPrice(cost)) continue;
+
         if (cost > balance) continue;
         balance -= cost;
         ownedCounts.set(item._id, (ownedCounts.get(item._id) ?? 0) + 1);
+
         if (isFreeStarter) freeStarters.add(item._id);
     }
 
@@ -166,15 +190,20 @@ function preserveOwnedPlacements(
 ) {
     const remaining = new Map(ownedCounts);
     const preserved: RoomItem[] = [];
+
     for (const item of roomItems.slice(0, MAX_GUEST_ITEMS)) {
         const catalogItem = catalogByIdOrName.get(item.catalogItemId);
+
         if (!catalogItem) continue;
         const count = remaining.get(catalogItem._id) ?? 0;
+
         if (count <= 0) continue;
         preserved.push(sanitizeRoomItem(item, catalogItem._id));
+
         if (preserved.length === MAX_ROOM_ITEMS) break;
         remaining.set(catalogItem._id, count - 1);
     }
+
     return preserved;
 }
 
@@ -198,39 +227,48 @@ export const resolveGuestProgress = mutation({
     },
     handler: async (ctx, args) => {
         const identity = await requireIdentity(ctx);
+
         const existingUser = await ctx.db
             .query("users")
             .withIndex("by_externalId", (query) => query.eq("externalId", identity.subject))
             .unique();
+
         if (existingUser) return { disposition: "discarded_existing_user" as const };
 
         const defaultTemplates = await ctx.db
             .query("roomTemplates")
             .withIndex("by_default", (query) => query.eq("isDefault", true))
             .collect();
+
         const template = defaultTemplates[0];
+
         if (!template) throw new Error("Default room template is not configured");
 
         const catalogItems = await ctx.db.query("catalogItems").collect();
         const { balance, ownedCounts } = reconstructEconomy(catalogItems, args.guestProgress.inventoryIds);
         const catalogByIdOrName = new Map<string, Doc<"catalogItems">>();
+
         for (const item of catalogItems) {
             catalogByIdOrName.set(item._id, item);
             catalogByIdOrName.set(item.name, item);
         }
+
         const roomItems = preserveOwnedPlacements(args.guestProgress.roomItems, ownedCounts, catalogByIdOrName);
         const shortcuts = sanitizeShortcuts(args.guestProgress.shortcuts);
         const cursorColor = normalizeString(args.guestProgress.cursorColor) ?? randomBrightColor();
         const names = deriveNames(identity, args.username);
 
         const providedReferralCode = normalizeString(args.referralCode);
+
         const referrer = providedReferralCode
             ? await ctx.db
                   .query("users")
                   .withIndex("by_referralCode", (query) => query.eq("referralCode", providedReferralCode))
                   .unique()
             : null;
+
         const referralCode = await generateUniqueReferralCode(ctx);
+
         const userId = await ctx.db.insert("users", {
             externalId: identity.subject,
             username: names.username,
@@ -274,8 +312,10 @@ export const resolveGuestProgress = mutation({
                 idempotencyKey: `referral:${referrer._id}:${identity.subject}`,
                 metadata: { referredExternalId: identity.subject },
             });
+
             const [user1, user2] =
                 referrer._id < userId ? ([referrer._id, userId] as const) : ([userId, referrer._id] as const);
+
             await ctx.db.insert("friendships", {
                 user1,
                 user2,

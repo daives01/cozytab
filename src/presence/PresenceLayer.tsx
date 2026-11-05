@@ -16,7 +16,9 @@ export function PresenceLayer({ visitors, currentVisitorId, scale, currentGameId
             {visitors
                 .filter((visitor) => {
                     if (visitor.visitorId === currentVisitorId) return false;
+
                     if (currentGameId && visitor.inGame === currentGameId) return false;
+
                     return true;
                 })
                 .map((visitor) => {
@@ -27,6 +29,7 @@ export function PresenceLayer({ visitors, currentVisitorId, scale, currentGameId
 
                     if (visitor.inGame && items) {
                         const item = items.find((i) => i.id === visitor.inGame);
+
                         if (item) {
                             cursorX = item.x;
                             cursorY = item.y;

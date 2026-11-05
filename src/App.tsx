@@ -12,9 +12,11 @@ import { useGlobalTypingSounds } from "./hooks/useGlobalTypingSounds";
 const VisitorRoomPage = lazy(() =>
     import("./room/VisitorRoomPage").then((module) => ({ default: module.VisitorRoomPage })),
 );
+
 const FriendVisitPage = lazy(() =>
     import("./room/FriendVisitPage").then((module) => ({ default: module.FriendVisitPage })),
 );
+
 const AdminPage = lazy(() => import("./admin/AdminPage").then((module) => ({ default: module.AdminPage })));
 
 function RouteLoading() {
@@ -28,6 +30,7 @@ function RouteLoading() {
 /** Backwards-compat: /ref/:code and /addfriend/:code both redirect to /?friendRef=code */
 function LegacyRedirect() {
     const { code } = useParams<{ code: string }>();
+
     return <Navigate to={code ? `/?friendRef=${encodeURIComponent(code)}` : "/"} replace />;
 }
 
@@ -60,12 +63,14 @@ function HomeRoute() {
         if (typeof window === "undefined") return null;
         const params = new URLSearchParams(window.location.search);
         const code = params.get("friendRef");
+
         if (code) {
             saveReferralCode(code);
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete("friendRef");
             window.history.replaceState({}, "", newUrl.pathname + newUrl.search);
         }
+
         return code;
     });
 
@@ -90,8 +95,10 @@ function HomeRoute() {
 
 function TouchWarningGate() {
     const isTouchCapable = useTouchCapability();
+
     const [dismissed, setDismissed] = useState(() => {
         if (typeof window === "undefined") return false;
+
         return window.localStorage.getItem("nook_touch_warning_dismissed") === "true";
     });
 
@@ -101,6 +108,7 @@ function TouchWarningGate() {
         if (typeof window !== "undefined" && dontShowAgain) {
             window.localStorage.setItem("nook_touch_warning_dismissed", "true");
         }
+
         setDismissed(true);
     };
 

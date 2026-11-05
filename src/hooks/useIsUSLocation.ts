@@ -18,12 +18,16 @@ let inflightPromise: Promise<boolean> | null = null;
 function getCachedLocation(): boolean | null {
     try {
         const raw = localStorage.getItem(CACHE_KEY);
+
         if (!raw) return null;
         const cached: CachedLocation = JSON.parse(raw);
+
         if (Date.now() - cached.timestamp > CACHE_TTL_MS) {
             localStorage.removeItem(CACHE_KEY);
+
             return null;
         }
+
         return cached.isUS;
     } catch {
         return null;
@@ -41,6 +45,7 @@ function setCachedLocation(isUS: boolean): void {
 
 async function fetchLocation(): Promise<boolean> {
     const cached = getCachedLocation();
+
     if (cached !== null) return cached;
 
     if (inflightPromise) return inflightPromise;
@@ -48,13 +53,16 @@ async function fetchLocation(): Promise<boolean> {
     inflightPromise = (async () => {
         try {
             const response = await fetch("https://ipapi.co/json/");
+
             if (!response.ok) throw new Error("Failed to fetch location");
             const geo: GeoLocation = await response.json();
             const isUS = geo.country_code === "US";
             setCachedLocation(isUS);
+
             return isUS;
         } catch (error) {
             console.error("Failed to check user location:", error);
+
             return true; // Fail open
         } finally {
             inflightPromise = null;

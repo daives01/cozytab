@@ -25,3 +25,13 @@ Full check passes including format:check and 113 tests. A second formatting chec
 Pinned require-readable-spacing trial used temporary copies of tracked owned TS/TSX and a temporary rule-only config: 1,398 findings after Oxfmt, zero after rule --fix, and zero after rerunning Oxfmt. The broader repository audit reports 1,816 findings; the tracked-copy trial intentionally limits scope. The tools are compatible, but adopting spacing requires a separate reviewed blank-line baseline and enforcement decision. No spacing fixes or policy changes are included here.
 
 Foundation #8 and audit #9 are merged; earlier publication-blocked notes above are historical. Formatting PR awaits fresh independent review by the parent; no merge or deployment performed by this implementation agent.
+
+## Readable spacing policy (issue #7, base 9243c9e)
+
+Globally enforce pinned anti-slop/require-readable-spacing at error (13 enforced rules). The isolated .oxlintrc.spacing.json enables only spacing and disables default correctness rules. Existing exclusions are preserved. Assertion policy remains advisory.
+
+Workflow: bun run format runs Oxfmt → isolated spacing --fix → Oxfmt → spacing check. bun run format:check checks both and remains the first normal check gate.
+
+Exact audit before → after: total 1674 → 248; spacing 1426 → 0; safety comments 127; runtime typeof 76; dictionaries 18; unknown parameters 16; known-value widening 11; all other audit counts zero and unchanged.
+
+Full checks pass before and after: 117 tests / 611 assertions. All 159 changed source files pass whitespace-only comparison and transpileModule emitted runtime AST equivalence including JSX, normalizing parentheses. Adjacent JSX literal normalization was unnecessary. This verifies emitted syntax under ESNext/ReactJSX options, not arbitrary compiler settings or browser behavior. Vendor checksums and git diff --check pass. Complete formatting is byte-idempotent.

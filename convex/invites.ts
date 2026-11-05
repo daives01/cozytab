@@ -8,6 +8,7 @@ import { INVITE_TTL_MS, isInviteOpen } from "./lib/inviteLifecycle";
 const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const INVITE_CODE_LENGTH = 6;
 const MAX_CODE_ATTEMPTS = 5;
+
 const inviteResultValidator = v.object({
     inviteId: v.id("roomInvites"),
     token: v.string(),
@@ -16,23 +17,28 @@ const inviteResultValidator = v.object({
 
 function generateInviteCode() {
     let code = "";
+
     for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
         const idx = Math.floor(Math.random() * INVITE_CODE_ALPHABET.length);
         code += INVITE_CODE_ALPHABET[idx];
     }
+
     return code;
 }
 
 async function generateUniqueCode(ctx: MutationCtx) {
     let code = generateInviteCode();
+
     for (let i = 0; i < MAX_CODE_ATTEMPTS; i++) {
         const existing = await ctx.db
             .query("roomInvites")
             .withIndex("by_code", (q) => q.eq("code", code))
             .unique();
+
         if (!existing) return code;
         code = generateInviteCode();
     }
+
     return code;
 }
 
@@ -44,6 +50,7 @@ export const enableInvite = mutation({
 
         // Get active room
         const room = await getActiveRoomForUser(ctx, user._id);
+
         if (!room) throw new ConvexError("Room not found");
 
         const invites = await ctx.db
@@ -62,10 +69,13 @@ export const enableInvite = mutation({
                 expiresAt: now + INVITE_TTL_MS,
                 hostOnlySince: undefined,
             });
+
             for (const invite of sorted.slice(1)) {
                 await ctx.db.delete(invite._id);
             }
+
             const code = primary.code;
+
             return { inviteId: primary._id, token: code, code };
         }
 
@@ -91,6 +101,7 @@ export const revokeInvite = mutation({
         const user = await requireUser(ctx);
 
         const invite = await ctx.db.get(args.inviteId);
+
         if (!invite) throw new ConvexError("Invite not found");
 
         if (invite.createdBy !== user._id) {
@@ -101,6 +112,7 @@ export const revokeInvite = mutation({
             expiresAt: Date.now(),
             hostOnlySince: undefined,
         });
+
         return { success: true as const };
     },
 });
@@ -112,6 +124,7 @@ export const rotateInviteCode = mutation({
         const user = await requireUser(ctx);
 
         const room = await getActiveRoomForUser(ctx, user._id);
+
         if (!room) throw new ConvexError("Room not found");
 
         const invites = await ctx.db
@@ -122,6 +135,7 @@ export const rotateInviteCode = mutation({
         // Remove all but the newest invite, then rotate that one.
         const sorted = invites.sort((a, b) => b.createdAt - a.createdAt);
         const primary = sorted[0];
+
         for (const invite of sorted.slice(1)) {
             await ctx.db.delete(invite._id);
         }
@@ -137,6 +151,7 @@ export const rotateInviteCode = mutation({
                 hostOnlySince: undefined,
                 createdBy: user._id,
             });
+
             return { inviteId: primary._id, token: code, code };
         }
 
@@ -158,15 +173,18 @@ export const getInviteByToken = query({
     args: { token: v.string() },
     handler: async (ctx, args) => {
         const now = Date.now();
+
         const invite = await ctx.db
             .query("roomInvites")
             .withIndex("by_code", (q) => q.eq("code", args.token))
             .unique();
 
         if (!invite) return null;
+
         if (!isInviteOpen(invite, now)) return null;
 
         const room = await ctx.db.get(invite.roomId);
+
         if (!room) return null;
 
         const owner = await ctx.db.get(room.userId);
@@ -183,10 +201,12 @@ export const getMyActiveInvites = query({
     args: {},
     handler: async (ctx) => {
         const user = await getCurrentUser(ctx);
+
         if (!user) return [];
 
         // Get active room
         const room = await getActiveRoomForUser(ctx, user._id);
+
         if (!room) return [];
 
         const invites = await ctx.db

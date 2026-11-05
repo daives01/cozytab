@@ -37,7 +37,9 @@ export async function applyCurrencyChange({
     if (!Number.isFinite(delta)) {
         throw new Error("Currency delta must be a finite number");
     }
+
     const trimmedKey = idempotencyKey.trim();
+
     if (trimmedKey.length === 0) {
         throw new Error("Idempotency key is required");
     }
@@ -46,28 +48,35 @@ export async function applyCurrencyChange({
         .query("currencyTransactions")
         .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", trimmedKey))
         .unique();
+
     if (existingTx) {
         if (existingTx.userId !== userId) {
             throw new Error("Idempotency key belongs to a different user");
         }
+
         const existingUser = await ctx.db.get(existingTx.userId);
+
         if (!existingUser) {
             throw new Error("User not found for existing transaction");
         }
+
         return { applied: false, balance: existingUser.currency, transaction: existingTx };
     }
 
     const user = await ctx.db.get(userId);
+
     if (!user) {
         throw new Error("User not found");
     }
 
     const nextBalance = user.currency + delta;
+
     if (nextBalance < 0) {
         throw new Error("Insufficient funds");
     }
 
     const now = Date.now();
+
     const transactionId = await ctx.db.insert("currencyTransactions", {
         userId,
         delta,

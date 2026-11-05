@@ -49,6 +49,7 @@ describe("room item URL safety", () => {
         const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
         const open = mock(() => null);
         Object.defineProperty(globalThis, "window", { configurable: true, value: { open } });
+
         try {
             for (const url of invalidUrls) openRoomItemLink(url);
             expect(open).not.toHaveBeenCalled();

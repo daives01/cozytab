@@ -54,10 +54,12 @@ export function getResolvedTimeZone(): string | undefined {
 export function getTimezoneCoordinates(timeZone = getResolvedTimeZone()): Coordinates | null {
     if (!timeZone) return null;
     const directHit = TIMEZONE_COORDINATES[timeZone];
+
     if (directHit) return directHit;
 
     const region = timeZone.split("/")[0];
     const regionFallback = REGION_FALLBACKS[region];
+
     if (regionFallback) return regionFallback;
 
     return null;

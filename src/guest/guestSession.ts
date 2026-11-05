@@ -18,6 +18,7 @@ function randomBrightColor(): string {
     const hue = Math.floor(Math.random() * 360);
     const saturation = 70 + Math.floor(Math.random() * 30);
     const lightness = 55 + Math.floor(Math.random() * 15);
+
     return hslToHex(hue, saturation, lightness);
 }
 
@@ -27,6 +28,7 @@ function hslToHex(h: number, s: number, l: number): string {
     const c = (1 - Math.abs(2 * light - 1)) * sat;
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = light - c / 2;
+
     let r = 0,
         g = 0,
         b = 0;
@@ -61,6 +63,7 @@ function hslToHex(h: number, s: number, l: number): string {
         const hex = Math.round((value + m) * 255)
             .toString(16)
             .padStart(2, "0");
+
         return hex;
     };
 
@@ -78,6 +81,7 @@ const defaultState: GuestSessionState = {
 
 const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
     if (typeof value !== "number" || Number.isNaN(value)) return fallback;
+
     return Math.max(min, Math.min(max, value));
 };
 
@@ -116,6 +120,7 @@ export function buildCatalogLookup(
 
     for (const item of catalogItems) {
         byId.add(item._id);
+
         if (item.isStarterItem) starterIds.push(item._id);
     }
 
@@ -124,6 +129,7 @@ export function buildCatalogLookup(
 
 function safeRead(key: string) {
     if (typeof window === "undefined") return null;
+
     try {
         return localStorage.getItem(key);
     } catch {
@@ -133,6 +139,7 @@ function safeRead(key: string) {
 
 function safeWrite(key: string, value: string) {
     if (typeof window === "undefined") return;
+
     try {
         localStorage.setItem(key, value);
     } catch {
@@ -142,11 +149,13 @@ function safeWrite(key: string, value: string) {
 
 function safeRemove(key: string) {
     if (typeof window === "undefined") return;
+
     try {
         localStorage.removeItem(key);
     } catch {
         // ignore
     }
+
     try {
         sessionStorage.removeItem(key);
     } catch {
@@ -156,8 +165,10 @@ function safeRemove(key: string) {
 
 function parseJson<T>(raw: string | null, fallback: T): T {
     if (!raw) return fallback;
+
     try {
         const parsed = JSON.parse(raw);
+
         return parsed as T;
     } catch {
         return fallback;
@@ -167,6 +178,7 @@ function parseJson<T>(raw: string | null, fallback: T): T {
 function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
     return items.flatMap((item) => {
         if (typeof item !== "object" || item === null) return [];
+
         return [
             {
                 ...item,
@@ -181,6 +193,7 @@ function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
 function normalizeGuestSession(raw: GuestSessionState, catalogLookup: CatalogLookup | null): GuestSessionState {
     const filterIds = (ids: Id<"catalogItems">[]) =>
         catalogLookup ? ids.filter((id) => catalogLookup.byId.has(id)) : ids;
+
     const starterIds = catalogLookup?.starterIds ?? [];
 
     const filteredInventoryIds = filterIds(raw.inventoryIds);
@@ -210,6 +223,7 @@ function normalizeGuestSession(raw: GuestSessionState, catalogLookup: CatalogLoo
 
 function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
     if (!Array.isArray(shortcuts)) return [];
+
     return shortcuts
         .filter((shortcut): shortcut is GuestShortcut => typeof shortcut === "object" && shortcut !== null)
         .map((shortcut) => ({
@@ -238,6 +252,7 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
 
     const parsedInventory = parseJson<Id<"catalogItems">[]>(inventoryRaw, []);
+
     const parsedCursorColor =
         typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0 ? cursorColorRaw : randomBrightColor();
 
@@ -265,12 +280,14 @@ export function saveRoomItems(items: RoomItem[]) {
 // Room autosave must distinguish durable storage from an in-memory edit.
 export function persistGuestRoomItems(items: RoomItem[]): RoomItem[] {
     const canonicalItems = sanitizeRoomItems(items);
+
     try {
         if (typeof window === "undefined") throw new Error("Browser storage unavailable");
         localStorage.setItem(GUEST_ROOM_STORAGE_KEY, JSON.stringify({ items: canonicalItems }));
     } catch {
         throw new Error("Browser storage is unavailable or full. Allow storage or free up space, then retry.");
     }
+
     return canonicalItems;
 }
 
@@ -281,6 +298,7 @@ export function saveGuestInventory(inventoryIds: Id<"catalogItems">[]) {
 export function saveGuestCoins(nextCoins: number): number {
     const clamped = clampGuestCoins(nextCoins);
     safeWrite(GUEST_COINS_STORAGE_KEY, String(clamped));
+
     return clamped;
 }
 
@@ -348,6 +366,7 @@ export function saveGuestSession(partial: Partial<GuestSessionState>): GuestSess
     saveRoomItems(next.roomItems);
     saveGuestShortcuts(next.shortcuts);
     saveGuestCursorColor(next.cursorColor);
+
     if (next.onboardingCompleted) {
         saveGuestOnboarding(true);
     }

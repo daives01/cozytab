@@ -19,8 +19,10 @@ export function RetroVolumeFader({ value, onChange, muted = false, height }: Vol
     const runInteraction = useCallback(() => {
         if (!trackRef.current || lastClientY.current === null) {
             rafRef.current = null;
+
             return;
         }
+
         const rect = trackRef.current.getBoundingClientRect();
         const y = Math.max(rect.top, Math.min(lastClientY.current, rect.bottom));
         const percentage = 1 - (y - rect.top) / rect.height;
@@ -31,6 +33,7 @@ export function RetroVolumeFader({ value, onChange, muted = false, height }: Vol
     const handleInteraction = useCallback(
         (clientY: number) => {
             lastClientY.current = clientY;
+
             if (rafRef.current === null) {
                 rafRef.current = window.requestAnimationFrame(runInteraction);
             }

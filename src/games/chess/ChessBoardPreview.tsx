@@ -52,6 +52,7 @@ function parseFenBoard(fen: string): (string | null)[][] {
 
         for (const row of rows) {
             const boardRow: (string | null)[] = [];
+
             for (const char of row) {
                 if (/[1-8]/.test(char)) {
                     for (let i = 0; i < parseInt(char, 10); i++) {
@@ -61,6 +62,7 @@ function parseFenBoard(fen: string): (string | null)[][] {
                     boardRow.push(char);
                 }
             }
+
             if (boardRow.length !== 8) return EMPTY_BOARD;
             board.push(boardRow);
         }
@@ -80,6 +82,7 @@ export function ChessBoardPreview({ fen }: ChessBoardPreviewProps) {
                 row.map((piece, colIdx) => {
                     if (!piece) return null;
                     const svg = PIECE_SVGS[piece];
+
                     if (!svg) return null;
 
                     const xPercent = ORIGIN_X + colIdx * COL_STEP_X + rowIdx * ROW_STEP_X;

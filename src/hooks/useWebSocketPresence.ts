@@ -37,12 +37,14 @@ export type VisitorState = PresenceVisitor;
 const DEFAULT_WS_URL = "ws://100.94.163.58:8787";
 const THROTTLE_MS = PRESENCE_THROTTLE_MS;
 const DEFAULT_POSITION = DEFAULT_PRESENCE_POSITION;
+
 export { REMOTE_KEYUP_MIN_DELAY_MS, REMOTE_KEYUP_MAX_DELAY_MS };
 
 export type { ConnectionState, ConnectionError };
 
 function resolveWsBaseUrl() {
     const envUrl = import.meta.env.VITE_PRESENCE_WS_URL;
+
     if (envUrl) {
         return envUrl.replace(/^http(s?):/i, (_match: string, ssl?: string) => (ssl ? "wss:" : "ws:"));
     }
@@ -53,6 +55,7 @@ function resolveWsBaseUrl() {
         // Always route WebSocket through port 8787 for local dev (handles mobile/network testing)
         const inferredPort = !port || port === "5173" || port === "4173" ? "8787" : port;
         const portPart = inferredPort ? `:${inferredPort}` : "";
+
         return `${wsProtocol}//${hostname}${portPart}`;
     }
 
@@ -63,6 +66,7 @@ const getInitialCursor = () => {
     if (typeof window === "undefined") {
         return { x: 0, y: 0 };
     }
+
     return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
 };
 
@@ -98,17 +102,22 @@ export function useWebSocketPresence(
     const throttleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const hasSentCursorRef = useRef(false);
     const inMenuRef = useRef(false);
+
     const tabbedOutRef = useRef<boolean>(
         typeof document !== "undefined" ? document.visibilityState === "hidden" : false,
     );
+
     const inGameRef = useRef<string | null>(null);
     const gameMetadataRef = useRef<Record<string, unknown> | null>(null);
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
+
     const setVisitorsAndStore = useCallback((updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
         setVisitors((prev) => {
             const next =
                 typeof updater === "function" ? (updater as (p: VisitorState[]) => VisitorState[])(prev) : updater;
+
             visitorsRef.current = next;
+
             return next;
         });
     }, []);
@@ -125,20 +134,24 @@ export function useWebSocketPresence(
 
             if (event.data === "pong") {
                 transportRef.current?.acknowledgeHeartbeat();
+
                 return;
             }
 
             let data: PresenceMessage | null = null;
+
             try {
                 data = JSON.parse(event.data) as PresenceMessage;
             } catch (error) {
                 console.error("[Presence] Error parsing message", error);
+
                 return;
             }
 
             if (data.type === "chat" && data.visitorId !== visitorId) {
                 queueRemoteTypingSounds(data.visitorId, data.text);
             }
+
             setVisitorsAndStore((previous) =>
                 applyPresenceMessage(previous, data, { inMenu: inMenuRef.current, inGame: inGameRef.current }),
             );
@@ -163,6 +176,7 @@ export function useWebSocketPresence(
         previousDisplayNameRef.current = displayName;
 
         const ws = wsRef.current;
+
         if (ws?.readyState === WebSocket.OPEN) {
             sendMessage({
                 type: "rename",
@@ -182,6 +196,7 @@ export function useWebSocketPresence(
         if (!roomId || !visitorId) return;
         const baseUrl = resolveWsBaseUrl().replace(/\/$/, "");
         const attemptedUrl = `${baseUrl}/ws/${roomId}`;
+
         const transport = new PresenceTransport({
             url: attemptedUrl,
             onMessage: handleIncomingMessage,
@@ -190,7 +205,9 @@ export function useWebSocketPresence(
             },
             onState: (state) => {
                 setConnectionState(state);
+
                 if (state === "connected") setConnectionError(null);
+
                 if (state === "reconnecting") setVisitorsAndStore([]);
             },
             onError: (error) => setConnectionError(error),
@@ -207,6 +224,7 @@ export function useWebSocketPresence(
                 });
             },
         });
+
         transportRef.current = transport;
         transport.start();
 
@@ -214,6 +232,7 @@ export function useWebSocketPresence(
             clearTimeoutRef(throttleTimeoutRef);
             sendMessage({ type: "leave", visitorId });
             transport.stop();
+
             if (transportRef.current === transport) transportRef.current = null;
             setVisitorsAndStore([]);
         };
@@ -257,10 +276,12 @@ export function useWebSocketPresence(
             },
         ): boolean => {
             const ws = wsRef.current;
+
             if (!visitorId || !ws || ws.readyState !== WebSocket.OPEN) return false;
 
             const now = Date.now();
             const timeSinceLastSend = now - lastSendTimeRef.current;
+
             const transmit = (nextX: number, nextY: number) => {
                 // Clamp to room bounds with padding to ensure visibility
                 const clamped = clampCursorToRoomBounds(nextX, nextY);
@@ -285,6 +306,7 @@ export function useWebSocketPresence(
             if (opts?.force || timeSinceLastSend >= THROTTLE_MS) {
                 transmit(clampedInput.x, clampedInput.y);
                 pendingCursorRef.current = null;
+
                 return true;
             }
 
@@ -293,12 +315,14 @@ export function useWebSocketPresence(
             if (!throttleTimeoutRef.current) {
                 throttleTimeoutRef.current = setTimeout(() => {
                     throttleTimeoutRef.current = null;
+
                     if (pendingCursorRef.current && wsRef.current?.readyState === WebSocket.OPEN) {
                         transmit(pendingCursorRef.current.x, pendingCursorRef.current.y);
                         pendingCursorRef.current = null;
                     }
                 }, THROTTLE_MS - timeSinceLastSend);
             }
+
             return true;
         },
         [buildCursorMessage, sendMessage, visitorId],
@@ -309,9 +333,11 @@ export function useWebSocketPresence(
         (roomX: number, roomY: number, screenX: number, screenY: number, shouldBroadcast: boolean = true) => {
             setScreenCursor({ x: screenX, y: screenY });
             const shouldSend = shouldBroadcast || !hasSentCursorRef.current;
+
             if (!shouldSend) return;
 
             const didSend = sendCursor(roomX, roomY, latestCursorColorRef.current);
+
             if (didSend) hasSentCursorRef.current = true;
         },
         [sendCursor],
@@ -321,6 +347,7 @@ export function useWebSocketPresence(
     const updateChatMessage = useCallback(
         (message: string | null) => {
             setLocalChatMessage(message);
+
             if (!visitorId) return;
             sendMessage({ type: "chat", visitorId, text: message });
         },
@@ -330,6 +357,7 @@ export function useWebSocketPresence(
     const setInMenu = useCallback(
         (next: boolean) => {
             if (!visitorId) return;
+
             if (inMenuRef.current === next) return;
 
             inMenuRef.current = next;
@@ -342,6 +370,7 @@ export function useWebSocketPresence(
     const setInGame = useCallback(
         (gameItemId: string | null) => {
             if (!visitorId) return;
+
             if (inGameRef.current === gameItemId) return;
 
             inGameRef.current = gameItemId;
@@ -376,6 +405,7 @@ export function useWebSocketPresence(
 
     useEffect(() => {
         if (!roomId) return;
+
         if (typeof document === "undefined") return;
 
         const handleVisibilityChange = () => {
@@ -385,6 +415,7 @@ export function useWebSocketPresence(
             sendCursor(x, y, latestCursorColorRef.current, { tabbedOut: hidden, force: true });
 
             const ws = wsRef.current;
+
             if (hidden && ws?.readyState === WebSocket.OPEN) {
                 try {
                     ws.send("ping");
@@ -396,6 +427,7 @@ export function useWebSocketPresence(
 
         handleVisibilityChange();
         document.addEventListener("visibilitychange", handleVisibilityChange);
+
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [roomId, sendCursor]);
 

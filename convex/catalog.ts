@@ -48,6 +48,7 @@ export const addItem = mutation({
             ...args,
             isStarterItem: args.isStarterItem ?? false,
         });
+
         return { success: true, id };
     },
 });
@@ -65,11 +66,13 @@ export const updateItem = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+
         if (args.basePrice !== undefined) assertValidPrice(args.basePrice);
 
         const { id, gameType, ...otherUpdates } = args;
 
         const existing = await ctx.db.get(id);
+
         if (!existing) {
             return { success: false, message: "Item not found" };
         }
@@ -89,6 +92,7 @@ export const updateItem = mutation({
         }
 
         await ctx.db.patch(id, patch);
+
         return { success: true };
     },
 });
@@ -98,6 +102,7 @@ export const generateUploadUrl = mutation({
     args: {},
     handler: async (ctx) => {
         await requireAdmin(ctx);
+
         return await ctx.storage.generateUploadUrl();
     },
 });

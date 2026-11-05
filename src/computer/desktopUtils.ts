@@ -29,9 +29,11 @@ export function deriveShortcutName(url: string) {
         const hostname = new URL(url).hostname.replace(/^www\./, "");
         const toTitle = (value: string) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value);
         const parts = hostname.split(".");
+
         if (parts.length >= 2) {
             return toTitle(parts[parts.length - 2]);
         }
+
         return toTitle(hostname || url);
     } catch {
         return url;
@@ -47,6 +49,7 @@ export function normalizeShortcuts(shortcuts: Shortcut[]) {
             typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
                 ? clamp(shortcut.row)
                 : Math.floor(index / GRID_COLUMNS);
+
         let col =
             typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
                 ? clamp(shortcut.col)
@@ -54,11 +57,13 @@ export function normalizeShortcuts(shortcuts: Shortcut[]) {
 
         while (occupied.has(`${row}-${col}`)) {
             col++;
+
             if (col >= GRID_COLUMNS) {
                 col = 0;
                 row++;
             }
         }
+
         occupied.add(`${row}-${col}`);
 
         return { ...shortcut, row, col };
@@ -87,10 +92,12 @@ export function formatTime(now: Date) {
     const displayHours = ((hours + 11) % 12) + 1;
     const suffix = hours >= 12 ? "PM" : "AM";
     const paddedMinutes = minutes.toString().padStart(2, "0");
+
     return `${displayHours}:${paddedMinutes} ${suffix}`;
 }
 
 export function withProtocol(url: string) {
     if (!url) return url;
+
     return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }

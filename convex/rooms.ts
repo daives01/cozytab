@@ -41,16 +41,19 @@ type RoomItem = {
 
 function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
+
     return Math.min(max, Math.max(min, value));
 }
 
 function clampNonNegative(value: number | undefined) {
     if (value === undefined) return undefined;
+
     return clampNumber(value, 0, MAX_TIME_POSITION_MS);
 }
 
 function clampStringLength(value: string, maxLength: number) {
     if (value.length <= maxLength) return value;
+
     return value.slice(0, maxLength);
 }
 
@@ -73,24 +76,31 @@ function normalizeRoomItems(items: RoomItem[], validCatalogIds: Set<Id<"catalogI
 
         if (item.url !== undefined) {
             const url = normalizeRoomItemUrl(item.url);
+
             if (!url) throw new Error(`Invalid room item URL at index ${index}`);
             normalized.url = url;
         }
+
         if (item.flipped !== undefined) {
             normalized.flipped = item.flipped;
         }
+
         if (item.musicUrl !== undefined) {
             normalized.musicUrl = clampStringLength(item.musicUrl, MAX_URL_LENGTH);
         }
+
         if (item.musicType === "youtube") {
             normalized.musicType = "youtube";
         }
+
         if (item.musicPlaying !== undefined) {
             normalized.musicPlaying = item.musicPlaying;
         }
+
         if (item.musicStartedAt !== undefined) {
             normalized.musicStartedAt = clampNonNegative(item.musicStartedAt);
         }
+
         if (item.musicPositionAtStart !== undefined) {
             normalized.musicPositionAtStart = clampNonNegative(item.musicPositionAtStart);
         }
@@ -103,6 +113,7 @@ export const getMyActiveRoom = query({
     args: {},
     handler: async (ctx) => {
         const user = await getCurrentUser(ctx);
+
         if (!user) return null;
 
         const rooms = await ctx.db
@@ -111,6 +122,7 @@ export const getMyActiveRoom = query({
             .collect();
 
         const room = rooms[0];
+
         if (!room) return null;
 
         const template = await ctx.db.get(room.templateId);
@@ -145,6 +157,7 @@ export const getMyRooms = query({
     args: {},
     handler: async (ctx) => {
         const user = await getCurrentUser(ctx);
+
         if (!user) return [];
 
         const rooms = await ctx.db
@@ -155,6 +168,7 @@ export const getMyRooms = query({
         const roomsWithTemplates = await Promise.all(
             rooms.map(async (room) => {
                 const template = await ctx.db.get(room.templateId);
+
                 return { ...room, template };
             }),
         );
@@ -171,6 +185,7 @@ export const createRoom = mutation({
         const user = await requireUser(ctx);
 
         let templateId = args.templateId;
+
         if (!templateId) {
             const defaultTemplates = await ctx.db
                 .query("roomTemplates")
@@ -180,10 +195,12 @@ export const createRoom = mutation({
             if (defaultTemplates.length === 0) {
                 throw new ConvexError("No default room template found. Please seed the default template first.");
             }
+
             templateId = defaultTemplates[0]._id;
         }
 
         const template = await ctx.db.get(templateId);
+
         if (!template) throw new ConvexError("Template not found");
 
         const roomsForTemplate = await ctx.db
@@ -193,6 +210,7 @@ export const createRoom = mutation({
 
         if (roomsForTemplate.length > 0) {
             const activeRoom = roomsForTemplate.find((room) => room.isActive);
+
             return activeRoom?._id ?? roomsForTemplate[0]._id;
         }
 
@@ -208,6 +226,7 @@ export const createRoom = mutation({
             isActive: allRoomsForUser.length === 0,
             items: [],
         });
+
         return id;
     },
 });
@@ -225,10 +244,12 @@ export const setActiveRoom = mutation({
             .collect();
 
         const hasSingleRoom = allRooms.length <= 1;
+
         if (hasSingleRoom) {
             if (!targetRoom.isActive) {
                 await ctx.db.patch(args.roomId, { isActive: true });
             }
+
             return { success: true };
         }
 
@@ -270,6 +291,7 @@ export const deleteRoom = mutation({
 
         if (wasActive) {
             const remainingRooms = allRooms.filter((r) => r._id !== args.roomId);
+
             if (remainingRooms.length > 0) {
                 await ctx.db.patch(remainingRooms[0]._id, { isActive: true });
             }
@@ -290,6 +312,7 @@ export const renameRoom = mutation({
         assertRoomOwner(room, user);
 
         await ctx.db.patch(args.roomId, { name: args.name });
+
         return { success: true };
     },
 });
@@ -312,10 +335,13 @@ export const saveMyRoom = mutation({
             .query("inventory")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
             .collect();
+
         const ownedCounts = new Map<Id<"catalogItems">, number>();
+
         for (const item of inventory) {
             ownedCounts.set(item.catalogItemId, (ownedCounts.get(item.catalogItemId) ?? 0) + (item.count ?? 1));
         }
+
         // Starter items have historically been granted implicitly to users whose
         // inventory predates explicit starter grants.
         for (const item of catalogItems) {
@@ -327,9 +353,11 @@ export const saveMyRoom = mutation({
         const normalizedItems = normalizeRoomItems(args.items as RoomItem[], validCatalogIds);
 
         const placedCounts = new Map<Id<"catalogItems">, number>();
+
         for (const item of normalizedItems) {
             placedCounts.set(item.catalogItemId, (placedCounts.get(item.catalogItemId) ?? 0) + 1);
         }
+
         for (const [catalogItemId, placedCount] of placedCounts) {
             if (placedCount > (ownedCounts.get(catalogItemId) ?? 0)) {
                 throw new Error("Room contains items you do not own");
@@ -337,6 +365,7 @@ export const saveMyRoom = mutation({
         }
 
         await ctx.db.patch(args.roomId, { items: normalizedItems });
+
         return normalizedItems;
     },
 });
@@ -355,6 +384,7 @@ export const getRoomByInvite = query({
         const inviteOpen = isInviteOpen(invite, now);
 
         const room = await ctx.db.get(invite.roomId);
+
         if (!room) return null;
 
         // A closed token reveals only its state, never the room contents.
@@ -392,6 +422,7 @@ async function heartbeatRoom(
     const hasGuests = args.hasGuests ?? false;
 
     const invite = await getPrimaryInviteForRoom(ctx, args.roomId);
+
     if (!invite) {
         // No invite means sharing is off; do nothing and keep the room closed.
         return { expiresAt: null, closed: false as const, reason: "invite-missing" as const };
@@ -407,6 +438,7 @@ async function heartbeatRoom(
             expiresAt: now,
             hostOnlySince,
         });
+
         return { expiresAt: now, closed: true as const, reason: HOST_ONLY_INACTIVE_ERROR };
     }
 
@@ -440,6 +472,7 @@ export const closeInviteSession = mutation({
         assertRoomActive(room);
 
         const { expiresAt } = await closePrimaryInvite(ctx, args.roomId);
+
         return { closed: true as const, expiresAt };
     },
 });
@@ -450,6 +483,7 @@ export const heartbeatPresence = mutation({
     handler: async (ctx) => {
         const user = await requireUser(ctx);
         await ctx.db.patch(user._id, { lastSeenAt: Date.now() });
+
         return null;
     },
 });
@@ -458,7 +492,9 @@ export const getRoomStatus = query({
     args: { roomId: v.id("rooms") },
     handler: async (ctx, args) => {
         const room = await ctx.db.get(args.roomId);
+
         if (!room) return { status: "missing" as const, closesAt: null, hostId: null as Id<"users"> | null };
+
         if (!room.isActive) {
             return { status: "inactive" as const, closesAt: null, hostId: room.userId };
         }

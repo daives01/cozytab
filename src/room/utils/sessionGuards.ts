@@ -16,6 +16,7 @@ export function canUseComputer(isGuest: boolean) {
 export function purchaseWithBudget(balance: number, price: number) {
     const safeBalance = Math.max(0, balance);
     const remaining = safeBalance - price;
+
     return {
         canPurchase: remaining >= 0,
         remaining: Math.max(remaining, 0),

@@ -16,6 +16,7 @@ export function applyPresenceMessage(
             }));
         case "join":
             if (visitors.some((visitor) => visitor.visitorId === message.visitorId)) return visitors;
+
             return [
                 ...visitors,
                 {
@@ -51,11 +52,14 @@ export function applyPresenceMessage(
         case "cursor": {
             const theirInMenu = message.inMenu ?? false;
             const theirInGame = message.inGame ?? null;
+
             const sameContext =
                 context.inGame === theirInGame &&
                 (context.inMenu === theirInMenu || (context.inGame !== null && theirInGame !== null));
+
             return visitors.map((visitor) => {
                 if (visitor.visitorId !== message.visitorId) return visitor;
+
                 const updated: PresenceVisitor = {
                     ...visitor,
                     cursorColor: message.cursorColor ?? visitor.cursorColor,
@@ -64,10 +68,12 @@ export function applyPresenceMessage(
                     inGame: message.inGame !== undefined ? message.inGame : visitor.inGame,
                     gameMetadata: message.gameMetadata !== undefined ? message.gameMetadata : visitor.gameMetadata,
                 };
+
                 if (sameContext) {
                     updated.x = message.x;
                     updated.y = message.y;
                 }
+
                 return updated;
             });
         }

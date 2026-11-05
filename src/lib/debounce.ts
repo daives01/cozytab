@@ -10,6 +10,7 @@ export function debounce<Args extends unknown[]>(func: (...args: Args) => void, 
         if (timeout !== null) {
             clearTimeout(timeout);
         }
+
         timeout = setTimeout(later, wait);
     };
 }

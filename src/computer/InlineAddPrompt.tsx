@@ -43,6 +43,7 @@ export function InlineAddPrompt({ prompt, url, onChange, onAdd, onCancel }: Inli
                                 e.preventDefault();
                                 onAdd();
                             }
+
                             if (e.key === "Escape") {
                                 e.preventDefault();
                                 onCancel();

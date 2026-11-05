@@ -21,6 +21,7 @@ export const getDefault = query({
             .query("roomTemplates")
             .withIndex("by_default", (q) => q.eq("isDefault", true))
             .collect();
+
         return templates[0] ?? null;
     },
 });
@@ -38,6 +39,7 @@ export const listOwnedTemplateIds = query({
     args: {},
     handler: async (ctx) => {
         const user = await getUser(ctx);
+
         if (!user) return [];
 
         const rooms = await ctx.db
@@ -75,6 +77,7 @@ export const addTemplate = mutation({
         }
 
         const id = await ctx.db.insert("roomTemplates", args);
+
         return { success: true, id };
     },
 });
@@ -91,11 +94,13 @@ export const updateTemplate = mutation({
     },
     handler: async (ctx, args) => {
         await requireAdmin(ctx);
+
         if (args.basePrice !== undefined) assertValidPrice(args.basePrice);
 
         const { id, ...updates } = args;
 
         const existing = await ctx.db.get(id);
+
         if (!existing) {
             return { success: false, message: "Template not found" };
         }
@@ -123,12 +128,17 @@ export const updateTemplate = mutation({
         } = {};
 
         if (updates.name !== undefined) filteredUpdates.name = updates.name;
+
         if (updates.description !== undefined) filteredUpdates.description = updates.description;
+
         if (updates.basePrice !== undefined) filteredUpdates.basePrice = updates.basePrice;
+
         if (updates.backgroundUrl !== undefined) filteredUpdates.backgroundUrl = updates.backgroundUrl;
+
         if (updates.isDefault !== undefined) filteredUpdates.isDefault = updates.isDefault;
 
         await ctx.db.patch(id, filteredUpdates);
+
         return { success: true };
     },
 });
@@ -138,6 +148,7 @@ export const generateUploadUrl = mutation({
     args: {},
     handler: async (ctx) => {
         await requireAdmin(ctx);
+
         return await ctx.storage.generateUploadUrl();
     },
 });
@@ -150,6 +161,7 @@ export const purchaseRoom = mutation({
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) throw new Error("Not authenticated");
 
         const user = await ctx.db
@@ -160,6 +172,7 @@ export const purchaseRoom = mutation({
         if (!user) throw new Error("User not found");
 
         const template = await ctx.db.get(args.templateId);
+
         if (!template) {
             return { success: false, message: "Template not found" };
         }
@@ -172,6 +185,7 @@ export const purchaseRoom = mutation({
         }
 
         const requestId = args.requestId ?? randomId();
+
         const change = await applyCurrencyChange({
             ctx,
             userId: user._id,

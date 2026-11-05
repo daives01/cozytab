@@ -44,9 +44,13 @@ export function VisitorRoomPage() {
     const ownerLoading = isSignedIn && authedUser === undefined;
 
     if (!token) return <InviteState message="Invalid invite link" />;
+
     if (ownerLoading || roomData === undefined) return <InviteState message="Loading room..." />;
+
     if (roomData === null) return <InviteState message="This invite link is invalid or has expired" />;
+
     if (roomData.closed) return <InviteState message="The host stepped away." />;
+
     if (isSignedIn && authedUser?._id === roomData.room.userId) return <RoomPage isGuest={false} />;
 
     return <InviteRoomContent roomData={roomData} authedUser={authedUser} />;
@@ -72,6 +76,7 @@ function InviteRoomContent({
     const [guestVisitorName] = useState(() => `Visitor ${Math.floor(Math.random() * 1000)}`);
     const [fallbackCursorColor] = useState(() => randomBrightColor());
     const [roomClosedOverride, setRoomClosedOverride] = useState(false);
+
     const [chatOnboardingDismissed, setChatOnboardingDismissed] = useState(
         () => typeof window !== "undefined" && Boolean(window.localStorage.getItem(VISITOR_CHAT_ONBOARDING_KEY)),
     );
@@ -87,6 +92,7 @@ function InviteRoomContent({
         if (roomStatus?.status !== "open" || !roomStatus.closesAt) return;
         const delay = roomStatus.closesAt - Date.now();
         const timer = window.setTimeout(() => setRoomClosedOverride(true), Math.max(0, delay));
+
         return () => window.clearTimeout(timer);
     }, [roomStatus?.closesAt, roomStatus?.status]);
 
@@ -96,6 +102,7 @@ function InviteRoomContent({
     }, []);
 
     if (roomStatus === undefined) return <InviteState message="Loading room..." />;
+
     if (roomClosed) return <InviteState message="The host stepped away." />;
 
     return (
@@ -156,6 +163,7 @@ function InviteRoomExperience({
     dismissChatOnboarding: () => void;
 }) {
     const isGuest = !isSignedIn;
+
     const controller = useVisitorRoomController({
         source,
         identity: {
@@ -196,17 +204,21 @@ function InviteRoomExperience({
         (event: React.PointerEvent) => {
             if (event.pointerType !== "touch") return;
             controller.cursor.handlePointerEvent(event);
+
             if (zoom.zoomLevel > 1) zoom.handlePanMove(event.clientX, event.clientY);
         },
         [controller.cursor, zoom],
     );
+
     const handlePointerDown = useCallback(
         (event: React.PointerEvent) => {
             if (event.pointerType === "touch" && zoom.zoomLevel > 1) zoom.handlePanStart(event.clientX, event.clientY);
         },
         [zoom],
     );
+
     const handlePointerUp = useCallback(() => zoom.handlePanEnd(), [zoom]);
+
     const onboarding = showChatOnboarding ? (
         <OnboardingSpotlight
             message="Press Enter to chat"

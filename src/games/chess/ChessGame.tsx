@@ -234,6 +234,7 @@ export function ChessGame({
     useEffect(() => {
         const handleResize = () => setIsLandscape(window.innerWidth > window.innerHeight);
         window.addEventListener("resize", handleResize);
+
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
@@ -254,6 +255,7 @@ export function ChessGame({
     useEffect(() => {
         if (prevFenRef.current !== fen && lastMove) {
             const prevChess = new Chess();
+
             try {
                 prevChess.load(prevFenRef.current);
                 const capturedPiece = prevChess.get(lastMove.to as Square);
@@ -264,6 +266,7 @@ export function ChessGame({
                 playMoveSound(false);
             }
         }
+
         prevFenRef.current = fen;
     }, [fen, lastMove, playMoveSound]);
 
@@ -284,6 +287,7 @@ export function ChessGame({
     const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
     const opponent = mySide ? playerSignals.find((p) => p.visitorId !== visitorId && p.side !== mySide) : undefined;
     const opponentSignal = opponent?.signal;
+
     const opponentDrawOffer =
         mySide && opponentSignal === "drawOffer" && mySignal !== "drawDecline" && mySignal !== "drawOffer"
             ? opponent
@@ -303,6 +307,7 @@ export function ChessGame({
         if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
             queueMicrotask(() => setDrawDeclinedAt(Date.now()));
             onSignal(null);
+
             return;
         }
 
@@ -310,6 +315,7 @@ export function ChessGame({
         if (mySignal === "drawDecline") {
             const opponentNowOffering = opponentSignal === "drawOffer";
             const opponentWasOffering = prevOpponent === "drawOffer";
+
             // Clear if: offer gone, or new offer detected (heals missed transitions)
             if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
                 onSignal(null);
@@ -321,6 +327,7 @@ export function ChessGame({
     useEffect(() => {
         if (drawDeclinedAt === null) return;
         const timer = setTimeout(() => setDrawDeclinedAt(null), 2000);
+
         return () => clearTimeout(timer);
     }, [drawDeclinedAt]);
 
@@ -359,7 +366,9 @@ export function ChessGame({
         (cursorVisitorId: string): "white" | "black" | null => {
             const player = playersInGame.find((p) => p.visitorId === cursorVisitorId);
             const side = player?.gameMetadata?.side;
+
             if (side === "white" || side === "black") return side;
+
             return null;
         },
         [playersInGame],
@@ -419,6 +428,7 @@ export function ChessGame({
 
     const whitePlayer: GamePlayer | undefined = useMemo(() => {
         const p = playersInGame.find((p) => p.visitorId === whitePlayerId);
+
         return p
             ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "white" }
             : undefined;
@@ -426,6 +436,7 @@ export function ChessGame({
 
     const blackPlayer: GamePlayer | undefined = useMemo(() => {
         const p = playersInGame.find((p) => p.visitorId === blackPlayerId);
+
         return p
             ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" }
             : undefined;
@@ -434,6 +445,7 @@ export function ChessGame({
     // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
     const otherPlayerExists =
         (whitePlayerId && whitePlayerId !== visitorId) || (blackPlayerId && blackPlayerId !== visitorId);
+
     const canJoinWhite = !whitePlayer && (!mySide || !otherPlayerExists);
     const canJoinBlack = !blackPlayer && (!mySide || !otherPlayerExists);
 

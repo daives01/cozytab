@@ -36,6 +36,7 @@ export function FriendVisitPage() {
     const plausibleId = friendUserId && /^[a-zA-Z0-9_-]+$/.test(friendUserId);
 
     if (!isLoaded || authedUser === undefined) return <RouteState message="Loading..." />;
+
     if (!isSignedIn) {
         return (
             <RouteState
@@ -48,8 +49,11 @@ export function FriendVisitPage() {
             />
         );
     }
+
     if (!plausibleId) return <RouteState message="Invalid friend link" />;
+
     if (authedUser === null) return <RouteState message="Unable to load your profile" />;
+
     if (authedUser._id === friendUserId) return <RoomPage isGuest={false} />;
 
     return (
@@ -75,6 +79,7 @@ function FriendVisitContent({
     const [fallbackCursorColor] = useState(() => randomBrightColor());
 
     if (roomData === undefined) return <RouteState message="Loading room..." />;
+
     if (roomData === null) return <RouteState message="Friend room not found" />;
 
     return (

@@ -29,12 +29,15 @@ export function VolumePanel({
 
     useEffect(() => {
         if (!isOpen) return;
+
         const onKey = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 onClose();
             }
         };
+
         window.addEventListener("keydown", onKey);
+
         return () => window.removeEventListener("keydown", onKey);
     }, [isOpen, onClose]);
 
@@ -43,11 +46,14 @@ export function VolumePanel({
         if (!isOpen) {
             lastKeyboardVolume.current = null;
             lastMusicVolume.current = null;
+
             return;
         }
+
         if (keyboardVolume > 0) {
             lastKeyboardVolume.current = keyboardVolume;
         }
+
         if (musicVolume > 0) {
             lastMusicVolume.current = musicVolume;
         }

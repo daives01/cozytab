@@ -223,8 +223,10 @@ export function useRoomOverlaysModel({
         };
 
         let gameType: GameType | null = null;
+
         if (game.activeGameItemId && catalogItems) {
             const roomItem = localItems.find((i) => i.id === game.activeGameItemId);
+
             if (roomItem) {
                 const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
                 gameType = catalogItem?.gameType ?? null;

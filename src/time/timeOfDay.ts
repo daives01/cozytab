@@ -11,6 +11,7 @@ const daylightCache = new Map<string, DaylightWindow | null>();
 function normalizeToLocalNoon(date: Date) {
     const normalized = new Date(date);
     normalized.setHours(12, 0, 0, 0);
+
     return normalized;
 }
 
@@ -19,20 +20,25 @@ function getCacheKey(date: Date, timeZone: string) {
     const year = cacheDate.getFullYear();
     const month = cacheDate.getMonth() + 1;
     const day = cacheDate.getDate();
+
     return `${timeZone}:${year}-${month}-${day}`;
 }
 
 export function getDaylightWindow(now = new Date(), timeZone?: string): DaylightWindow | null {
     const timeZoneId = timeZone ?? getResolvedTimeZone();
+
     if (!timeZoneId) return null;
 
     const cacheKey = getCacheKey(now, timeZoneId);
     const cached = daylightCache.get(cacheKey);
+
     if (cached !== undefined) return cached;
 
     const coordinates = getTimezoneCoordinates(timeZoneId);
+
     if (!coordinates) {
         daylightCache.set(cacheKey, null);
+
         return null;
     }
 
@@ -43,14 +49,17 @@ export function getDaylightWindow(now = new Date(), timeZone?: string): Daylight
 
         if (!sunrise || !sunset || Number.isNaN(sunrise.getTime()) || Number.isNaN(sunset.getTime())) {
             daylightCache.set(cacheKey, null);
+
             return null;
         }
 
         const daylightWindow: DaylightWindow = { sunrise, sunset };
         daylightCache.set(cacheKey, daylightWindow);
+
         return daylightWindow;
     } catch {
         daylightCache.set(cacheKey, null);
+
         return null;
     }
 }

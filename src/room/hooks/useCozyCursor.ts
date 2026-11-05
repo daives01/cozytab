@@ -15,6 +15,7 @@ export function useCozyCursor(enabled = true) {
 
         const handlePointerDown = (event: PointerEvent) => {
             const target = event.target as HTMLElement | null;
+
             if (!target) return;
 
             const clickableTarget = target.closest(CLICKABLE_SELECTOR);

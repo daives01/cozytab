@@ -13,6 +13,7 @@ const modules = {
 
 test("purchase ledger omits missing and empty session IDs and persists present IDs", async () => {
     const t = convexTest(schema, modules);
+
     const userId = await t.run((ctx) =>
         ctx.db.insert("users", {
             externalId: "buyer",
@@ -21,6 +22,7 @@ test("purchase ledger omits missing and empty session IDs and persists present I
             referralCode: "BUYER",
         }),
     );
+
     for (const [index, sessionId] of [undefined, "", "cs_present"].entries()) {
         const args: {
             userId: typeof userId;
@@ -34,16 +36,20 @@ test("purchase ledger omits missing and empty session IDs and persists present I
             priceId: "price_10",
             stripeEventId: `evt_${index}`,
         };
+
         if (sessionId !== undefined) args.stripeSessionId = sessionId;
         await t.mutation(internal.stripe.fulfillCoinPurchase, args);
     }
+
     const rows = await t.run((ctx) => ctx.db.query("currencyTransactions").collect());
     expect(rows).toHaveLength(3);
+
     for (const row of rows) {
         const present = row.idempotencyKey.endsWith("evt_2");
         expect(Object.hasOwn(row.metadata ?? {}, "stripeSessionId")).toBe(present);
         expect(JSON.parse(JSON.stringify(row.metadata)).stripeSessionId).toBe(present ? "cs_present" : undefined);
     }
+
     expect(await t.run(async (ctx) => (await ctx.db.get(userId))?.currency)).toBe(30);
 });
 
@@ -58,6 +64,7 @@ test("presence retains coordinates across contexts and updates matching context 
         inMenu: false,
         tabbedOut: false,
     };
+
     const other = { ...visitor, visitorId: "other" };
     const message = { type: "cursor" as const, visitorId: "visitor", x: 100, y: 200, inMenu: true };
     const different = applyPresenceMessage([visitor, other], message, { inMenu: false, inGame: null });

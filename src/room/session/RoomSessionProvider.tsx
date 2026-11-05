@@ -24,6 +24,7 @@ export function RoomSessionProvider({
             ownedCount,
         }),
     );
+
     const [activateSessionLifecycle] = useState(() => createRoomSessionLifecycle(session));
 
     useEffect(() => activateSessionLifecycle(), [activateSessionLifecycle]);
@@ -33,11 +34,14 @@ export function RoomSessionProvider({
         const flush = () => {
             void session.flush();
         };
+
         const onVisibilityChange = () => {
             if (document.visibilityState === "hidden") flush();
         };
+
         window.addEventListener("pagehide", flush);
         document.addEventListener("visibilitychange", onVisibilityChange);
+
         return () => {
             window.removeEventListener("pagehide", flush);
             document.removeEventListener("visibilitychange", onVisibilityChange);

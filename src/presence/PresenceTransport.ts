@@ -1,4 +1,5 @@
 export type PresenceConnectionState = "connecting" | "connected" | "reconnecting" | "error";
+
 export type PresenceConnectionError = {
     type: "network" | "timeout" | "unknown";
     message: string;
@@ -48,6 +49,7 @@ export class PresenceTransport {
     send(message: string) {
         if (this.socket?.readyState !== WebSocket.OPEN) return false;
         this.socket.send(message);
+
         return true;
     }
     stop() {
@@ -71,6 +73,7 @@ export class PresenceTransport {
             this.startHeartbeat();
             this.options.onOpen();
         };
+
         socket.onmessage = this.options.onMessage;
         socket.onerror = () => {
             this.options.onError({
@@ -81,12 +84,15 @@ export class PresenceTransport {
             this.options.onState("error");
             socket.close();
         };
+
         socket.onclose = () => {
             if (this.socket === socket) {
                 this.socket = null;
                 this.options.onSocket(null);
             }
+
             this.clearHeartbeat();
+
             if (this.stopped) return;
             this.options.onState("reconnecting");
             this.reconnectTimeout = setTimeout(() => this.connect(), this.retryDelay);
@@ -95,11 +101,14 @@ export class PresenceTransport {
     }
     private startHeartbeat() {
         this.clearHeartbeat();
+
         const ping = () => {
             if (!this.send("ping")) return;
+
             if (this.heartbeatTimeout) clearTimeout(this.heartbeatTimeout);
             this.heartbeatTimeout = setTimeout(() => this.socket?.close(), 10_000);
         };
+
         ping();
         this.heartbeatInterval = setInterval(ping, 20_000);
     }
@@ -109,6 +118,7 @@ export class PresenceTransport {
     }
     private clearHeartbeat() {
         if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+
         if (this.heartbeatTimeout) clearTimeout(this.heartbeatTimeout);
         this.heartbeatInterval = null;
         this.heartbeatTimeout = null;

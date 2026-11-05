@@ -23,6 +23,7 @@ export function useEditableField<T extends TableNames>({ onSave, onError }: UseE
         if (!editing) return;
 
         let value: string | number | boolean = editValue;
+
         if (editing.field === "basePrice" || editing.field === "defaultWidth") {
             value = Number(editValue);
         } else if (editing.field === "isDefault") {
@@ -30,12 +31,15 @@ export function useEditableField<T extends TableNames>({ onSave, onError }: UseE
         }
 
         const result = await onSave(editing.id, editing.field, value);
+
         if (!result.success) {
             const message = result.message ?? "Failed to update";
+
             if (onError) {
                 onError(message);
             }
         }
+
         setEditing(undefined);
         setEditValue("");
     };

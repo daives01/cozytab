@@ -29,6 +29,7 @@ export function RoomToolbar({
 }: RoomToolbarProps) {
     const circleBaseStyles =
         "relative h-14 w-14 rounded-full border-2 border-[var(--ink)] shadow-[var(--shadow-6)] active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all flex items-center justify-center text-[var(--ink)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[var(--ink)]/10";
+
     const leftSpacing = drawerOrientation === "left" ? 16 + drawerOffset : 16;
     const topSpacing = 16 + (drawerOrientation === "bottom" && drawerOffset > 0 ? 0 : 0);
 

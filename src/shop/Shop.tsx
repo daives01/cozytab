@@ -21,6 +21,7 @@ const CATEGORY_DISPLAY_NAMES: Record<CatalogItemCategory, string> = {
     computers: "Computers",
     games: "Games",
 };
+
 const CATEGORY_COLORS: Record<CatalogItemCategory, string> = {
     music: "from-purple-500 to-pink-600",
     decor: "from-emerald-500 to-teal-600",
@@ -49,7 +50,9 @@ function groupByCategory(items: Doc<"catalogItems">[]) {
             if (!groups[item.category]) {
                 groups[item.category] = [];
             }
+
             groups[item.category].push(item);
+
             return groups;
         },
         {} as Record<CatalogItemCategory, Doc<"catalogItems">[]>,
@@ -68,7 +71,9 @@ function sortCategories(categories: CatalogItemCategory[]) {
     return categories.sort((a, b) => {
         const orderA = CATALOG_ITEM_CATEGORIES.indexOf(a);
         const orderB = CATALOG_ITEM_CATEGORIES.indexOf(b);
+
         if (orderA !== orderB) return orderA - orderB;
+
         return a.localeCompare(b);
     });
 }
@@ -92,20 +97,24 @@ export function Shop({
     const referralStats = useQuery(api.users.getReferralStats, isGuest ? "skip" : undefined);
     const purchaseItem = useMutation(api.inventory.purchaseItem);
     const [purchasing, setPurchasing] = useState<Id<"catalogItems"> | null>(null);
+
     const [lastResult, setLastResult] = useState<{
         itemId: Id<"catalogItems">;
         message: string;
         success: boolean;
     } | null>(null);
+
     const roomTemplates = useQuery(api.roomTemplates.list);
     const ownedTemplateIds = useQuery(api.roomTemplates.listOwnedTemplateIds, isGuest ? "skip" : undefined);
     const purchaseRoom = useMutation(api.roomTemplates.purchaseRoom);
     const [purchasingRoom, setPurchasingRoom] = useState<Id<"roomTemplates"> | null>(null);
+
     const [lastRoomResult, setLastRoomResult] = useState<{
         templateId: Id<"roomTemplates">;
         message: string;
         success: boolean;
     } | null>(null);
+
     const [isCoinPanelOpen, setIsCoinPanelOpen] = useState(false);
     const [coinCheckoutError, setCoinCheckoutError] = useState<string | null>(null);
     const [coinCheckoutLoading, setCoinCheckoutLoading] = useState<string | null>(null);
@@ -117,10 +126,13 @@ export function Shop({
         const price50 = import.meta.env.VITE_STRIPE_PRICE_50_COINS as string | undefined;
         const price150 = import.meta.env.VITE_STRIPE_PRICE_150_COINS as string | undefined;
         const price500 = import.meta.env.VITE_STRIPE_PRICE_500_COINS as string | undefined;
+
         if (!price10 || !price50 || !price150 || !price500) {
             console.warn("Stripe coin price IDs are missing in env; coin purchase UI will be hidden.");
+
             return null;
         }
+
         return buildCoinPacks({
             price10: price10.trim(),
             price50: price50.trim(),
@@ -136,26 +148,33 @@ export function Shop({
     const handlePurchase = async (itemId: Id<"catalogItems">) => {
         setPurchasing(itemId);
         setLastResult(null);
+
         try {
             if (isGuest) {
                 const item = catalogItems?.find((c: Doc<"catalogItems">) => c._id === itemId);
                 const cost = item?.basePrice ?? 0;
                 const budget = purchaseWithBudget(effectiveCoins, cost);
+
                 if (!budget.canPurchase) {
                     setLastResult({ itemId, message: "Not enough cozy coins.", success: false });
+
                     return;
                 }
+
                 onGuestCoinsChange?.(budget.remaining);
                 onGuestPurchase?.(itemId);
                 setLastResult({ itemId, message: "Purchase successful.", success: true });
+
                 if (onOnboardingPurchase) {
                     onOnboardingPurchase();
                 }
+
                 return;
             }
 
             const result = await purchaseItem({ catalogItemId: itemId });
             setLastResult({ itemId, message: result.message || "Purchase successful!", success: result.success });
+
             if (result.success && onOnboardingPurchase) {
                 onOnboardingPurchase();
             }
@@ -169,6 +188,7 @@ export function Shop({
     const handlePurchaseRoom = async (templateId: Id<"roomTemplates">) => {
         setPurchasingRoom(templateId);
         setLastRoomResult(null);
+
         try {
             if (isGuest) {
                 setLastRoomResult({
@@ -176,6 +196,7 @@ export function Shop({
                     message: "Log in to purchase rooms!",
                     success: false,
                 });
+
                 return;
             }
 
@@ -195,16 +216,22 @@ export function Shop({
     const handleCoinPurchase = async (pack: CoinPack) => {
         if (isUS === false) {
             setCoinCheckoutError("Currently, we only support customers in the United States.");
+
             return;
         }
+
         if (isLocationLoading) {
             setCoinCheckoutError("Please wait while we check your location.");
+
             return;
         }
+
         setCoinCheckoutError(null);
         setCoinCheckoutLoading(pack.priceId);
+
         try {
             const result = await createCoinCheckout({ priceId: pack.priceId });
+
             if (result.url) {
                 if (typeof window !== "undefined") {
                     window.location.assign(result.url);
@@ -221,6 +248,7 @@ export function Shop({
 
     const toggleCoinPanel = () => {
         setIsCoinPanelOpen((prev) => !prev);
+
         if (coinCheckoutError) {
             setCoinCheckoutError(null);
         }
@@ -229,6 +257,7 @@ export function Shop({
     const guestOwnedCounts = useMemo(() => {
         const counts = new Map<Id<"catalogItems">, number>();
         const owned = guestOwnedIds || [];
+
         const catalogByName = new Map(
             (catalogItems || []).map((item: Doc<"catalogItems">) => [item.name.toLowerCase(), item]),
         );
@@ -237,10 +266,12 @@ export function Shop({
             const match =
                 catalogItems?.find((item: Doc<"catalogItems">) => item._id === raw) ??
                 catalogByName.get(String(raw).toLowerCase());
+
             if (match) {
                 counts.set(match._id, (counts.get(match._id) ?? 0) + 1);
             }
         });
+
         return counts;
     }, [guestOwnedIds, catalogItems]);
 
@@ -253,12 +284,16 @@ export function Shop({
         guestOwnedCounts.forEach((value, key) => {
             counts.set(key, (counts.get(key) ?? 0) + value);
         });
+
         return counts;
     }, [guestOwnedCounts, ownedInventory]);
+
     const ownedTemplateSet = useMemo(() => new Set<Id<"roomTemplates">>(ownedTemplateIds || []), [ownedTemplateIds]);
+
     const groupedItems = catalogItems
         ? groupByCategory(catalogItems)
         : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
+
     const categories = sortCategories(Object.keys(groupedItems) as CatalogItemCategory[]);
     const highlightItemId = highlightFirstMusicItem && groupedItems.music?.length ? groupedItems.music[0]._id : null;
     const purchasableRooms = roomTemplates?.filter((t) => !t.isDefault) || [];
@@ -269,6 +304,7 @@ export function Shop({
 
     useEffect(() => {
         const id = window.setInterval(() => setNow(Date.now()), 60_000);
+
         return () => window.clearInterval(id);
     }, []);
 
@@ -279,15 +315,21 @@ export function Shop({
     const nextRewardText = useMemo(() => {
         if (isGuest) return "";
         const target = nextRewardAt;
+
         if (target == null) return "Ready now";
         const diff = target - now;
+
         if (diff <= 0) return "Ready now";
         const oneHourMs = 60 * 60 * 1000;
+
         if (diff < oneHourMs) {
             const minutes = Math.ceil(diff / (60 * 1000));
+
             return `${minutes} min`;
         }
+
         const hours = Math.ceil(diff / oneHourMs);
+
         return `${hours} hr`;
     }, [nextRewardAt, now, isGuest]);
 

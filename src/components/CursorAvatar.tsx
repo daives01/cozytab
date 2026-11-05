@@ -11,6 +11,7 @@ interface CursorAvatarProps {
 export function CursorAvatar({ color, size, width, height, filter, rotated, hotspot }: CursorAvatarProps) {
     const w = width ?? size ?? 32;
     const h = height ?? (size ? size * 1.3 : 42);
+
     return (
         <svg
             width={w}

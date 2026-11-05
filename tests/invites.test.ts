@@ -41,6 +41,7 @@ describe("invite lifecycle", () => {
             roomId,
             hasGuests: true,
         });
+
         const after = await t.run((ctx) => ctx.db.get(invite.inviteId));
         expect(heartbeat.closed).toBe(false);
         expect(after?.expiresAt).toBeGreaterThanOrEqual(before?.expiresAt ?? 0);
@@ -83,6 +84,7 @@ describe("invite lifecycle", () => {
         const templateId = await seedTemplate(t);
         const roomId = await seedRoom(t, ownerId, templateId);
         const catalogItemId = await seedCatalogItem(t);
+
         const items = [
             {
                 id: "private-item",
@@ -94,6 +96,7 @@ describe("invite lifecycle", () => {
                 musicType: "youtube" as const,
             },
         ];
+
         await t.run((ctx) => ctx.db.patch(roomId, { items }));
         const owner = asUser(t, "owner");
         const friend = asUser(t, "friend");
@@ -116,9 +119,11 @@ describe("invite lifecycle", () => {
         expect(await t.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
         await owner.mutation(api.invites.enableInvite, {});
         await owner.mutation(api.invites.revokeInvite, { inviteId: invite.inviteId });
+
         for (const caller of [t, owner, friend]) {
             expect(await caller.query(api.rooms.getRoomByInvite, { token: invite.code })).toEqual({ closed: true });
         }
+
         expect(await t.query(api.invites.getInviteByToken, { token: invite.code })).toBeNull();
         expect(await friend.query(api.friends.getFriendRoom, { friendUserId: ownerId })).toMatchObject({
             room: { _id: roomId, items },

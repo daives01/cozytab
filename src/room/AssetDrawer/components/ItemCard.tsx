@@ -20,26 +20,35 @@ export function ItemCard({
     compact = false,
 }: ItemCardProps) {
     const isComputer = item.category === "computers";
+
     const highlightClass =
         highlightComputer && isComputer
             ? "outline outline-2 outline-dotted outline-[var(--color-accent)] outline-offset-4"
             : "";
+
     const touchSelectedClass = isTouchSelected
         ? "-translate-y-[2px] bg-[var(--color-secondary)] shadow-[var(--shadow-6)] ring-2 ring-[var(--color-accent)]"
         : "";
+
     const shouldShowToggle = !isGuest && showHideControls;
     const isDepleted = (item.remaining ?? 0) <= 0 || item.roomAtCapacity === true;
+
     const imageWrapperClass = compact
         ? "relative aspect-[4/3] overflow-hidden rounded-lg border-2 border-dashed border-[var(--color-foreground)]/30 bg-[var(--color-muted)]/15"
         : "relative aspect-square overflow-hidden rounded-xl border-2 border-dashed border-[var(--color-foreground)]/40 bg-[var(--color-muted)]/20";
+
     const selectedImageClass = isTouchSelected ? "border-[var(--color-accent)] bg-[var(--color-secondary)]/20" : "";
+
     const toggleVisibilityClass = isPending
         ? "opacity-60"
         : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100";
+
     const togglePositionClass = compact ? "right-1.5 top-1.5 h-8 w-8 shadow-[var(--shadow-3)]" : "";
+
     const titleClass = compact
         ? "line-clamp-2 text-size-sm font-black uppercase tracking-normal text-[var(--color-foreground)] leading-snug"
         : "line-clamp-2 text-size-lg font-black uppercase tracking-normal text-[var(--color-foreground)] leading-tight";
+
     const titleRowClass = compact
         ? "flex items-start justify-between gap-1.5"
         : "flex items-start justify-between gap-2";
@@ -47,6 +56,7 @@ export function ItemCard({
     const handlePointerDown = useCallback(
         (event: React.PointerEvent<HTMLDivElement>) => {
             if (event.pointerType !== "touch") return;
+
             if (isDepleted) return;
             event.preventDefault();
             event.stopPropagation();
@@ -59,8 +69,10 @@ export function ItemCard({
         (e: React.DragEvent<HTMLDivElement>) => {
             if (isDepleted) {
                 e.preventDefault();
+
                 return;
             }
+
             e.dataTransfer.effectAllowed = "move";
             const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
             setDragImageFromElement(e, img);

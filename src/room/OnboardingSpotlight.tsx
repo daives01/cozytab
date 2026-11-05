@@ -102,7 +102,9 @@ const BubbleActions = ({
 
 const clampWithinViewport = (value: number, size: number, margin: number, maxSize: number) => {
     if (value < margin) return margin;
+
     if (value + size > maxSize - margin) return maxSize - margin - size;
+
     return value;
 };
 
@@ -134,6 +136,7 @@ export function OnboardingSpotlight({
 
             if (!element) {
                 setSpotlight(null);
+
                 return;
             }
 
@@ -206,6 +209,7 @@ export function OnboardingSpotlight({
 
         const nextTop =
             top === undefined ? top : clampWithinViewport(top, BUBBLE_HEIGHT, BUBBLE_MARGIN, window.innerHeight);
+
         const nextLeft =
             left === undefined ? left : clampWithinViewport(left, bubbleWidth, BUBBLE_MARGIN, window.innerWidth);
 

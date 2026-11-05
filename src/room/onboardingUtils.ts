@@ -1,6 +1,7 @@
 import type { OnboardingStep } from "./Onboarding";
 
 type DetectedOS = "mac" | "windows" | "other";
+
 type DetectedBrowser = "chrome" | "firefox" | "edge" | "unknown";
 
 export function getNextStep(currentStep: OnboardingStep): OnboardingStep {
@@ -18,9 +19,11 @@ export function getNextStep(currentStep: OnboardingStep): OnboardingStep {
     ];
 
     const currentIndex = order.indexOf(currentStep);
+
     if (currentIndex === -1 || currentIndex >= order.length - 1) {
         return "complete";
     }
+
     return order[currentIndex + 1];
 }
 
@@ -33,14 +36,19 @@ function detectPlatform(): { os: DetectedOS; browser: DetectedBrowser } {
 
     const os: DetectedOS = (() => {
         if (ua.includes("mac os x") || ua.includes("macintosh")) return "mac";
+
         if (ua.includes("windows")) return "windows";
+
         return "other";
     })();
 
     const browser: DetectedBrowser = (() => {
         if (ua.includes("edg")) return "edge";
+
         if (ua.includes("firefox")) return "firefox";
+
         if (ua.includes("chrome")) return "chrome";
+
         return "unknown";
     })();
 

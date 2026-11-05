@@ -35,6 +35,7 @@ export function MusicPlayerButtons({
 
     // Reset state when videoId changes (React pattern: update state during render, not in effect)
     const [prevVideoId, setPrevVideoId] = useState(videoId);
+
     if (videoId !== prevVideoId) {
         setPrevVideoId(videoId);
         setIsReady(false);
@@ -65,15 +66,18 @@ export function MusicPlayerButtons({
     const computeLivePositionSeconds = useCallback(() => {
         const positionAtStart = item.musicPositionAtStart ?? 0;
         const startedAt = item.musicStartedAt ?? 0;
+
         if (item.musicPlaying && startedAt) {
             return (positionAtStart + Math.max(0, Date.now() - startedAt)) / 1000;
         }
+
         return positionAtStart / 1000;
     }, [item.musicPlaying, item.musicPositionAtStart, item.musicStartedAt]);
 
     const seekTo = useCallback(
         (seconds: number, force = false) => {
             if (!isReady || !videoId) return;
+
             if (!force && Math.abs(seconds - lastSeekRef.current) < 0.5) return;
             sendCommand("seekTo", [seconds, true]);
             lastSeekRef.current = seconds;
@@ -84,8 +88,10 @@ export function MusicPlayerButtons({
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== "https://www.youtube.com") return;
+
             try {
                 const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+
                 if (data.event === "onReady" || data.info?.playerState !== undefined) {
                     setIsReady(true);
                 }
@@ -93,7 +99,9 @@ export function MusicPlayerButtons({
                 // Ignore non-JSON messages
             }
         };
+
         window.addEventListener("message", handleMessage);
+
         return () => window.removeEventListener("message", handleMessage);
     }, []);
 
@@ -138,11 +146,14 @@ export function MusicPlayerButtons({
             setLocalInteracted(true);
             setMuted((prev) => {
                 const next = !prev;
+
                 if (!next) {
                     seekTo(computeLivePositionSeconds() + VISITOR_UNMUTE_AHEAD_SECONDS, true);
                 }
+
                 return next;
             });
+
             return;
         }
 

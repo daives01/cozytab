@@ -6,11 +6,14 @@ function makeKey(itemId: string): string {
 
 export function getSavedChessSide(itemId: string): "white" | "black" | null {
     if (typeof window === "undefined") return null;
+
     try {
         const value = localStorage.getItem(makeKey(itemId));
+
         if (value === "white" || value === "black") {
             return value;
         }
+
         return null;
     } catch {
         return null;
@@ -19,6 +22,7 @@ export function getSavedChessSide(itemId: string): "white" | "black" | null {
 
 export function saveChessSide(itemId: string, side: "white" | "black"): void {
     if (typeof window === "undefined") return;
+
     try {
         localStorage.setItem(makeKey(itemId), side);
     } catch {
@@ -28,6 +32,7 @@ export function saveChessSide(itemId: string, side: "white" | "black"): void {
 
 export function clearChessSide(itemId: string): void {
     if (typeof window === "undefined") return;
+
     try {
         localStorage.removeItem(makeKey(itemId));
     } catch {

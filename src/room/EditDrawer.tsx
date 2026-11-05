@@ -43,6 +43,7 @@ export function EditDrawer({
     const isLeft = orientation === "left";
     const drawerOffset = isLeft && isDrawerOpen ? ASSET_DRAWER_WIDTH + 12 : 0;
     const drawerBottomOffset = !isLeft && isDrawerOpen ? ASSET_DRAWER_BOTTOM_HEIGHT + 12 : 0;
+
     const togglePositionStyle = isLeft
         ? { left: isDrawerOpen ? `${ASSET_DRAWER_WIDTH}px` : "0px", top: "50%", transform: "translateY(-50%)" }
         : {
@@ -50,6 +51,7 @@ export function EditDrawer({
               left: "50%",
               transform: "translate(-50%)",
           };
+
     const isInteractive = mode === "edit";
     const isVisible = isInteractive || isDrawerOpen;
 

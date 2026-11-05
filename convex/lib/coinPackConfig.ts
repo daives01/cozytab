@@ -2,9 +2,11 @@ import { buildCoinPacks } from "../../shared/coinPacks";
 
 function requireEnv(key: string, label: string): string {
     const value = process.env[key];
+
     if (!value || !value.trim()) {
         throw new Error(`Missing required env ${key} for ${label}`);
     }
+
     return value.trim();
 }
 

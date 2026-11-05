@@ -20,18 +20,22 @@ const FALLBACK_NIGHTTIME_START_HOUR = 18;
 
 export function getLocalTimeOfDay(now = new Date(), timeZone?: string): TimeOfDay {
     const daylightWindow = getDaylightWindow(now, timeZone);
+
     if (daylightWindow) {
         const nowMs = now.getTime();
         const isDaytime = nowMs >= daylightWindow.sunrise.getTime() && nowMs < daylightWindow.sunset.getTime();
+
         return isDaytime ? "day" : "night";
     }
 
     const hour = now.getHours();
     const isDaytime = hour >= FALLBACK_DAYTIME_START_HOUR && hour < FALLBACK_NIGHTTIME_START_HOUR;
+
     return isDaytime ? "day" : "night";
 }
 
 export function getLocalTimeOfDayBackground(now = new Date(), timeZone?: string) {
     const timeOfDay = getLocalTimeOfDay(now, timeZone);
+
     return timeOfDay === "day" ? BASE_BACKGROUND_DAY : BASE_BACKGROUND_NIGHT;
 }

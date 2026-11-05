@@ -2,7 +2,9 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { RoomItem } from "@shared/guestTypes";
 
 export type RoomEditingMode = "view" | "edit";
+
 export type RoomSaveStatus = "clean" | "saving" | "unsaved" | "error";
+
 export type PersistedChangeVisibility = "structural" | "visitor-observable";
 
 export interface RoomEditingSnapshot {
@@ -26,7 +28,9 @@ export interface PlacementEligibility {
 }
 
 export type EditingRejection = "not-editing" | "item-not-found" | "insufficient-ownership" | "room-full";
+
 export type EditingResult = { accepted: true } | { accepted: false; reason: EditingRejection };
+
 export type PlacementResult = { accepted: true; itemId: string } | { accepted: false; reason: EditingRejection };
 
 export interface RoomDraft {

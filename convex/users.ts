@@ -22,9 +22,11 @@ export const getMe = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         if (!user) return null;
 
         const now = Date.now();
+
         return {
             ...user,
             nextRewardAt: getNextMountainMidnightUtc(now),
@@ -36,6 +38,7 @@ export const getKeyboardSoundSettings = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         if (!user) return null;
 
         return {
@@ -49,6 +52,7 @@ export const isAdmin = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         return user?.admin === true;
     },
 });
@@ -57,6 +61,7 @@ export const getMyReferralCode = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         return user?.referralCode ?? null;
     },
 });
@@ -65,6 +70,7 @@ export const getReferralStats = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         if (!user) {
             return { referralCount: 0, referralCoins: 0 };
         }
@@ -94,11 +100,13 @@ export const updateDisplayName = mutation({
         const { user } = await requireUser(ctx);
         const trimmed = args.displayName.trim();
         const next = trimmed.slice(0, 50);
+
         if (next.length < 2) {
             throw new Error("Display name must be at least 2 characters");
         }
 
         await ctx.db.patch(user._id, { displayName: next });
+
         return { displayName: next };
     },
 });
@@ -179,6 +187,7 @@ export const devDeleteMyAccount = mutation({
     handler: async (ctx) => {
         const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
             ?.NODE_ENV;
+
         if (nodeEnv !== "development") {
             throw new Error("Dev-only mutation");
         }
@@ -200,9 +209,11 @@ export const devDeleteMyAccount = mutation({
                 .query("roomInvites")
                 .withIndex("by_room", (q) => q.eq("roomId", room._id))
                 .collect();
+
             for (const invite of invites) {
                 await ctx.db.delete(invite._id);
             }
+
             await ctx.db.delete(room._id);
         }
 
@@ -230,10 +241,12 @@ export const backfillCurrencyLedger = internalMutation({
 
         for (const ledgerUser of users) {
             const idempotencyKey = `starting:${ledgerUser._id}`;
+
             const existing = await ctx.db
                 .query("currencyTransactions")
                 .withIndex("by_idempotencyKey", (q) => q.eq("idempotencyKey", idempotencyKey))
                 .unique();
+
             if (existing) {
                 skipped++;
                 continue;
@@ -271,6 +284,7 @@ export const reconcileCurrencyBalances = internalMutation({
             recorded: number;
             delta: number;
         }> = [];
+
         let repaired = 0;
 
         for (const target of users) {
@@ -280,8 +294,10 @@ export const reconcileCurrencyBalances = internalMutation({
                 .query("currencyTransactions")
                 .withIndex("by_user", (q) => q.eq("userId", target._id))
                 .collect();
+
             const ledgerSum = transactions.reduce((sum, tx) => sum + tx.delta, 0);
             const delta = ledgerSum - target.currency;
+
             if (delta !== 0) {
                 mismatches.push({
                     userId: target._id,
@@ -290,6 +306,7 @@ export const reconcileCurrencyBalances = internalMutation({
                     recorded: target.currency,
                     delta,
                 });
+
                 if (repair) {
                     const adjustment = await applyCurrencyChange({
                         ctx,
@@ -303,6 +320,7 @@ export const reconcileCurrencyBalances = internalMutation({
                             delta,
                         },
                     });
+
                     if (adjustment.applied) {
                         repaired++;
                     }
@@ -328,9 +346,11 @@ export const getMyComputer = query({
     args: {},
     handler: async (ctx) => {
         const { user } = await getUserForRequest(ctx);
+
         if (!user) return null;
 
         const existingShortcuts = user.computer?.shortcuts ?? [];
+
         const needsNormalization = existingShortcuts.some(
             (shortcut) => typeof shortcut.row !== "number" || typeof shortcut.col !== "number",
         );
@@ -339,6 +359,7 @@ export const getMyComputer = query({
 
         if (needsNormalization) {
             const normalized = normalizeShortcutsWithGrid(existingShortcuts);
+
             return { shortcuts: normalized, cursorColor };
         }
 
@@ -407,6 +428,7 @@ export const saveMusicPlayerVolume = mutation({
         const { user } = await requireUser(ctx);
         const clamped = clampVolume(args.volume, 0.7);
         await ctx.db.patch(user._id, { musicPlayerVolume: clamped });
+
         return { volume: clamped };
     },
 });
@@ -423,6 +445,7 @@ export const giftCoins = internalMutation({
         }
 
         const user = await ctx.db.get(args.userId);
+
         if (!user) {
             throw new Error("User not found");
         }

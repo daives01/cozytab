@@ -20,11 +20,12 @@
         "preview": "bunx vite preview",
         "prepare": "husky",
         "lint:ox": "oxlint .",
-        "format": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --write .",
-        "format:check": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --check .",
+        "format": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --write . && bun run format:spacing --fix && oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --write . && bun run format:spacing",
+        "format:check": "oxfmt --ignore-path .gitignore --ignore-path .oxfmtignore --check . && bun run format:spacing",
         "check": "bun run format:check && bun run lint:ox && bun run lint && bun run typecheck:worker && bun run build && bun run test",
         "typecheck:worker": "bunx tsc --noEmit -p presence-worker/tsconfig.json",
-        "lint:audit": "oxlint -c .oxlintrc.audit.json ."
+        "lint:audit": "oxlint -c .oxlintrc.audit.json .",
+        "format:spacing": "oxlint -c .oxlintrc.spacing.json ."
     },
     "dependencies": {
         "@clerk/clerk-react": "^5.61.3",

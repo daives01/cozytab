@@ -44,6 +44,7 @@ describe("window manager core", () => {
             height: 900,
             z: 1,
         };
+
         expect(clampWindowToBounds(window, { width: 800, height: 600 })).toMatchObject({
             x: 440,
             y: 0,
@@ -71,6 +72,7 @@ describe("presence transitions", () => {
             { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, cursorColor: "red" },
             { inMenu: false, inGame: null },
         );
+
         expect(next).toMatchObject({ x: 10, y: 20, inMenu: true, cursorColor: "red" });
     });
 
@@ -80,6 +82,7 @@ describe("presence transitions", () => {
             { type: "cursor", visitorId: "a", x: 100, y: 200, inMenu: true, inGame: "chess" },
             { inMenu: false, inGame: "chess" },
         );
+
         expect(next).toMatchObject({ x: 100, y: 200 });
     });
 });

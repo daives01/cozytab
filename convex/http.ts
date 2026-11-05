@@ -20,9 +20,11 @@ registerRoutes(http, components.stripe, {
             if (!userId) {
                 throw new Error(`Missing userId in checkout.session.completed metadata for session ${session.id}`);
             }
+
             if (!priceId) {
                 throw new Error(`Missing priceId in checkout.session.completed metadata for session ${session.id}`);
             }
+
             if (coins === undefined) {
                 throw new Error(
                     `Invalid priceId ${priceId} in checkout.session.completed for session ${session.id} - not a configured coin pack`,

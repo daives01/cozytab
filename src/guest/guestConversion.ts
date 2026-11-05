@@ -18,6 +18,7 @@ export async function resolveBrowserGuestProgress({
     resolveGuestProgress: ResolveGuestProgress;
 }) {
     const referralCode = getReferralCode() ?? undefined;
+
     const result = await resolveGuestProgress({
         username,
         referralCode,
@@ -26,5 +27,6 @@ export async function resolveBrowserGuestProgress({
 
     clearGuestSession();
     clearReferralCode();
+
     return result;
 }

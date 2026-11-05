@@ -49,6 +49,7 @@ export function RoomCanvas({
     overlays,
 }: RoomCanvasProps) {
     const effectiveScale = scale * zoomLevel;
+
     const outerClass = [
         "relative w-full h-full font-['Patrick_Hand'] cozy-cursor flex items-center justify-center",
         outerClassName ?? "",
@@ -64,8 +65,10 @@ export function RoomCanvas({
     );
 
     const baseFilter = "brightness(1) saturate(1)";
+
     const candleTint =
         "radial-gradient(circle at 18% 20%, rgba(255, 201, 150, 0.08), transparent 40%), radial-gradient(circle at 78% 12%, rgba(255, 186, 120, 0.08), transparent 36%), linear-gradient(180deg, rgba(26, 20, 12, 0.08), rgba(10, 6, 2, 0.14))";
+
     const backgroundGradient = "linear-gradient(180deg, #f9f4ea 0%, #f5ede0 45%, #f2e9da 100%)";
 
     return (

@@ -26,6 +26,7 @@ function getFaviconUrl(url: string): string {
     try {
         const domain = new URL(url).hostname;
         let appDomain: string;
+
         try {
             appDomain = new URL(import.meta.env.VITE_APP_URL || window.location.origin).hostname;
         } catch {
@@ -36,6 +37,7 @@ function getFaviconUrl(url: string): string {
         if (domain === appDomain || domain.endsWith(`.${appDomain}`)) {
             return "/favicon.svg";
         }
+
         return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
     } catch {
         return "";
@@ -120,6 +122,7 @@ export function DesktopGrid({
                             }}
                             onDoubleClick={(event) => {
                                 event.stopPropagation();
+
                                 if (renamingId !== shortcut.id) {
                                     onDoubleClick(shortcut);
                                 }
@@ -148,6 +151,7 @@ export function DesktopGrid({
                                             e.preventDefault();
                                             onCommitRename(shortcut.id);
                                         }
+
                                         if (e.key === "Escape") {
                                             e.preventDefault();
                                             onCancelRename();

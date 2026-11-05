@@ -72,8 +72,10 @@ export function useVisitorRoomController({
         }),
         [cursorColorOverride, displayNameOverride, identitySeed],
     );
+
     const items = source.room.items;
     const music = useVisitorMusic(items);
+
     const presence = usePresenceAndChat({
         roomId: presenceEnabled && source.access === "open" ? source.room._id : null,
         identity: {
@@ -84,6 +86,7 @@ export function useVisitorRoomController({
         },
         isOwner: false,
     });
+
     const game = useVisitorGameState({
         items,
         catalogItems,
@@ -92,6 +95,7 @@ export function useVisitorRoomController({
         setInMenu: presence.setInMenu,
         setInGame: presence.setInGame,
     });
+
     const cursor = useVisitorCursorTracking({ containerRef, scale, updateCursor: presence.updateCursor });
     const roomBackgroundImageUrl = useRoomBackgroundImageUrl(source.room.template?.backgroundUrl, timeOfDay);
     useCozyCursor(true);
@@ -101,19 +105,24 @@ export function useVisitorRoomController({
         () => shortcutsOverride ?? computerState?.shortcuts ?? [],
         [computerState?.shortcuts, shortcutsOverride],
     );
+
     const updateShortcuts = useCallback(
         (next: Shortcut[]) => {
             setShortcutsOverride(next);
+
             if (isGuest) saveGuestShortcuts?.(next);
             else saveComputer({ shortcuts: next, cursorColor: identity.cursorColor });
         },
         [identity.cursorColor, isGuest, saveComputer, saveGuestShortcuts],
     );
+
     const updateCursorColor = useCallback(
         (next: string) => {
             const color = next.trim();
+
             if (!color) return;
             setCursorColorOverride(color);
+
             if (isGuest) saveGuestCursorColor?.(color);
             else saveComputer({ shortcuts, cursorColor: color });
         },

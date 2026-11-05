@@ -29,18 +29,22 @@ async function createOrUpdateFriendship(
     const [user1, user2] = sortedPair(meId, targetId);
 
     const existing = await findFriendship(ctx, meId, targetId);
+
     if (existing) {
         if (existing.status === "accepted") {
             return { success: true, alreadyFriends: true };
         }
+
         // If the other person already sent us a request, auto-accept
         if (existing.initiator !== meId) {
             await ctx.db.patch(existing._id, {
                 status: "accepted",
                 acceptedAt: Date.now(),
             });
+
             return { success: true, autoAccepted: true };
         }
+
         return { success: true, alreadyPending: true };
     }
 
@@ -63,10 +67,13 @@ async function createOrUpdateFriendship(
         const sorted = all.sort((a, b) => {
             // Prefer accepted over pending
             if (a.status === "accepted" && b.status !== "accepted") return -1;
+
             if (b.status === "accepted" && a.status !== "accepted") return 1;
+
             // Otherwise keep oldest
             return a.createdAt - b.createdAt;
         });
+
         const [keep, ...duplicates] = sorted;
         await Promise.all(duplicates.map((d) => ctx.db.delete(d._id)));
 
@@ -74,14 +81,17 @@ async function createOrUpdateFriendship(
         if (keep.status === "accepted") {
             return { success: true, alreadyFriends: true };
         }
+
         if (keep.initiator !== meId) {
             // The other person's request was kept, auto-accept
             await ctx.db.patch(keep._id, {
                 status: "accepted",
                 acceptedAt: Date.now(),
             });
+
             return { success: true, autoAccepted: true };
         }
+
         return { success: true, alreadyPending: true };
     }
 
@@ -90,6 +100,7 @@ async function createOrUpdateFriendship(
 
 async function findFriendship(ctx: QueryCtx | MutationCtx, a: Id<"users">, b: Id<"users">) {
     const [user1, user2] = sortedPair(a, b);
+
     return await ctx.db
         .query("friendships")
         .withIndex("by_pair", (q) => q.eq("user1", user1).eq("user2", user2))
@@ -101,10 +112,12 @@ async function getAllFriendships(ctx: QueryCtx, userId: Id<"users">) {
         .query("friendships")
         .withIndex("by_user1", (q) => q.eq("user1", userId))
         .collect();
+
     const asUser2 = await ctx.db
         .query("friendships")
         .withIndex("by_user2", (q) => q.eq("user2", userId))
         .collect();
+
     return [...asUser1, ...asUser2];
 }
 
@@ -134,6 +147,7 @@ export const sendFriendRequest = mutation({
             .unique();
 
         if (!target) throw new ConvexError("No user found with that code");
+
         if (target._id === me._id) throw new ConvexError("You can't add yourself");
 
         return createOrUpdateFriendship(ctx, me._id, target._id);
@@ -145,9 +159,11 @@ export const sendFriendRequestByUserId = mutation({
     returns: friendRequestResultValidator,
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
+
         if (args.userId === me._id) throw new ConvexError("You can't add yourself");
 
         const target = await ctx.db.get(args.userId);
+
         if (!target) throw new ConvexError("User not found");
 
         return createOrUpdateFriendship(ctx, me._id, args.userId);
@@ -160,12 +176,16 @@ export const acceptFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
+
         if (!friendship) throw new ConvexError("Request not found");
+
         if (friendship.status !== "pending") throw new ConvexError("Request is no longer pending");
+
         if (friendship.initiator === me._id) throw new ConvexError("Cannot accept your own request");
 
         // Verify the current user is the recipient
         const isRecipient = friendship.user1 === me._id || friendship.user2 === me._id;
+
         if (!isRecipient) throw new ConvexError("Not your request");
 
         await ctx.db.patch(args.friendshipId, {
@@ -183,14 +203,18 @@ export const declineFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
+
         if (!friendship) return { success: true as const }; // Already gone - treat as success (idempotent)
+
         if (friendship.status !== "pending") return { success: true as const }; // Already accepted/resolved
 
         const isRecipient =
             (friendship.user1 === me._id || friendship.user2 === me._id) && friendship.initiator !== me._id;
+
         if (!isRecipient) throw new ConvexError("Not your request to decline");
 
         await ctx.db.delete(args.friendshipId);
+
         return { success: true as const };
     },
 });
@@ -201,11 +225,15 @@ export const cancelFriendRequest = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
+
         if (!friendship) return { success: true as const }; // Already gone - treat as success (idempotent)
+
         if (friendship.status !== "pending") return { success: true as const }; // Already accepted/resolved
+
         if (friendship.initiator !== me._id) throw new ConvexError("Not your request to cancel");
 
         await ctx.db.delete(args.friendshipId);
+
         return { success: true as const };
     },
 });
@@ -216,12 +244,15 @@ export const removeFriend = mutation({
     handler: async (ctx, args) => {
         const me = await requireUser(ctx);
         const friendship = await ctx.db.get(args.friendshipId);
+
         if (!friendship) return { success: true as const }; // Already gone - treat as success (idempotent)
 
         const isParticipant = friendship.user1 === me._id || friendship.user2 === me._id;
+
         if (!isParticipant) throw new ConvexError("Not your friendship");
 
         await ctx.db.delete(args.friendshipId);
+
         return { success: true as const };
     },
 });
@@ -243,12 +274,14 @@ export const getMyFriends = query({
     returns: v.array(friendValidator),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return [];
 
         const me = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
+
         if (!me) return [];
 
         const all = await getAllFriendships(ctx, me._id);
@@ -257,6 +290,7 @@ export const getMyFriends = query({
         const friends = await Promise.all(
             accepted.map(async (f) => {
                 const friendId = f.user1 === me._id ? f.user2 : f.user1;
+
                 const [friendUser, activeRoom] = await Promise.all([
                     ctx.db.get(friendId),
                     ctx.db
@@ -264,6 +298,7 @@ export const getMyFriends = query({
                         .withIndex("by_user_active", (q) => q.eq("userId", friendId).eq("isActive", true))
                         .first(),
                 ]);
+
                 if (!friendUser) return null;
 
                 return {
@@ -299,12 +334,14 @@ export const getMyPendingRequests = query({
     }),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return { incoming: [], outgoing: [] };
 
         const me = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
+
         if (!me) return { incoming: [], outgoing: [] };
 
         const all = await getAllFriendships(ctx, me._id);
@@ -314,6 +351,7 @@ export const getMyPendingRequests = query({
             pending.map(async (f) => {
                 const otherId = f.user1 === me._id ? f.user2 : f.user1;
                 const otherUser = await ctx.db.get(otherId);
+
                 return {
                     friendshipId: f._id,
                     userId: otherId,
@@ -337,12 +375,14 @@ export const getPendingRequestCount = query({
     returns: v.number(),
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return 0;
 
         const me = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
+
         if (!me) return 0;
 
         // Use status indexes to fetch only pending friendships
@@ -350,6 +390,7 @@ export const getPendingRequestCount = query({
             .query("friendships")
             .withIndex("by_user1_status", (q) => q.eq("user1", me._id).eq("status", "pending"))
             .collect();
+
         const pendingAsUser2 = await ctx.db
             .query("friendships")
             .withIndex("by_user2_status", (q) => q.eq("user2", me._id).eq("status", "pending"))
@@ -373,15 +414,18 @@ export const getFriendshipWith = query({
     ),
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return null;
 
         const me = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
+
         if (!me) return null;
 
         const friendship = await findFriendship(ctx, me._id, args.userId);
+
         if (!friendship) return null;
 
         return {
@@ -405,17 +449,21 @@ export const getFriendRoom = query({
     ),
     handler: async (ctx, args) => {
         const me = await getCurrentUser(ctx);
+
         if (!me) return null;
 
         // Validate the ID format before using it
         const friendUserId = ctx.db.normalizeId("users", args.friendUserId);
+
         if (!friendUserId) return null;
 
         // Validate friendship
         const friendship = await findFriendship(ctx, me._id, friendUserId);
+
         if (!friendship || friendship.status !== "accepted") return null;
 
         const friend = await ctx.db.get(friendUserId);
+
         if (!friend) return null;
 
         // Find friend's active room
@@ -423,6 +471,7 @@ export const getFriendRoom = query({
             .query("rooms")
             .withIndex("by_user_active", (q) => q.eq("userId", friendUserId).eq("isActive", true))
             .first();
+
         if (!room) return null;
 
         const template = await ctx.db.get(room.templateId);
@@ -449,12 +498,14 @@ export const getFriendshipStatusBatch = query({
     ),
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
+
         if (!identity) return {};
 
         const me = await ctx.db
             .query("users")
             .withIndex("by_externalId", (q) => q.eq("externalId", identity.subject))
             .unique();
+
         if (!me) return {};
 
         const results: Record<string, { status: "pending" | "accepted"; isInitiator: boolean } | null> = {};
@@ -462,6 +513,7 @@ export const getFriendshipStatusBatch = query({
         await Promise.all(
             args.userIds.map(async (userId) => {
                 const friendship = await findFriendship(ctx, me._id, userId);
+
                 if (!friendship) {
                     results[userId] = null;
                 } else {

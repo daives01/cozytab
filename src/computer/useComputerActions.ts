@@ -21,19 +21,25 @@ export function useComputerProfileActions({
     const [displayNameError, setDisplayNameError] = useState<string | null>(null);
     const sourceName = displayName ?? username ?? "You";
     const [previousSourceName, setPreviousSourceName] = useState(sourceName);
+
     if (previousSourceName !== sourceName) {
         setPreviousSourceName(sourceName);
         setCurrentDisplayName(sourceName);
     }
+
     const handleSaveDisplayName = useCallback(
         async (next: string) => {
             const trimmed = next.trim();
+
             if (!trimmed) {
                 setDisplayNameError("Display name cannot be empty");
+
                 return;
             }
+
             setIsSavingDisplayName(true);
             setDisplayNameError(null);
+
             try {
                 const result = await updateDisplayName({ displayName: trimmed.slice(0, DISPLAY_NAME_MAX_LENGTH) });
                 setCurrentDisplayName(result.displayName);
@@ -46,12 +52,14 @@ export function useComputerProfileActions({
         },
         [onDisplayNameUpdated, updateDisplayName],
     );
+
     return { currentDisplayName, isSavingDisplayName, displayNameError, handleSaveDisplayName };
 }
 
 export function useComputerDevActions() {
     const { signOut } = useClerk();
     const deleteMyAccount = useMutation(api.users.devDeleteMyAccount);
+
     const deleteUser = useCallback(async () => {
         try {
             await deleteMyAccount({});
@@ -60,6 +68,7 @@ export function useComputerDevActions() {
             console.error("Dev delete failed", error);
         }
     }, [deleteMyAccount, signOut]);
+
     const resetStorage = useCallback(() => {
         try {
             localStorage.clear();
@@ -69,5 +78,6 @@ export function useComputerDevActions() {
             console.error("Storage reset failed", error);
         }
     }, []);
+
     return { signOut, deleteUser, resetStorage };
 }

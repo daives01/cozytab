@@ -122,6 +122,7 @@ export function Onboarding({ currentStep, onComplete, onNext, onSkip, isGuest = 
         const completeMessage = isGuest
             ? "You're all set! Sign up to save and share your cozytab."
             : stepConfigs.complete.message;
+
         return (
             <OnboardingSpotlight
                 message={completeMessage}
