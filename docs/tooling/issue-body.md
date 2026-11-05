@@ -15,7 +15,7 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [x] Review accumulator copying and eager pipelines: oxc/no-accumulating-spread, no-reduce-accumulator-copy, no-array-filter-map. Preserve callback order and immutability.
 - [x] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
 - [x] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.
-- [ ] Review no-conditional-empty-object-spread; preserve omitted fields at Convex, storage and guest import boundaries.
+- [x] Review no-conditional-empty-object-spread; preserve omitted fields at Convex, storage and guest import boundaries.
 - [ ] Evaluate no-object-parameters, no-unsafe-dictionary-type and no-known-value-widening separately; preserve safe runtime lookups.
 - [ ] Inventory external inputs; evaluate no-unknown-parameters, no-unknown-returns and no-unknown-type-aliases individually after boundary validation exists.
 - [ ] Evaluate no-runtime-typeof after parsing work, documenting predicate exemptions.
