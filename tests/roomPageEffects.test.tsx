@@ -1,7 +1,14 @@
-import { expect, test, spyOn } from "bun:test";
+import { afterAll, expect, test, spyOn } from "bun:test";
 import { act, create } from "react-test-renderer";
 import { useLeaseHeartbeat, useReconcileGuestOnboarding } from "@/room/hooks/useRoomPageEffects";
 import type { Doc, Id } from "@convex/_generated/dataModel";
+
+const originalActEnvironment = Object.getOwnPropertyDescriptor(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+afterAll(() => {
+    if (originalActEnvironment) Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", originalActEnvironment);
+    else Reflect.deleteProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT");
+});
 
 test("onboarding clears guest data only after successful or failed settlement", async () => {
     for (const failed of [false, true]) {
