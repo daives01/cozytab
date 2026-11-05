@@ -9,10 +9,7 @@ interface MobileChatInputProps {
     disabled?: boolean;
 }
 
-export function MobileChatInput({
-    onMessageChange,
-    disabled = false,
-}: MobileChatInputProps) {
+export function MobileChatInput({ onMessageChange, disabled = false }: MobileChatInputProps) {
     const [value, setValue] = useState("");
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -75,9 +72,7 @@ export function MobileChatInput({
 
     return createPortal(
         <div
-            className={`fixed left-4 z-[120] transition-opacity ${
-                isFocused || value ? "opacity-100" : "opacity-90"
-            }`}
+            className={`fixed left-4 z-[120] transition-opacity ${isFocused || value ? "opacity-100" : "opacity-90"}`}
             style={{
                 bottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
                 width: "calc(50% - 1rem)",
@@ -103,6 +98,6 @@ export function MobileChatInput({
                 }}
             />
         </div>,
-        document.body
+        document.body,
     );
 }

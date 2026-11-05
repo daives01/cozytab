@@ -17,7 +17,9 @@ export function AssetDrawerHeader({ isCompact, categories, selectedFilter, onFil
                         <Package className="h-5 w-5 text-[var(--color-foreground)]" />
                     </div>
                     <div className="leading-tight">
-                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-foreground)]">Inventory</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--color-foreground)]">
+                            Inventory
+                        </p>
                         <h2 className="text-base font-bold leading-none text-[var(--color-foreground)]">Storage</h2>
                     </div>
                 </div>

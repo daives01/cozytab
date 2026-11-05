@@ -4,13 +4,14 @@ Reference: https://github.com/daives01/risk/issues/17 and https://oxc.rs/docs/gu
 Registry verified Oxlint/@oxlint/plugins 1.91.0 and Oxfmt 0.76.0. Keep the lint pair pinned together.
 Compatible dependency refresh uses existing manifest ranges across workspaces. Defer major upgrades (ESLint, Vite/plugin-react, TypeScript, Node types, lucide), pre-1.0 convex-test migration, and Stripe component update. Stripe 0.1.7 requires regenerated component API; retain exact 0.1.1 pending a separate component API compatibility migration; the running Convex dev server owns code generation.
 
-ESLint remains authoritative for React hooks and refresh. Oxlint adds default correctness diagnostics only. No anti-slop plugin is vendored or enabled. Formatting is opt-in; format:check reports the baseline and is deliberately excluded from check until formatting adoption. Generated Convex, build output, dependencies, Wrangler output and unrelated research are excluded. Public assets and lockfile are also excluded from formatting.
+ESLint remains authoritative for React hooks and refresh. Oxlint adds default correctness diagnostics only. Generic anti-slop rules are pinned and vendored for opt-in audit only (PR #9). Formatting now has a dedicated baseline and format:check is included in check. Generated Convex, build output, dependencies, Wrangler output and unrelated research are excluded. Public assets and lockfile are also excluded from formatting.
 
 ## Sequential checklist (issue body)
-- [ ] Merge dependency/tooling foundation after fresh independent review. Record build, lint, tests, Oxlint and formatting baseline.
+
+- [x] Merge dependency/tooling foundation after fresh independent review. Record build, lint, tests, Oxlint and formatting baseline.
 - [ ] Land a dedicated formatting baseline PR, verify readable-spacing compatibility, then add format:check to the normal check gate.
 - [ ] Assess remaining major dependency migrations separately, including Workers types 5, ESLint, Vite, TypeScript, lucide, convex-test and Stripe component compatibility. Record updates or concrete deferrals.
-- [ ] Pin an upstream anti-slop commit, review and vendor generic plugin sources with license, provenance and upgrade instructions. Add opt-in audit only; inventory every rule with counts and false positives. Do not add Effect rules without Effect usage.
+- [x] Pin an upstream anti-slop commit, review and vendor generic plugin sources with license, provenance and upgrade instructions. Add opt-in audit only; inventory every rule with counts and false positives. Do not add Effect rules without Effect usage.
 - [ ] Review accumulator copying and eager pipelines: oxc/no-accumulating-spread, no-reduce-accumulator-copy, no-array-filter-map. Preserve callback order and immutability.
 - [ ] Adopt no-chained-type-assertions and no-widen-then-assert separately using accurate types and typed fixture builders.
 - [ ] Evaluate no-reflect-get and no-reflect-apply with receiver and missing-property tests.

@@ -46,8 +46,11 @@ describe("Guest Conversion", () => {
             const state = await allConversionState(t);
             expect(state.users[0]?.currency).toBe(GUEST_STARTING_COINS - 2);
             expect(state.transactions[0]?.delta).toBe(GUEST_STARTING_COINS - 2);
-            expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count]))
-                .toEqual([[starterId, 1], [paidId, 1], [freeId, 1]]);
+            expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([
+                [starterId, 1],
+                [paidId, 1],
+                [freeId, 1],
+            ]);
             expect(state.rooms[0]?.items).toEqual([]);
         }
     });
@@ -61,7 +64,17 @@ describe("Guest Conversion", () => {
             await asUser(t, `url-guest-${index}`).mutation(api.guestConversion.resolveGuestProgress, {
                 username: "Guest",
                 guestProgress: guestProgress({
-                    roomItems: [{ id: "link", catalogItemId: starterId, x: 1, y: 2, url, musicUrl: "https://youtu.be/abc", musicType: "youtube" }],
+                    roomItems: [
+                        {
+                            id: "link",
+                            catalogItemId: starterId,
+                            x: 1,
+                            y: 2,
+                            url,
+                            musicUrl: "https://youtu.be/abc",
+                            musicType: "youtube",
+                        },
+                    ],
                 }),
             });
         }
@@ -129,8 +142,15 @@ describe("Guest Conversion", () => {
         expect(result).toEqual({ disposition: "preserved" });
         const state = await allConversionState(t);
         expect(state.users[0]).toMatchObject({ currency: 3, onboardingCompleted: true, cursorColor: "#123456" });
-        expect(state.users[0]?.computer?.shortcuts.map(({ row, col }) => [row, col])).toEqual([[0, 0], [0, 1], [0, 2]]);
-        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([[starterId, 1], [lampId, 1]]);
+        expect(state.users[0]?.computer?.shortcuts.map(({ row, col }) => [row, col])).toEqual([
+            [0, 0],
+            [0, 1],
+            [0, 2],
+        ]);
+        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([
+            [starterId, 1],
+            [lampId, 1],
+        ]);
         expect(state.rooms[0]?.items.map(({ id }) => id)).toEqual(["starter", "lamp"]);
     });
 
@@ -140,7 +160,12 @@ describe("Guest Conversion", () => {
         const freeId = await seedCatalogItem(t, { name: "Free decor", basePrice: 0 });
         const paidId = await seedCatalogItem(t, { name: "Purchased lamp", basePrice: 2 });
         const inventoryIds = [...Array.from({ length: count - 1 }, () => freeId), paidId];
-        const roomItems = inventoryIds.map((catalogItemId, index) => ({ id: `item-${index}`, catalogItemId, x: 1, y: 2 }));
+        const roomItems = inventoryIds.map((catalogItemId, index) => ({
+            id: `item-${index}`,
+            catalogItemId,
+            x: 1,
+            y: 2,
+        }));
         // Invalid placements must not consume capacity ahead of valid owned items.
         const invalid = { id: "unknown", catalogItemId: "unknown" as typeof freeId, x: 0, y: 0 };
         const caller = asUser(t, `guest-${count}`);
@@ -151,7 +176,10 @@ describe("Guest Conversion", () => {
 
         const state = await allConversionState(t);
         expect(state.rooms[0].items).toEqual(roomItems.slice(0, 50));
-        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([[freeId, count - 1], [paidId, 1]]);
+        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([
+            [freeId, count - 1],
+            [paidId, 1],
+        ]);
         expect(state.users[0].currency).toBe(3);
         expect(state.transactions[0].delta).toBe(3);
         // Converted rooms remain editable under the backend's placement limit.
@@ -175,7 +203,10 @@ describe("Guest Conversion", () => {
 
         const state = await allConversionState(t);
         expect(state.users[0]?.currency).toBe(0);
-        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([[chairId, 1], [lampId, 1]]);
+        expect(state.inventory.map(({ catalogItemId, count }) => [catalogItemId, count])).toEqual([
+            [chairId, 1],
+            [lampId, 1],
+        ]);
         expect(state.transactions).toHaveLength(1);
         expect(state.transactions[0]?.delta).toBe(0);
     });
@@ -218,8 +249,12 @@ describe("Guest Conversion", () => {
             guestProgress: guestProgress(),
         };
 
-        expect(await caller.mutation(api.guestConversion.resolveGuestProgress, args)).toEqual({ disposition: "preserved" });
-        expect(await caller.mutation(api.guestConversion.resolveGuestProgress, args)).toEqual({ disposition: "discarded_existing_user" });
+        expect(await caller.mutation(api.guestConversion.resolveGuestProgress, args)).toEqual({
+            disposition: "preserved",
+        });
+        expect(await caller.mutation(api.guestConversion.resolveGuestProgress, args)).toEqual({
+            disposition: "discarded_existing_user",
+        });
 
         const state = await allConversionState(t);
         const referrer = state.users.find(({ _id }) => _id === referrerId);
@@ -240,11 +275,13 @@ describe("Guest Conversion", () => {
         const t = createConvexTest();
         await seedTemplate(t);
 
-        expect(await asUser(t, "no-referrer").mutation(api.guestConversion.resolveGuestProgress, {
-            username: "No Referrer",
-            referralCode: "STALE",
-            guestProgress: guestProgress(),
-        })).toEqual({ disposition: "preserved" });
+        expect(
+            await asUser(t, "no-referrer").mutation(api.guestConversion.resolveGuestProgress, {
+                username: "No Referrer",
+                referralCode: "STALE",
+                guestProgress: guestProgress(),
+            }),
+        ).toEqual({ disposition: "preserved" });
 
         const state = await allConversionState(t);
         expect(state.users[0]?.referredBy).toBeUndefined();
@@ -272,11 +309,13 @@ describe("Guest Conversion", () => {
         const t = createConvexTest();
         await seedUser(t, "referrer", 10);
 
-        await expect(asUser(t, "missing-template").mutation(api.guestConversion.resolveGuestProgress, {
-            username: "Missing Template",
-            referralCode: "REF-referrer",
-            guestProgress: guestProgress(),
-        })).rejects.toThrow("Default room template is not configured");
+        await expect(
+            asUser(t, "missing-template").mutation(api.guestConversion.resolveGuestProgress, {
+                username: "Missing Template",
+                referralCode: "REF-referrer",
+                guestProgress: guestProgress(),
+            }),
+        ).rejects.toThrow("Default room template is not configured");
 
         const state = await allConversionState(t);
         expect(state.users).toHaveLength(1);

@@ -62,10 +62,10 @@ export function RoomsPanel({
                                     isActive
                                         ? "bg-emerald-50 border-emerald-400 cursor-default"
                                         : isSwitching
-                                        ? "bg-stone-100 border-stone-300 cursor-wait opacity-70"
-                                        : !canSwitchRooms
-                                        ? "bg-[var(--color-muted)] border-[var(--color-muted-foreground)] cursor-not-allowed opacity-60"
-                                        : "bg-white border-stone-200 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer"
+                                          ? "bg-stone-100 border-stone-300 cursor-wait opacity-70"
+                                          : !canSwitchRooms
+                                            ? "bg-[var(--color-muted)] border-[var(--color-muted-foreground)] cursor-not-allowed opacity-60"
+                                            : "bg-white border-stone-200 hover:border-emerald-300 hover:bg-emerald-50/50 cursor-pointer"
                                 }`}
                             >
                                 <div className="w-16 h-10 rounded overflow-hidden bg-stone-200 shrink-0">
@@ -79,11 +79,9 @@ export function RoomsPanel({
                                 </div>
 
                                 <div className="flex-1 min-w-0">
-                                    <div className="font-bold text-stone-700 truncate text-size-lg">
-                                        {room.name}
-                                    </div>
+                                    <div className="font-bold text-stone-700 truncate text-size-lg">{room.name}</div>
                                     <div className="text-xs text-stone-500">
-                                        {room.items.length} item{room.items.length !== 1 ? 's' : ''}
+                                        {room.items.length} item{room.items.length !== 1 ? "s" : ""}
                                     </div>
                                 </div>
 
@@ -93,11 +91,7 @@ export function RoomsPanel({
                                         <span className="text-xs font-bold">Active</span>
                                     </div>
                                 )}
-                                {isSwitching && (
-                                    <div className="text-stone-400 text-xs shrink-0">
-                                        Switching...
-                                    </div>
-                                )}
+                                {isSwitching && <div className="text-stone-400 text-xs shrink-0">Switching...</div>}
                             </button>
                         );
                     })
@@ -105,11 +99,17 @@ export function RoomsPanel({
             </div>
 
             <div className="bg-[var(--color-secondary)] border-t-2 border-[var(--color-foreground)] px-3 py-2 text-sm text-center shrink-0">
-                {saveStatus && <RoomSaveFeedback saveStatus={saveStatus} saveError={saveError} onRetrySave={onRetrySave} />}
+                {saveStatus && (
+                    <RoomSaveFeedback saveStatus={saveStatus} saveError={saveError} onRetrySave={onRetrySave} />
+                )}
                 <p className="mt-1 text-xs text-[var(--color-muted-foreground)]">
-                    {canSwitchRooms ? "Buy more rooms from the Item Shop!" : saveStatus === "clean"
-                        ? "Exit edit mode before switching rooms."
-                        : saveStatus ? "Your room must be saved before switching." : "Room switching is unavailable while visiting."}
+                    {canSwitchRooms
+                        ? "Buy more rooms from the Item Shop!"
+                        : saveStatus === "clean"
+                          ? "Exit edit mode before switching rooms."
+                          : saveStatus
+                            ? "Your room must be saved before switching."
+                            : "Room switching is unavailable while visiting."}
                 </p>
             </div>
         </div>

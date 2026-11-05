@@ -10,7 +10,7 @@ type RoomRecord = Pick<Doc<"rooms">, "_id" | "items" | "userId">;
 export function useCursorColorSaver(
     saveComputer: (args: { shortcuts: Shortcut[]; cursorColor: string }) => void,
     authedShortcutsRef: React.MutableRefObject<Shortcut[]>,
-    saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>
+    saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>,
 ) {
     const debouncedSaveRef = useRef<((next: string) => void) | null>(null);
 
@@ -69,7 +69,14 @@ export function useReconcileGuestOnboarding({
         } else {
             clearGuestSession();
         }
-    }, [clearGuestSession, completeOnboarding, initialGuestSession?.onboardingCompleted, isGuest, reconciledGuestOnboardingRef, user]);
+    }, [
+        clearGuestSession,
+        completeOnboarding,
+        initialGuestSession?.onboardingCompleted,
+        isGuest,
+        reconciledGuestOnboardingRef,
+        user,
+    ]);
 }
 
 export function useOwnerPresenceCursorSync({
@@ -92,7 +99,7 @@ export function useOwnerPresenceCursorSync({
             lastRoomPositionRef.current.y,
             screenCursor.x,
             screenCursor.y,
-            hasVisitors
+            hasVisitors,
         );
     }, [hasVisitors, isGuest, screenCursor.x, screenCursor.y, updateCursor, lastRoomPositionRef]);
 }
@@ -183,12 +190,14 @@ export function useLeaseHeartbeat({
             if (stopped) return;
             heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current })
                 .then((result: { closed?: boolean; reason?: string } | unknown) => {
-                    const closed = typeof result === "object" && result !== null && "closed" in result
-                        ? (result as { closed?: boolean }).closed
-                        : false;
-                    const reason = typeof result === "object" && result !== null && "reason" in result
-                        ? (result as { reason?: string }).reason
-                        : undefined;
+                    const closed =
+                        typeof result === "object" && result !== null && "closed" in result
+                            ? (result as { closed?: boolean }).closed
+                            : false;
+                    const reason =
+                        typeof result === "object" && result !== null && "reason" in result
+                            ? (result as { reason?: string }).reason
+                            : undefined;
                     if (closed || reason === "host-only-timeout") {
                         stopHeartbeats();
                     }
@@ -306,7 +315,7 @@ export function useViewportSize() {
 
 export function useDailyRewardToastTimer(
     dailyRewardToast: DailyRewardToastPayload | null,
-    setDailyRewardToast: (next: DailyRewardToastPayload | null) => void
+    setDailyRewardToast: (next: DailyRewardToastPayload | null) => void,
 ) {
     useEffect(() => {
         if (!dailyRewardToast) return;
@@ -318,7 +327,7 @@ export function useDailyRewardToastTimer(
 export function useOnboardingAssetPrefetch(
     onboardingActive: boolean,
     resolvedComputerAssetUrl: string | null,
-    computerPrefetchedRef: React.MutableRefObject<boolean>
+    computerPrefetchedRef: React.MutableRefObject<boolean>,
 ) {
     useEffect(() => {
         if (!onboardingActive) return;

@@ -15,7 +15,7 @@ export function AssetImage({ assetUrl, alt = "", className, draggable, style }: 
     const storageId = isStorageUrl ? assetUrl.replace("storage:", "") : null;
     const resolvedUrl = useQuery(
         api.catalog.getImageUrl,
-        storageId ? { storageId: storageId as Id<"_storage"> } : "skip"
+        storageId ? { storageId: storageId as Id<"_storage"> } : "skip",
     );
 
     const src = isStorageUrl ? resolvedUrl : assetUrl;
@@ -26,4 +26,3 @@ export function AssetImage({ assetUrl, alt = "", className, draggable, style }: 
 
     return <img src={src} alt={alt} className={className} draggable={draggable} style={style} />;
 }
-

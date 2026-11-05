@@ -10,13 +10,7 @@ interface PresenceLayerProps {
     items?: RoomItem[];
 }
 
-export function PresenceLayer({
-    visitors,
-    currentVisitorId,
-    scale,
-    currentGameId,
-    items,
-}: PresenceLayerProps) {
+export function PresenceLayer({ visitors, currentVisitorId, scale, currentGameId, items }: PresenceLayerProps) {
     return (
         <>
             {visitors

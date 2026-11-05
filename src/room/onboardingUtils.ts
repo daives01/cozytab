@@ -52,23 +52,19 @@ export function getHomepageInstruction(): string {
 
     const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
 
-    const instructions =
-        "Set cozytab as your homepage in settings! Log in daily to earn a new coin!";
+    const instructions = "Set cozytab as your homepage in settings! Log in daily to earn a new coin!";
     let specificInstructions = "";
 
     if (os === "mac") {
         switch (browser) {
             case "chrome":
-                specificInstructions =
-                    `Chrome: Settings (⌘ ,) → On startup → Open a specific page → ${appUrl}.`;
+                specificInstructions = `Chrome: Settings (⌘ ,) → On startup → Open a specific page → ${appUrl}.`;
                 break;
             case "edge":
-                specificInstructions =
-                    `Edge: Settings (⌘ ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
+                specificInstructions = `Edge: Settings (⌘ ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
                 break;
             case "firefox":
-                specificInstructions =
-                    `Firefox: Settings (⌘ ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
+                specificInstructions = `Firefox: Settings (⌘ ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
                 break;
             default:
                 break;
@@ -78,16 +74,13 @@ export function getHomepageInstruction(): string {
     if (os === "windows") {
         switch (browser) {
             case "chrome":
-                specificInstructions =
-                    `Chrome: Settings (Ctrl ,) → On startup → Open a specific page → ${appUrl}.`;
+                specificInstructions = `Chrome: Settings (Ctrl ,) → On startup → Open a specific page → ${appUrl}.`;
                 break;
             case "edge":
-                specificInstructions =
-                    `Edge: Settings (Ctrl ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
+                specificInstructions = `Edge: Settings (Ctrl ,) → Start, home, and new tabs → Home → custom page ${appUrl}.`;
                 break;
             case "firefox":
-                specificInstructions =
-                    `Firefox: Settings (Ctrl ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
+                specificInstructions = `Firefox: Settings (Ctrl ,) → Home → Homepage and new windows → Custom URL ${appUrl}.`;
                 break;
             default:
                 break;
@@ -97,4 +90,3 @@ export function getHomepageInstruction(): string {
     // Keep the friendly headline on its own line, then show browser-specific steps.
     return specificInstructions ? `${instructions}\n${specificInstructions}` : instructions;
 }
-

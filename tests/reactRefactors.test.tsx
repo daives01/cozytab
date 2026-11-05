@@ -27,21 +27,41 @@ afterEach(async () => {
     Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
 });
 async function render(element: React.ReactNode) {
-    await act(() => { renderer = create(<ConvexProvider client={client}>{element}</ConvexProvider>); });
+    await act(() => {
+        renderer = create(<ConvexProvider client={client}>{element}</ConvexProvider>);
+    });
 }
 async function update(element: React.ReactNode) {
     await act(() => renderer.update(<ConvexProvider client={client}>{element}</ConvexProvider>));
 }
 const output = () => JSON.stringify(renderer.toJSON());
 function browser() {
-    Object.defineProperty(globalThis, "window", { configurable: true, value: { addEventListener: noop, removeEventListener: noop, location: { origin: "https://cozy.test" }, localStorage: { getItem: () => null } } });
+    Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: {
+            addEventListener: noop,
+            removeEventListener: noop,
+            location: { origin: "https://cozy.test" },
+            localStorage: { getItem: () => null },
+        },
+    });
 }
-const item = (id?: string) => ({ id: "music", catalogItemId: "catalog", x: 0, y: 0, musicType: "youtube", musicUrl: id ? `https://youtube.com/watch?v=${id}` : undefined }) as RoomItem;
+const item = (id?: string) =>
+    ({
+        id: "music",
+        catalogItemId: "catalog",
+        x: 0,
+        y: 0,
+        musicType: "youtube",
+        musicUrl: id ? `https://youtube.com/watch?v=${id}` : undefined,
+    }) as RoomItem;
 
 test("visitor track switches ignore late titles and settle failed or missing videos", async () => {
     browser();
     const pending: Array<(response: Response) => void> = [];
-    const fetch = spyOn(globalThis, "fetch").mockImplementation(() => new Promise<Response>(resolve => pending.push(resolve)));
+    const fetch = spyOn(globalThis, "fetch").mockImplementation(
+        () => new Promise<Response>((resolve) => pending.push(resolve)),
+    );
     try {
         await render(<VisitorMusicModal item={item("aaaaaaaaaaa")} onClose={noop} />);
         expect(output()).toContain("Finding title...");
@@ -59,14 +79,18 @@ test("visitor track switches ignore late titles and settle failed or missing vid
         expect(output()).toContain("Waiting for a track");
         expect(output()).not.toContain("Finding title...");
         expect(fetch).toHaveBeenCalledTimes(3);
-    } finally { fetch.mockRestore(); }
+    } finally {
+        fetch.mockRestore();
+    }
 });
 
 test("saved profile name follows subsequent display-name prop updates", async () => {
     const mutation = spyOn(client, "mutation").mockResolvedValue({ displayName: "Saved name" });
     function Profile({ name }: { name: string }) {
         const profile = useComputerProfileActions({ displayName: name });
-        return <button onClick={() => profile.handleSaveDisplayName(" Saved name ")}>{profile.currentDisplayName}</button>;
+        return (
+            <button onClick={() => profile.handleSaveDisplayName(" Saved name ")}>{profile.currentDisplayName}</button>
+        );
     }
     try {
         await render(<Profile name="Original" />);
@@ -75,7 +99,9 @@ test("saved profile name follows subsequent display-name prop updates", async ()
         await update(<Profile name="Remote update" />);
         expect(output()).toContain("Remote update");
         expect(output()).not.toContain("Saved name");
-    } finally { mutation.mockRestore(); }
+    } finally {
+        mutation.mockRestore();
+    }
 });
 
 test("an expired invite update removes the share link and live access", async () => {
@@ -90,9 +116,13 @@ test("an expired invite update removes the share link and live access", async ()
         await update(<ShareModal activeInvites={[{ ...invite, expiresAt: initialTime + 1000 }]} onClose={noop} />);
         // The stored render time still precedes expiry; the timer must advance it.
         expect(output()).toContain("https://cozy.test/visit/ABCDEF");
-        await act(async () => { await new Promise(resolve => setTimeout(resolve, 25)); });
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 25));
+        });
         expect(output()).toContain("Sharing is disabled");
         expect(output()).not.toContain("https://cozy.test/visit/ABCDEF");
         expect(output()).not.toContain("Room is visible to visitors");
-    } finally { clock.mockRestore(); }
+    } finally {
+        clock.mockRestore();
+    }
 });

@@ -148,7 +148,7 @@ export function getReadableTextColor(
     backgroundHex: string,
     lightText = "#ffffff",
     darkText = "#111827",
-    threshold = 0.55
+    threshold = 0.55,
 ) {
     const resolvedBackground = resolveCssVariable(backgroundHex);
     const resolvedLightText = resolveCssVariable(lightText);

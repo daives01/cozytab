@@ -19,12 +19,20 @@ describe("room save feedback", () => {
     });
 
     test("shows the failure reason and explicit retry beside blocked room switches", () => {
-        const html = renderToStaticMarkup(<RoomsPanel
-            myRooms={[{ _id: "room-1" as Id<"rooms">, name: "First", isActive: true, items: [] },
-                { _id: "room-2" as Id<"rooms">, name: "Second", isActive: false, items: [] }]}
-            switchingRoom={null} canSwitchRooms={false} saveStatus="error"
-            saveError="Reconnect & try again" onRetrySave={retry} onSwitchRoom={async () => {}}
-        />);
+        const html = renderToStaticMarkup(
+            <RoomsPanel
+                myRooms={[
+                    { _id: "room-1" as Id<"rooms">, name: "First", isActive: true, items: [] },
+                    { _id: "room-2" as Id<"rooms">, name: "Second", isActive: false, items: [] },
+                ]}
+                switchingRoom={null}
+                canSwitchRooms={false}
+                saveStatus="error"
+                saveError="Reconnect & try again"
+                onRetrySave={retry}
+                onSwitchRoom={async () => {}}
+            />,
+        );
         expect(html).toContain("Couldn’t save your room.");
         expect(html).toContain("Reconnect &amp; try again");
         expect(html).toContain('aria-label="Retry saving room"');

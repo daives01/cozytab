@@ -19,23 +19,32 @@ export function createRoomDraft(roomId: string, storage?: Pick<Storage, "getItem
             if (!raw || raw.length > MAX_CHARS) return {};
             const parsed: unknown = JSON.parse(raw);
             if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-            return Object.fromEntries(Object.entries(parsed).filter(([, draft]) =>
-                draft && typeof draft.updatedAt === "number" &&
-                draft.updatedAt > Date.now() - MAX_AGE_MS &&
-                Array.isArray(draft.items) && draft.items.every((item: RoomItem) =>
-                    item && typeof item.id === "string" && typeof item.catalogItemId === "string" &&
-                    Number.isFinite(item.x) && Number.isFinite(item.y)
-                )
-            ));
+            return Object.fromEntries(
+                Object.entries(parsed).filter(
+                    ([, draft]) =>
+                        draft &&
+                        typeof draft.updatedAt === "number" &&
+                        draft.updatedAt > Date.now() - MAX_AGE_MS &&
+                        Array.isArray(draft.items) &&
+                        draft.items.every(
+                            (item: RoomItem) =>
+                                item &&
+                                typeof item.id === "string" &&
+                                typeof item.catalogItemId === "string" &&
+                                Number.isFinite(item.x) &&
+                                Number.isFinite(item.y),
+                        ),
+                ),
+            );
         } catch {
             return null;
         }
     };
     const write = (drafts: Drafts) => {
         try {
-            const entries = Object.entries(drafts).sort((a, b) =>
-                Number(b[0] === roomId) - Number(a[0] === roomId) || b[1].updatedAt - a[1].updatedAt
-            ).slice(0, MAX_ROOMS);
+            const entries = Object.entries(drafts)
+                .sort((a, b) => Number(b[0] === roomId) - Number(a[0] === roomId) || b[1].updatedAt - a[1].updatedAt)
+                .slice(0, MAX_ROOMS);
             while (entries.length && JSON.stringify(Object.fromEntries(entries)).length > MAX_CHARS) entries.pop();
             getStorage().setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)));
             return entries.some(([id]) => id === roomId);
@@ -58,7 +67,9 @@ export function createRoomDraft(roomId: string, storage?: Pick<Storage, "getItem
         // If checkpointing failed, still attempt the normal navigation save.
         isCurrent: (items) => {
             const drafts = read();
-            return !checkpointStored || drafts === null || JSON.stringify(drafts[roomId]?.items) === JSON.stringify(items);
+            return (
+                !checkpointStored || drafts === null || JSON.stringify(drafts[roomId]?.items) === JSON.stringify(items)
+            );
         },
         acknowledge: (items) => {
             const drafts = read() ?? {};

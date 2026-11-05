@@ -66,7 +66,7 @@ const BubbleTail = ({ shouldRender }: { shouldRender: boolean }) => {
 const BubbleHeader = () => (
     <div className="flex items-center justify-between border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)] px-5 py-3">
         <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-accent)] shadow-[var(--shadow-2)]">
                 <House className="h-5 w-5 text-[var(--color-foreground)]" />
             </div>
             <p className="text-base font-bold text-[var(--color-foreground)]">Tutorial</p>
@@ -74,7 +74,12 @@ const BubbleHeader = () => (
     </div>
 );
 
-const BubbleActions = ({ showNext, onNext, showSkip, onSkip }: Pick<OnboardingSpotlightProps, "showNext" | "onNext" | "showSkip" | "onSkip">) => (
+const BubbleActions = ({
+    showNext,
+    onNext,
+    showSkip,
+    onSkip,
+}: Pick<OnboardingSpotlightProps, "showNext" | "onNext" | "showSkip" | "onSkip">) => (
     <div className="flex items-center gap-3">
         {showNext && onNext && (
             <button
@@ -199,8 +204,10 @@ export function OnboardingSpotlight({
                 break;
         }
 
-        const nextTop = top === undefined ? top : clampWithinViewport(top, BUBBLE_HEIGHT, BUBBLE_MARGIN, window.innerHeight);
-        const nextLeft = left === undefined ? left : clampWithinViewport(left, bubbleWidth, BUBBLE_MARGIN, window.innerWidth);
+        const nextTop =
+            top === undefined ? top : clampWithinViewport(top, BUBBLE_HEIGHT, BUBBLE_MARGIN, window.innerHeight);
+        const nextLeft =
+            left === undefined ? left : clampWithinViewport(left, bubbleWidth, BUBBLE_MARGIN, window.innerWidth);
 
         return {
             position: "fixed",

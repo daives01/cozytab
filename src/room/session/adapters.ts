@@ -3,14 +3,15 @@ import { persistGuestRoomItems, readGuestSession } from "@/guest/guestSession";
 import { createRoomDraft } from "./roomDraft";
 import type { RoomPersistence } from "./types";
 
-export function createGuestRoomPersistence(options: {
-    loadSession?: () => GuestSessionState;
-    saveSession?: (changes: Partial<GuestSessionState>) => GuestSessionState;
-} = {}): RoomPersistence {
+export function createGuestRoomPersistence(
+    options: {
+        loadSession?: () => GuestSessionState;
+        saveSession?: (changes: Partial<GuestSessionState>) => GuestSessionState;
+    } = {},
+): RoomPersistence {
     const loadSession = options.loadSession ?? readGuestSession;
-    const persistItems = (items: RoomItem[]) => options.saveSession
-        ? options.saveSession({ roomItems: items }).roomItems
-        : persistGuestRoomItems(items);
+    const persistItems = (items: RoomItem[]) =>
+        options.saveSession ? options.saveSession({ roomItems: items }).roomItems : persistGuestRoomItems(items);
     const checkpointItems = (items: RoomItem[]) => {
         canonicalCheckpoint = persistItems(items);
         checkpoint = items;
@@ -31,9 +32,7 @@ export function createGuestRoomPersistence(options: {
         },
         // The synchronous checkpoint already saved these items. In particular,
         // cleanup after Guest Conversion must not recreate cleared progress.
-        save: async (items) => items === checkpoint
-            ? canonicalCheckpoint
-            : checkpointItems(items),
+        save: async (items) => (items === checkpoint ? canonicalCheckpoint : checkpointItems(items)),
     };
 }
 

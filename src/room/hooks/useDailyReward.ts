@@ -57,4 +57,3 @@ export function useDailyReward({ user, isGuest, claimDailyReward, onReward }: Us
 
     return rewardInfo;
 }
-

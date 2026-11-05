@@ -3,7 +3,7 @@
 
 import { ensureAudioReady, getAudioContext, isAudioUnlocked } from "./audio";
 
-export const TYPING_AUDIO_VOLUME = .5;
+export const TYPING_AUDIO_VOLUME = 0.5;
 export const TYPING_AUDIO_MAX_SIMULTANEOUS = 4;
 export const TYPING_AUDIO_THROTTLE_MS = 35;
 export const TYPING_AUDIO_RATE_MIN = 0.85;
@@ -100,7 +100,9 @@ async function playSample(path: string) {
     source.playbackRate.value = randomInRange(TYPING_AUDIO_RATE_MIN, TYPING_AUDIO_RATE_MAX);
 
     gain.gain.value =
-        TYPING_AUDIO_VOLUME * typingVolumeMultiplier * randomInRange(TYPING_AUDIO_VOLUME_JITTER_MIN, TYPING_AUDIO_VOLUME_JITTER_MAX);
+        TYPING_AUDIO_VOLUME *
+        typingVolumeMultiplier *
+        randomInRange(TYPING_AUDIO_VOLUME_JITTER_MIN, TYPING_AUDIO_VOLUME_JITTER_MAX);
 
     source.buffer = buffer;
     source.connect(gain).connect(ctx.destination);

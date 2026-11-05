@@ -27,24 +27,40 @@ function hslToHex(h: number, s: number, l: number): string {
     const c = (1 - Math.abs(2 * light - 1)) * sat;
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = light - c / 2;
-    let r = 0, g = 0, b = 0;
+    let r = 0,
+        g = 0,
+        b = 0;
 
     if (h >= 0 && h < 60) {
-        r = c; g = x; b = 0;
+        r = c;
+        g = x;
+        b = 0;
     } else if (h >= 60 && h < 120) {
-        r = x; g = c; b = 0;
+        r = x;
+        g = c;
+        b = 0;
     } else if (h >= 120 && h < 180) {
-        r = 0; g = c; b = x;
+        r = 0;
+        g = c;
+        b = x;
     } else if (h >= 180 && h < 240) {
-        r = 0; g = x; b = c;
+        r = 0;
+        g = x;
+        b = c;
     } else if (h >= 240 && h < 300) {
-        r = x; g = 0; b = c;
+        r = x;
+        g = 0;
+        b = c;
     } else {
-        r = c; g = 0; b = x;
+        r = c;
+        g = 0;
+        b = x;
     }
 
     const toHex = (value: number) => {
-        const hex = Math.round((value + m) * 255).toString(16).padStart(2, "0");
+        const hex = Math.round((value + m) * 255)
+            .toString(16)
+            .padStart(2, "0");
         return hex;
     };
 
@@ -92,7 +108,7 @@ export const normalizeGuestShortcuts = (shortcuts: GuestShortcut[]): Shortcut[] 
     }));
 
 export function buildCatalogLookup(
-    catalogItems: { _id: Id<"catalogItems">; name: string; isStarterItem?: boolean }[] | undefined
+    catalogItems: { _id: Id<"catalogItems">; name: string; isStarterItem?: boolean }[] | undefined,
 ): CatalogLookup | null {
     if (!catalogItems || catalogItems.length === 0) return null;
     const byId = new Set<Id<"catalogItems">>();
@@ -159,10 +175,7 @@ function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
         }));
 }
 
-function normalizeGuestSession(
-    raw: GuestSessionState,
-    catalogLookup: CatalogLookup | null
-): GuestSessionState {
+function normalizeGuestSession(raw: GuestSessionState, catalogLookup: CatalogLookup | null): GuestSessionState {
     const filterIds = (ids: Id<"catalogItems">[]) =>
         catalogLookup ? ids.filter((id) => catalogLookup.byId.has(id)) : ids;
     const starterIds = catalogLookup?.starterIds ?? [];
@@ -179,7 +192,7 @@ function normalizeGuestSession(
     }
 
     const normalizedRoomItems = raw.roomItems.filter((item) =>
-        catalogLookup ? catalogLookup.byId.has(item.catalogItemId) : true
+        catalogLookup ? catalogLookup.byId.has(item.catalogItemId) : true,
     );
 
     return {
@@ -223,9 +236,7 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
 
     const parsedInventory = parseJson<Id<"catalogItems">[]>(inventoryRaw, []);
     const parsedCursorColor =
-        typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0
-            ? cursorColorRaw
-            : randomBrightColor();
+        typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0 ? cursorColorRaw : randomBrightColor();
 
     if (!cursorColorRaw) {
         safeWrite(GUEST_CURSOR_COLOR_STORAGE_KEY, parsedCursorColor);
@@ -240,7 +251,7 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
             onboardingCompleted: onboardingRaw === "true",
             cursorColor: parsedCursorColor,
         },
-        catalogLookup
+        catalogLookup,
     );
 }
 

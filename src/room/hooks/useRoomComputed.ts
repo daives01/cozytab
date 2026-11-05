@@ -34,7 +34,7 @@ export function useRoomComputed({
 }: UseRoomComputedArgs) {
     const computedDisplayName = useMemo(
         () => displayNameValue ?? userDisplayName ?? userUsername ?? clerkUsername ?? "You",
-        [clerkUsername, displayNameValue, userDisplayName, userUsername]
+        [clerkUsername, displayNameValue, userDisplayName, userUsername],
     );
 
     const computedUsername = useMemo(() => userUsername ?? clerkUsername ?? "you", [clerkUsername, userUsername]);

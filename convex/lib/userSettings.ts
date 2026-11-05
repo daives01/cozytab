@@ -18,7 +18,10 @@ function hslToHex(h: number, s: number, l: number): string {
     else if (h < 240) [green, blue] = [intermediate, chroma];
     else if (h < 300) [red, blue] = [intermediate, chroma];
     else [red, blue] = [chroma, intermediate];
-    const toHex = (value: number) => Math.round((value + match) * 255).toString(16).padStart(2, "0");
+    const toHex = (value: number) =>
+        Math.round((value + match) * 255)
+            .toString(16)
+            .padStart(2, "0");
     return `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
 }
 
@@ -26,21 +29,32 @@ export function randomBrightColor(): string {
     return hslToHex(
         Math.floor(Math.random() * 360),
         70 + Math.floor(Math.random() * 30),
-        55 + Math.floor(Math.random() * 15)
+        55 + Math.floor(Math.random() * 15),
     );
 }
 
 const GRID_COLUMNS = 6;
 
-export function normalizeShortcutsWithGrid<T extends { id: string; name: string; url: string; row?: number; col?: number }>(shortcuts: T[]) {
+export function normalizeShortcutsWithGrid<
+    T extends { id: string; name: string; url: string; row?: number; col?: number },
+>(shortcuts: T[]) {
     const occupied = new Set<string>();
     const clamp = (value: number) => Math.max(0, Math.round(value));
     return shortcuts.map((shortcut, index) => {
-        let row = typeof shortcut.row === "number" && !Number.isNaN(shortcut.row) ? clamp(shortcut.row) : Math.floor(index / GRID_COLUMNS);
-        let col = typeof shortcut.col === "number" && !Number.isNaN(shortcut.col) ? clamp(shortcut.col) : index % GRID_COLUMNS;
+        let row =
+            typeof shortcut.row === "number" && !Number.isNaN(shortcut.row)
+                ? clamp(shortcut.row)
+                : Math.floor(index / GRID_COLUMNS);
+        let col =
+            typeof shortcut.col === "number" && !Number.isNaN(shortcut.col)
+                ? clamp(shortcut.col)
+                : index % GRID_COLUMNS;
         while (occupied.has(`${row}-${col}`)) {
             col++;
-            if (col >= GRID_COLUMNS) { col = 0; row++; }
+            if (col >= GRID_COLUMNS) {
+                col = 0;
+                row++;
+            }
         }
         occupied.add(`${row}-${col}`);
         return { ...shortcut, row, col };

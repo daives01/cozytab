@@ -78,7 +78,7 @@ export function useWebSocketPresence(
     displayName: string,
     isOwner: boolean,
     cursorColor?: string,
-    convexUserId?: string
+    convexUserId?: string,
 ) {
     const wsRef = useRef<WebSocket | null>(null);
     const latestDisplayNameRef = useRef(displayName);
@@ -99,21 +99,19 @@ export function useWebSocketPresence(
     const hasSentCursorRef = useRef(false);
     const inMenuRef = useRef(false);
     const tabbedOutRef = useRef<boolean>(
-        typeof document !== "undefined" ? document.visibilityState === "hidden" : false
+        typeof document !== "undefined" ? document.visibilityState === "hidden" : false,
     );
     const inGameRef = useRef<string | null>(null);
     const gameMetadataRef = useRef<Record<string, unknown> | null>(null);
     const lastBroadcastCursorRef = useRef<{ x: number; y: number }>({ ...DEFAULT_POSITION });
-    const setVisitorsAndStore = useCallback(
-        (updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
-            setVisitors((prev) => {
-                const next = typeof updater === "function" ? (updater as (p: VisitorState[]) => VisitorState[])(prev) : updater;
-                visitorsRef.current = next;
-                return next;
-            });
-        },
-        []
-    );
+    const setVisitorsAndStore = useCallback((updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
+        setVisitors((prev) => {
+            const next =
+                typeof updater === "function" ? (updater as (p: VisitorState[]) => VisitorState[])(prev) : updater;
+            visitorsRef.current = next;
+            return next;
+        });
+    }, []);
 
     const queueRemoteTypingSounds = useRemoteTypingAudio(visitorsRef);
 
@@ -121,29 +119,32 @@ export function useWebSocketPresence(
         transportRef.current?.send(JSON.stringify(msg));
     }, []);
 
-    const handleIncomingMessage = useCallback((event: MessageEvent) => {
-        if (typeof event.data !== "string") return;
+    const handleIncomingMessage = useCallback(
+        (event: MessageEvent) => {
+            if (typeof event.data !== "string") return;
 
-        if (event.data === "pong") {
-            transportRef.current?.acknowledgeHeartbeat();
-            return;
-        }
+            if (event.data === "pong") {
+                transportRef.current?.acknowledgeHeartbeat();
+                return;
+            }
 
-        let data: PresenceMessage | null = null;
-        try {
-            data = JSON.parse(event.data) as PresenceMessage;
-        } catch (error) {
-            console.error("[Presence] Error parsing message", error);
-            return;
-        }
+            let data: PresenceMessage | null = null;
+            try {
+                data = JSON.parse(event.data) as PresenceMessage;
+            } catch (error) {
+                console.error("[Presence] Error parsing message", error);
+                return;
+            }
 
-        if (data.type === "chat" && data.visitorId !== visitorId) {
-            queueRemoteTypingSounds(data.visitorId, data.text);
-        }
-        setVisitorsAndStore((previous) =>
-            applyPresenceMessage(previous, data, { inMenu: inMenuRef.current, inGame: inGameRef.current })
-        );
-    }, [queueRemoteTypingSounds, setVisitorsAndStore, visitorId]);
+            if (data.type === "chat" && data.visitorId !== visitorId) {
+                queueRemoteTypingSounds(data.visitorId, data.text);
+            }
+            setVisitorsAndStore((previous) =>
+                applyPresenceMessage(previous, data, { inMenu: inMenuRef.current, inGame: inGameRef.current }),
+            );
+        },
+        [queueRemoteTypingSounds, setVisitorsAndStore, visitorId],
+    );
 
     useEffect(() => {
         latestCursorColorRef.current = cursorColor;
@@ -184,7 +185,9 @@ export function useWebSocketPresence(
         const transport = new PresenceTransport({
             url: attemptedUrl,
             onMessage: handleIncomingMessage,
-            onSocket: (socket) => { wsRef.current = socket; },
+            onSocket: (socket) => {
+                wsRef.current = socket;
+            },
             onState: (state) => {
                 setConnectionState(state);
                 if (state === "connected") setConnectionError(null);
@@ -218,7 +221,15 @@ export function useWebSocketPresence(
 
     // Send cursor position with throttling
     const buildCursorMessage = useCallback(
-        (x: number, y: number, color?: string, inMenu?: boolean, tabbedOut?: boolean, inGame?: string | null, gameMetadata?: Record<string, unknown> | null): PresenceMessage => ({
+        (
+            x: number,
+            y: number,
+            color?: string,
+            inMenu?: boolean,
+            tabbedOut?: boolean,
+            inGame?: string | null,
+            gameMetadata?: Record<string, unknown> | null,
+        ): PresenceMessage => ({
             type: "cursor",
             visitorId,
             x,
@@ -229,7 +240,7 @@ export function useWebSocketPresence(
             inGame: inGame !== undefined ? inGame : inGameRef.current,
             gameMetadata: gameMetadata !== undefined ? gameMetadata : gameMetadataRef.current,
         }),
-        [visitorId]
+        [visitorId],
     );
 
     const sendCursor = useCallback(
@@ -237,7 +248,13 @@ export function useWebSocketPresence(
             x: number,
             y: number,
             color?: string,
-            opts?: { inMenu?: boolean; force?: boolean; tabbedOut?: boolean; inGame?: string | null; gameMetadata?: Record<string, unknown> | null }
+            opts?: {
+                inMenu?: boolean;
+                force?: boolean;
+                tabbedOut?: boolean;
+                inGame?: string | null;
+                gameMetadata?: Record<string, unknown> | null;
+            },
         ): boolean => {
             const ws = wsRef.current;
             if (!visitorId || !ws || ws.readyState !== WebSocket.OPEN) return false;
@@ -249,7 +266,17 @@ export function useWebSocketPresence(
                 const clamped = clampCursorToRoomBounds(nextX, nextY);
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: clamped.x, y: clamped.y };
-                sendMessage(buildCursorMessage(clamped.x, clamped.y, color, opts?.inMenu, opts?.tabbedOut, opts?.inGame, opts?.gameMetadata));
+                sendMessage(
+                    buildCursorMessage(
+                        clamped.x,
+                        clamped.y,
+                        color,
+                        opts?.inMenu,
+                        opts?.tabbedOut,
+                        opts?.inGame,
+                        opts?.gameMetadata,
+                    ),
+                );
             };
 
             // Clamp the input coordinates immediately
@@ -274,18 +301,12 @@ export function useWebSocketPresence(
             }
             return true;
         },
-        [buildCursorMessage, sendMessage, visitorId]
+        [buildCursorMessage, sendMessage, visitorId],
     );
 
     // Update cursor position (matches usePresence API)
     const updateCursor = useCallback(
-        (
-            roomX: number,
-            roomY: number,
-            screenX: number,
-            screenY: number,
-            shouldBroadcast: boolean = true
-        ) => {
+        (roomX: number, roomY: number, screenX: number, screenY: number, shouldBroadcast: boolean = true) => {
             setScreenCursor({ x: screenX, y: screenY });
             const shouldSend = shouldBroadcast || !hasSentCursorRef.current;
             if (!shouldSend) return;
@@ -293,7 +314,7 @@ export function useWebSocketPresence(
             const didSend = sendCursor(roomX, roomY, latestCursorColorRef.current);
             if (didSend) hasSentCursorRef.current = true;
         },
-        [sendCursor]
+        [sendCursor],
     );
 
     // Update chat message
@@ -303,7 +324,7 @@ export function useWebSocketPresence(
             if (!visitorId) return;
             sendMessage({ type: "chat", visitorId, text: message });
         },
-        [sendMessage, visitorId]
+        [sendMessage, visitorId],
     );
 
     const setInMenu = useCallback(
@@ -315,7 +336,7 @@ export function useWebSocketPresence(
             const { x, y } = lastBroadcastCursorRef.current;
             sendCursor(x, y, latestCursorColorRef.current, { inMenu: next, force: true });
         },
-        [sendCursor, visitorId]
+        [sendCursor, visitorId],
     );
 
     const setInGame = useCallback(
@@ -332,14 +353,10 @@ export function useWebSocketPresence(
 
             // Optimistically update local visitor state (server excludes sender from broadcast)
             setVisitorsAndStore((prev) =>
-                prev.map((v) =>
-                    v.visitorId === visitorId
-                        ? { ...v, inGame: gameItemId, gameMetadata: null }
-                        : v
-                )
+                prev.map((v) => (v.visitorId === visitorId ? { ...v, inGame: gameItemId, gameMetadata: null } : v)),
             );
         },
-        [sendCursor, visitorId, setVisitorsAndStore]
+        [sendCursor, visitorId, setVisitorsAndStore],
     );
 
     const setGameMetadata = useCallback(
@@ -351,14 +368,10 @@ export function useWebSocketPresence(
 
             // Optimistically update local visitor state (server excludes sender from broadcast)
             setVisitorsAndStore((prev) =>
-                prev.map((v) =>
-                    v.visitorId === visitorId
-                        ? { ...v, gameMetadata: metadata }
-                        : v
-                )
+                prev.map((v) => (v.visitorId === visitorId ? { ...v, gameMetadata: metadata } : v)),
             );
         },
-        [sendCursor, visitorId, setVisitorsAndStore]
+        [sendCursor, visitorId, setVisitorsAndStore],
     );
 
     useEffect(() => {

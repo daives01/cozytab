@@ -27,11 +27,7 @@ export function asUser<T extends ReturnType<typeof createConvexTest>>(t: T, subj
     });
 }
 
-export async function seedUser(
-    t: ReturnType<typeof createConvexTest>,
-    externalId: string,
-    currency = 10
-) {
+export async function seedUser(t: ReturnType<typeof createConvexTest>, externalId: string, currency = 10) {
     return t.run((ctx) =>
         ctx.db.insert("users", {
             externalId,
@@ -39,22 +35,18 @@ export async function seedUser(
             displayName: externalId,
             currency,
             referralCode: `REF-${externalId}`,
-        })
+        }),
     );
 }
 
-export async function seedTemplate(
-    t: ReturnType<typeof createConvexTest>,
-    name = "Cozy Room",
-    isDefault = true
-) {
+export async function seedTemplate(t: ReturnType<typeof createConvexTest>, name = "Cozy Room", isDefault = true) {
     return t.run((ctx) =>
         ctx.db.insert("roomTemplates", {
             name,
             basePrice: 0,
             backgroundUrl: "/room.png",
             isDefault,
-        })
+        }),
     );
 }
 
@@ -64,7 +56,7 @@ export async function seedCatalogItem(
         name?: string;
         basePrice?: number;
         isStarterItem?: boolean;
-    } = {}
+    } = {},
 ) {
     return t.run((ctx) =>
         ctx.db.insert("catalogItems", {
@@ -74,7 +66,7 @@ export async function seedCatalogItem(
             assetUrl: "/chair.png",
             defaultWidth: 100,
             isStarterItem: overrides.isStarterItem,
-        })
+        }),
     );
 }
 
@@ -83,7 +75,7 @@ export async function seedRoom(
     userId: Id<"users">,
     templateId: Id<"roomTemplates">,
     isActive = true,
-    name = "Cozy Room"
+    name = "Cozy Room",
 ) {
     return t.run((ctx) =>
         ctx.db.insert("rooms", {
@@ -92,6 +84,6 @@ export async function seedRoom(
             name,
             isActive,
             items: [],
-        })
+        }),
     );
 }

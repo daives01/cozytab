@@ -29,4 +29,3 @@ export interface GuestSessionState {
     onboardingCompleted: boolean;
     cursorColor: string;
 }
-

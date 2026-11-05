@@ -52,7 +52,12 @@ export function useVisitorMusic(items: RoomItem[] | undefined) {
         if (!rawItem) return null;
         const musicState = visitorMusicState[rawItem.id];
         return musicState
-            ? { ...rawItem, musicPlaying: musicState.playing, musicStartedAt: musicState.startedAt, musicPositionAtStart: musicState.positionAtStart }
+            ? {
+                  ...rawItem,
+                  musicPlaying: musicState.playing,
+                  musicStartedAt: musicState.startedAt,
+                  musicPositionAtStart: musicState.positionAtStart,
+              }
             : rawItem;
     }, [activeMusicItemId, items, visitorMusicState]);
 

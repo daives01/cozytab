@@ -40,10 +40,13 @@ export function buildCoinPacks(ids: CoinPackIds) {
         },
     ];
 
-    const priceToAmount: Record<string, number> = packs.reduce((acc, pack) => {
-        acc[pack.priceId] = pack.coins;
-        return acc;
-    }, {} as Record<string, number>);
+    const priceToAmount: Record<string, number> = packs.reduce(
+        (acc, pack) => {
+            acc[pack.priceId] = pack.coins;
+            return acc;
+        },
+        {} as Record<string, number>,
+    );
 
     return { packs, priceToAmount };
 }

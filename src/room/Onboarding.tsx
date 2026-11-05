@@ -77,7 +77,8 @@ const stepConfigs: Record<OnboardingStep, StepConfig> = {
         pulseTarget: true,
     },
     "add-shortcut": {
-        message: "Add a shortcut: right-click the computer desktop and paste a URL to pin your favorite site. Drag it wherever you want! ",
+        message:
+            "Add a shortcut: right-click the computer desktop and paste a URL to pin your favorite site. Drag it wherever you want! ",
         targetSelector: "[data-onboarding='shortcut-desktop']",
         bubblePosition: "top",
         showSkip: true,

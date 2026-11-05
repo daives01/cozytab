@@ -14,8 +14,8 @@ export default defineSchema({
         musicPlayerVolume: v.optional(v.number()),
         computer: v.optional(
             v.object({
-                shortcuts: v.array(shortcutValidator)
-            })
+                shortcuts: v.array(shortcutValidator),
+            }),
         ),
         lastDailyRewardDay: v.optional(v.string()),
         nextRewardAt: v.optional(v.number()),
@@ -93,10 +93,10 @@ export default defineSchema({
         .index("by_idempotencyKey", ["idempotencyKey"]),
 
     friendships: defineTable({
-        user1: v.id("users"),       // lexicographically lower ID
-        user2: v.id("users"),       // lexicographically higher ID
+        user1: v.id("users"), // lexicographically lower ID
+        user2: v.id("users"), // lexicographically higher ID
         status: v.union(v.literal("pending"), v.literal("accepted")),
-        initiator: v.id("users"),   // who sent the request
+        initiator: v.id("users"), // who sent the request
         createdAt: v.number(),
         acceptedAt: v.optional(v.number()),
     })
@@ -110,6 +110,5 @@ export default defineSchema({
         itemId: v.string(), // UUID of the room item (from rooms.items[].id), not a catalogItem ID
         fen: v.string(),
         lastMove: v.optional(v.object({ from: v.string(), to: v.string() })),
-    })
-        .index("by_itemId", ["itemId"]),
+    }).index("by_itemId", ["itemId"]),
 });

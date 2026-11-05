@@ -21,4 +21,3 @@ export function purchaseWithBudget(balance: number, price: number) {
         remaining: Math.max(remaining, 0),
     };
 }
-

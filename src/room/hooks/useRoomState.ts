@@ -42,42 +42,57 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
     const authedShortcutsRef = useRef(localShortcuts);
     const saveAuthedCursorColorRef = useRef<((next: string) => void) | null>(null);
 
-    const setLocalShortcuts = useCallback((update: Updater<Shortcut[]>) => {
-        setLocalShortcutsState((previous) => {
-            const next = typeof update === "function" ? update(previous) : update;
-            authedShortcutsRef.current = next;
-            if (isGuest) saveGuestSession({ shortcuts: next });
-            return next;
-        });
-    }, [isGuest]);
-    const setCursorColor = useCallback((update: Updater<string | null>) => {
-        setCursorColorState((previous) => {
-            const next = typeof update === "function" ? update(previous) : update;
-            if (isGuest && next) saveGuestSession({ cursorColor: next });
-            return next;
-        });
-    }, [isGuest]);
-    const setOnboardingCompleted = useCallback((update: Updater<boolean>) => {
-        setOnboardingCompletedState((previous) => {
-            const next = typeof update === "function" ? update(previous) : update;
-            if (isGuest && next) saveGuestSession({ onboardingCompleted: true });
-            return next;
-        });
-    }, [isGuest]);
-    const setCoins = useCallback((update: Updater<number>) => {
-        setCoinsState((previous) => {
-            const next = typeof update === "function" ? update(previous) : update;
-            if (isGuest) saveGuestSession({ coins: next });
-            return next;
-        });
-    }, [isGuest]);
-    const setInventory = useCallback((update: Updater<Id<"catalogItems">[]>) => {
-        setInventoryState((previous) => {
-            const next = typeof update === "function" ? update(previous) : update;
-            if (isGuest) saveGuestSession({ inventoryIds: next });
-            return next;
-        });
-    }, [isGuest]);
+    const setLocalShortcuts = useCallback(
+        (update: Updater<Shortcut[]>) => {
+            setLocalShortcutsState((previous) => {
+                const next = typeof update === "function" ? update(previous) : update;
+                authedShortcutsRef.current = next;
+                if (isGuest) saveGuestSession({ shortcuts: next });
+                return next;
+            });
+        },
+        [isGuest],
+    );
+    const setCursorColor = useCallback(
+        (update: Updater<string | null>) => {
+            setCursorColorState((previous) => {
+                const next = typeof update === "function" ? update(previous) : update;
+                if (isGuest && next) saveGuestSession({ cursorColor: next });
+                return next;
+            });
+        },
+        [isGuest],
+    );
+    const setOnboardingCompleted = useCallback(
+        (update: Updater<boolean>) => {
+            setOnboardingCompletedState((previous) => {
+                const next = typeof update === "function" ? update(previous) : update;
+                if (isGuest && next) saveGuestSession({ onboardingCompleted: true });
+                return next;
+            });
+        },
+        [isGuest],
+    );
+    const setCoins = useCallback(
+        (update: Updater<number>) => {
+            setCoinsState((previous) => {
+                const next = typeof update === "function" ? update(previous) : update;
+                if (isGuest) saveGuestSession({ coins: next });
+                return next;
+            });
+        },
+        [isGuest],
+    );
+    const setInventory = useCallback(
+        (update: Updater<Id<"catalogItems">[]>) => {
+            setInventoryState((previous) => {
+                const next = typeof update === "function" ? update(previous) : update;
+                if (isGuest) saveGuestSession({ inventoryIds: next });
+                return next;
+            });
+        },
+        [isGuest],
+    );
 
     useEffect(() => {
         authedShortcutsRef.current = localShortcuts;
@@ -95,7 +110,8 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         mode: editing.mode,
         localItems: editing.items,
         selectedId: editing.selectedItemId,
-        setSelectedId: (next: Updater<string | null>) => editingSession.select(typeof next === "function" ? next(editing.selectedItemId) : next),
+        setSelectedId: (next: Updater<string | null>) =>
+            editingSession.select(typeof next === "function" ? next(editing.selectedItemId) : next),
         isDrawerOpen,
         setIsDrawerOpen,
         draggedItemId: editing.draggedItemId,

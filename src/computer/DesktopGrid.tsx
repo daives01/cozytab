@@ -50,15 +50,7 @@ function SiteFavicon({ url, className }: { url: string; className?: string }) {
         return <Globe className={className} />;
     }
 
-    return (
-        <img
-            src={faviconUrl}
-            alt=""
-            onError={() => setFailed(true)}
-            className={className}
-            draggable={false}
-        />
-    );
+    return <img src={faviconUrl} alt="" onError={() => setFailed(true)} className={className} draggable={false} />;
 }
 
 export function DesktopGrid({
@@ -91,10 +83,7 @@ export function DesktopGrid({
     }, [renamingId]);
 
     return (
-        <div
-            className="relative w-full"
-            style={{ height: gridHeight * desktopScale || undefined }}
-        >
+        <div className="relative w-full" style={{ height: gridHeight * desktopScale || undefined }}>
             <div
                 className="grid gap-2 sm:gap-4"
                 style={{

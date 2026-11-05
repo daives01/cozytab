@@ -30,7 +30,7 @@ export function useMobileZoom(options: UseMobileZoomOptions) {
             x: Math.max(-maxPanX, Math.min(maxPanX, x)),
             y: Math.max(-maxPanY, Math.min(maxPanY, y)),
         }),
-        [maxPanX, maxPanY]
+        [maxPanX, maxPanY],
     );
 
     useEffect(() => {
@@ -62,11 +62,14 @@ export function useMobileZoom(options: UseMobileZoomOptions) {
     const isPanningRef = useRef(false);
     const lastTouchRef = useRef<{ x: number; y: number } | null>(null);
 
-    const handlePanStart = useCallback((clientX: number, clientY: number) => {
-        if (!isZoomed) return;
-        isPanningRef.current = true;
-        lastTouchRef.current = { x: clientX, y: clientY };
-    }, [isZoomed]);
+    const handlePanStart = useCallback(
+        (clientX: number, clientY: number) => {
+            if (!isZoomed) return;
+            isPanningRef.current = true;
+            lastTouchRef.current = { x: clientX, y: clientY };
+        },
+        [isZoomed],
+    );
 
     const handlePanMove = useCallback(
         (clientX: number, clientY: number) => {
@@ -78,7 +81,7 @@ export function useMobileZoom(options: UseMobileZoomOptions) {
             setPanOffset((prev) => clampPan(prev.x + dx, prev.y + dy));
             lastTouchRef.current = { x: clientX, y: clientY };
         },
-        [clampPan, isZoomed]
+        [clampPan, isZoomed],
     );
 
     const handlePanEnd = useCallback(() => {

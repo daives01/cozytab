@@ -72,13 +72,17 @@ export function EditDrawer({
                             : "h-10 w-16 rounded-t-xl border-b-0 hover:-translate-y-[1px] hover:shadow-none active:translate-y-[1px]"
                     }`}
                 >
-                    {isLeft
-                        ? isDrawerOpen
-                            ? <ChevronLeft className="h-6 w-6" />
-                            : <ChevronRight className="h-6 w-6" />
-                        : isDrawerOpen
-                            ? <ChevronDown className="h-5 w-5" />
-                            : <ChevronUp className="h-5 w-5" />}
+                    {isLeft ? (
+                        isDrawerOpen ? (
+                            <ChevronLeft className="h-6 w-6" />
+                        ) : (
+                            <ChevronRight className="h-6 w-6" />
+                        )
+                    ) : isDrawerOpen ? (
+                        <ChevronDown className="h-5 w-5" />
+                    ) : (
+                        <ChevronUp className="h-5 w-5" />
+                    )}
                 </button>
             </div>
 

@@ -69,8 +69,8 @@ export function RoomsTab({
                         const buttonStateClasses = isPurchasing
                             ? "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-wait border-[var(--ink)]"
                             : canAfford
-                            ? "bg-[var(--danger)] text-white hover:bg-[var(--danger-dark)] border-[var(--ink)] shadow-md active:scale-[0.98] active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
-                            : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]";
+                              ? "bg-[var(--danger)] text-white hover:bg-[var(--danger-dark)] border-[var(--ink)] shadow-md active:scale-[0.98] active:shadow-sm active:translate-x-[2px] active:translate-y-[2px]"
+                              : "bg-[var(--muted)] text-[var(--ink-subtle)] cursor-not-allowed border-[var(--ink)]";
 
                         return (
                             <button
@@ -105,9 +105,7 @@ export function RoomsTab({
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
                                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                                    <h4 className="font-bold text-white text-xl drop-shadow-lg">
-                                        {template.name}
-                                    </h4>
+                                    <h4 className="font-bold text-white text-xl drop-shadow-lg">{template.name}</h4>
                                     {template.description && (
                                         <p className="text-white/80 text-sm mt-0.5 drop-shadow-md line-clamp-1">
                                             {template.description}
@@ -122,7 +120,9 @@ export function RoomsTab({
                                 {resultForRoom && (
                                     <div
                                         className={`mt-3 text-sm text-center font-medium ${
-                                            resultForRoom.success ? "text-[var(--success-dark)]" : "text-[var(--danger)]"
+                                            resultForRoom.success
+                                                ? "text-[var(--success-dark)]"
+                                                : "text-[var(--danger)]"
                                         }`}
                                     >
                                         {resultForRoom.message}
@@ -136,4 +136,3 @@ export function RoomsTab({
         </div>
     );
 }
-

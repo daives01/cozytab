@@ -33,7 +33,12 @@ export function RoomTemplatesTab() {
         onError: setError,
     });
 
-    const { uploading, error: uploadError, handleImageUpload, setError: setUploadError } = useImageUpload<"roomTemplates">({
+    const {
+        uploading,
+        error: uploadError,
+        handleImageUpload,
+        setError: setUploadError,
+    } = useImageUpload<"roomTemplates">({
         generateUploadUrl,
         onUploadComplete: async (templateId, imageUrl) => {
             if (templateId === "new") {
@@ -103,7 +108,13 @@ export function RoomTemplatesTab() {
             {currentError && (
                 <div className="mb-4 p-3 bg-[var(--danger-light)] border-2 border-[var(--danger)] rounded-lg text-[var(--danger-dark)] shadow-sm">
                     {currentError}
-                    <button onClick={() => { setError(undefined); setUploadError(undefined); }} className="ml-4 underline">
+                    <button
+                        onClick={() => {
+                            setError(undefined);
+                            setUploadError(undefined);
+                        }}
+                        className="ml-4 underline"
+                    >
                         Dismiss
                     </button>
                 </div>
@@ -189,7 +200,10 @@ export function RoomTemplatesTab() {
                         {newTemplate.backgroundUrl && (
                             <div className="ml-4 flex items-center gap-2">
                                 <span className="text-sm text-stone-400">Preview:</span>
-                                <AssetImage assetUrl={newTemplate.backgroundUrl} className="w-20 h-12 object-cover rounded" />
+                                <AssetImage
+                                    assetUrl={newTemplate.backgroundUrl}
+                                    className="w-20 h-12 object-cover rounded"
+                                />
                             </div>
                         )}
                     </div>
@@ -205,7 +219,9 @@ export function RoomTemplatesTab() {
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Description</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Price</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Default</th>
-                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">Background URL</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold text-[var(--ink)]">
+                                Background URL
+                            </th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-[var(--ink)]/20">
@@ -218,9 +234,7 @@ export function RoomTemplatesTab() {
                                             className="w-24 h-14 object-cover rounded"
                                         />
                                         <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded">
-                                            <span className="text-xs">
-                                                {uploading === template._id ? "..." : "📤"}
-                                            </span>
+                                            <span className="text-xs">{uploading === template._id ? "..." : "📤"}</span>
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -249,7 +263,9 @@ export function RoomTemplatesTab() {
                                         value={template.description ?? ""}
                                         isEditing={editing?.id === template._id && editing?.field === "description"}
                                         editValue={editValue}
-                                        onEdit={() => startEdit(template._id, "description", template.description ?? "")}
+                                        onEdit={() =>
+                                            startEdit(template._id, "description", template.description ?? "")
+                                        }
                                         onChange={setEditValue}
                                         onSave={saveEdit}
                                         onCancel={cancelEdit}
@@ -309,4 +325,3 @@ export function RoomTemplatesTab() {
         </>
     );
 }
-

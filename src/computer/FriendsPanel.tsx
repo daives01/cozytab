@@ -32,7 +32,7 @@ export function FriendsPanel({ isGuest = false, inRoomVisitors = [] }: FriendsPa
     const friends = useQuery(api.friends.getMyFriends, isGuest ? "skip" : {});
     const pendingRequests = useQuery(api.friends.getMyPendingRequests, isGuest ? "skip" : {});
     const myCode = useQuery(api.users.getMyReferralCode, isGuest ? "skip" : {});
-    
+
     const eligibleVisitors = inRoomVisitors.filter((v) => v.convexUserId);
 
     if (isGuest) {
@@ -48,9 +48,25 @@ export function FriendsPanel({ isGuest = false, inRoomVisitors = [] }: FriendsPa
     return (
         <div className="bg-[var(--color-background)] text-[var(--color-foreground)] w-full h-full flex flex-col overflow-hidden">
             <div className="flex border-b-2 border-[var(--color-foreground)] bg-[var(--color-secondary)]">
-                <TabButton label="Friends" icon={<Users className="h-3.5 w-3.5" />} active={activeTab === "friends"} onClick={() => setActiveTab("friends")} />
-                <TabButton label="Requests" icon={<Clock className="h-3.5 w-3.5" />} active={activeTab === "requests"} onClick={() => setActiveTab("requests")} badge={requestCount} />
-                <TabButton label="Add Friend" icon={<UserPlus className="h-3.5 w-3.5" />} active={activeTab === "add"} onClick={() => setActiveTab("add")} />
+                <TabButton
+                    label="Friends"
+                    icon={<Users className="h-3.5 w-3.5" />}
+                    active={activeTab === "friends"}
+                    onClick={() => setActiveTab("friends")}
+                />
+                <TabButton
+                    label="Requests"
+                    icon={<Clock className="h-3.5 w-3.5" />}
+                    active={activeTab === "requests"}
+                    onClick={() => setActiveTab("requests")}
+                    badge={requestCount}
+                />
+                <TabButton
+                    label="Add Friend"
+                    icon={<UserPlus className="h-3.5 w-3.5" />}
+                    active={activeTab === "add"}
+                    onClick={() => setActiveTab("add")}
+                />
             </div>
             <div className="flex-1 overflow-y-auto">
                 {activeTab === "friends" && <FriendsTab friends={friends} inRoomVisitors={eligibleVisitors} />}
@@ -61,7 +77,19 @@ export function FriendsPanel({ isGuest = false, inRoomVisitors = [] }: FriendsPa
     );
 }
 
-function TabButton({ label, icon, active, onClick, badge }: { label: string; icon: React.ReactNode; active: boolean; onClick: () => void; badge?: number }) {
+function TabButton({
+    label,
+    icon,
+    active,
+    onClick,
+    badge,
+}: {
+    label: string;
+    icon: React.ReactNode;
+    active: boolean;
+    onClick: () => void;
+    badge?: number;
+}) {
     return (
         <button
             onClick={onClick}
@@ -101,7 +129,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
     const friendshipStatusBatch = useQuery(
         api.friends.getFriendshipStatusBatch,
-        visitorUserIds.length > 0 ? { userIds: visitorUserIds } : "skip"
+        visitorUserIds.length > 0 ? { userIds: visitorUserIds } : "skip",
     );
 
     useEffect(() => {
@@ -126,11 +154,7 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
     }, [friends, now]);
 
     if (friends === undefined) {
-        return (
-            <div className="p-4 text-sm text-[var(--color-muted-foreground)] text-center">
-                Loading...
-            </div>
-        );
+        return <div className="p-4 text-sm text-[var(--color-muted-foreground)] text-center">Loading...</div>;
     }
 
     const hasInRoomVisitors = inRoomVisitors.length > 0;
@@ -174,7 +198,10 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
                         const isOnline = friend.lastSeenAt != null && now - friend.lastSeenAt < ONLINE_THRESHOLD_MS;
 
                         return (
-                            <div key={friend.userId} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-muted)]">
+                            <div
+                                key={friend.userId}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-muted)]"
+                            >
                                 <div className="relative">
                                     <CursorAvatar color={friend.cursorColor ?? "#a78bfa"} size={28} />
                                     <div
@@ -184,8 +211,12 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
                                     />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-[var(--color-foreground)] truncate">{friend.displayName}</div>
-                                    <div className="text-xs text-[var(--color-muted-foreground)]">{isOnline ? "Online" : "Offline"}</div>
+                                    <div className="text-sm font-medium text-[var(--color-foreground)] truncate">
+                                        {friend.displayName}
+                                    </div>
+                                    <div className="text-xs text-[var(--color-muted-foreground)]">
+                                        {isOnline ? "Online" : "Offline"}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     {friend.activeRoomId && (
@@ -235,11 +266,19 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
     );
 }
 
-function InRoomVisitorRow({ visitor, friendshipStatusMap }: { visitor: VisitorState; friendshipStatusMap: FriendshipStatusMap }) {
+function InRoomVisitorRow({
+    visitor,
+    friendshipStatusMap,
+}: {
+    visitor: VisitorState;
+    friendshipStatusMap: FriendshipStatusMap;
+}) {
     const convexUserId = visitor.convexUserId as Id<"users"> | undefined;
     const sendRequest = useMutation(api.friends.sendFriendRequestByUserId);
     const [sending, setSending] = useState(false);
-    const [result, setResult] = useState<{ type: "sent" | "autoAccepted" | "alreadyPending" | "alreadyFriends" } | null>(null);
+    const [result, setResult] = useState<{
+        type: "sent" | "autoAccepted" | "alreadyPending" | "alreadyFriends";
+    } | null>(null);
 
     if (!convexUserId) return null;
 
@@ -268,7 +307,11 @@ function InRoomVisitorRow({ visitor, friendshipStatusMap }: { visitor: VisitorSt
     let actionContent;
     if (friendshipStatus === undefined) {
         actionContent = <span className="text-xs text-stone-400">...</span>;
-    } else if (friendshipStatus?.status === "accepted" || result?.type === "alreadyFriends" || result?.type === "autoAccepted") {
+    } else if (
+        friendshipStatus?.status === "accepted" ||
+        result?.type === "alreadyFriends" ||
+        result?.type === "autoAccepted"
+    ) {
         actionContent = (
             <span className="flex items-center gap-1 text-xs text-purple-600 font-medium">
                 <Users className="h-3 w-3" />
@@ -302,9 +345,7 @@ function InRoomVisitorRow({ visitor, friendshipStatusMap }: { visitor: VisitorSt
                 <div className="text-sm font-medium text-[var(--color-foreground)] truncate">{visitor.displayName}</div>
                 <div className="text-xs text-[var(--color-accent-foreground)]">Visiting now</div>
             </div>
-            <div className="flex items-center">
-                {actionContent}
-            </div>
+            <div className="flex items-center">{actionContent}</div>
         </div>
     );
 }
@@ -315,22 +356,14 @@ function RequestsTab({ pendingRequests }: { pendingRequests: PendingRequestsQuer
     const cancelRequest = useMutation(api.friends.cancelFriendRequest);
 
     if (pendingRequests === undefined) {
-        return (
-            <div className="p-4 text-sm text-stone-400 text-center">
-                Loading...
-            </div>
-        );
+        return <div className="p-4 text-sm text-stone-400 text-center">Loading...</div>;
     }
 
     const { incoming, outgoing } = pendingRequests;
     const hasNone = incoming.length === 0 && outgoing.length === 0;
 
     if (hasNone) {
-        return (
-            <div className="p-4 text-sm text-stone-500 text-center">
-                No pending requests.
-            </div>
-        );
+        return <div className="p-4 text-sm text-stone-500 text-center">No pending requests.</div>;
     }
 
     return (
@@ -453,7 +486,9 @@ function AddFriendTab({ myCode }: { myCode: string | null | undefined }) {
                 <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Invite a Friend</div>
                 <div className="flex items-center gap-2 text-stone-600 text-xs">
                     <Gift className="h-3.5 w-3.5 text-pink-500 shrink-0" />
-                    <span>Earn <strong>3 cozy coins</strong> when they join!</span>
+                    <span>
+                        Earn <strong>3 cozy coins</strong> when they join!
+                    </span>
                 </div>
                 <div className="space-y-2">
                     <div className="flex gap-2 items-center">

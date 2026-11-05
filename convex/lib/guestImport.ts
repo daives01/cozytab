@@ -10,7 +10,12 @@ export function clampGuestCoins(value: unknown): number {
     return Math.max(0, Math.min(GUEST_STARTING_COINS, value));
 }
 
-export async function importInventoryWithinBudget(ctx: MutationCtx, userId: Id<"users">, guestInventory: string[], reportedCoins: number) {
+export async function importInventoryWithinBudget(
+    ctx: MutationCtx,
+    userId: Id<"users">,
+    guestInventory: string[],
+    reportedCoins: number,
+) {
     const inventoryNames = new Set<string>();
     const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
     const totalBudget = GUEST_STARTING_COINS;
@@ -29,7 +34,10 @@ export async function importInventoryWithinBudget(ctx: MutationCtx, userId: Id<"
         counts.set(item._id, (counts.get(item._id) ?? 0) + 1);
     }
     for (const item of catalogItems.filter((candidate) => candidate.isStarterItem)) {
-        if (!counts.has(item._id)) { counts.set(item._id, 1); inventoryNames.add(item.name); }
+        if (!counts.has(item._id)) {
+            counts.set(item._id, 1);
+            inventoryNames.add(item.name);
+        }
     }
     for (const [catalogItemId, count] of counts) {
         await ctx.db.insert("inventory", { userId, catalogItemId, purchasedAt: Date.now(), count });
@@ -40,13 +48,22 @@ export async function importInventoryWithinBudget(ctx: MutationCtx, userId: Id<"
 export async function ensureStarterInventory(ctx: MutationCtx, userId: Id<"users">) {
     const catalogItems: Doc<"catalogItems">[] = await ctx.db.query("catalogItems").collect();
     const starters = catalogItems.filter((item) => item.isStarterItem);
-    const inventory = await ctx.db.query("inventory").withIndex("by_user", (query) => query.eq("userId", userId)).collect();
+    const inventory = await ctx.db
+        .query("inventory")
+        .withIndex("by_user", (query) => query.eq("userId", userId))
+        .collect();
     const byCatalog = new Map(inventory.map((item) => [item.catalogItemId, item]));
     let ensured = false;
     for (const starter of starters) {
         const existing = byCatalog.get(starter._id);
         if (!existing) {
-            await ctx.db.insert("inventory", { userId, catalogItemId: starter._id, purchasedAt: Date.now(), hidden: false, count: 1 });
+            await ctx.db.insert("inventory", {
+                userId,
+                catalogItemId: starter._id,
+                purchasedAt: Date.now(),
+                hidden: false,
+                count: 1,
+            });
             ensured = true;
         } else if ((existing.count ?? 1) <= 0) {
             await ctx.db.patch(existing._id, { count: 1 });
@@ -56,20 +73,41 @@ export async function ensureStarterInventory(ctx: MutationCtx, userId: Id<"users
     return { catalogItems, ensured };
 }
 
-export function sanitizeRoomItems(items: RoomItem[] | undefined, catalogByName: Map<string, Id<"catalogItems">>, catalogIds: Set<Id<"catalogItems">>) {
+export function sanitizeRoomItems(
+    items: RoomItem[] | undefined,
+    catalogByName: Map<string, Id<"catalogItems">>,
+    catalogIds: Set<Id<"catalogItems">>,
+) {
     return (items ?? []).slice(0, MAX_GUEST_ITEMS).flatMap((item) => {
         const candidate = item.catalogItemId as Id<"catalogItems">;
         const catalogItemId = catalogIds.has(candidate) ? candidate : catalogByName.get(item.catalogItemId);
         if (!catalogItemId) return [];
-        return [{ ...item, catalogItemId, x: Number.isFinite(item.x) ? item.x : 0, y: Number.isFinite(item.y) ? item.y : 0 }];
+        return [
+            {
+                ...item,
+                catalogItemId,
+                x: Number.isFinite(item.x) ? item.x : 0,
+                y: Number.isFinite(item.y) ? item.y : 0,
+            },
+        ];
     });
 }
 
 export function sanitizeGuestShortcuts(shortcuts: GuestShortcut[] | undefined) {
-    return normalizeShortcutsWithGrid((shortcuts ?? []).slice(0, MAX_GUEST_ITEMS).map(({ id, name, url, row, col }) => ({ id, name, url, row, col })));
+    return normalizeShortcutsWithGrid(
+        (shortcuts ?? []).slice(0, MAX_GUEST_ITEMS).map(({ id, name, url, row, col }) => ({ id, name, url, row, col })),
+    );
 }
 
-export async function seedRoomFromGuest(ctx: MutationCtx, userId: Id<"users">, templateId: Id<"roomTemplates">, templateName: string, guestItems: RoomItem[] | undefined, catalogByName: Map<string, Id<"catalogItems">>, catalogIds: Set<Id<"catalogItems">>) {
+export async function seedRoomFromGuest(
+    ctx: MutationCtx,
+    userId: Id<"users">,
+    templateId: Id<"roomTemplates">,
+    templateName: string,
+    guestItems: RoomItem[] | undefined,
+    catalogByName: Map<string, Id<"catalogItems">>,
+    catalogIds: Set<Id<"catalogItems">>,
+) {
     await ctx.db.insert("rooms", {
         userId,
         templateId,

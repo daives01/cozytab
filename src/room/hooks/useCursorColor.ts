@@ -53,7 +53,7 @@ async function ensureTemplates() {
                     const res = await fetch(cursorSources[kind].path);
                     if (!res.ok) return;
                     templateCache[kind] = await res.text();
-                })
+                }),
             );
         } catch (error) {
             console.error("[cursor] Failed to load cursor templates", error);

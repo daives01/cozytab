@@ -31,23 +31,9 @@ export function CursorAvatar({ color, size, width, height, filter, rotated, hots
                 strokeWidth="12"
                 strokeLinejoin="round"
             />
-            <ellipse
-                cx="22"
-                cy="46"
-                rx="12.5"
-                ry="18"
-                transform="rotate(-15 22 46)"
-                fill="white"
-            />
+            <ellipse cx="22" cy="46" rx="12.5" ry="18" transform="rotate(-15 22 46)" fill="white" />
             <circle cx="24" cy="51" r="5.5" fill="black" />
-            <ellipse
-                cx="50"
-                cy="38"
-                rx="12"
-                ry="18"
-                transform="rotate(-10 50 38)"
-                fill="white"
-            />
+            <ellipse cx="50" cy="38" rx="12" ry="18" transform="rotate(-10 50 38)" fill="white" />
             <circle cx="49" cy="45" r="5.5" fill="black" />
         </svg>
     );

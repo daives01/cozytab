@@ -36,9 +36,12 @@ export function useVisitorGameState({
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
 
-    const handleGameActiveChange = useCallback((gameItemId: string | null) => {
-        setInGame(gameItemId);
-    }, [setInGame]);
+    const handleGameActiveChange = useCallback(
+        (gameItemId: string | null) => {
+            setInGame(gameItemId);
+        },
+        [setInGame],
+    );
 
     return {
         activeGameItemId,

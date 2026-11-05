@@ -56,9 +56,15 @@ export function VisitorRoomExperience({
             <ConnectionBanner connectionState={presence.connectionState} connectionError={presence.connectionError} />
             {extraOverlays}
             {!touchOnly ? (
-                <ChatInput onMessageChange={presence.updateChatMessage} disabled={presence.connectionState !== "connected"} />
+                <ChatInput
+                    onMessageChange={presence.updateChatMessage}
+                    disabled={presence.connectionState !== "connected"}
+                />
             ) : (
-                <MobileChatInput onMessageChange={presence.updateChatMessage} disabled={presence.connectionState !== "connected"} />
+                <MobileChatInput
+                    onMessageChange={presence.updateChatMessage}
+                    disabled={presence.connectionState !== "connected"}
+                />
             )}
             {music.activeMusicItem ? (
                 <VisitorMusicModal item={music.activeMusicItem} onClose={() => music.setActiveMusicItemId(null)} />
@@ -99,7 +105,7 @@ export function VisitorRoomExperience({
                 onGuestPurchase={economy.onGuestPurchase}
                 isOnboardingShopStep={false}
                 displayName={controller.isGuest ? undefined : identity.name}
-                username={controller.isGuest ? undefined : identity.username ?? "you"}
+                username={controller.isGuest ? undefined : (identity.username ?? "you")}
                 onDisplayNameUpdated={controller.setDisplayNameOverride}
                 cursorColor={identity.cursorColor}
                 onCursorColorChange={controller.updateCursorColor}

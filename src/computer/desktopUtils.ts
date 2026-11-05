@@ -27,8 +27,7 @@ export const WINDOW_ACCENTS: Record<ComputerWindowApp, string> = {
 export function deriveShortcutName(url: string) {
     try {
         const hostname = new URL(url).hostname.replace(/^www\./, "");
-        const toTitle = (value: string) =>
-            value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
+        const toTitle = (value: string) => (value ? value.charAt(0).toUpperCase() + value.slice(1) : value);
         const parts = hostname.split(".");
         if (parts.length >= 2) {
             return toTitle(parts[parts.length - 2]);
@@ -66,28 +65,16 @@ export function normalizeShortcuts(shortcuts: Shortcut[]) {
     });
 }
 
-export function findNearestCell(
-    event: React.DragEvent<HTMLDivElement>,
-    container: HTMLDivElement,
-    scale: number
-) {
+export function findNearestCell(event: React.DragEvent<HTMLDivElement>, container: HTMLDivElement, scale: number) {
     return findCellFromPoint(event.clientX, event.clientY, container, scale);
 }
 
-export function findCellFromPoint(
-    clientX: number,
-    clientY: number,
-    container: HTMLDivElement,
-    scale: number
-) {
+export function findCellFromPoint(clientX: number, clientY: number, container: HTMLDivElement, scale: number) {
     const rect = container.getBoundingClientRect();
     const x = (clientX - rect.left) / (scale || 1);
     const y = (clientY - rect.top) / (scale || 1);
 
-    const col = Math.min(
-        GRID_COLUMNS - 1,
-        Math.max(0, Math.round((x / rect.width) * GRID_COLUMNS - 0.5))
-    );
+    const col = Math.min(GRID_COLUMNS - 1, Math.max(0, Math.round((x / rect.width) * GRID_COLUMNS - 0.5)));
 
     const row = Math.max(0, Math.round(y / ROW_HEIGHT - 0.5));
 

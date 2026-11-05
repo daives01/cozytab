@@ -38,4 +38,3 @@ export function useRoomGate({ isGuest, initialGuestSession, room, guestTemplate,
 
     return null;
 }
-

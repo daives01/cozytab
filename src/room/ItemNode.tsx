@@ -180,24 +180,24 @@ export function ItemNode({
         mode === "view" &&
         (isVisitor
             ? Boolean(
-                hasUrl ||
-                (isComputerCategory && onComputerClick) ||
-                (isMusicCategory && onMusicPlayerClick) ||
-                (isGameCategory && onGameClick)
-            )
+                  hasUrl ||
+                  (isComputerCategory && onComputerClick) ||
+                  (isMusicCategory && onMusicPlayerClick) ||
+                  (isGameCategory && onGameClick),
+              )
             : Boolean(
-                (isComputerCategory && onComputerClick) ||
-                (isMusicCategory && onMusicPlayerClick) ||
-                (isGameCategory && onGameClick) ||
-                hasUrl
-            ));
+                  (isComputerCategory && onComputerClick) ||
+                  (isMusicCategory && onMusicPlayerClick) ||
+                  (isGameCategory && onGameClick) ||
+                  hasUrl,
+              ));
 
     const cursor =
         mode === "edit"
             ? "var(--cozy-cursor-drag)"
             : isInteractable
-                ? "var(--cozy-cursor-click)"
-                : "var(--cozy-cursor-default)";
+              ? "var(--cozy-cursor-click)"
+              : "var(--cozy-cursor-default)";
 
     return (
         <div

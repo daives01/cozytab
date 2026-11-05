@@ -79,7 +79,6 @@ interface UseRoomOverlaysModelArgs {
         visitorId: string;
         setGameMetadata: (metadata: Record<string, unknown> | null) => void;
     };
-
 }
 
 export function useRoomOverlaysModel({

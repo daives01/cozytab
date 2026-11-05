@@ -11,13 +11,18 @@ interface RoomSessionProviderProps {
     ownedCount: (catalogItemId: Id<"catalogItems">) => number;
 }
 
-export function RoomSessionProvider({ roomId, persistence, ownedCount, children }: PropsWithChildren<RoomSessionProviderProps>) {
+export function RoomSessionProvider({
+    roomId,
+    persistence,
+    ownedCount,
+    children,
+}: PropsWithChildren<RoomSessionProviderProps>) {
     const [session] = useState(() =>
         createRoomEditingSession({
             roomId,
             persistence,
             ownedCount,
-        })
+        }),
     );
     const [activateSessionLifecycle] = useState(() => createRoomSessionLifecycle(session));
 
@@ -25,7 +30,9 @@ export function RoomSessionProvider({ roomId, persistence, ownedCount, children 
     useEffect(() => {
         // The draft is already synchronous; these are best-effort early flushes
         // for backgrounding/shutdown and BFCache, not our recovery guarantee.
-        const flush = () => { void session.flush(); };
+        const flush = () => {
+            void session.flush();
+        };
         const onVisibilityChange = () => {
             if (document.visibilityState === "hidden") flush();
         };

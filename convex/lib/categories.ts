@@ -8,7 +8,7 @@ export const catalogItemCategoryValidator = v.union(
     v.literal("decor"),
     v.literal("furniture"),
     v.literal("computers"),
-    v.literal("games")
+    v.literal("games"),
 );
 
 /** Convex validator for game type field. */

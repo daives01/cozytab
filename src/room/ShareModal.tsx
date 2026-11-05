@@ -22,19 +22,15 @@ interface ShareModalProps {
 
 export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
     const enableInvite = useMutation(api.invites.enableInvite);
-    const revokeInvite = useMutation(api.invites.revokeInvite).withOptimisticUpdate(
-        (localStore, { inviteId }) => {
-            const current = localStore.getQuery(api.invites.getMyActiveInvites, {});
-            if (!current) return;
-            localStore.setQuery(
-                api.invites.getMyActiveInvites,
-                {},
-                current.map((inv) =>
-                    inv._id === inviteId ? { ...inv, expiresAt: Date.now() } : inv
-                )
-            );
-        }
-    );
+    const revokeInvite = useMutation(api.invites.revokeInvite).withOptimisticUpdate((localStore, { inviteId }) => {
+        const current = localStore.getQuery(api.invites.getMyActiveInvites, {});
+        if (!current) return;
+        localStore.setQuery(
+            api.invites.getMyActiveInvites,
+            {},
+            current.map((inv) => (inv._id === inviteId ? { ...inv, expiresAt: Date.now() } : inv)),
+        );
+    });
     const rotateInviteCode = useMutation(api.invites.rotateInviteCode);
 
     const [copied, setCopied] = useState(false);
@@ -137,7 +133,7 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
                                     {showLiveState ? "Room is visible to visitors" : "Room is currently hidden"}
                                 </div>
                             </div>
-                            
+
                             <ToggleSwitch
                                 aria-label="Toggle public access"
                                 checked={showLiveState}
@@ -155,12 +151,14 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
                                             <Globe className="h-3 w-3" />
                                             Active Link
                                         </label>
-                                        <button 
+                                        <button
                                             onClick={handleResetCode}
                                             disabled={isRotating || isEnabling}
                                             className="group flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] transition-colors disabled:opacity-50"
                                         >
-                                            <RefreshCw className={`h-3 w-3 ${isRotating ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                                            <RefreshCw
+                                                className={`h-3 w-3 ${isRotating ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`}
+                                            />
                                             Regenerate
                                         </button>
                                     </div>
@@ -186,9 +184,9 @@ export function ShareModal({ onClose, activeInvites }: ShareModalProps) {
                                         onClick={handleCopyLink}
                                         disabled={!shareUrl}
                                         className={`mt-auto h-14 w-full border-2 border-[var(--color-foreground)] text-size-lg font-black uppercase tracking-wide transition-all shadow-[var(--shadow-4-strong)] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] disabled:opacity-50 ${
-                                            copied 
-                                            ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]" 
-                                            : "bg-[var(--color-foreground)] text-[var(--color-background)]"
+                                            copied
+                                                ? "bg-[var(--color-share-accent)] text-[var(--color-foreground)]"
+                                                : "bg-[var(--color-foreground)] text-[var(--color-background)]"
                                         }`}
                                     >
                                         {copied ? (
