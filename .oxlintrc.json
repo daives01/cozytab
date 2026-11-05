@@ -17,6 +17,7 @@
     ],
     "jsPlugins": ["./vendor/anti-slop/src/index.ts"],
     "rules": {
+        "anti-slop/no-object-parameters": "error",
         "anti-slop/no-conditional-empty-object-spread": "error",
         "anti-slop/no-array-filter-map": "error",
         "anti-slop/no-reduce-accumulator-copy": "error",
