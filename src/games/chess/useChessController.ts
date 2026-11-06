@@ -6,6 +6,20 @@ export type ChessSide = "white" | "black";
 
 export type ChessGameSignal = "resign" | "drawOffer" | "drawAccept" | "drawDecline" | null;
 
+export function isChessSquare(value: unknown): value is Square {
+    return typeof value === "string" && /^[a-h][1-8]$/.test(value);
+}
+
+export function readChessSide(value: unknown): ChessSide | null {
+    return value === "white" || value === "black" ? value : null;
+}
+
+export function readChessSignal(value: unknown): ChessGameSignal {
+    return value === "resign" || value === "drawOffer" || value === "drawAccept" || value === "drawDecline"
+        ? value
+        : null;
+}
+
 export function loadChess(fen: string) {
     const chess = new Chess();
 
@@ -122,8 +136,10 @@ export function useChessController({
     const handleDrop = useCallback(
         ({ sourceSquare, targetSquare }: { piece: unknown; sourceSquare: string; targetSquare: string | null }) => {
             if (!targetSquare || !mySide || !isMyTurn || resultOverlay) return false;
-            const from = sourceSquare as Square;
-            const to = targetSquare as Square;
+
+            if (!isChessSquare(sourceSquare) || !isChessSquare(targetSquare)) return false;
+            const from = sourceSquare;
+            const to = targetSquare;
 
             if (needsPawnPromotion(chess, from, to, mySide)) {
                 setPendingPromotion({ from, to });
@@ -139,7 +155,9 @@ export function useChessController({
     const handleSquareClick = useCallback(
         ({ square }: { piece: unknown; square: string }) => {
             if (!mySide || !isMyTurn || resultOverlay) return;
-            const target = square as Square;
+
+            if (!isChessSquare(square)) return;
+            const target = square;
 
             if (selectedSquare) {
                 if (possibleMoves.has(target)) {
@@ -157,9 +175,7 @@ export function useChessController({
 
             if (piece?.color === (mySide === "white" ? "w" : "b")) {
                 setSelectedSquare(target);
-                setPossibleMoves(
-                    new Set(chess.moves({ square: target, verbose: true }).map((move) => move.to as Square)),
-                );
+                setPossibleMoves(new Set(chess.moves({ square: target, verbose: true }).map((move) => move.to)));
             }
         },
         [chess, clearSelection, isMyTurn, mySide, possibleMoves, resultOverlay, selectedSquare, tryMove],

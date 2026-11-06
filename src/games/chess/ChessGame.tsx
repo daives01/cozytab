@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Chessboard } from "react-chessboard";
 import type { ChessboardOptions } from "react-chessboard";
 import { Chess } from "chess.js";
-import type { Square } from "chess.js";
+import type { CSSProperties } from "react";
+import { isChessSquare, readChessSide, readChessSignal } from "./useChessController";
 import { STARTING_FEN } from "../constants";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
@@ -258,8 +259,8 @@ export function ChessGame({
 
             try {
                 prevChess.load(prevFenRef.current);
-                const capturedPiece = prevChess.get(lastMove.to as Square);
-                const movingPiece = prevChess.get(lastMove.from as Square);
+                const capturedPiece = isChessSquare(lastMove.to) ? prevChess.get(lastMove.to) : undefined;
+                const movingPiece = isChessSquare(lastMove.from) ? prevChess.get(lastMove.from) : undefined;
                 const isEnPassant = movingPiece?.type === "p" && lastMove.from[0] !== lastMove.to[0] && !capturedPiece;
                 playMoveSound(!!capturedPiece || isEnPassant);
             } catch {
@@ -274,13 +275,12 @@ export function ChessGame({
 
     // Extract signals from players: { visitorId, side, signal }
     const playerSignals = useMemo(() => {
-        return playersInGame
-            .filter((p) => p.gameMetadata?.side && p.gameMetadata?.gameSignal)
-            .map((p) => ({
-                visitorId: p.visitorId,
-                side: p.gameMetadata?.side as "white" | "black",
-                signal: p.gameMetadata?.gameSignal as GameSignal,
-            }));
+        return playersInGame.flatMap((p) => {
+            const side = readChessSide(p.gameMetadata?.side);
+            const signal = readChessSignal(p.gameMetadata?.gameSignal);
+
+            return side && signal ? [{ visitorId: p.visitorId, side, signal }] : [];
+        });
     }, [playersInGame]);
 
     // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
@@ -457,6 +457,7 @@ export function ChessGame({
     const canJoinBottom = bottomBadgeSide === "white" ? canJoinWhite : canJoinBlack;
 
     const BOARD_SIZE = "min(85vw, 85vh, 700px)";
+    const boardStyle: CSSProperties & { "--board-size": string } = { "--board-size": BOARD_SIZE };
 
     const controlButtons = (
         <div className="flex items-center gap-2 h-8">
@@ -516,7 +517,7 @@ export function ChessGame({
         return (
             <div
                 className="relative flex items-center justify-center select-none animate-in fade-in duration-150"
-                style={{ "--board-size": BOARD_SIZE } as React.CSSProperties}
+                style={boardStyle}
             >
                 {/* Left panel - player badges aligned to board edges */}
                 <div
