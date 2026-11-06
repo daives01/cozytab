@@ -185,8 +185,7 @@ export const claimDailyReward = mutation({
 export const devDeleteMyAccount = mutation({
     args: {},
     handler: async (ctx) => {
-        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-            ?.NODE_ENV;
+        const nodeEnv = globalThis.process?.env?.NODE_ENV;
 
         if (nodeEnv !== "development") {
             throw new Error("Dev-only mutation");

@@ -92,7 +92,7 @@ export function sanitizeRoomItems(
     catalogIds: Set<Id<"catalogItems">>,
 ) {
     return (items ?? []).slice(0, MAX_GUEST_ITEMS).flatMap((item) => {
-        const candidate = item.catalogItemId as Id<"catalogItems">;
+        const candidate = item.catalogItemId;
         const catalogItemId = catalogIds.has(candidate) ? candidate : catalogByName.get(item.catalogItemId);
 
         if (!catalogItemId) return [];

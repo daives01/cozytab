@@ -35,3 +35,11 @@ Workflow: bun run format runs Oxfmt → isolated spacing --fix → Oxfmt → spa
 Exact audit before → after: total 1674 → 248; spacing 1426 → 0; safety comments 127; runtime typeof 76; dictionaries 18; unknown parameters 16; known-value widening 11; all other audit counts zero and unchanged.
 
 Full checks pass before and after: 117 tests / 611 assertions. All 159 changed source files pass whitespace-only comparison and transpileModule emitted runtime AST equivalence including JSX, normalizing parentheses. Adjacent JSX literal normalization was unnecessary. This verifies emitted syntax under ESNext/ReactJSX options, not arbitrary compiler settings or browser behavior. Vendor checksums and git diff --check pass. Complete formatting is byte-idempotent.
+
+## Backend/shared assertion audit (issue #7, base 6f545d7)
+
+Scope: owned convex/ and shared/ TypeScript, excluding generated files. Pinned require-safety-comment-for-type-assertion audit: 14 missing justifications before, zero after. Removed 13 assertions: http.ts:14 (Stripe event object already typed); inventory.ts:209 and users.ts:188 (typed global process); rooms.ts:353 (validator-inferred items), rooms.ts:496 (explicit result contract); lib/guestImport.ts:95 (already branded catalog ID); guestConversion.ts:58,59,62,63,74,75 (identity claims accepted as unknown by normalizeString); shared/coinPacks.ts:49 (generic accumulator). Locations refer to base 6f545d7.
+
+One non-const assertion remains in http.ts at the fulfillment userId argument. createCoinCheckout writes metadata from the database user._id; fulfillCoinPurchase applies v.id("users") at the mutation boundary before invoking its handler. The assertion only transports the string to that existing runtime validator; it does not establish trust or bypass validation. Its adjacent SAFETY comment records both facts. Existing missing metadata and unsupported price checks remain intact. Const assertions are excluded by the pinned rule and preserved.
+
+Global missing-comment baseline: 127; this scope removes 14 findings, leaving 113 outside this scope for later frontend/test/worker audits. Global enforcement remains advisory; 13 enforced rules remain unchanged. No runtime behavior change is intended. No codegen, deployment, merge, or independent review performed by this implementation agent.
