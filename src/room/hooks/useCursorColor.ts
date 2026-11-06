@@ -13,7 +13,7 @@ const cursorSources: Record<CursorKind, { path: string; hotspot: string }> = {
     text: { path: "/cursor-text.svg", hotspot: "6 3, text" },
 };
 
-const cursorKinds = Object.keys(cursorSources) as CursorKind[];
+const cursorKinds = ["default", "click", "drag", "text"] satisfies CursorKind[];
 
 const fallbackCursorValues: CursorValueMap = {
     default: `url("/cursor.svg") ${cursorSources.default.hotspot}`,
@@ -113,6 +113,40 @@ function applyCursorVariables(values: CursorValueMap) {
     refreshCursorImmediately();
 }
 
+export function decodeCursorCache(raw: string, color: string): CursorValueMap | null {
+    try {
+        const parsed: unknown = JSON.parse(raw);
+
+        if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            !("color" in parsed) ||
+            parsed.color !== color ||
+            !("values" in parsed)
+        )
+            return null;
+        const values = parsed.values;
+
+        if (
+            typeof values !== "object" ||
+            values === null ||
+            !("default" in values) ||
+            typeof values.default !== "string" ||
+            !("click" in values) ||
+            typeof values.click !== "string" ||
+            !("drag" in values) ||
+            typeof values.drag !== "string" ||
+            !("text" in values) ||
+            typeof values.text !== "string"
+        )
+            return null;
+
+        return { default: values.default, click: values.click, drag: values.drag, text: values.text };
+    } catch {
+        return null;
+    }
+}
+
 function readCachedValues(color: string): CursorValueMap | null {
     if (!isBrowser) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -120,11 +154,7 @@ function readCachedValues(color: string): CursorValueMap | null {
     if (!raw) return null;
 
     try {
-        const parsed = JSON.parse(raw) as { color?: string; values?: CursorValueMap };
-
-        if (parsed.color !== color || !parsed.values) return null;
-
-        return parsed.values;
+        return decodeCursorCache(raw, color);
     } catch {
         return null;
     }

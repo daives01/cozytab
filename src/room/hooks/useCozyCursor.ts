@@ -14,7 +14,7 @@ export function useCozyCursor(enabled = true) {
         };
 
         const handlePointerDown = (event: PointerEvent) => {
-            const target = event.target as HTMLElement | null;
+            const target = event.target instanceof Element ? event.target : null;
 
             if (!target) return;
 

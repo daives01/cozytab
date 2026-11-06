@@ -4,8 +4,6 @@ import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useRoomBackgroundImageUrl } from "./useRoomBackgroundImageUrl";
 import type { TimeOfDay } from "../types";
-import type { RoomItem } from "@shared/guestTypes";
-import type { Doc } from "@convex/_generated/dataModel";
 
 interface RoomDataArgs {
     isGuest: boolean;
@@ -16,10 +14,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
     const room = useQuery(api.rooms.getMyActiveRoom, isGuest ? "skip" : {});
     const guestTemplate = useQuery(api.roomTemplates.getDefault, isGuest ? {} : "skip");
 
-    const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip") as
-        | { template: Doc<"roomTemplates">; items: RoomItem[] }
-        | null
-        | undefined;
+    const guestRoom = useQuery(api.rooms.getDefaultRoom, isGuest ? {} : "skip");
 
     const user = useQuery(api.users.getMe, isGuest ? "skip" : {});
     const catalogItems = useQuery(api.catalog.list);
@@ -55,6 +50,7 @@ export function useRoomData({ isGuest, timeOfDay }: RoomDataArgs) {
 
     const computerResolvedUrl = useQuery(
         api.catalog.getImageUrl,
+        // SAFETY: storage: references contain storage IDs; getImageUrl validates the string with v.id("_storage") before accessing storage.
         computerStorageId ? { storageId: computerStorageId as Id<"_storage"> } : "skip",
     );
 

@@ -123,6 +123,7 @@ export function useRoomHandlers({
             const catalogItemId = e.dataTransfer.getData("catalogItemId");
 
             if (!catalogItemId) return;
+            // SAFETY: the drag payload transports an opaque catalog ID; beginPlacement checks inventory eligibility before placing it.
             handlePlaceCatalogItem(catalogItemId as Id<"catalogItems">, e.clientX, e.clientY);
         },
         [handlePlaceCatalogItem, mode],
