@@ -31,17 +31,17 @@ export function AssetDrawer({
     const [isBulkUnhiding, setIsBulkUnhiding] = useState(false);
 
     // Eligibility changes with the session snapshot, even though its function is stable.
-    const source = ((isGuest ? guestItems : inventoryItems) ?? []) as Array<Partial<GuestDrawerItem>>;
+    const source = (isGuest ? guestItems : inventoryItems) ?? [];
 
     const items: GuestDrawerItem[] = source.map((item) => {
-        const eligibility = placementEligibility(item.catalogItemId as Id<"catalogItems">);
+        const eligibility = placementEligibility(item.catalogItemId);
 
         return {
             ...item,
             count: eligibility.ownedCount,
             remaining: eligibility.remaining,
             roomAtCapacity: eligibility.roomAtCapacity,
-        } as GuestDrawerItem;
+        };
     });
 
     const [selectedFilter, setSelectedFilter] = useState<string>("all");
@@ -59,6 +59,7 @@ export function AssetDrawer({
             setPendingHides((prev) => ({ ...prev, [key]: true }));
 
             try {
+                // SAFETY: hide controls are authenticated-only; inventoryId comes from getMyInventory.
                 await setHiddenMutation({ inventoryId: inventoryId as Id<"inventory">, hidden: nextHidden });
             } finally {
                 setPendingHides((prev) => {
@@ -105,6 +106,7 @@ export function AssetDrawer({
         try {
             await Promise.all(
                 hiddenItems.map((item) =>
+                    // SAFETY: authenticated hidden items originate in getMyInventory, whose inventory IDs are branded.
                     setHiddenMutation({ inventoryId: item.inventoryId as Id<"inventory">, hidden: false }),
                 ),
             );
@@ -139,6 +141,7 @@ export function AssetDrawer({
     const handlePointerDown = useCallback(
         (event: React.PointerEvent<HTMLDivElement>) => {
             if (event.pointerType !== "touch") return;
+            // SAFETY: React pointer events here originate in rendered drawer elements; closest is an Element method.
             const target = event.target as HTMLElement | null;
 
             if (target?.closest("[data-touch-place-item]")) return;

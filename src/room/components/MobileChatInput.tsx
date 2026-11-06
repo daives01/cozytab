@@ -66,7 +66,7 @@ export function MobileChatInput({ onMessageChange, disabled = false }: MobileCha
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             e.preventDefault();
-            (e.target as HTMLInputElement).blur();
+            e.currentTarget.blur();
             clearChat();
         }
     };

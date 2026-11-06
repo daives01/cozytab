@@ -155,7 +155,7 @@ export function ItemNode({
             shouldPreventDefaultClick.current = false;
 
             if (e.target instanceof Element && "releasePointerCapture" in e.target) {
-                (e.target as Element).releasePointerCapture(e.pointerId);
+                e.target.releasePointerCapture(e.pointerId);
             }
 
             setIsDragging(false);
