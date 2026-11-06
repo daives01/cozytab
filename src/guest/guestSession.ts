@@ -303,15 +303,9 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     return normalizeGuestSession(
         {
             coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
-            inventoryIds: Array.isArray(parsedInventory)
-                ? parsedInventory.flatMap((value: unknown) => {
-                      const id = storedCatalogId(value);
-
-                      return id === null ? [] : [id];
-                  })
-                : [],
+            inventoryIds: parsedInventory,
             roomItems: parsedRoom,
-            shortcuts: sanitizeShortcuts(parsedShortcuts),
+            shortcuts: parsedShortcuts,
             onboardingCompleted: onboardingRaw === "true",
             cursorColor: parsedCursorColor,
         },

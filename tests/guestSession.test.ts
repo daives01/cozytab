@@ -7,7 +7,13 @@ import {
     GUEST_SHORTCUTS_STORAGE_KEY,
     GUEST_STARTING_COINS,
 } from "@shared/guestTypes";
-import { buildCatalogLookup, clampGuestCoins, readGuestSession, saveGuestCoins } from "@/guest/guestSession";
+import {
+    buildCatalogLookup,
+    clampGuestCoins,
+    readGuestSession,
+    persistGuestRoomItems,
+    saveGuestCoins,
+} from "@/guest/guestSession";
 
 import { createGuestRoomPersistence, createRoomEditingSession } from "@/room/session";
 
@@ -215,4 +221,61 @@ test("recovers from malformed JSON shapes and validates opaque IDs", () => {
         { id: "valid", catalogItemId: "b", x: 2, y: 3, flipped: false, musicPlaying: false },
     ]);
     expect(Object.hasOwn(session.roomItems[0], "url")).toBe(false);
+});
+
+test("guest item decoding round-trips supported optional fields and omits malformed values", () => {
+    localStorage.setItem(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify(["music", "bad"]));
+
+    const supported = {
+        id: "track",
+        catalogItemId: "music",
+        x: 0,
+        y: 0,
+        url: "https://example.com",
+        flipped: false,
+        musicUrl: "https://youtube.com/watch?v=aaaaaaaaaaa",
+        musicType: "youtube",
+        musicPlaying: false,
+        musicStartedAt: 0,
+        musicPositionAtStart: 0,
+    };
+
+    localStorage.setItem(
+        GUEST_ROOM_STORAGE_KEY,
+        JSON.stringify({
+            items: [
+                supported,
+                {
+                    id: "bad",
+                    catalogItemId: "bad",
+                    x: 1,
+                    y: 2,
+                    url: 3,
+                    flipped: "false",
+                    musicUrl: {},
+                    musicType: "unsupported",
+                    musicPlaying: 1,
+                    musicStartedAt: "0",
+                    musicPositionAtStart: null,
+                },
+            ],
+        }),
+    );
+    const items = readGuestSession().roomItems;
+    expect(items).toEqual([supported, { id: "bad", catalogItemId: "bad", x: 1, y: 2 }]);
+    expect(persistGuestRoomItems(items)).toEqual(items);
+    expect(JSON.parse(localStorage.getItem(GUEST_ROOM_STORAGE_KEY) ?? "null").items).toEqual(items);
+    expect(readGuestSession().roomItems).toEqual(items);
+
+    for (const field of [
+        "url",
+        "flipped",
+        "musicUrl",
+        "musicType",
+        "musicPlaying",
+        "musicStartedAt",
+        "musicPositionAtStart",
+    ]) {
+        expect(Object.hasOwn(items[1], field)).toBe(false);
+    }
 });
