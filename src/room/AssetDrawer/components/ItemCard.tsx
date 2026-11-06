@@ -74,7 +74,7 @@ export function ItemCard({
             }
 
             e.dataTransfer.effectAllowed = "move";
-            const img = e.currentTarget.querySelector("img") as HTMLImageElement | null;
+            const img = e.currentTarget.querySelector("img");
             setDragImageFromElement(e, img);
             onDragStart(e, item.catalogItemId);
         },
