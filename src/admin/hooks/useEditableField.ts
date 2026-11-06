@@ -56,7 +56,17 @@ export function useEditableField<T extends TableNames>({ onSave, onError }: UseE
     const saveEdit = async () => {
         if (!editing) return;
 
-        const result = await onSave(editing.id, editableUpdate(editing.field, editValue));
+        let updates: ReturnType<typeof editableUpdate>;
+
+        try {
+            updates = editableUpdate(editing.field, editValue);
+        } catch (error) {
+            onError?.(error instanceof Error ? error.message : "Invalid field value");
+
+            return;
+        }
+
+        const result = await onSave(editing.id, updates);
 
         if (!result.success) {
             const message = result.message ?? "Failed to update";
