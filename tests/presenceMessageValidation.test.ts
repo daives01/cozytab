@@ -26,3 +26,52 @@ test("presence wire boundary rejects malformed data and preserves optional curso
         expect(isPresenceMessage(value)).toBe(true);
     }
 });
+
+test("presence snapshots accept worker visitors and reject malformed visitor contracts", () => {
+    const visitor = {
+        visitorId: "guest",
+        displayName: "Guest",
+        isOwner: false,
+        x: 960,
+        y: 540,
+        chatMessage: null,
+        inMenu: false,
+        tabbedOut: false,
+    };
+
+    expect(isPresenceMessage({ type: "state", visitors: [visitor] })).toBe(true);
+    expect(isPresenceMessage({ type: "state", visitors: [{ ...visitor, inGame: null, gameMetadata: null }] })).toBe(
+        true,
+    );
+    expect(
+        isPresenceMessage({
+            type: "state",
+            visitors: [
+                {
+                    ...visitor,
+                    cursorColor: "red",
+                    convexUserId: "user",
+                    inGame: "chess",
+                    gameMetadata: { side: "white" },
+                },
+            ],
+        }),
+    ).toBe(true);
+
+    for (const patch of [
+        { visitorId: null },
+        { displayName: 2 },
+        { isOwner: "false" },
+        { x: null },
+        { y: Infinity },
+        { chatMessage: {} },
+        { inMenu: null },
+        { tabbedOut: 1 },
+        { cursorColor: false },
+        { convexUserId: 3 },
+        { inGame: true },
+        { gameMetadata: [] },
+    ]) {
+        expect(isPresenceMessage({ type: "state", visitors: [{ ...visitor, ...patch }] })).toBe(false);
+    }
+});
