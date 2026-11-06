@@ -4,7 +4,7 @@ import { ConvexError } from "convex/values";
 import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { useState, useRef, useCallback, useEffect, useMemo, type DragEvent } from "react";
-import type { RoomItem, Shortcut } from "@shared/guestTypes";
+import type { Shortcut } from "@shared/guestTypes";
 import { useOnboarding } from "./hooks/useOnboarding";
 import { useDailyReward } from "./hooks/useDailyReward";
 import type { DailyRewardToastPayload } from "./types";
@@ -65,12 +65,8 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
 
     const initialGuestItems = useMemo(
         () =>
-            loadedGuestSession.roomItems.length > 0
-                ? loadedGuestSession.roomItems
-                : (roomData.guestRoom?.items ??
-                  (roomData.guestTemplate as { items?: RoomItem[] } | null | undefined)?.items ??
-                  []),
-        [loadedGuestSession, roomData.guestRoom, roomData.guestTemplate],
+            loadedGuestSession.roomItems.length > 0 ? loadedGuestSession.roomItems : (roomData.guestRoom?.items ?? []),
+        [loadedGuestSession, roomData.guestRoom],
     );
 
     const persistence = useMemo(() => {
@@ -82,8 +78,8 @@ function RoomPageContent({ isGuest = false, guestSession, friendRefCode }: RoomP
 
         return createAuthenticatedRoomPersistence({
             roomId: roomData.room?._id,
-            initialItems: (roomData.room?.items ?? []) as RoomItem[],
-            saveItems: async (items) => (await saveRoom({ roomId: roomData.room!._id, items })) as RoomItem[],
+            initialItems: roomData.room?.items ?? [],
+            saveItems: async (items) => await saveRoom({ roomId: roomData.room!._id, items }),
         });
     }, [initialGuestItems, isGuest, loadedGuestSession, roomData.room, saveRoom]);
 
@@ -409,7 +405,7 @@ function RoomPageOwner({
             .catch((err) => {
                 // Clear on failure so user can retry
                 sessionStorage.removeItem(storageKey);
-                const msg = err instanceof ConvexError ? (err.data as string) : "Failed to send friend request";
+                const msg = err instanceof ConvexError ? err.data : "Failed to send friend request";
                 setFriendRefToast({ message: msg, tone: "default" });
             });
     }, [friendRefCode, isGuest, sendFriendRequest]);

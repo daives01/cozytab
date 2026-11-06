@@ -36,9 +36,12 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
         if (disabled) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement;
+            const target = e.target;
 
-            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+            ) {
                 return;
             }
 
@@ -97,9 +100,12 @@ export function ChatInput({ onMessageChange, disabled = false }: ChatInputProps)
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement;
+            const target = e.target;
 
-            if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+            if (
+                target instanceof HTMLElement &&
+                (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+            ) {
                 return;
             }
         };

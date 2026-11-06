@@ -3,7 +3,6 @@ import { useUser, SignInButton } from "@clerk/clerk-react";
 import { useMutation, useQuery } from "convex/react";
 import { Link, useParams } from "react-router-dom";
 import { Home } from "lucide-react";
-import type { Id } from "@convex/_generated/dataModel";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
@@ -56,9 +55,7 @@ export function FriendVisitPage() {
 
     if (authedUser._id === friendUserId) return <RoomPage isGuest={false} />;
 
-    return (
-        <FriendVisitContent friendUserId={friendUserId as Id<"users">} authedUser={authedUser} clerkUser={clerkUser} />
-    );
+    return <FriendVisitContent friendUserId={friendUserId} authedUser={authedUser} clerkUser={clerkUser} />;
 }
 
 function FriendVisitContent({
@@ -66,7 +63,7 @@ function FriendVisitContent({
     authedUser,
     clerkUser,
 }: {
-    friendUserId: Id<"users">;
+    friendUserId: string;
     authedUser: NonNullable<ReturnType<typeof useQuery<typeof api.users.getMe>>>;
     clerkUser: ReturnType<typeof useUser>["user"];
 }) {

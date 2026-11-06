@@ -19,14 +19,14 @@ export interface VisitorRoomSource {
 
 interface NormalizableRoom {
     _id: Id<"rooms">;
-    items: unknown;
+    items: RoomItem[];
     template?: { backgroundUrl?: string } | null;
 }
 
 function normalizeRoom(room: NormalizableRoom): VisitorRoomSource["room"] {
     return {
         _id: room._id,
-        items: Array.isArray(room.items) ? (room.items as RoomItem[]) : [],
+        items: Array.isArray(room.items) ? room.items : [],
         template: room.template,
     };
 }
