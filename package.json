@@ -49,22 +49,22 @@
         "wrangler": "^4.158.0"
     },
     "devDependencies": {
-        "@eslint/js": "^9.39.5",
+        "@eslint/js": "^10",
         "@oxlint/plugins": "1.91.0",
         "@types/bun": "latest",
         "@types/node": "^24.19.2",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@types/react-test-renderer": "^19.3.1",
-        "@vitejs/plugin-react": "^5.2.0",
-        "concurrently": "^9.2.5",
-        "convex-test": "^0.0.41",
-        "eslint": "^9.39.5",
+        "@vitejs/plugin-react": "^6",
+        "concurrently": "^10",
+        "convex-test": "0.0.41",
+        "eslint": "^10",
         "eslint-plugin-react-hooks": "^7.1.1",
-        "eslint-plugin-react-refresh": "^0.4.26",
-        "globals": "^16.5.0",
+        "eslint-plugin-react-refresh": "^0.5",
+        "globals": "^17",
         "husky": "^9.1.7",
-        "lint-staged": "^16.4.0",
+        "lint-staged": "^17",
         "oxfmt": "0.76.0",
         "oxlint": "1.91.0",
         "react-test-renderer": "^19.3.1",
@@ -72,12 +72,12 @@
         "tw-animate-css": "^1.4.0",
         "typescript": "~5.9.3",
         "typescript-eslint": "^8.72.1",
-        "vite": "^7.3.7"
+        "vite": "^8"
     },
     "lint-staged": {
         "**/*.{ts,tsx}": [
             "eslint --fix"
         ]
     },
-    "packageManager": "bun@1.1.32"
+    "packageManager": "bun@1.3.8"
 }

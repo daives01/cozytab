@@ -35,7 +35,7 @@ export function hexToHsl(hex: string): HslColor {
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     const delta = max - min;
-    let h = 0;
+    let h: number;
 
     if (delta === 0) {
         h = 0;
@@ -63,9 +63,9 @@ export function hslToHex(h: number, s: number, l: number): string {
     const c = (1 - Math.abs(2 * light - 1)) * sat;
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = light - c / 2;
-    let r = 0;
-    let g = 0;
-    let b = 0;
+    let r: number;
+    let g: number;
+    let b: number;
 
     if (h >= 0 && h < 60) {
         r = c;
