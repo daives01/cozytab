@@ -1,3 +1,4 @@
+import { readChessSide } from "../chess/useChessController";
 import { useEffect, useMemo, useCallback, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -44,7 +45,7 @@ export function GameOverlay({
     // Get my metadata from my visitor state (for display/logic only)
     const myVisitor = useMemo(() => visitors.find((v) => v.visitorId === visitorId), [visitors, visitorId]);
     const myMetadata = myVisitor?.gameMetadata ?? {};
-    const presenceSide = (myMetadata.side as "white" | "black" | undefined) ?? null;
+    const presenceSide = readChessSide(myMetadata.side);
     const mySide = presenceSide;
 
     // Merge metadata helper - always use local ref to avoid race conditions
@@ -96,7 +97,7 @@ export function GameOverlay({
 
             if (signal === "resign") {
                 // Use local ref for side to avoid stale closure from presence delay
-                const currentSide = gameMetadataRef.current.side as "white" | "black" | undefined;
+                const currentSide = readChessSide(gameMetadataRef.current.side);
 
                 const msg =
                     currentSide === "white"

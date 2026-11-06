@@ -105,3 +105,11 @@ Complete src/shop group: 8 missing-evidence findings → 0; global 52 → 44. Re
 Remaining application inventory outside cleared folders: games 11, admin 5, hooks 4, musicPlayer 2, components 1, lib 1, main 1 (25 total). Cleared computer scope has one newly reported finding requiring parent reconciliation; it is untouched. Tests have 18 findings and remain unaudited. Global assertion enforcement remains advisory; 13 enforced rules unchanged. Vendor checksums and git diff --check pass. Taskbar stash and docs/research preserved. Parent fresh review required; no agents, merge, watch, apps, codegen or deployment.
 
 Full bun run check passes with formatting/spacing, Oxlint, ESLint, worker typecheck, application build, and 124 tests / 659 assertions across 23 files. Existing roomDraft advisory and Vite bundle-size advisory remain.
+
+## Games assertion audit (issue #7, base 33574f2)
+
+Complete src/games scope: 11 missing-evidence findings → 0; global 44 → 33. Removed all eleven non-const assertions; none retained. Base inventory: ChessGame.tsx:261,262 (last-move squares), 281,282 (presence side/signal), 519 (CSS custom property); useChessController.ts:125,126,142 (board event squares),161 (chess.js Move.to); GameOverlay.tsx:47,99 (presence/local side). Const assertions remain excluded. Global enforcement stays advisory; 13 enforced rules unchanged.
+
+Board inputs and stored last-move squares require exact lowercase a1–h8 values before chess.js access. Presence sides and signals require supported literal values; malformed claims cannot trigger resignation/draw outcomes. React style uses an explicitly typed custom-property object, and chess.js already types Move.to as Square. Promotion, selection, tie-breaking, metadata merging and wire handling remain otherwise unchanged.
+
+Full check passes: 125 tests / 768 assertions across 24 files (baseline 124 / 659), including formatting/spacing, both linters, worker typecheck and build. New boundary test checks all 64 squares, malformed inputs, supported sides/signals and invalid cross-domain values. Existing game behavior tests pass. Vendor checksums and git diff --check pass. Taskbar stash and docs/research untouched. Fresh parent review required; no agents, merge, watch, apps, codegen or deployment.
