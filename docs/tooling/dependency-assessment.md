@@ -34,3 +34,11 @@ Validation: full `bun run check` passes (129 tests, 809 assertions), frozen inst
 ## TypeScript 6 migration (base 2e0157a)
 
 [Official migration notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html) deprecate baseUrl. Removed it from root and app configs: existing ./src/_, ./shared/_ and ./convex/* paths resolve relative to their config for TypeScript and Bun; Vite retains matching explicit aliases. All configs already use ESNext/bundler and explicit ambient types. Worker root remains presence-worker; app config remains at repository root, covering shared and Convex imports under the new rootDir default. No suppressions, strictness reductions, contract casts or runtime edits needed. Node types remain 24.19.2 for Node 24.12.0.
+
+## convex-test migration (issue #7, base 20f5f69)
+
+Upgraded exact 0.0.41 → 0.0.67. Official registry latest is 0.0.67 with Convex peer ^1.43.0 (installed 1.49.0). See https://registry.npmjs.org/convex-test/latest and https://docs.convex.dev/testing/convex-test.
+
+Reproduced 127/129: Bun spyOn rejects accessor properties. Installed dist/index.js installGlobalProxies wraps fetch and timers in configurable accessors using AsyncLocalStorage; ensureGlobalProxy installs them and runWithGlobalOverrides reinstalls them before handlers. The heartbeat failure concerns setInterval, not fetch. Descriptor-safe test stubs bypass setters and restore the exact prior descriptor in finally. Visitor title test verifies restoration. Production code and Convex integration remain unchanged; all 14 rules remain enforced.
+
+Validation: full check 129 tests passes; focused files pass; frozen installation passes. Remaining bounded runtime work: @convex-dev/stripe, jotai, lucide-react, suncalc and Workers types major updates require independent compatibility review.

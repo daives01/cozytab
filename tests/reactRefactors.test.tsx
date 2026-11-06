@@ -1,6 +1,8 @@
 import { createConvexTest, seedCatalogItem, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
 import { FriendsPanel } from "@/computer/FriendsPanel";
 import { ConvexError } from "convex/values";
+import { stubGlobal } from "./stubGlobal";
+import { mock } from "bun:test";
 import { afterAll, afterEach, expect, test, spyOn } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
@@ -81,9 +83,10 @@ test("visitor track switches ignore late titles and settle failed or missing vid
     browser();
     const pending: Array<(response: Response) => void> = [];
 
-    const fetch = spyOn(globalThis, "fetch").mockImplementation(
-        () => new Promise<Response>((resolve) => pending.push(resolve)),
-    );
+    const fetch = mock(() => new Promise<Response>((resolve) => pending.push(resolve)));
+
+    const fetchDescriptor = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+    const restoreFetch = stubGlobal("fetch", fetch);
 
     try {
         await render(<VisitorMusicModal item={item("aaaaaaaaaaa")} onClose={noop} />);
@@ -103,7 +106,8 @@ test("visitor track switches ignore late titles and settle failed or missing vid
         expect(output()).not.toContain("Finding title...");
         expect(fetch).toHaveBeenCalledTimes(3);
     } finally {
-        fetch.mockRestore();
+        restoreFetch();
+        expect(Object.getOwnPropertyDescriptor(globalThis, "fetch")).toEqual(fetchDescriptor);
     }
 });
 
