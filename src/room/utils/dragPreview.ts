@@ -4,7 +4,7 @@ import type React from "react";
  * Sets a custom drag image based on a provided element.
  * Falls back silently if drawing fails.
  */
-export function setDragImageFromElement(event: React.DragEvent, element: HTMLElement | null) {
+export function setDragImageFromElement(event: React.DragEvent, element: HTMLImageElement | null) {
     if (!element) return;
 
     const rect = element.getBoundingClientRect();
@@ -24,7 +24,7 @@ export function setDragImageFromElement(event: React.DragEvent, element: HTMLEle
 
     try {
         ctx.scale(dpr, dpr);
-        ctx.drawImage(element as HTMLImageElement, 0, 0, width, height);
+        ctx.drawImage(element, 0, 0, width, height);
         document.body.appendChild(canvas);
         event.dataTransfer.setDragImage(canvas, width / 2, height / 2);
     } catch {
