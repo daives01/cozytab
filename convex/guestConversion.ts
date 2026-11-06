@@ -54,13 +54,9 @@ function normalizeString(value: unknown) {
 }
 
 function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fallbackUsername: string) {
-    const givenName =
-        normalizeString((identity as { firstName?: string }).firstName) ??
-        normalizeString((identity as { givenName?: string }).givenName);
+    const givenName = normalizeString(identity.firstName) ?? normalizeString(identity.givenName);
 
-    const familyName =
-        normalizeString((identity as { lastName?: string }).lastName) ??
-        normalizeString((identity as { familyName?: string }).familyName);
+    const familyName = normalizeString(identity.lastName) ?? normalizeString(identity.familyName);
 
     const identityName =
         normalizeString(identity.name) ??
@@ -71,8 +67,8 @@ function deriveNames(identity: Awaited<ReturnType<typeof requireIdentity>>, fall
     const tokenTail = identity.tokenIdentifier?.split(":").pop();
 
     const rawEmail =
-        normalizeString((identity as { email?: string }).email) ??
-        normalizeString((identity as { emailAddress?: string }).emailAddress) ??
+        normalizeString(identity.email) ??
+        normalizeString(identity.emailAddress) ??
         (tokenTail?.includes("@") ? tokenTail : undefined);
 
     const emailLocal = rawEmail?.split("@")[0];

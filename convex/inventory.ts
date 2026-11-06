@@ -206,8 +206,7 @@ export const backfillInventoryCounts = internalMutation({
     handler: async (ctx) => {
         const identity = await ctx.auth.getUserIdentity();
 
-        const nodeEnv = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env
-            ?.NODE_ENV;
+        const nodeEnv = globalThis.process?.env?.NODE_ENV;
 
         if (!identity) {
             throw new Error("Not authenticated");

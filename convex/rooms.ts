@@ -350,7 +350,7 @@ export const saveMyRoom = mutation({
             }
         }
 
-        const normalizedItems = normalizeRoomItems(args.items as RoomItem[], validCatalogIds);
+        const normalizedItems = normalizeRoomItems(args.items, validCatalogIds);
 
         const placedCounts = new Map<Id<"catalogItems">, number>();
 
@@ -490,10 +490,17 @@ export const heartbeatPresence = mutation({
 
 export const getRoomStatus = query({
     args: { roomId: v.id("rooms") },
-    handler: async (ctx, args) => {
+    handler: async (
+        ctx,
+        args,
+    ): Promise<{
+        status: "missing" | "inactive" | "open" | "stale";
+        closesAt: number | null;
+        hostId: Id<"users"> | null;
+    }> => {
         const room = await ctx.db.get(args.roomId);
 
-        if (!room) return { status: "missing" as const, closesAt: null, hostId: null as Id<"users"> | null };
+        if (!room) return { status: "missing", closesAt: null, hostId: null };
 
         if (!room.isActive) {
             return { status: "inactive" as const, closesAt: null, hostId: room.userId };

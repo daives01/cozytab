@@ -11,7 +11,7 @@ registerRoutes(http, components.stripe, {
     webhookPath: "/stripe/webhook",
     events: {
         "checkout.session.completed": async (ctx, event) => {
-            const session = event.data.object as { id?: string; metadata?: Record<string, string> };
+            const session = event.data.object;
             const metadata = session.metadata ?? {};
             const userId = typeof metadata.userId === "string" ? metadata.userId : null;
             const priceId = typeof metadata.priceId === "string" ? metadata.priceId : null;
@@ -33,6 +33,8 @@ registerRoutes(http, components.stripe, {
 
             try {
                 await ctx.runMutation(internal.stripe.fulfillCoinPurchase, {
+                    // SAFETY: checkout metadata is written from user._id in createCoinCheckout;
+                    // fulfillCoinPurchase validates this value with v.id("users") before its handler runs.
                     userId: userId as Id<"users">,
                     coins,
                     priceId,
