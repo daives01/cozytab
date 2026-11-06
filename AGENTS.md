@@ -67,6 +67,6 @@
 - Run: `bun run web` (Vite), `bun run convex`, `bun run --filter presence-worker dev`, or `bun run all` to start web + convex + worker.
 - You do NOT need to try running/install the apps, the user already is running them.
 - Checks (agents SHOULD run): `bun run build` for type-check + build; staged lint: `bunx lint-staged`; full lint: `bun run lint`; preview: `bun run preview`.
-- Convex dev server auto-runs codegen; agents do NOT run `convex:codegen`. Deploy with `bun run convex:deploy` only when asked.
+- Convex dev server auto-runs codegen; explicit API generation is allowed when needed. Deploy with `bun run convex:deploy` only when asked.
 - Worker deploy: `bun run --filter presence-worker deploy`.
 - Env: `.env.local` needs `VITE_CONVEX_URL`, `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_JWT_ISSUER_DOMAIN`.

@@ -1,8 +1,8 @@
 # Current rollout status
 
-Verified against merged base 5582c8f on 2026-11-06. This supersedes historical snapshots in the linked assessments. Rollout remains open pending Stripe.
+Verified against merged base 5582c8f on 2026-11-06. This supersedes historical snapshots in the linked assessments. Stripe compatibility is implemented; fresh review/CI and the synchronized lint/format update remain.
 
-Full `bun run check` passes: formatting and spacing, selected Oxlint policies, ESLint, Worker typecheck, build, 139 tests / 870 assertions. Frozen installation and all vendor SHA256SUMS pass. No temporary policy overrides exist.
+Full `bun run check` passes: formatting and spacing, selected Oxlint policies, ESLint, Worker typecheck, build, 142 tests / 893 assertions. Frozen installation and all vendor SHA256SUMS pass. No temporary policy overrides exist.
 
 ## Current rule inventory
 
@@ -38,8 +38,8 @@ Vendor source is pinned to `13909c9e07590f5a85d93c62712259fe14a883f7`, with MIT 
 
 ## Dependencies and remaining decision
 
-Fresh root and Worker `bun outdated` checks found root Stripe 0.1.1 → 0.1.7, Node types 24.19.2 → 26.6.6, TypeScript 6.0.3 → 7.0.2, Oxlint/plugins 1.91.0 → 1.92.0 and Oxfmt 0.76.0 → 0.77.0. Worker reports only TypeScript. These are explicit holds/follow-ups, not a claim that all dependencies are current. TypeScript 7 exceeds typescript-eslint 8.72.1 parser peer range >=4.8.4 <6.1.0; Node 26 types exceed verified Node 24.12.0 runtime. Review the synchronized lint/format update separately.
+Fresh root and Worker `bun outdated` checks found root Stripe 0.1.1 → 0.1.7 (now implemented), Node types 24.19.2 → 26.6.6, TypeScript 6.0.3 → 7.0.2, Oxlint/plugins 1.91.0 → 1.92.0 and Oxfmt 0.76.0 → 0.77.0. Worker reports only TypeScript. These are explicit holds/follow-ups, not a claim that all dependencies are current. TypeScript 7 exceeds typescript-eslint 8.72.1 parser peer range >=4.8.4 <6.1.0; Node 26 types exceed verified Node 24.12.0 runtime. Review the synchronized lint/format update separately.
 
 Merged implementation: [PR #34](https://github.com/daives01/cozytab/pull/34) Jotai/Lucide, [#35](https://github.com/daives01/cozytab/pull/35) SunCalc, [#36](https://github.com/daives01/cozytab/pull/36) Worker types; earlier bounded policy/toolchain work merged in #8–33. See [dependency assessment](dependency-assessment.md) and [Worker migration](workers-types-migration.md).
 
-Stripe remains exact 0.1.1. The 0.1.7 candidate requires generated component API compatibility work. The explicit AGENTS.md override request has no answer: no API generation, deployment or approval is assumed. Parent verification notes and candidate patch are preserved. Issue #7 must remain open pending this decision and fresh parent review/CI.
+Stripe is now exact 0.1.7. The user authorized API generation and removal of the AGENTS.md prohibition. Convex generated bindings without deploying; the generated API references the installed component API rather than stale inline declarations. Checkout/customer and signed webhook tests pass with fake credentials and no Stripe network requests. Event-ID ledger deduplication is preserved; distinct events sharing a session are not deduplicated by the application ledger. Fresh parent review/CI remain required. Issue #7 stays open for the separate synchronized lint/format update.
