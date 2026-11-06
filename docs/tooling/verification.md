@@ -155,3 +155,13 @@ Both workspaces resolve TypeScript 6.0.3. Deprecated baseUrl removed while prese
 ## convex-test 0.0.67 (issue #7)
 
 Full check passes with 129 tests; both affected files also pass separately from the full suite. Frozen install and vendor checksums verified. Test adapters restore previous property descriptors; production fetch is unchanged. Fresh parent review and CI remain required.
+
+## Client runtime dependencies (issue #7, base 4672093)
+
+Registry latest verified 2026-11-06: Jotai 3.0.1, lucide-react 1.70.0, SunCalc 2.1.2. This PR upgrades Jotai 2.20.3 → 3.0.1 and lucide-react 0.555.0 → 1.70.0.
+
+[Jotai migration](https://jotai.org/docs/guides/migrating-to-v3): ESM-only, React >=18, TypeScript >=5.5 and Node >=22.12 are satisfied by this project. Actual usage is synchronous primitive/derived atoms and useAtom/useAtomValue/useSetAtom in useTimeOfDay; no async atoms, custom stores, deprecated utilities, delay or internal imports. Public contracts require no edits. [Lucide migration](https://lucide.dev/guide/react/migration): removed brand icons are unused; named component imports and SVG props compile unchanged. Installed React peer accepts React 19. No runtime source changes or redundant dependency-only tests.
+
+SunCalc 2.1.2 includes index.d.ts, but migration is split out: named exports, nullable polar events, revised astronomy and day selection require dedicated behavior fixtures before accepting changed sunrise/sunset boundaries. Existing local-noon normalization, timezone-coordinate lookup/cache and day/night fallback remain on SunCalc 1.9.0 with @types/suncalc 1.9.2. Do not remove those types until the actual solar migration. Official contract: https://github.com/mourner/suncalc#sunlight-times.
+
+Full check passes: formatting/spacing, 14 enforced policies, both linters, worker types, build, 129 tests / 810 assertions. Frozen install passes. Vendor checksums pass from vendor/anti-slop. Selected assertion audit zero. Taskbar stash and docs/research preserved. Remaining: SunCalc migration with solar/timezone tests, Stripe and Workers types compatibility reviews. Fresh parent review and CI required before merge.
