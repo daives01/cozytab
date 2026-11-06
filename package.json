@@ -33,7 +33,6 @@
         "@radix-ui/react-scroll-area": "^1.4.0",
         "@radix-ui/react-slot": "^1.5.0",
         "@tailwindcss/vite": "^4.3.4",
-        "@types/suncalc": "^1.9.2",
         "chess.js": "^1.4.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -44,7 +43,7 @@
         "react-chessboard": "^5.12.1",
         "react-dom": "^19.3.1",
         "react-router-dom": "^7.18.5",
-        "suncalc": "^1.9.0",
+        "suncalc": "2.1.2",
         "tailwind-merge": "^3.7.0",
         "wrangler": "^4.158.0"
     },
