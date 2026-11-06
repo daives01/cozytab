@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import type { Id, Doc } from "@convex/_generated/dataModel";
+import type { Doc } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
@@ -34,10 +34,8 @@ export function CatalogItemsTab() {
     });
 
     const { editing, editValue, startEdit, saveEdit, cancelEdit, setEditValue } = useEditableField<"catalogItems">({
-        onSave: async (id, field, value) => {
-            const updates: Record<string, string | number | boolean> = { [field]: value };
-
-            return await updateItem({ id: id as Id<"catalogItems">, ...updates });
+        onSave: async (id, updates) => {
+            return await updateItem({ id, ...updates });
         },
         onError: setError,
     });
@@ -130,7 +128,12 @@ export function CatalogItemsTab() {
                             <select
                                 value={newItem.category}
                                 onChange={(e) =>
-                                    setNewItem((p) => ({ ...p, category: e.target.value as CatalogItemCategory }))
+                                    setNewItem((p) => ({
+                                        ...p,
+                                        category:
+                                            CATALOG_ITEM_CATEGORIES.find((category) => category === e.target.value) ??
+                                            p.category,
+                                    }))
                                 }
                                 className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
                             >
@@ -192,7 +195,7 @@ export function CatalogItemsTab() {
                                     onChange={(e) =>
                                         setNewItem((p) => ({
                                             ...p,
-                                            gameType: (e.target.value as GameType) || undefined,
+                                            gameType: GAME_TYPES.find((type) => type === e.target.value),
                                         }))
                                     }
                                     className="w-full px-3 py-2 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm"
@@ -291,7 +294,7 @@ export function CatalogItemsTab() {
                                                 const value = e.target.value;
                                                 await updateItem({
                                                     id: item._id,
-                                                    gameType: value ? (value as GameType) : null,
+                                                    gameType: GAME_TYPES.find((type) => type === value) ?? null,
                                                 });
                                             }}
                                             className="px-2 py-1 bg-white border-2 border-[var(--ink)] rounded-lg text-[var(--ink)] focus:outline-none focus:ring-2 focus:ring-[var(--warning)] focus:ring-offset-1 shadow-sm text-sm"
