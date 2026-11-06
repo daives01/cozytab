@@ -29,7 +29,7 @@ export function useRoomState({ isGuest, guestSession, catalogItems }: UseRoomSta
         cursorColor: null,
         onboardingCompleted: false,
         coins: 0,
-        inventoryIds: [] as Id<"catalogItems">[],
+        inventoryIds: [],
     };
 
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);

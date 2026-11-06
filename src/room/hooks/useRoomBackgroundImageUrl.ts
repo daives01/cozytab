@@ -17,6 +17,7 @@ export function useRoomBackgroundImageUrl(
 
     const resolvedUrl = useQuery(
         api.catalog.getImageUrl,
+        // SAFETY: storage: references contain storage IDs; getImageUrl validates the string with v.id("_storage") before accessing storage.
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip",
     );
 

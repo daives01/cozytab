@@ -24,10 +24,6 @@ export function useCursorColorSaver(
         debouncedSaveRef.current = debounced;
 
         return () => {
-            if (typeof (debounced as { cancel?: () => void }).cancel === "function") {
-                (debounced as { cancel?: () => void }).cancel?.();
-            }
-
             debouncedSaveRef.current = null;
         };
     }, [authedShortcutsRef, saveComputer]);
@@ -205,14 +201,10 @@ export function useLeaseHeartbeat({
             heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current })
                 .then((result) => {
                     const closed =
-                        typeof result === "object" && result !== null && "closed" in result
-                            ? (result as { closed?: boolean }).closed
-                            : false;
+                        typeof result === "object" && result !== null && "closed" in result ? result.closed : false;
 
                     const reason =
-                        typeof result === "object" && result !== null && "reason" in result
-                            ? (result as { reason?: string }).reason
-                            : undefined;
+                        typeof result === "object" && result !== null && "reason" in result ? result.reason : undefined;
 
                     if (closed || reason === "host-only-timeout") {
                         stopHeartbeats();
@@ -371,7 +363,7 @@ export function useEscapeToExitEditMode(mode: "view" | "edit", onExit: () => voi
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-            const target = event.target as HTMLElement | null;
+            const target = event.target instanceof Element ? event.target : null;
 
             const isTypingTarget =
                 target &&

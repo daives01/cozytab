@@ -67,3 +67,15 @@ Justified recovery corrections: valid JSON with null/non-array inventory or room
 Full bun run check passes including format/spacing: 118 tests / 622 assertions (baseline 117 / 611). Targeted guest tests: 7 / 41 (before 6 / 30). Vendor SHA256SUMS pass; git diff --check passes. Existing Taskbar stash and docs/research untouched. Fresh independent parent review required; no agents, merge, watch, apps, codegen or deployment invoked.
 
 PR #22 fresh review requested complete optional-field round-trip coverage. Added read/persist/read tests for every supported URL/music field, false flags, zero timestamps, and omission of malformed optional values. Removed redundant inventory/shortcut decoding. Full check now passes119 tests; guest evidence remains zero. Preview issuer configured separately; no production settings changed.
+
+## Room hooks/session assertion audit (issue #7, base 20941dd)
+
+Complete inventory of src/room/hooks/ and src/room/session/: 16 missing-evidence findings → 0. Session has no type-assertion findings before or after. Global 90 → 74; room 32 → 16, remaining in components/UI and other room sources outside these two folders. Global enforcement remains advisory. Const assertions are excluded by the pinned rule.
+
+Base locations: useRoomBackgroundImageUrl.ts:20; useRoomState.ts:32; useRoomOverlaysModel.ts:114,138; useRoomHandlers.ts:126; useCursorColor.ts:16,123; useRoomData.ts:20,58; useCozyCursor.ts:17; useCursorAssets.ts:14; useRoomPageEffects.ts:27,28,209,214,374. Removed 13 assertions using inferred query/state types, checked Map reads, explicit cursor keys, validated cursor cache data, narrowed heartbeat properties and Element event targets. The debounce producer returns only a function, so its optional cancel checks never invoked cleanup and are removed without changing pending timer behavior.
+
+Three retained assertions: the two storage-reference strings are transported to getImageUrl's v.id("_storage") validator before storage access; the drag catalog string is checked against session inventory eligibility before placement. Adjacent SAFETY comments describe these specific boundaries. No trust in arbitrary drag payload membership or storage-ID validity is established by the casts.
+
+Cursor JSON now enters as unknown and requires a matching color and four string cursor values. Tests cover valid data, stale color, malformed JSON, null, arrays, missing values and non-string values. Room session/draft/save/retry/blocked-switch code is unchanged, including omitted draft fields and storage-error feedback. Invite timers, stop conditions and cleanup remain unchanged; property casts are removed after existing guards. Guest query fallback behavior is unchanged.
+
+Scoped Oxfmt and spacing pass. Full bun run check passes: baseline 119 tests / 633 assertions; after 120 tests / 641 assertions. Targeted cursor cache test passes 1 / 8. Vendor SHA256SUMS and git diff --check pass. Existing Taskbar stash and docs/research preserved. Parent fresh independent review required; no agents, merges, watches, apps, codegen or deployment commands used.

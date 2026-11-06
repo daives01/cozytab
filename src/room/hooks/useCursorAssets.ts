@@ -10,8 +10,10 @@ const CURSOR_SOURCES = {
 const svgCache = new Map<string, string>();
 
 async function loadSvg(path: string): Promise<string> {
-    if (svgCache.has(path)) {
-        return svgCache.get(path) as string;
+    const cached = svgCache.get(path);
+
+    if (cached !== undefined) {
+        return cached;
     }
 
     const response = await fetch(path);

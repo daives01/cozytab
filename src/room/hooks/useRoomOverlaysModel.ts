@@ -5,7 +5,6 @@ import type { Id, Doc } from "@convex/_generated/dataModel";
 import type { RoomOverlaysProps } from "../components/RoomOverlays.types";
 import type { OnboardingStep } from "../Onboarding";
 import type { DailyRewardToastPayload, TimeOfDay } from "../types";
-import type { GuestDrawerItem } from "../AssetDrawer/types";
 import type { VisitorState, ConnectionState, ConnectionError } from "@/hooks/useWebSocketPresence";
 import type { useRoomState } from "./useRoomState";
 import type { useRoomHandlers } from "./useRoomHandlers";
@@ -111,7 +110,7 @@ export function useRoomOverlaysModel({
             },
             draggedItemId: roomState.draggedItemId,
             highlightComputer: onboarding.onboardingStep === "place-computer",
-            guestItems: computed.guestDrawerItems as GuestDrawerItem[] | undefined,
+            guestItems: computed.guestDrawerItems,
             placementEligibility: roomState.editingSession.placementEligibility,
             onToggleMode: handlers.handleModeToggle,
             onShareClick: () => roomState.setIsShareModalOpen(true),
@@ -135,7 +134,7 @@ export function useRoomOverlaysModel({
                 guestCoins: roomState.guestCoinsValue,
                 onGuestCoinsChange: economy.updateGuestCoins,
                 startingCoins: economy.startingCoins,
-                guestInventory: roomState.guestInventoryValue as Id<"catalogItems">[],
+                guestInventory: roomState.guestInventoryValue,
                 onGuestPurchase: (itemId: Id<"catalogItems">) => {
                     economy.updateGuestInventory((prev) => [...prev, itemId]);
                 },
