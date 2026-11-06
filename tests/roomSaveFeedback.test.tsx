@@ -1,8 +1,16 @@
+import { createConvexTest, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
 import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { RoomSaveFeedback } from "@/room/components/RoomSaveFeedback";
 import { RoomsPanel } from "@/computer/RoomsPanel";
-import type { Id } from "@convex/_generated/dataModel";
+
+const fixtureDb = createConvexTest();
+const fixtureUserId = await seedUser(fixtureDb, "fixture");
+const fixtureUser = await fixtureDb.run((ctx) => ctx.db.get(fixtureUserId));
+
+if (!fixtureUser) throw new Error("Missing inserted user");
+
+const fixtureTemplate = await seedTemplate(fixtureDb);
 
 const retry = async () => {};
 
@@ -18,12 +26,22 @@ describe("room save feedback", () => {
         expect(saved).not.toContain("<button");
     });
 
-    test("shows the failure reason and explicit retry beside blocked room switches", () => {
+    test("shows the failure reason and explicit retry beside blocked room switches", async () => {
         const html = renderToStaticMarkup(
             <RoomsPanel
                 myRooms={[
-                    { _id: "room-1" as Id<"rooms">, name: "First", isActive: true, items: [] },
-                    { _id: "room-2" as Id<"rooms">, name: "Second", isActive: false, items: [] },
+                    {
+                        _id: await seedRoom(fixtureDb, fixtureUser._id, fixtureTemplate),
+                        name: "First",
+                        isActive: true,
+                        items: [],
+                    },
+                    {
+                        _id: await seedRoom(fixtureDb, fixtureUser._id, fixtureTemplate),
+                        name: "Second",
+                        isActive: false,
+                        items: [],
+                    },
                 ]}
                 switchingRoom={null}
                 canSwitchRooms={false}

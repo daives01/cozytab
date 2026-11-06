@@ -135,3 +135,15 @@ Upload/storage code and backend catalog/template mutations are unchanged. Empty 
 Full bun run check passes: 128 tests / 804 assertions across 26 files, including formatting/spacing, both linters, worker typecheck and build. Vendor SHA256SUMS and git diff --check pass. Taskbar stash and docs/research preserved. Fresh parent review required; no agents, merges, watches, apps, codegen or deployment performed.
 
 PR #29 fresh review found invalid category text escaped the save handler. Validation errors now call onError and retain edit state; mounted EditableCell/hook coverage verifies no mutation, visible error callback, correction and successful save. Full check passes129 tests. Preview issuer configured separately without production changes.
+
+## Complete test fixture assertion audit (issue #7, base d3f978a)
+
+Current inventory: 18 missing-evidence findings resolved; application and tests selected assertion audit 0. Globally enforced rules: 14. Historical counts in earlier sections describe their respective bases.
+
+Base inventory: roomSaveFeedback:25,26 (2); guestConversion:175 (1); guestSession:105,122,123,124,159 (5); roomSession:15,16 (2); refactorBoundaries:16 (1); roomPageEffects:30,64,66,75 twice (5); reactRefactors:62,130 (2). Seventeen assertions removed, one retained with concrete adapter evidence.
+
+Catalog and room IDs now come from registered Convex test database inserts. Onboarding uses an inserted user document; sharing uses an inserted invite with its real room/user IDs and required creation fields. Music items have an explicit RoomItem return contract. The unowned conversion item has a real catalog ID absent from inventory, preserving the invalid-placement capacity invariant. Stale guest items remain absent from the supplied catalog lookup. Each fixture database is isolated from other files; fixture records are not mutated by these frontend tests. Existing global restoration, timer cleanup and behavioral assertions remain intact.
+
+The sole retained test assertion converts the intercepted numeric interval handle to Bun's timer return type. Both intercepted setInterval and clearInterval use the same numeric-key map; no native timer receives it. Callback narrowing now checks for a function before storing an invocation wrapper. No blanket safety assurances or chained assertions were added.
+
+Full bun run check passes: formatting/spacing, both linters, worker types, build, 129 tests / 809 assertions. Vendor SHA256SUMS and git diff --check pass. Explicit full owned-source audit selected assertion findings: 0. Current advisory inventory: runtime typeof 109; unknown parameters 26; unsafe dictionaries 20; known-value widening 9; total 164. All other selected audit rules zero. Parent fresh independent review remains required before merge. Taskbar stash and docs/research untouched.

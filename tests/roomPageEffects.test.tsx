@@ -1,7 +1,15 @@
+import { createConvexTest, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
 import { afterAll, expect, test, spyOn } from "bun:test";
 import { act, create } from "react-test-renderer";
 import { useLeaseHeartbeat, useReconcileGuestOnboarding } from "@/room/hooks/useRoomPageEffects";
-import type { Doc, Id } from "@convex/_generated/dataModel";
+
+const fixtureDb = createConvexTest();
+const fixtureUserId = await seedUser(fixtureDb, "fixture");
+const fixtureUser = await fixtureDb.run((ctx) => ctx.db.get(fixtureUserId));
+
+if (!fixtureUser) throw new Error("Missing inserted user");
+
+const fixtureTemplate = await seedTemplate(fixtureDb);
 
 const originalActEnvironment = Object.getOwnPropertyDescriptor(globalThis, "IS_REACT_ACT_ENVIRONMENT");
 
@@ -27,7 +35,7 @@ test("onboarding clears guest data only after successful or failed settlement", 
             useReconcileGuestOnboarding({
                 isGuest: false,
                 reconciledGuestOnboardingRef: reconciled,
-                user: { _id: "user" } as Doc<"users">,
+                user: fixtureUser,
                 initialGuestSession: { onboardingCompleted: true },
                 completeOnboarding: complete,
                 clearGuestSession: () => {
@@ -61,8 +69,10 @@ test("closed and timeout heartbeat responses stop timers and unmount closes the 
         let next = 0;
 
         const interval = spyOn(globalThis, "setInterval").mockImplementation((callback) => {
-            timers.set(++next, callback as () => void);
+            if (typeof callback !== "function") throw new Error("Heartbeat must schedule a function");
+            timers.set(++next, () => callback());
 
+            // SAFETY: The intercepted interval and clearInterval share this numeric-key map; no native timer consumes this handle.
             return next as ReturnType<typeof setInterval>;
         });
 
@@ -72,7 +82,12 @@ test("closed and timeout heartbeat responses stop timers and unmount closes the 
 
         let beats = 0;
         let closes = 0;
-        const room = { _id: "room" as Id<"rooms">, userId: "user" as Id<"users">, items: [] };
+
+        const room = {
+            _id: await seedRoom(fixtureDb, fixtureUser._id, fixtureTemplate),
+            userId: fixtureUser._id,
+            items: [],
+        };
 
         function Harness() {
             useLeaseHeartbeat({

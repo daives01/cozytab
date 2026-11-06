@@ -1,6 +1,6 @@
+import { createConvexTest, seedCatalogItem } from "./convexTestUtils";
 import { describe, expect, test } from "bun:test";
 import { ConvexError } from "convex/values";
-import type { Id } from "@convex/_generated/dataModel";
 import type { GuestSessionState, RoomItem } from "@shared/guestTypes";
 import {
     createAuthenticatedRoomPersistence,
@@ -12,8 +12,10 @@ import {
 import { createRoomDraft } from "@/room/session/roomDraft";
 import { createRoomSessionLifecycle } from "@/room/session/roomSessionLifecycle";
 
-const chairId = "chair" as Id<"catalogItems">;
-const lampId = "lamp" as Id<"catalogItems">;
+const fixtureDb = createConvexTest();
+
+const chairId = await seedCatalogItem(fixtureDb);
+const lampId = await seedCatalogItem(fixtureDb);
 const chair: RoomItem = { id: "chair-1", catalogItemId: chairId, x: 10, y: 20, flipped: false };
 
 function deferred<T>() {

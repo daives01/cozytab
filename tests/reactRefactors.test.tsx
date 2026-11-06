@@ -1,3 +1,4 @@
+import { createConvexTest, seedCatalogItem, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
 import { FriendsPanel } from "@/computer/FriendsPanel";
 import { ConvexError } from "convex/values";
 import { afterAll, afterEach, expect, test, spyOn } from "bun:test";
@@ -7,7 +8,16 @@ import { VisitorMusicModal } from "@/musicPlayer/VisitorMusicModal";
 import { ShareModal } from "@/room/ShareModal";
 import { useComputerProfileActions } from "@/computer/useComputerActions";
 import type { RoomItem } from "@/types";
-import type { Doc } from "@convex/_generated/dataModel";
+
+const fixtureDb = createConvexTest();
+const fixtureUserId = await seedUser(fixtureDb, "fixture");
+const fixtureUser = await fixtureDb.run((ctx) => ctx.db.get(fixtureUserId));
+
+if (!fixtureUser) throw new Error("Missing inserted user");
+
+const fixtureTemplate = await seedTemplate(fixtureDb);
+const fixtureRoom = await seedRoom(fixtureDb, fixtureUserId, fixtureTemplate);
+const fixtureCatalog = await seedCatalogItem(fixtureDb);
 
 const originalWindow = globalThis.window;
 const originalActEnvironment = Object.getOwnPropertyDescriptor(globalThis, "IS_REACT_ACT_ENVIRONMENT");
@@ -58,15 +68,14 @@ function browser() {
     });
 }
 
-const item = (id?: string) =>
-    ({
-        id: "music",
-        catalogItemId: "catalog",
-        x: 0,
-        y: 0,
-        musicType: "youtube",
-        musicUrl: id ? `https://youtube.com/watch?v=${id}` : undefined,
-    }) as RoomItem;
+const item = (id?: string): RoomItem => ({
+    id: "music",
+    catalogItemId: fixtureCatalog,
+    x: 0,
+    y: 0,
+    musicType: "youtube",
+    musicUrl: id ? `https://youtube.com/watch?v=${id}` : undefined,
+});
 
 test("visitor track switches ignore late titles and settle failed or missing videos", async () => {
     browser();
@@ -127,7 +136,19 @@ test("an expired invite update removes the share link and live access", async ()
     const clock = spyOn(Date, "now").mockReturnValue(initialTime);
 
     try {
-        const invite = { _id: "invite", code: "ABCDEF", expiresAt: initialTime + 60000 } as Doc<"roomInvites">;
+        const inviteId = await fixtureDb.run((ctx) =>
+            ctx.db.insert("roomInvites", {
+                roomId: fixtureRoom,
+                createdBy: fixtureUser._id,
+                createdAt: initialTime,
+                code: "ABCDEF",
+                expiresAt: initialTime + 60000,
+            }),
+        );
+
+        const invite = await fixtureDb.run((ctx) => ctx.db.get(inviteId));
+
+        if (!invite) throw new Error("Missing inserted invite");
         await render(<ShareModal activeInvites={[invite]} onClose={noop} />);
         expect(output()).toContain("https://cozy.test/visit/ABCDEF");
         clock.mockReturnValue(initialTime + 2000);

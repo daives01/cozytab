@@ -172,7 +172,13 @@ describe("Guest Conversion", () => {
         }));
 
         // Invalid placements must not consume capacity ahead of valid owned items.
-        const invalid = { id: "unknown", catalogItemId: "unknown" as typeof freeId, x: 0, y: 0 };
+        const invalid = {
+            id: "unknown",
+            catalogItemId: await seedCatalogItem(t, { name: "Unowned item" }),
+            x: 0,
+            y: 0,
+        };
+
         const caller = asUser(t, `guest-${count}`);
         await caller.mutation(api.guestConversion.resolveGuestProgress, {
             username: "Guest",
