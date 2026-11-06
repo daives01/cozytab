@@ -1,3 +1,17 @@
+# Current status
+
+See [self-contained rollout status](rollout-status.md) for current counts, merged PR links, dependency holds and the pending Stripe decision. [Worker types migration](workers-types-migration.md) is merged in [PR #36](https://github.com/daives01/cozytab/pull/36).
+
+- [x] Formatting/spacing gate and 14 selected policies enforced; full 19-entry audit recorded.
+- [x] Toolchain, client dependencies, SunCalc and Worker types migrations merged through #36.
+- [x] Five generic policies explicitly deferred with follow-ups; no temporary overrides.
+- [ ] Resolve Stripe generation decision and compatibility migration; keep issue #7 open.
+- [ ] Review newer synchronized Oxlint/plugins and Oxfmt versions separately.
+
+## Historical assessment and checklist
+
+The snapshots and unchecked items below belong to their stated bases; current status above supersedes completed migration items. Remaining boundary-contract follow-ups still apply.
+
 # Toolchain migration assessment (issue #7)
 
 Base: 3a13ade. Registry metadata checked 2026-11-06.
