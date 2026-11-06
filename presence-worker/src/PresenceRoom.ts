@@ -19,6 +19,13 @@ type WebSocketAttachment = {
     y?: number;
 };
 
+// Attachments are internal state written by handleJoin and updateAttachment, never raw client messages.
+function readAttachment(socket: WebSocket): WebSocketAttachment | null {
+    // SAFETY: handleJoin serializes a typed WebSocketAttachment; updateAttachment merges typed patches into it.
+    // Cloudflare restores that same structured-cloned attachment across hibernation; an unbound socket returns null.
+    return socket.deserializeAttachment() as WebSocketAttachment | null;
+}
+
 const DEFAULT_POSITION = { x: 960, y: 540 };
 const MAX_MESSAGE_SIZE_BYTES = 8192;
 const MAX_NAME_LENGTH = 64;
@@ -58,6 +65,7 @@ function isValidGameMetadata(value: unknown): value is Record<string, unknown> |
 
     if (typeof value !== "object" || Array.isArray(value)) return false;
 
+    // SAFETY: null and arrays are excluded above; this view only reads own keys as unknown before validating each value.
     const obj = value as Record<string, unknown>;
     const keys = Object.keys(obj);
 
@@ -87,13 +95,15 @@ function isValidGameMetadata(value: unknown): value is Record<string, unknown> |
     return true;
 }
 
-function isValidCursorPayload(data: { [key: string]: unknown }): boolean {
+function isValidCursorPayload(data: {
+    [key: string]: unknown;
+}): data is Record<string, unknown> & Omit<Extract<PresenceMessage, { type: "cursor" }>, "type"> {
     if (
         !isValidId(data.visitorId) ||
         !isFiniteNumber(data.x) ||
         !isFiniteNumber(data.y) ||
-        Math.abs(data.x as number) > MAX_COORDINATE ||
-        Math.abs(data.y as number) > MAX_COORDINATE
+        Math.abs(data.x) > MAX_COORDINATE ||
+        Math.abs(data.y) > MAX_COORDINATE
     ) {
         return false;
     }
@@ -120,10 +130,12 @@ function clampChatMessage(value: unknown): string | null {
 }
 
 function validateMessage(raw: unknown): PresenceMessage | null {
+    // SAFETY: after the object/null checks, reading an optional unknown property asserts no message field type.
     if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
         return null;
     }
 
+    // SAFETY: the preceding check establishes a non-null object with a string type; all other fields remain unknown.
     const data = raw as { [key: string]: unknown; type: string };
 
     switch (data.type) {
@@ -177,14 +189,14 @@ function validateMessage(raw: unknown): PresenceMessage | null {
 
         case "cursor": {
             if (!isValidCursorPayload(data)) return null;
-            const visitorId = data.visitorId as string;
-            const x = data.x as number;
-            const y = data.y as number;
-            const cursorColor = data.cursorColor as string | undefined;
-            const inMenu = data.inMenu as boolean | undefined;
-            const tabbedOut = data.tabbedOut as boolean | undefined;
-            const inGame = data.inGame as string | null | undefined;
-            const gameMetadata = data.gameMetadata as Record<string, unknown> | null | undefined;
+            const visitorId = data.visitorId;
+            const x = data.x;
+            const y = data.y;
+            const cursorColor = data.cursorColor;
+            const inMenu = data.inMenu;
+            const tabbedOut = data.tabbedOut;
+            const inGame = data.inGame;
+            const gameMetadata = data.gameMetadata;
 
             return {
                 type: "cursor",
@@ -224,7 +236,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
     private hydrateVisitorsFromSockets() {
         for (const socket of this.ctx.getWebSockets()) {
-            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            const att = readAttachment(socket);
 
             if (!att?.visitorId) continue;
 
@@ -324,7 +336,7 @@ export class PresenceRoom extends DurableObject<Env> {
                 this.handleLeave(data.visitorId, ws);
                 break;
             default:
-                console.warn("[DO] Unknown message type", (data as { type?: string })?.type);
+                console.warn("[DO] Unknown message type", data.type);
         }
     }
 
@@ -342,7 +354,7 @@ export class PresenceRoom extends DurableObject<Env> {
     private handleJoin(ws: WebSocket, data: Extract<PresenceMessage, { type: "join" }>) {
         this.hydrateVisitorsFromSockets();
 
-        const existingAttachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+        const existingAttachment = readAttachment(ws);
 
         if (existingAttachment && existingAttachment.visitorId !== data.visitorId) {
             ws.close(1008, "Visitor already bound");
@@ -395,7 +407,7 @@ export class PresenceRoom extends DurableObject<Env> {
     }
 
     private ensureVisitorFromAttachment(ws: WebSocket, visitorId: string): VisitorState | null {
-        const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+        const attachment = readAttachment(ws);
 
         if (!attachment || attachment.visitorId !== visitorId) return null;
 
@@ -420,7 +432,7 @@ export class PresenceRoom extends DurableObject<Env> {
     }
 
     private updateAttachment(ws: WebSocket, patch: Partial<Omit<WebSocketAttachment, "visitorId">>) {
-        const prev = ws.deserializeAttachment() as WebSocketAttachment | null;
+        const prev = readAttachment(ws);
 
         if (!prev) return;
         ws.serializeAttachment({ ...prev, ...patch });
@@ -509,7 +521,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
     private detachVisitor(ws: WebSocket) {
         try {
-            const attachment = ws.deserializeAttachment() as WebSocketAttachment | null;
+            const attachment = readAttachment(ws);
 
             if (attachment?.visitorId) {
                 this.handleLeave(attachment.visitorId, ws);
@@ -540,7 +552,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
         for (const socket of this.ctx.getWebSockets()) {
             if (socket === excludeWs) continue;
-            const att = socket.deserializeAttachment() as WebSocketAttachment | null;
+            const att = readAttachment(socket);
 
             if (att?.visitorId === visitorId) {
                 return;
