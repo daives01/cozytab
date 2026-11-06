@@ -141,10 +141,9 @@ export function AssetDrawer({
     const handlePointerDown = useCallback(
         (event: React.PointerEvent<HTMLDivElement>) => {
             if (event.pointerType !== "touch") return;
-            // SAFETY: React pointer events here originate in rendered drawer elements; closest is an Element method.
-            const target = event.target as HTMLElement | null;
+            const target = event.target;
 
-            if (target?.closest("[data-touch-place-item]")) return;
+            if (target instanceof Element && target.closest("[data-touch-place-item]")) return;
             onTouchPlacementCancel?.();
         },
         [onTouchPlacementCancel],
