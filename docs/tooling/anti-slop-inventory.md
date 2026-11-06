@@ -1,3 +1,43 @@
+# Current inventory
+
+The authoritative current 19-entry table and checks are in [rollout status](rollout-status.md).
+
+## Current rule inventory
+
+All 18 generic rules plus the builtin accumulator rule were rerun, with warning severity in the audit. The normal config enforces 14 (13 generic plus builtin). Counts are diagnostics, not proof of detector completeness.
+
+| Rule                                                  | Count | Final status / follow-up                                                                     |
+| ----------------------------------------------------- | ----: | -------------------------------------------------------------------------------------------- |
+| `anti-slop/no-array-filter-map`                       |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-reduce-accumulator-copy`                |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-chained-type-assertions`                |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-conditional-empty-object-spread`        |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-known-value-widening`                   |     9 | Deferred: review finite lookups separately from intentional mutable/public contracts.        |
+| `anti-slop/no-module-mocking`                         |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-object-parameters`                      |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-reflect-apply`                          |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-reflect-get`                            |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-runtime-typeof`                         |   109 | Deferred: retain validation predicates; revisit boundary parsing per subsystem.              |
+| `anti-slop/no-unsafe-dictionary-type`                 |    20 | Deferred: separate catalog patches and cross-layer presence metadata contracts.              |
+| `anti-slop/no-shape-in-symbol-names`                  |     0 | Deferred: vocabulary restriction has no demonstrated benefit for spatial domain names.       |
+| `anti-slop/no-unknown-parameters`                     |    26 | Deferred: preserve untrusted inputs until validation; follow unknown-contract-assessment.md. |
+| `anti-slop/no-unknown-returns`                        |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-unknown-type-aliases`                   |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/no-widen-then-assert`                      |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/require-readable-spacing`                  |     0 | Enforced globally as error; retain existing scope.                                           |
+| `anti-slop/require-safety-comment-for-type-assertion` |     0 | Enforced globally as error; retain existing scope.                                           |
+| `oxc/no-accumulating-spread`                          |     0 | Enforced globally as error; retain existing scope.                                           |
+
+Full audit: 164 warnings; selected 14: 0 findings.
+
+Detectors use local AST/scope evidence, not checker or interprocedural proofs. Array/reducer syntax, local aliases and literal Reflect targets have conservative coverage. Safety comments check evidence syntax, not truth. Module mocking covers Jest/Vitest, not Bun `mock.module`; future Bun replacement needs manual source review. Spacing is stylistic. Effect rules are excluded because Effect is unused. See [inventory](anti-slop-inventory.md) for per-policy limits and subsystem follow-ups.
+
+Vendor source is pinned to `13909c9e07590f5a85d93c62712259fe14a883f7`, with MIT LICENSE and nested ESLint Stylistic license/attribution retained. Follow [provenance and upgrade procedure](../../vendor/anti-slop/UPSTREAM.md): inspect a chosen upstream SHA, copy without transformation, compare bytes, regenerate checksums, rerun audit/check and update inventory; review new policy separately. Oxlint and @oxlint/plugins must move together from exact 1.91.0; Oxfmt remains exact 0.76.0 and requires spacing/format compatibility checks during upgrades.
+
+## Historical snapshots
+
+The following records describe their named bases, not current policy or counts.
+
 # Generic anti-slop audit inventory
 
 Opt-in only: `bun run lint:audit`; JSON: `bun run lint:audit --format json`. All 18 generic rules and oxc/no-accumulating-spread are warnings. Normal Oxlint policy is unchanged; ESLint retains React hooks and refresh coverage. Vendor, generated, research, build and agent assets are excluded. No fixes or baseline formatting applied.
