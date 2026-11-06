@@ -42,3 +42,13 @@ Upgraded exact 0.0.41 → 0.0.67. Official registry latest is 0.0.67 with Convex
 Reproduced 127/129: Bun spyOn rejects accessor properties. Installed dist/index.js installGlobalProxies wraps fetch and timers in configurable accessors using AsyncLocalStorage; ensureGlobalProxy installs them and runWithGlobalOverrides reinstalls them before handlers. The heartbeat failure concerns setInterval, not fetch. Descriptor-safe test stubs bypass setters and restore the exact prior descriptor in finally. Visitor title test verifies restoration. Production code and Convex integration remain unchanged; all 14 rules remain enforced.
 
 Validation: full check 129 tests passes; focused files pass; frozen installation passes. Remaining bounded runtime work: @convex-dev/stripe, jotai, lucide-react, suncalc and Workers types major updates require independent compatibility review.
+
+## Client runtime dependencies (issue #7, base 4672093)
+
+Registry latest verified 2026-11-06: Jotai 3.0.1, lucide-react 1.70.0, SunCalc 2.1.2. This PR upgrades Jotai 2.20.3 → 3.0.1 and lucide-react 0.555.0 → 1.70.0.
+
+[Jotai migration](https://jotai.org/docs/guides/migrating-to-v3): ESM-only, React >=18, TypeScript >=5.5 and Node >=22.12 are satisfied by this project. Actual usage is synchronous primitive/derived atoms and useAtom/useAtomValue/useSetAtom in useTimeOfDay; no async atoms, custom stores, deprecated utilities, delay or internal imports. Public contracts require no edits. [Lucide migration](https://lucide.dev/guide/react/migration): removed brand icons are unused; named component imports and SVG props compile unchanged. Installed React peer accepts React 19. No runtime source changes or redundant dependency-only tests.
+
+SunCalc 2.1.2 includes index.d.ts, but migration is split out: named exports, nullable polar events, revised astronomy and day selection require dedicated behavior fixtures before accepting changed sunrise/sunset boundaries. Existing local-noon normalization, timezone-coordinate lookup/cache and day/night fallback remain on SunCalc 1.9.0 with @types/suncalc 1.9.2. Do not remove those types until the actual solar migration. Official contract: https://github.com/mourner/suncalc#sunlight-times.
+
+Full check passes: formatting/spacing, 14 enforced policies, both linters, worker types, build, 129 tests / 810 assertions. Frozen install passes. Vendor checksums pass from vendor/anti-slop. Selected assertion audit zero. Taskbar stash and docs/research preserved. Remaining: SunCalc migration with solar/timezone tests, Stripe and Workers types compatibility reviews. Fresh parent review and CI required before merge.
