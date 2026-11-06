@@ -163,30 +163,62 @@ function safeRemove(key: string) {
     }
 }
 
-function parseJson<T>(raw: string | null, fallback: T): T {
+function parseJson<T>(raw: string | null, fallback: T, decode: (value: unknown) => T): T {
     if (!raw) return fallback;
 
     try {
-        const parsed = JSON.parse(raw);
+        const parsed: unknown = JSON.parse(raw);
 
-        return parsed as T;
+        return decode(parsed);
     } catch {
         return fallback;
     }
 }
 
-function sanitizeRoomItems(items: RoomItem[]): RoomItem[] {
-    return items.flatMap((item) => {
-        if (typeof item !== "object" || item === null) return [];
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
 
-        return [
-            {
-                ...item,
-                id: typeof item.id === "string" ? item.id : createId(),
-                x: clampNumber(item.x, 0, 0, Infinity),
-                y: clampNumber(item.y, 0, 0, Infinity),
-            },
-        ];
+function storedCatalogId(value: unknown): Id<"catalogItems"> | null {
+    if (typeof value !== "string") return null;
+
+    // SAFETY: Guest storage uses opaque string IDs, including legacy IDs. This
+    // brand only carries that representation; catalog membership is checked by
+    // normalizeGuestSession when available and server import validates IDs.
+    return value as Id<"catalogItems">;
+}
+
+function sanitizeRoomItems(items: unknown): RoomItem[] {
+    if (!Array.isArray(items)) return [];
+
+    return items.flatMap((item: unknown) => {
+        if (!isRecord(item)) return [];
+        const catalogItemId = storedCatalogId(item.catalogItemId);
+
+        if (catalogItemId === null) return [];
+
+        const result: RoomItem = {
+            id: typeof item.id === "string" ? item.id : createId(),
+            catalogItemId,
+            x: clampNumber(item.x, 0, 0, Infinity),
+            y: clampNumber(item.y, 0, 0, Infinity),
+        };
+
+        if (typeof item.url === "string") result.url = item.url;
+
+        if (typeof item.flipped === "boolean") result.flipped = item.flipped;
+
+        if (typeof item.musicUrl === "string") result.musicUrl = item.musicUrl;
+
+        if (item.musicType === "youtube") result.musicType = item.musicType;
+
+        if (typeof item.musicPlaying === "boolean") result.musicPlaying = item.musicPlaying;
+
+        if (typeof item.musicStartedAt === "number") result.musicStartedAt = item.musicStartedAt;
+
+        if (typeof item.musicPositionAtStart === "number") result.musicPositionAtStart = item.musicPositionAtStart;
+
+        return [result];
     });
 }
 
@@ -225,7 +257,7 @@ function sanitizeShortcuts(shortcuts: unknown): GuestShortcut[] {
     if (!Array.isArray(shortcuts)) return [];
 
     return shortcuts
-        .filter((shortcut): shortcut is GuestShortcut => typeof shortcut === "object" && shortcut !== null)
+        .filter(isRecord)
         .map((shortcut) => ({
             id: typeof shortcut.id === "string" ? shortcut.id : createId(),
             name: typeof shortcut.name === "string" ? shortcut.name : "Link",
@@ -248,10 +280,18 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     const shortcutsRaw = safeRead(GUEST_SHORTCUTS_STORAGE_KEY);
     const cursorColorRaw = safeRead(GUEST_CURSOR_COLOR_STORAGE_KEY);
 
-    const parsedRoom = parseJson<{ items?: RoomItem[] }>(roomRaw, { items: [] });
-    const parsedShortcuts = parseJson<GuestShortcut[]>(shortcutsRaw, []);
+    const parsedRoom = parseJson(roomRaw, [], (value) => sanitizeRoomItems(isRecord(value) ? value.items : []));
+    const parsedShortcuts = parseJson(shortcutsRaw, [], sanitizeShortcuts);
 
-    const parsedInventory = parseJson<Id<"catalogItems">[]>(inventoryRaw, []);
+    const parsedInventory = parseJson(inventoryRaw, [], (value) =>
+        Array.isArray(value)
+            ? value.flatMap((entry: unknown) => {
+                  const id = storedCatalogId(entry);
+
+                  return id === null ? [] : [id];
+              })
+            : [],
+    );
 
     const parsedCursorColor =
         typeof cursorColorRaw === "string" && cursorColorRaw.trim().length > 0 ? cursorColorRaw : randomBrightColor();
@@ -263,8 +303,14 @@ export function readGuestSession(catalogLookup: CatalogLookup | null = null): Gu
     return normalizeGuestSession(
         {
             coins: clampGuestCoins(coinsRaw ? Number(coinsRaw) : GUEST_STARTING_COINS),
-            inventoryIds: parsedInventory,
-            roomItems: sanitizeRoomItems(parsedRoom.items ?? []),
+            inventoryIds: Array.isArray(parsedInventory)
+                ? parsedInventory.flatMap((value: unknown) => {
+                      const id = storedCatalogId(value);
+
+                      return id === null ? [] : [id];
+                  })
+                : [],
+            roomItems: parsedRoom,
             shortcuts: sanitizeShortcuts(parsedShortcuts),
             onboardingCompleted: onboardingRaw === "true",
             cursorColor: parsedCursorColor,

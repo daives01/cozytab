@@ -190,3 +190,29 @@ test("guest autosave reports storage failure and retries only the newest room it
     await session.flush();
     expect(storage.getItem(GUEST_ROOM_STORAGE_KEY)).toBeNull();
 });
+
+test("recovers from malformed JSON shapes and validates opaque IDs", () => {
+    for (const value of [null, 4, "bad", { items: {} }]) {
+        localStorage.setItem(GUEST_ROOM_STORAGE_KEY, JSON.stringify(value));
+        localStorage.setItem(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify(value));
+        expect(readGuestSession().roomItems).toEqual([]);
+        expect(readGuestSession().inventoryIds).toEqual([]);
+    }
+
+    localStorage.setItem(GUEST_INVENTORY_STORAGE_KEY, JSON.stringify(["b", null, "a", "b"]));
+    localStorage.setItem(
+        GUEST_ROOM_STORAGE_KEY,
+        JSON.stringify({
+            items: [
+                { id: "valid", catalogItemId: "b", x: 2, y: 3, flipped: false, musicPlaying: false },
+                { id: "invalid", catalogItemId: 3 },
+            ],
+        }),
+    );
+    const session = readGuestSession();
+    expect(session.inventoryIds).toEqual(["b", "a", "b"]);
+    expect(session.roomItems).toEqual([
+        { id: "valid", catalogItemId: "b", x: 2, y: 3, flipped: false, musicPlaying: false },
+    ]);
+    expect(Object.hasOwn(session.roomItems[0], "url")).toBe(false);
+});
