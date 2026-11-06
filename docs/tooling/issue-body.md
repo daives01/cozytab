@@ -5,8 +5,9 @@ See [self-contained rollout status](rollout-status.md) for current counts, merge
 - [x] Formatting/spacing gate and 14 selected policies enforced; full 19-entry audit recorded.
 - [x] Toolchain, client dependencies, SunCalc and Worker types migrations merged through #36.
 - [x] Five generic policies explicitly deferred with follow-ups; no temporary overrides.
-- [x] Stripe generation authorized; 0.1.7 API compatibility and payment-boundary tests pass (fresh review/CI pending).
-- [ ] Review newer synchronized Oxlint/plugins and Oxfmt versions separately.
+- [x] Stripe 0.1.7 API compatibility and payment-boundary tests merged after fresh review and CI in [PR #38](https://github.com/daives01/cozytab/pull/38).
+- [x] Synchronized Oxlint/plugins 1.92.0 and Oxfmt 0.77.0 validated; fresh review/CI pending before merge.
+- [x] Remaining dependency holds are explicit: TypeScript 7 awaits parser peer support; Node 26 types await a Node 26 runtime target.
 
 ## Historical assessment and checklist
 
