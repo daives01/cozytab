@@ -302,7 +302,7 @@ export class PresenceRoom extends DurableObject<Env> {
             return;
         }
 
-        let data: PresenceMessage | null = null;
+        let data: PresenceMessage | null;
 
         try {
             data = validateMessage(JSON.parse(message));

@@ -29,9 +29,7 @@ function hslToHex(h: number, s: number, l: number): string {
     const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     const m = light - c / 2;
 
-    let r = 0,
-        g = 0,
-        b = 0;
+    let r: number, g: number, b: number;
 
     if (h >= 0 && h < 60) {
         r = c;
