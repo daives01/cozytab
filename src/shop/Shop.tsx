@@ -45,18 +45,12 @@ interface ShopProps {
 }
 
 function groupByCategory(items: Doc<"catalogItems">[]) {
-    return items.reduce<Record<CatalogItemCategory, Doc<"catalogItems">[]>>(
-        (groups, item) => {
-            if (!groups[item.category]) {
-                groups[item.category] = [];
-            }
+    return items.reduce<Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>>((groups, item) => {
+        const categoryItems = (groups[item.category] ??= []);
+        categoryItems.push(item);
 
-            groups[item.category].push(item);
-
-            return groups;
-        },
-        {} as Record<CatalogItemCategory, Doc<"catalogItems">[]>,
-    );
+        return groups;
+    }, {});
 }
 
 function getCategoryDisplayName(category: CatalogItemCategory): string {
@@ -122,10 +116,10 @@ export function Shop({
     const { isUS, isLoading: isLocationLoading } = useIsUSLocation();
 
     const coinPackConfig = useMemo(() => {
-        const price10 = import.meta.env.VITE_STRIPE_PRICE_10_COINS as string | undefined;
-        const price50 = import.meta.env.VITE_STRIPE_PRICE_50_COINS as string | undefined;
-        const price150 = import.meta.env.VITE_STRIPE_PRICE_150_COINS as string | undefined;
-        const price500 = import.meta.env.VITE_STRIPE_PRICE_500_COINS as string | undefined;
+        const price10 = import.meta.env.VITE_STRIPE_PRICE_10_COINS;
+        const price50 = import.meta.env.VITE_STRIPE_PRICE_50_COINS;
+        const price150 = import.meta.env.VITE_STRIPE_PRICE_150_COINS;
+        const price500 = import.meta.env.VITE_STRIPE_PRICE_500_COINS;
 
         if (!price10 || !price50 || !price150 || !price500) {
             console.warn("Stripe coin price IDs are missing in env; coin purchase UI will be hidden.");
@@ -278,7 +272,7 @@ export function Shop({
     const ownedCounts = useMemo(() => {
         const counts = new Map<Id<"catalogItems">, number>();
         ownedInventory?.forEach((item) => {
-            const key = item.catalogItemId as Id<"catalogItems">;
+            const key = item.catalogItemId;
             counts.set(key, (counts.get(key) ?? 0) + (item.count ?? 1));
         });
         guestOwnedCounts.forEach((value, key) => {
@@ -290,11 +284,12 @@ export function Shop({
 
     const ownedTemplateSet = useMemo(() => new Set<Id<"roomTemplates">>(ownedTemplateIds || []), [ownedTemplateIds]);
 
-    const groupedItems = catalogItems
-        ? groupByCategory(catalogItems)
-        : ({} as Partial<Record<CatalogItemCategory, Doc<"catalogItems">[]>>);
+    const groupedItems = catalogItems ? groupByCategory(catalogItems) : groupByCategory([]);
 
-    const categories = sortCategories(Object.keys(groupedItems) as CatalogItemCategory[]);
+    const categories = sortCategories(
+        CATALOG_ITEM_CATEGORIES.filter((category) => groupedItems[category] !== undefined),
+    );
+
     const highlightItemId = highlightFirstMusicItem && groupedItems.music?.length ? groupedItems.music[0]._id : null;
     const purchasableRooms = roomTemplates?.filter((t) => !t.isDefault) || [];
 
