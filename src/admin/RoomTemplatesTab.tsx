@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import type { Id, Doc } from "@convex/_generated/dataModel";
+import type { Doc } from "@convex/_generated/dataModel";
 import { AssetImage } from "@/components/AssetImage";
 import { EditableCell } from "./EditableCell";
 import { useImageUpload } from "./hooks/useImageUpload";
@@ -26,10 +26,8 @@ export function RoomTemplatesTab() {
     });
 
     const { editing, editValue, startEdit, saveEdit, cancelEdit, setEditValue } = useEditableField<"roomTemplates">({
-        onSave: async (id, field, value) => {
-            const updates: Record<string, string | number | boolean> = { [field]: value };
-
-            return await updateTemplate({ id: id as Id<"roomTemplates">, ...updates });
+        onSave: async (id, updates) => {
+            return await updateTemplate({ id, ...updates });
         },
         onError: setError,
     });
