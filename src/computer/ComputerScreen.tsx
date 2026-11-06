@@ -1,3 +1,4 @@
+import { isComputerTypingTarget } from "./keyboardTarget";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -293,11 +294,7 @@ export function ComputerScreen({
         const handleKey = (e: KeyboardEvent) => {
             const target = e.target;
 
-            const isTypingTarget =
-                target instanceof HTMLElement &&
-                (target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.getAttribute("contenteditable") === "true");
+            const isTypingTarget = isComputerTypingTarget(target);
 
             if (e.key === "Escape") {
                 setIsStartMenuOpen(false);
