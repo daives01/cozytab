@@ -24,9 +24,13 @@ Both manifests now declare the locally verified Bun 1.3.8, replacing an untested
 
 ## Required next pieces
 
-- TypeScript 7.0.2 is blocked by typescript-eslint 8.72.1's >=4.8.4 <6.1.0 peer range. Keep root 5.9.3 and Worker ^5.6.3 (resolved compatible 5.x); Worker has no independent compiler migration in this PR. Next evaluate TypeScript 6.0.3 with its migration guide and baseUrl/config deprecations, then TypeScript 7 when lint parser support exists. Do not bypass peers.
+- TypeScript migrated to 6.0.3 in both workspaces (root ~5.9.3 and Worker ^5.6.3 → ~6.0.3). Registry latest 6 verified; TypeScript 7.0.2 remains deferred because typescript-eslint 8.72.1 requires >=4.8.4 <6.1.0.
 - convex-test 0.0.41 → 0.0.67 satisfies Convex ^1.43.0 with installed 1.49.0, but the full suite regresses to 127/129: heartbeat and visitor title tests fail because Bun spyOn cannot spy on accessor properties (global fetch). Reverted to 0.0.41. Next isolate the new fetch descriptor lifecycle and repair test adapter restoration before upgrading; preserve production fetch behavior and test contracts.
 
 No application behavior tests added for dependency-only work. Existing Taskbar stash and docs/research are untouched. Fresh parent review required before merge.
 
 Validation: full `bun run check` passes (129 tests, 809 assertions), frozen installation passes, vendor SHA256SUMS pass, and `git diff --check` passes. Audit has zero selected assertion findings; existing advisory rules remain advisory. Existing roomDraft warning and bundle-size advisory remain.
+
+## TypeScript 6 migration (base 2e0157a)
+
+[Official migration notes](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-6-0.html) deprecate baseUrl. Removed it from root and app configs: existing ./src/_, ./shared/_ and ./convex/* paths resolve relative to their config for TypeScript and Bun; Vite retains matching explicit aliases. All configs already use ESNext/bundler and explicit ambient types. Worker root remains presence-worker; app config remains at repository root, covering shared and Convex imports under the new rootDir default. No suppressions, strictness reductions, contract casts or runtime edits needed. Node types remain 24.19.2 for Node 24.12.0.
