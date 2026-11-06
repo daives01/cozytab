@@ -83,3 +83,7 @@ test("polar day and night expose nullable events and direction flags", () => {
     expect(winter.sunset).toBeNull();
     expect(winter.alwaysDown).toBe(true);
 });
+
+test("invalid dates preserve the missing-daylight fallback", () => {
+    expect(getDaylightWindow(new Date(NaN), "America/New_York")).toBeNull();
+});

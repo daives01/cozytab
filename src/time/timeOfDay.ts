@@ -38,6 +38,7 @@ function getCalendarParts(date: Date, timeZone: string) {
 }
 
 export function getDaylightWindow(now = new Date(), timeZone?: string): DaylightWindow | null {
+    if (Number.isNaN(now.getTime())) return null;
     const timeZoneId = timeZone ?? getResolvedTimeZone();
 
     if (!timeZoneId) return null;
