@@ -6,7 +6,7 @@ import { ConvexReactClient } from "convex/react";
 import "./App.css";
 import App from "./App.tsx";
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
 createRoot(document.getElementById("root")!).render(
     <StrictMode>

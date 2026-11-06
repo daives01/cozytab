@@ -28,7 +28,8 @@ export function detectTouchCapable(): boolean {
         (hasNavigator() &&
             "msMaxTouchPoints" in navigator &&
             // Edge/IE specific
-            (navigator as Navigator & { msMaxTouchPoints?: number }).msMaxTouchPoints! > 0);
+            typeof navigator.msMaxTouchPoints === "number" &&
+            navigator.msMaxTouchPoints > 0);
 
     const uaSuggestsTouch = hasNavigator() && TOUCH_UA_REGEX.test(navigator.userAgent);
 

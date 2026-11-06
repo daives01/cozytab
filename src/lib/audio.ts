@@ -1,5 +1,11 @@
 import { useCallback, useEffect } from "react";
 
+declare global {
+    interface Window {
+        webkitAudioContext?: typeof AudioContext;
+    }
+}
+
 let audioCtx: AudioContext | null = null;
 let audioUnlocked = false;
 const unlockListeners = new Set<() => void>();
@@ -7,8 +13,7 @@ const unlockListeners = new Set<() => void>();
 function createAudioContext(): AudioContext | null {
     if (typeof window === "undefined") return null;
 
-    const Ctor =
-        window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor = window.AudioContext || window.webkitAudioContext;
 
     if (!Ctor) return null;
 

@@ -26,9 +26,11 @@ function loadGuestPrefs(): KeyboardSoundPrefs | null {
         const raw = window.localStorage.getItem(STORAGE_KEY);
 
         if (!raw) return null;
-        const parsed = JSON.parse(raw) as Partial<{ volume: unknown; musicVolume: unknown }>;
-        const volume = clampVolume(parsed.volume, DEFAULT_VOLUME);
-        const musicVolume = clampVolume(parsed.musicVolume, DEFAULT_MUSIC_VOLUME);
+        const parsed: unknown = JSON.parse(raw);
+
+        if (typeof parsed !== "object" || parsed === null) return null;
+        const volume = clampVolume("volume" in parsed ? parsed.volume : undefined, DEFAULT_VOLUME);
+        const musicVolume = clampVolume("musicVolume" in parsed ? parsed.musicVolume : undefined, DEFAULT_MUSIC_VOLUME);
 
         return { volume, musicVolume };
     } catch (err) {

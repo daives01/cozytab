@@ -16,6 +16,7 @@ export function AssetImage({ assetUrl, alt = "", className, draggable, style }: 
 
     const resolvedUrl = useQuery(
         api.catalog.getImageUrl,
+        // SAFETY: getImageUrl validates this transported string with v.id("_storage") before storage access.
         storageId ? { storageId: storageId as Id<"_storage"> } : "skip",
     );
 

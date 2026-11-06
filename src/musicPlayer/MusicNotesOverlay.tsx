@@ -1,9 +1,17 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 import musicNote1 from "/assets/music-note-1.svg?raw";
 import musicNote2 from "/assets/music-note-2.svg?raw";
 import musicNote3 from "/assets/music-note-3.svg?raw";
+
+declare module "react" {
+    interface CSSProperties {
+        "--note-rise"?: string;
+        "--note-wobble"?: string;
+        "--note-scale"?: number;
+    }
+}
 
 const NOTE_ASSETS = [musicNote1, musicNote2, musicNote3];
 
@@ -93,26 +101,24 @@ export function MusicNotesOverlay({ playing, seed, className }: MusicNotesOverla
                 <span
                     key={`note-${index}`}
                     className="absolute block text-[var(--ink)]"
-                    style={
-                        {
-                            left: `${note.left}%`,
-                            bottom: 0,
-                            width: `${note.size}px`,
-                            height: `${note.size}px`,
-                            opacity: note.opacity,
-                            animationName: "cozy-note-float",
-                            animationDuration: `${note.duration}ms`,
-                            animationDelay: `${note.delay}ms`,
-                            animationTimingFunction: "ease-in-out",
-                            animationIterationCount: "infinite",
-                            color: "black",
-                            filter: "drop-shadow(1px 1px 0 var(--shadow-edge-soft))",
-                            "--note-rise": `${-note.rise}px`,
-                            "--note-wobble": `${note.wobble}px`,
-                            "--note-scale": note.scale,
-                            lineHeight: 0,
-                        } as CSSProperties
-                    }
+                    style={{
+                        left: `${note.left}%`,
+                        bottom: 0,
+                        width: `${note.size}px`,
+                        height: `${note.size}px`,
+                        opacity: note.opacity,
+                        animationName: "cozy-note-float",
+                        animationDuration: `${note.duration}ms`,
+                        animationDelay: `${note.delay}ms`,
+                        animationTimingFunction: "ease-in-out",
+                        animationIterationCount: "infinite",
+                        color: "black",
+                        filter: "drop-shadow(1px 1px 0 var(--shadow-edge-soft))",
+                        "--note-rise": `${-note.rise}px`,
+                        "--note-wobble": `${note.wobble}px`,
+                        "--note-scale": note.scale,
+                        lineHeight: 0,
+                    }}
                     aria-hidden
                     dangerouslySetInnerHTML={{ __html: note.asset }}
                 />
