@@ -1,5 +1,5 @@
+import { createConvexTest, seedCatalogItem } from "./convexTestUtils";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { Id } from "@convex/_generated/dataModel";
 import {
     GUEST_COINS_STORAGE_KEY,
     GUEST_INVENTORY_STORAGE_KEY,
@@ -44,6 +44,8 @@ class MemoryStorage implements Storage {
         this.values.set(key, String(value));
     }
 }
+
+const fixtureDb = createConvexTest();
 
 const originalWindow = globalThis.window;
 const originalLocalStorage = globalThis.localStorage;
@@ -101,8 +103,8 @@ describe("guest session storage", () => {
         expect(session.shortcuts[1].col).toBeUndefined();
     });
 
-    test("sanitizes item identities and non-negative coordinates", () => {
-        const catalogItemId = "catalog-1" as Id<"catalogItems">;
+    test("sanitizes item identities and non-negative coordinates", async () => {
+        const catalogItemId = await seedCatalogItem(fixtureDb);
         localStorage.setItem(
             GUEST_ROOM_STORAGE_KEY,
             JSON.stringify({
@@ -118,10 +120,10 @@ describe("guest session storage", () => {
         expect(item.y).toBe(0);
     });
 
-    test("filters stale catalog data and grants each starter exactly once", () => {
-        const starterId = "starter" as Id<"catalogItems">;
-        const paidId = "paid" as Id<"catalogItems">;
-        const staleId = "stale" as Id<"catalogItems">;
+    test("filters stale catalog data and grants each starter exactly once", async () => {
+        const starterId = await seedCatalogItem(fixtureDb);
+        const paidId = await seedCatalogItem(fixtureDb);
+        const staleId = await seedCatalogItem(fixtureDb);
 
         const lookup = buildCatalogLookup([
             { _id: starterId, name: "Starter", isStarterItem: true },
@@ -156,7 +158,7 @@ describe("guest session storage", () => {
 });
 
 test("guest autosave reports storage failure and retries only the newest room items", async () => {
-    const chair = { id: "chair-1", catalogItemId: "chair" as Id<"catalogItems">, x: 10, y: 20 };
+    const chair = { id: "chair-1", catalogItemId: await seedCatalogItem(fixtureDb), x: 10, y: 20 };
     const originalItems = JSON.stringify({ items: [chair] });
     localStorage.setItem(GUEST_ROOM_STORAGE_KEY, originalItems);
     localStorage.setItem(GUEST_COINS_STORAGE_KEY, "123");

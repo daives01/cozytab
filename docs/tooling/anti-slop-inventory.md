@@ -127,3 +127,7 @@ Workflow: bun run format runs Oxfmt → isolated spacing --fix → Oxfmt → spa
 Exact audit before → after: total 1674 → 248; spacing 1426 → 0; safety comments 127; runtime typeof 76; dictionaries 18; unknown parameters 16; known-value widening 11; all other audit counts zero and unchanged.
 
 Full checks pass before and after: 117 tests / 611 assertions. All 159 changed source files pass whitespace-only comparison and transpileModule emitted runtime AST equivalence including JSX, normalizing parentheses. Adjacent JSX literal normalization was unnecessary. This verifies emitted syntax under ESNext/ReactJSX options, not arbitrary compiler settings or browser behavior. Vendor checksums and git diff --check pass. Complete formatting is byte-idempotent.
+
+## Current inventory after test fixture audit (base d3f978a)
+
+Earlier counts are historical. Current: 14 globally enforced rules; assertion evidence findings 18 → 0 across application and tests, with no scope overrides. Test inventory and retained timer adapter invariant are recorded in verification.md. Advisory findings: runtime typeof 109, unknown parameters 26, unsafe dictionaries 20, known-value widening 9 (164 total); all other audit rules zero. Full check: 129 tests / 809 assertions; vendor checksums pass.

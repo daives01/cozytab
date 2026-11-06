@@ -21,7 +21,7 @@ ESLint remains authoritative for React hooks and refresh. Oxlint adds default co
 - [ ] Evaluate no-runtime-typeof after parsing work, documenting predicate exemptions.
 - [x] Audit module mocking: enable Jest/Vitest-only no-module-mocking (0); manual Bun audit found no module replacements. Existing method spies remain valid seams.
 - [ ] Trial require-readable-spacing against Oxfmt. Shape-name rule explicitly deferred after domain vocabulary review (0); see inventory.
-- [ ] Evaluate require-safety-comment-for-type-assertion after assertion cleanup; document concrete invariants, never boilerplate assurances.
+- [x] Evaluate require-safety-comment-for-type-assertion after assertion cleanup; document concrete invariants, never boilerplate assurances.
 - [ ] Reinventory all pinned generic rules; record enabled/deferred status, remove temporary overrides and document synchronized upgrades. New upstream rules require new review.
 
 For each step start from the merged predecessor, change one rule/group in one bounded subsystem, record before/after counts and exact scope, inspect every finding, preserve auth/presence/music/guest contracts, and add behavioral tests only where behavior changes. No blanket disables, broad casts or cosmetic rewrites. Enable errors only at zero unexplained findings. Run check plus targeted tests, obtain fresh review and merge before beginning the next piece. Keep formatting-only work separate. User authorization does not mandate adopting every opinionated rule.
@@ -55,3 +55,7 @@ Complete remaining src/room components/utilities inventory: 16 missing-evidence 
 Five retained assertions: two chat document keyboard targets use HTML focus/body event origins; drawer pointer target uses rendered drawer elements and only calls Element.closest; two inventory-ID casts originate from authenticated getMyInventory results and hide controls are disabled for guests. Guest synthetic IDs never reach these mutations. Adjacent SAFETY evidence records these concrete producers and gates. Const assertions remain excluded. Global enforcement stays advisory (13 enforced rules).
 
 Full bun run check passes: 120 tests / 641 assertions, including formatting/spacing, both linters, worker typecheck and build. Vendor SHA256SUMS and git diff --check pass. Existing behavior suites cover room persistence/omission, selection, limits and visitor flows; no runtime validation added. Taskbar stash and docs/research untouched. Parent fresh review required; no agents, merge, watch, apps, codegen or deployment.
+
+## Current rollout status (base d3f978a)
+
+Historical counts above remain historical. Test fixture inventory 18 → 0; complete application/test assertion audit 0. Global assertion evidence enforcement enabled without overrides: 14 enforced rules. Seventeen test assertions removed using database IDs, actual documents and typed RoomItem contracts; one timer adapter assertion retains concrete shared-map evidence. Full check passes 129 tests / 809 assertions, vendor checksums and spacing included. Current advisory inventory: 164 (typeof 109, unknown parameters 26, dictionaries 20, widening 9). Fresh parent review required before merge.

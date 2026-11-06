@@ -1,5 +1,5 @@
+import { createConvexTest, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
 import { describe, expect, test } from "bun:test";
-import type { Id } from "../convex/_generated/dataModel";
 import { normalizeFriendRoomSource, normalizeInviteRoomSource } from "../src/room/visitorRoomSource";
 import { clampWindowToBounds, type ComputerWindow } from "../src/computer/useWindowManager";
 import { applyPresenceMessage } from "../src/presence/presenceState";
@@ -12,8 +12,13 @@ import {
     selectClaimedSide,
 } from "../src/games/chess/useChessController";
 
+const fixtureDb = createConvexTest();
+const fixtureUserId = await seedUser(fixtureDb, "fixture");
+const fixtureTemplate = await seedTemplate(fixtureDb);
+const fixtureRoom = await seedRoom(fixtureDb, fixtureUserId, fixtureTemplate);
+
 const room = {
-    _id: "room-1" as Id<"rooms">,
+    _id: fixtureRoom,
     items: [],
     template: { backgroundUrl: "/room.png" },
 };
