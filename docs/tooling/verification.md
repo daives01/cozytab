@@ -151,3 +151,7 @@ Full bun run check passes: formatting/spacing, both linters, worker types, build
 ## TypeScript 6 (issue #7, base 2e0157a)
 
 Both workspaces resolve TypeScript 6.0.3. Deprecated baseUrl removed while preserving all three aliases; ESNext/bundler and explicit ambient types retained. Full bun run check passes: formatting/spacing, 14 enforced rules, both linters, worker typecheck, build and 129 tests / 809 assertions. Frozen lock install and vendor SHA256SUMS pass. Selected assertion audit remains zero; advisory inventory unchanged. No runtime edits or new diagnostics requiring contract changes. Taskbar stash and docs/research untouched. TypeScript 7 awaits typescript-eslint peer support; convex-test fetch descriptor migration remains separate. Parent fresh review and CI required before merge.
+
+## convex-test 0.0.67 (issue #7)
+
+Full check passes with 129 tests; both affected files also pass separately from the full suite. Frozen install and vendor checksums verified. Test adapters restore previous property descriptors; production fetch is unchanged. Fresh parent review and CI remain required.

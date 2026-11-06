@@ -1,5 +1,6 @@
+import { stubGlobal } from "./stubGlobal";
 import { createConvexTest, seedUser, seedTemplate, seedRoom } from "./convexTestUtils";
-import { afterAll, expect, test, spyOn } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 import { act, create } from "react-test-renderer";
 import { useLeaseHeartbeat, useReconcileGuestOnboarding } from "@/room/hooks/useRoomPageEffects";
 
@@ -68,7 +69,7 @@ test("closed and timeout heartbeat responses stop timers and unmount closes the 
         const timers = new Map<number, () => void>();
         let next = 0;
 
-        const interval = spyOn(globalThis, "setInterval").mockImplementation((callback) => {
+        const interval = stubGlobal("setInterval", (callback) => {
             if (typeof callback !== "function") throw new Error("Heartbeat must schedule a function");
             timers.set(++next, () => callback());
 
@@ -76,7 +77,7 @@ test("closed and timeout heartbeat responses stop timers and unmount closes the 
             return next as ReturnType<typeof setInterval>;
         });
 
-        const clear = spyOn(globalThis, "clearInterval").mockImplementation((id) => {
+        const clear = stubGlobal("clearInterval", (id) => {
             timers.delete(Number(id));
         });
 
@@ -121,8 +122,8 @@ test("closed and timeout heartbeat responses stop timers and unmount closes the 
             expect(closes).toBe(1);
             expect(timers.size).toBe(0);
         } finally {
-            interval.mockRestore();
-            clear.mockRestore();
+            interval();
+            clear();
         }
     }
 });
