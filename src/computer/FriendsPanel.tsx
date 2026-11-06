@@ -10,8 +10,8 @@ import type { Id } from "@convex/_generated/dataModel";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 
 function getErrorMessage(err: unknown): string {
-    if (err instanceof ConvexError) {
-        return err.data as string;
+    if (err instanceof ConvexError && typeof err.data === "string") {
+        return err.data;
     }
 
     return "Something went wrong";
@@ -124,9 +124,12 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
     // Batch fetch friendship status for all visitors with convexUserId
     const visitorUserIds = useMemo(() => {
-        return inRoomVisitors
-            .map((v) => v.convexUserId as Id<"users"> | undefined)
-            .filter((id): id is Id<"users"> => !!id);
+        return (
+            inRoomVisitors
+                // SAFETY: getFriendshipStatusBatch validates each transported string with v.id("users") before its handler.
+                .map((v) => v.convexUserId as Id<"users"> | undefined)
+                .filter((id): id is Id<"users"> => !!id)
+        );
     }, [inRoomVisitors]);
 
     const friendshipStatusBatch = useQuery(
@@ -278,6 +281,7 @@ function InRoomVisitorRow({
     visitor: VisitorState;
     friendshipStatusMap: FriendshipStatusMap;
 }) {
+    // SAFETY: sendFriendRequestByUserId validates this transported string with v.id("users") before database access.
     const convexUserId = visitor.convexUserId as Id<"users"> | undefined;
     const sendRequest = useMutation(api.friends.sendFriendRequestByUserId);
     const [sending, setSending] = useState(false);

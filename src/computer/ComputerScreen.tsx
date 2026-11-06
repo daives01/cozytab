@@ -1,3 +1,4 @@
+import { isComputerTypingTarget } from "./keyboardTarget";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -233,7 +234,9 @@ export function ComputerScreen({
             const rect = target.getBoundingClientRect();
             const scale = desktopScale || 1;
 
-            const clone = target.cloneNode(true) as HTMLDivElement;
+            const clone = target.cloneNode(true);
+
+            if (!(clone instanceof HTMLDivElement)) return;
             clone.style.position = "absolute";
             clone.style.top = "-9999px";
             clone.style.left = "-9999px";
@@ -289,13 +292,9 @@ export function ComputerScreen({
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            const target = e.target as HTMLElement | null;
+            const target = e.target;
 
-            const isTypingTarget =
-                target &&
-                (target.tagName === "INPUT" ||
-                    target.tagName === "TEXTAREA" ||
-                    target.getAttribute("contenteditable") === "true");
+            const isTypingTarget = isComputerTypingTarget(target);
 
             if (e.key === "Escape") {
                 setIsStartMenuOpen(false);
@@ -485,9 +484,9 @@ export function ComputerScreen({
 
     const handleDesktopContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
         event.preventDefault();
-        const target = event.target as HTMLElement;
+        const target = event.target;
 
-        if (target.closest("[data-window]")) return;
+        if (target instanceof Element && target.closest("[data-window]")) return;
 
         if (!desktopRef.current) return;
         const { row, col } = findCellFromPoint(event.clientX, event.clientY, desktopRef.current, desktopScale);
@@ -588,12 +587,13 @@ export function ComputerScreen({
                             onDrop={handleDrop}
                             onPointerMove={(e) => {
                                 if (e.pointerType !== "touch") return;
-                                const target = e.target as HTMLElement;
+                                const target = e.target;
 
                                 if (
-                                    target?.tagName === "INPUT" ||
-                                    target?.tagName === "TEXTAREA" ||
-                                    target?.isContentEditable
+                                    target instanceof HTMLElement &&
+                                    (target.tagName === "INPUT" ||
+                                        target.tagName === "TEXTAREA" ||
+                                        target.isContentEditable)
                                 ) {
                                     return;
                                 }

@@ -1,3 +1,5 @@
+import { FriendsPanel } from "@/computer/FriendsPanel";
+import { ConvexError } from "convex/values";
 import { afterAll, afterEach, expect, test, spyOn } from "bun:test";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
@@ -142,3 +144,44 @@ test("an expired invite update removes the share link and live access", async ()
         clock.mockRestore();
     }
 });
+
+for (const data of [{ reason: "private detail" }, "Friend code not found"]) {
+    test(`Add Friend renders safe mutation error for ${typeof data} data`, async () => {
+        browser();
+
+        const query = spyOn(client, "watchQuery").mockImplementation(() => ({
+            onUpdate: () => noop,
+            localQueryResult: () => undefined,
+            journal: () => undefined,
+        }));
+
+        const mutation = spyOn(client, "mutation").mockRejectedValue(new ConvexError(data));
+
+        try {
+            await render(<FriendsPanel />);
+            await act(() =>
+                renderer.root
+                    .findAllByType("button")
+                    .find((button) => button.props.children.includes("Add Friend"))!
+                    .props.onClick(),
+            );
+            await act(() => renderer.root.findByType("input").props.onChange({ target: { value: "ABCDEF" } }));
+            await act(async () =>
+                renderer.root
+                    .findAllByType("button")
+                    .find((button) => button.props.children === "Send")!
+                    .props.onClick(),
+            );
+            expect(mutation).toHaveBeenCalledTimes(1);
+            expect(output()).toContain(typeof data === "string" ? data : "Something went wrong");
+            expect(output()).not.toContain("private detail");
+            expect(
+                renderer.root.findAllByType("button").find((button) => button.props.children === "Send")!.props
+                    .disabled,
+            ).toBe(false);
+        } finally {
+            mutation.mockRestore();
+            query.mockRestore();
+        }
+    });
+}
