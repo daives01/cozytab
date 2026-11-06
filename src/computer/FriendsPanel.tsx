@@ -124,12 +124,12 @@ function FriendsTab({ friends, inRoomVisitors }: { friends: FriendsQuery; inRoom
 
     // Batch fetch friendship status for all visitors with convexUserId
     const visitorUserIds = useMemo(() => {
-        return (
-            inRoomVisitors
+        return inRoomVisitors
+            .map((v) => {
                 // SAFETY: getFriendshipStatusBatch validates each transported string with v.id("users") before its handler.
-                .map((v) => v.convexUserId as Id<"users"> | undefined)
-                .filter((id): id is Id<"users"> => !!id)
-        );
+                return v.convexUserId as Id<"users"> | undefined;
+            })
+            .filter((id): id is Id<"users"> => !!id);
     }, [inRoomVisitors]);
 
     const friendshipStatusBatch = useQuery(

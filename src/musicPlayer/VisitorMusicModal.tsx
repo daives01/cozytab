@@ -54,10 +54,19 @@ export function VisitorMusicModal({ item, onClose }: VisitorMusicModalProps) {
                 );
 
                 if (!response.ok) throw new Error("Unable to fetch title");
-                const data = (await response.json()) as { title?: string | null };
+                const data: unknown = await response.json();
 
                 if (!cancelled) {
-                    setResult({ videoId, title: typeof data?.title === "string" ? data.title : null });
+                    setResult({
+                        videoId,
+                        title:
+                            typeof data === "object" &&
+                            data !== null &&
+                            "title" in data &&
+                            typeof data.title === "string"
+                                ? data.title
+                                : null,
+                    });
                 }
             } catch {
                 if (!cancelled) setResult({ videoId, title: null });

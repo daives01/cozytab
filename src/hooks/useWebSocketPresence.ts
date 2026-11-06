@@ -1,3 +1,4 @@
+import { isPresenceMessage } from "@shared/validatePresenceMessage";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PRESENCE_THROTTLE_MS } from "@shared/gameTypes";
 import { ROOM_WIDTH, ROOM_HEIGHT } from "@/time/roomConstants";
@@ -113,8 +114,7 @@ export function useWebSocketPresence(
 
     const setVisitorsAndStore = useCallback((updater: VisitorState[] | ((prev: VisitorState[]) => VisitorState[])) => {
         setVisitors((prev) => {
-            const next =
-                typeof updater === "function" ? (updater as (p: VisitorState[]) => VisitorState[])(prev) : updater;
+            const next = typeof updater === "function" ? updater(prev) : updater;
 
             visitorsRef.current = next;
 
@@ -138,15 +138,17 @@ export function useWebSocketPresence(
                 return;
             }
 
-            let data: PresenceMessage | null = null;
+            let data: unknown;
 
             try {
-                data = JSON.parse(event.data) as PresenceMessage;
+                data = JSON.parse(event.data);
             } catch (error) {
                 console.error("[Presence] Error parsing message", error);
 
                 return;
             }
+
+            if (!isPresenceMessage(data)) return;
 
             if (data.type === "chat" && data.visitorId !== visitorId) {
                 queueRemoteTypingSounds(data.visitorId, data.text);
