@@ -1,4 +1,4 @@
-import SunCalc from "suncalc";
+import { getTimes } from "suncalc";
 import { getResolvedTimeZone, getTimezoneCoordinates } from "./timezoneCoordinates";
 
 export type DaylightWindow = {
@@ -8,43 +8,53 @@ export type DaylightWindow = {
 
 const daylightCache = new Map<string, DaylightWindow | null>();
 
-function normalizeToLocalNoon(date: Date) {
-    const normalized = new Date(date);
-    normalized.setHours(12, 0, 0, 0);
+function getCalendarParts(date: Date, timeZone: string) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hourCycle: "h23",
+    }).formatToParts(date);
 
-    return normalized;
-}
+    const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value);
 
-function getCacheKey(date: Date, timeZone: string) {
-    const cacheDate = normalizeToLocalNoon(date);
-    const year = cacheDate.getFullYear();
-    const month = cacheDate.getMonth() + 1;
-    const day = cacheDate.getDate();
+    const calendarUtc = Date.UTC(
+        value("year"),
+        value("month") - 1,
+        value("day"),
+        value("hour"),
+        value("minute"),
+        value("second"),
+    );
 
-    return `${timeZone}:${year}-${month}-${day}`;
+    return {
+        key: `${timeZone}:${value("year")}-${value("month")}-${value("day")}`,
+        offset: (calendarUtc - Math.floor(date.getTime() / 1000) * 1000) / 60000,
+    };
 }
 
 export function getDaylightWindow(now = new Date(), timeZone?: string): DaylightWindow | null {
+    if (Number.isNaN(now.getTime())) return null;
     const timeZoneId = timeZone ?? getResolvedTimeZone();
 
     if (!timeZoneId) return null;
 
-    const cacheKey = getCacheKey(now, timeZoneId);
+    const coordinates = getTimezoneCoordinates(timeZoneId);
+
+    if (!coordinates) return null;
+
+    const calendar = getCalendarParts(now, timeZoneId);
+    const cacheKey = calendar.key;
     const cached = daylightCache.get(cacheKey);
 
     if (cached !== undefined) return cached;
 
-    const coordinates = getTimezoneCoordinates(timeZoneId);
-
-    if (!coordinates) {
-        daylightCache.set(cacheKey, null);
-
-        return null;
-    }
-
     try {
-        const calcDate = normalizeToLocalNoon(now);
-        const times = SunCalc.getTimes(calcDate, coordinates.latitude, coordinates.longitude);
+        const times = getTimes(now, coordinates.latitude, coordinates.longitude, 0, calendar.offset);
         const { sunrise, sunset } = times;
 
         if (!sunrise || !sunset || Number.isNaN(sunrise.getTime()) || Number.isNaN(sunset.getTime())) {
