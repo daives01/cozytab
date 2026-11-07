@@ -75,3 +75,28 @@ test("presence snapshots accept worker visitors and reject malformed visitor con
         expect(isPresenceMessage({ type: "state", visitors: [{ ...visitor, ...patch }] })).toBe(false);
     }
 });
+
+test("client ingress normalizes legacy chat and identity fields while enforcing bounds", async () => {
+    const { parseClientPresenceMessage: parse } = await import("../shared/validatePresenceMessage");
+    expect(parse({ type: "chat", visitorId: "v", text: 3 })).toEqual({ type: "chat", visitorId: "v", text: null });
+    expect(parse({ type: "chat", visitorId: "v", text: "x".repeat(501) })?.type).toBe("chat");
+    expect(parse({ type: "join", visitorId: "v", displayName: "V", isOwner: false, convexUserId: 3 })).toMatchObject({
+        convexUserId: undefined,
+    });
+    for (const value of [
+        { type: "state", visitors: [] },
+        { type: "leave", visitorId: "" },
+        { type: "rename", visitorId: "v", displayName: "" },
+        { type: "cursor", visitorId: "v", x: 10001, y: 0 },
+        { type: "cursor", visitorId: "v", x: 0, y: 0, gameMetadata: { nested: {} } },
+    ])
+        expect(parse(value)).toBeNull();
+});
+
+test("client ingress strips unrelated fields before validation and broadcast", async () => {
+    const { parseClientPresenceMessage: parse } = await import("../shared/validatePresenceMessage");
+    expect(parse({ type: "leave", visitorId: "v", displayName: "", cursorColor: 3, secret: true })).toEqual({
+        type: "leave",
+        visitorId: "v",
+    });
+});

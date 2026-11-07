@@ -240,41 +240,13 @@ export function useWebSocketPresence(
         };
     }, [handleIncomingMessage, isOwner, roomId, sendMessage, setVisitorsAndStore, visitorId]);
 
-    // Send cursor position with throttling
-    const buildCursorMessage = useCallback(
-        (
-            x: number,
-            y: number,
-            color?: string,
-            inMenu?: boolean,
-            tabbedOut?: boolean,
-            inGame?: string | null,
-            gameMetadata?: Record<string, unknown> | null,
-        ): PresenceMessage => ({
-            type: "cursor",
-            visitorId,
-            x,
-            y,
-            cursorColor: color ?? latestCursorColorRef.current,
-            inMenu: inMenu ?? inMenuRef.current,
-            tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : tabbedOutRef.current,
-            inGame: inGame !== undefined ? inGame : inGameRef.current,
-            gameMetadata: gameMetadata !== undefined ? gameMetadata : gameMetadataRef.current,
-        }),
-        [visitorId],
-    );
-
     const sendCursor = useCallback(
         (
             x: number,
             y: number,
             color?: string,
             opts?: {
-                inMenu?: boolean;
                 force?: boolean;
-                tabbedOut?: boolean;
-                inGame?: string | null;
-                gameMetadata?: Record<string, unknown> | null;
             },
         ): boolean => {
             const ws = wsRef.current;
@@ -289,17 +261,17 @@ export function useWebSocketPresence(
                 const clamped = clampCursorToRoomBounds(nextX, nextY);
                 lastSendTimeRef.current = Date.now();
                 lastBroadcastCursorRef.current = { x: clamped.x, y: clamped.y };
-                sendMessage(
-                    buildCursorMessage(
-                        clamped.x,
-                        clamped.y,
-                        color,
-                        opts?.inMenu,
-                        opts?.tabbedOut,
-                        opts?.inGame,
-                        opts?.gameMetadata,
-                    ),
-                );
+                sendMessage({
+                    type: "cursor",
+                    visitorId,
+                    x: clamped.x,
+                    y: clamped.y,
+                    cursorColor: color ?? latestCursorColorRef.current,
+                    inMenu: inMenuRef.current,
+                    tabbedOut: tabbedOutRef.current,
+                    inGame: inGameRef.current,
+                    gameMetadata: gameMetadataRef.current,
+                });
             };
 
             // Clamp the input coordinates immediately
@@ -327,7 +299,7 @@ export function useWebSocketPresence(
 
             return true;
         },
-        [buildCursorMessage, sendMessage, visitorId],
+        [sendMessage, visitorId],
     );
 
     // Update cursor position (matches usePresence API)
@@ -364,7 +336,7 @@ export function useWebSocketPresence(
 
             inMenuRef.current = next;
             const { x, y } = lastBroadcastCursorRef.current;
-            sendCursor(x, y, latestCursorColorRef.current, { inMenu: next, force: true });
+            sendCursor(x, y, latestCursorColorRef.current, { force: true });
         },
         [sendCursor, visitorId],
     );
@@ -380,7 +352,7 @@ export function useWebSocketPresence(
             // Send null explicitly so it propagates over JSON
             gameMetadataRef.current = null;
             const { x, y } = lastBroadcastCursorRef.current;
-            sendCursor(x, y, latestCursorColorRef.current, { inGame: gameItemId, gameMetadata: null, force: true });
+            sendCursor(x, y, latestCursorColorRef.current, { force: true });
 
             // Optimistically update local visitor state (server excludes sender from broadcast)
             setVisitorsAndStore((prev) =>
@@ -395,7 +367,7 @@ export function useWebSocketPresence(
             if (!visitorId) return;
             gameMetadataRef.current = metadata;
             const { x, y } = lastBroadcastCursorRef.current;
-            sendCursor(x, y, latestCursorColorRef.current, { gameMetadata: metadata, force: true });
+            sendCursor(x, y, latestCursorColorRef.current, { force: true });
 
             // Optimistically update local visitor state (server excludes sender from broadcast)
             setVisitorsAndStore((prev) =>
@@ -414,7 +386,7 @@ export function useWebSocketPresence(
             const hidden = document.visibilityState === "hidden";
             tabbedOutRef.current = hidden;
             const { x, y } = lastBroadcastCursorRef.current;
-            sendCursor(x, y, latestCursorColorRef.current, { tabbedOut: hidden, force: true });
+            sendCursor(x, y, latestCursorColorRef.current, { force: true });
 
             const ws = wsRef.current;
 

@@ -38,3 +38,5 @@ export type PresenceMessage =
       }
     | { type: "chat"; visitorId: string; text: string | null }
     | { type: "state"; visitors: PresenceVisitor[] };
+
+export type ClientPresenceMessage = Exclude<PresenceMessage, { type: "state" }>;
