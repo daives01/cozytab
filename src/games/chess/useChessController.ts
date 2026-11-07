@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Chess, type Square } from "chess.js";
 import { STARTING_FEN } from "../constants";
 
@@ -97,24 +97,37 @@ export function useChessController({
     onMove: (move: { from: string; to: string; promotion?: string }, newFen: string) => void;
 }) {
     const chess = useMemo(() => loadChess(fen), [fen]);
-    const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
-    const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
-    const [possibleMoves, setPossibleMoves] = useState<Set<Square>>(new Set());
-    const isMyTurn = useMemo(() => isSideToMove(chess, mySide), [chess, mySide]);
-    const gameStatus = useMemo(() => deriveChessStatus(chess), [chess]);
-
-    const clearSelection = useCallback(() => {
-        setSelectedSquare(null);
-        setPossibleMoves(new Set());
-    }, []);
-
-    useEffect(() => {
-        if (fen !== STARTING_FEN) return;
-        /* eslint-disable react-hooks/set-state-in-effect -- reset selection when the shared game restarts */
-        setPendingPromotion(null);
-        clearSelection();
-        /* eslint-enable react-hooks/set-state-in-effect */
-    }, [clearSelection, fen]);
+    type Interaction = { kind: "selected"; square: Square } | { kind: "promotion"; from: Square; to: Square };
+    const context = { fen, side: mySide, resultOverlay };
+    const [interaction, setInteraction] = useState<{
+        fen: string;
+        side: ChessSide | null;
+        resultOverlay: string | null;
+        value: Interaction | null;
+    }>({ ...context, value: null });
+    const changed =
+        interaction.fen !== fen || interaction.side !== mySide || interaction.resultOverlay !== resultOverlay;
+    if (changed) setInteraction({ ...context, value: null });
+    const current = changed ? null : interaction.value;
+    const selectedSquare = current?.kind === "selected" ? current.square : null;
+    const pendingPromotion = current?.kind === "promotion" ? current : null;
+    const possibleMoves = useMemo(
+        () =>
+            new Set(
+                selectedSquare ? chess.moves({ square: selectedSquare, verbose: true }).map((move) => move.to) : [],
+            ),
+        [chess, selectedSquare],
+    );
+    const isMyTurn = isSideToMove(chess, mySide);
+    const gameStatus = deriveChessStatus(chess);
+    const clearSelection = useCallback(
+        () => setInteraction({ fen, side: mySide, resultOverlay, value: null }),
+        [fen, mySide, resultOverlay],
+    );
+    const select = useCallback(
+        (value: Interaction) => setInteraction({ fen, side: mySide, resultOverlay, value }),
+        [fen, mySide, resultOverlay],
+    );
 
     const tryMove = useCallback(
         (from: Square, to: Square, promotion?: string) => {
@@ -142,14 +155,14 @@ export function useChessController({
             const to = targetSquare;
 
             if (needsPawnPromotion(chess, from, to, mySide)) {
-                setPendingPromotion({ from, to });
+                select({ kind: "promotion", from, to });
 
                 return false;
             }
 
             return tryMove(from, to);
         },
-        [chess, isMyTurn, mySide, resultOverlay, tryMove],
+        [chess, isMyTurn, mySide, resultOverlay, select, tryMove],
     );
 
     const handleSquareClick = useCallback(
@@ -162,7 +175,7 @@ export function useChessController({
             if (selectedSquare) {
                 if (possibleMoves.has(target)) {
                     if (needsPawnPromotion(chess, selectedSquare, target, mySide))
-                        setPendingPromotion({ from: selectedSquare, to: target });
+                        select({ kind: "promotion", from: selectedSquare, to: target });
                     else tryMove(selectedSquare, target);
 
                     return;
@@ -174,20 +187,19 @@ export function useChessController({
             const piece = chess.get(target);
 
             if (piece?.color === (mySide === "white" ? "w" : "b")) {
-                setSelectedSquare(target);
-                setPossibleMoves(new Set(chess.moves({ square: target, verbose: true }).map((move) => move.to)));
+                select({ kind: "selected", square: target });
             }
         },
-        [chess, clearSelection, isMyTurn, mySide, possibleMoves, resultOverlay, selectedSquare, tryMove],
+        [chess, clearSelection, isMyTurn, mySide, possibleMoves, resultOverlay, select, selectedSquare, tryMove],
     );
 
     const handlePromotion = useCallback(
         (piece: "q" | "r" | "b" | "n") => {
             if (!pendingPromotion) return;
             tryMove(pendingPromotion.from, pendingPromotion.to, piece);
-            setPendingPromotion(null);
+            clearSelection();
         },
-        [pendingPromotion, tryMove],
+        [clearSelection, pendingPromotion, tryMove],
     );
 
     const squareStyles = useMemo(() => {

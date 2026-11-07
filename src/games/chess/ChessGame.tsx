@@ -4,13 +4,13 @@ import type { ChessboardOptions } from "react-chessboard";
 import { Chess } from "chess.js";
 import type { CSSProperties } from "react";
 import { isChessSquare, readChessSide, readChessSignal } from "./useChessController";
-import { STARTING_FEN } from "../constants";
+import { useChessSession } from "./useChessSession";
 import type { VisitorState } from "@/hooks/useWebSocketPresence";
 import { CursorDisplay } from "@/presence/CursorDisplay";
 import { useChatFade } from "@/hooks/useChatFade";
 import { Crown, X, LogOut, Flag, Handshake, RotateCcw } from "lucide-react";
 import { useChessSounds } from "./useChessSounds";
-import { deriveChessGameEnd, selectClaimedSide, useChessController, type ChessGameSignal } from "./useChessController";
+import { selectClaimedSide, useChessController, type ChessGameSignal } from "./useChessController";
 
 interface ChessCursorProps {
     displayX: number;
@@ -223,10 +223,8 @@ export function ChessGame({
     onClose,
 }: ChessGameProps) {
     const boardRef = useRef<HTMLDivElement>(null);
-    const handledResultRef = useRef<string | null>(null);
     const { playMoveSound } = useChessSounds();
     const prevFenRef = useRef(serverFen);
-    const [drawDeclinedAt, setDrawDeclinedAt] = useState<number | null>(null);
 
     const [isLandscape, setIsLandscape] = useState(
         () => typeof window !== "undefined" && window.innerWidth > window.innerHeight,
@@ -283,73 +281,15 @@ export function ChessGame({
         });
     }, [playersInGame]);
 
-    // Check for draw offer from opponent (hide if we've declined or if we're the one offering)
-    const mySignal = playerSignals.find((p) => p.visitorId === visitorId)?.signal;
-    const opponent = mySide ? playerSignals.find((p) => p.visitorId !== visitorId && p.side !== mySide) : undefined;
-    const opponentSignal = opponent?.signal;
-
-    const opponentDrawOffer =
-        mySide && opponentSignal === "drawOffer" && mySignal !== "drawDecline" && mySignal !== "drawOffer"
-            ? opponent
-            : undefined;
-
-    // Signal handshake lifecycle:
-    // 1. Offerer clears their "drawOffer" when opponent declines
-    // 2. Decliner clears their "drawDecline" when offerer's offer is gone (or new offer arrives)
-    const prevOpponentSignalRef = useRef<GameSignal | undefined>(undefined);
-    useEffect(() => {
-        const prevOpponent = prevOpponentSignalRef.current;
-        prevOpponentSignalRef.current = opponentSignal;
-
-        if (!mySide) return;
-
-        // Offerer: clear my offer when opponent declines, show declined message
-        if (mySignal === "drawOffer" && opponentSignal === "drawDecline") {
-            queueMicrotask(() => setDrawDeclinedAt(Date.now()));
-            onSignal(null);
-
-            return;
-        }
-
-        // Decliner: clear my decline when offer is gone OR a new offer arrives
-        if (mySignal === "drawDecline") {
-            const opponentNowOffering = opponentSignal === "drawOffer";
-            const opponentWasOffering = prevOpponent === "drawOffer";
-
-            // Clear if: offer gone, or new offer detected (heals missed transitions)
-            if (!opponentNowOffering || (opponentNowOffering && !opponentWasOffering)) {
-                onSignal(null);
-            }
-        }
-    }, [mySide, mySignal, opponentSignal, onSignal]);
-
-    // Auto-clear draw declined message after 2 seconds
-    useEffect(() => {
-        if (drawDeclinedAt === null) return;
-        const timer = setTimeout(() => setDrawDeclinedAt(null), 2000);
-
-        return () => clearTimeout(timer);
-    }, [drawDeclinedAt]);
-
-    const showDrawDeclined = drawDeclinedAt !== null;
-
-    // Clear local UI state when game resets to starting position
-    useEffect(() => {
-        if (fen === STARTING_FEN) {
-            handledResultRef.current = null;
-        }
-    }, [fen]);
-
-    const gameEnd = useMemo(() => deriveChessGameEnd(chess, fen, playerSignals), [chess, fen, playerSignals]);
-    const resultKey = gameEnd?.key ?? null;
-
-    // Notify parent of game-ending signals (resign, draw accept, checkmate, stalemate)
-    useEffect(() => {
-        if (!resultKey || handledResultRef.current === resultKey) return;
-        handledResultRef.current = resultKey;
-
-        if (gameEnd) onGameEnd(gameEnd.message);
-    }, [gameEnd, onGameEnd, resultKey]);
+    const { mySignal, opponentDrawOffer, showDrawDeclined } = useChessSession({
+        fen,
+        chess,
+        playerSignals,
+        visitorId,
+        mySide,
+        onSignal,
+        onGameEnd,
+    });
 
     const handleMouseMove = useCallback(
         (e: React.MouseEvent) => {
@@ -399,48 +339,15 @@ export function ChessGame({
             });
     }, [playersInGame, visitorId, mySide, getCursorOwnerSide, visitors]);
 
-    // Derive white/black players from gameMetadata with deterministic tie-break (smallest visitorId wins)
-    const whitePlayerId = useMemo(() => {
-        return selectClaimedSide(
-            playersInGame.map((player) => ({
-                visitorId: player.visitorId,
-                side:
-                    player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black"
-                        ? player.gameMetadata.side
-                        : null,
-            })),
-            "white",
-        );
-    }, [playersInGame]);
-
-    const blackPlayerId = useMemo(() => {
-        return selectClaimedSide(
-            playersInGame.map((player) => ({
-                visitorId: player.visitorId,
-                side:
-                    player.gameMetadata?.side === "white" || player.gameMetadata?.side === "black"
-                        ? player.gameMetadata.side
-                        : null,
-            })),
-            "black",
-        );
-    }, [playersInGame]);
-
-    const whitePlayer: GamePlayer | undefined = useMemo(() => {
-        const p = playersInGame.find((p) => p.visitorId === whitePlayerId);
-
-        return p
-            ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "white" }
-            : undefined;
-    }, [playersInGame, whitePlayerId]);
-
-    const blackPlayer: GamePlayer | undefined = useMemo(() => {
-        const p = playersInGame.find((p) => p.visitorId === blackPlayerId);
-
-        return p
-            ? { visitorId: p.visitorId, displayName: p.displayName, cursorColor: p.cursorColor, side: "black" }
-            : undefined;
-    }, [playersInGame, blackPlayerId]);
+    // Resolve each seat once; the same deterministic claim owns its badge and controls.
+    const claimedPlayers = playersInGame.map((player) => ({
+        ...player,
+        side: readChessSide(player.gameMetadata?.side),
+    }));
+    const whitePlayerId = selectClaimedSide(claimedPlayers, "white");
+    const blackPlayerId = selectClaimedSide(claimedPlayers, "black");
+    const whitePlayer = claimedPlayers.find((player) => player.visitorId === whitePlayerId);
+    const blackPlayer = claimedPlayers.find((player) => player.visitorId === blackPlayerId);
 
     // Can join a side if: (1) it's empty, and (2) either I have no side OR I'm alone (can switch)
     const otherPlayerExists =
@@ -513,6 +420,57 @@ export function ChessGame({
         </div>
     );
 
+    const board = (
+        <div
+            ref={boardRef}
+            className="relative aspect-square"
+            style={{ width: `var(--board-size)` }}
+            onMouseMove={handleMouseMove}
+            onPointerMove={handleMouseMove}
+        >
+            <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
+                <Chessboard
+                    options={
+                        {
+                            position: fen,
+                            onPieceDrop: handleDrop,
+                            onSquareClick: handleSquareClick,
+                            boardOrientation,
+                            squareStyles,
+                            allowDragging: !!mySide && isMyTurn && !resultOverlay,
+                            boardStyle: { borderRadius: "0" },
+                            darkSquareStyle: { backgroundColor: "#b58863" },
+                            lightSquareStyle: { backgroundColor: "#f0d9b5" },
+                        } satisfies ChessboardOptions
+                    }
+                />
+            </div>
+            {otherCursors.map((cursor) => (
+                <ChessCursor
+                    key={cursor.visitorId}
+                    displayX={cursor.displayX}
+                    displayY={cursor.displayY}
+                    cursorColor={cursor.cursorColor}
+                    chatMessage={cursor.chatMessage}
+                    rotated={cursor.needsFlip}
+                />
+            ))}
+            {opponentDrawOffer && mySide && (
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                    <DrawOfferBanner
+                        onAccept={() => onSignal("drawAccept")}
+                        onDecline={() => onSignal("drawDecline")}
+                    />
+                </div>
+            )}
+            {showDrawDeclined && (
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
+                    <DrawDeclinedBanner />
+                </div>
+            )}
+        </div>
+    );
+
     if (isLandscape) {
         return (
             <div
@@ -543,54 +501,7 @@ export function ChessGame({
                 </div>
 
                 {/* Board - always centered */}
-                <div
-                    ref={boardRef}
-                    className="relative aspect-square"
-                    style={{ width: `var(--board-size)` }}
-                    onMouseMove={handleMouseMove}
-                    onPointerMove={handleMouseMove}
-                >
-                    <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
-                        <Chessboard
-                            options={
-                                {
-                                    position: fen,
-                                    onPieceDrop: handleDrop,
-                                    onSquareClick: handleSquareClick,
-                                    boardOrientation,
-                                    squareStyles,
-                                    allowDragging: !!mySide && isMyTurn && !resultOverlay,
-                                    boardStyle: { borderRadius: "0" },
-                                    darkSquareStyle: { backgroundColor: "#b58863" },
-                                    lightSquareStyle: { backgroundColor: "#f0d9b5" },
-                                } satisfies ChessboardOptions
-                            }
-                        />
-                    </div>
-                    {otherCursors.map((cursor) => (
-                        <ChessCursor
-                            key={cursor.visitorId}
-                            displayX={cursor.displayX}
-                            displayY={cursor.displayY}
-                            cursorColor={cursor.cursorColor}
-                            chatMessage={cursor.chatMessage}
-                            rotated={cursor.needsFlip}
-                        />
-                    ))}
-                    {opponentDrawOffer && mySide && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-                            <DrawOfferBanner
-                                onAccept={() => onSignal("drawAccept")}
-                                onDecline={() => onSignal("drawDecline")}
-                            />
-                        </div>
-                    )}
-                    {showDrawDeclined && (
-                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-                            <DrawDeclinedBanner />
-                        </div>
-                    )}
-                </div>
+                {board}
 
                 {/* Right panel - controls top, status bottom */}
                 <div
@@ -613,7 +524,7 @@ export function ChessGame({
     return (
         <div
             className="flex flex-col items-center gap-3 select-none animate-in fade-in duration-150"
-            style={{ width: BOARD_SIZE }}
+            style={{ ...boardStyle, width: BOARD_SIZE }}
         >
             {/* Top controls - portrait */}
             <div className="flex items-center justify-between w-full">
@@ -629,53 +540,7 @@ export function ChessGame({
             </div>
 
             {/* Board */}
-            <div
-                ref={boardRef}
-                className="relative aspect-square w-full"
-                onMouseMove={handleMouseMove}
-                onPointerMove={handleMouseMove}
-            >
-                <div className="absolute inset-0 rounded-xl overflow-hidden border-4 border-[var(--color-foreground)] shadow-[var(--shadow-8)]">
-                    <Chessboard
-                        options={
-                            {
-                                position: fen,
-                                onPieceDrop: handleDrop,
-                                onSquareClick: handleSquareClick,
-                                boardOrientation,
-                                squareStyles,
-                                allowDragging: !!mySide && isMyTurn && !resultOverlay,
-                                boardStyle: { borderRadius: "0" },
-                                darkSquareStyle: { backgroundColor: "#b58863" },
-                                lightSquareStyle: { backgroundColor: "#f0d9b5" },
-                            } satisfies ChessboardOptions
-                        }
-                    />
-                </div>
-                {otherCursors.map((cursor) => (
-                    <ChessCursor
-                        key={cursor.visitorId}
-                        displayX={cursor.displayX}
-                        displayY={cursor.displayY}
-                        cursorColor={cursor.cursorColor}
-                        chatMessage={cursor.chatMessage}
-                        rotated={cursor.needsFlip}
-                    />
-                ))}
-                {opponentDrawOffer && mySide && (
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-                        <DrawOfferBanner
-                            onAccept={() => onSignal("drawAccept")}
-                            onDecline={() => onSignal("drawDecline")}
-                        />
-                    </div>
-                )}
-                {showDrawDeclined && (
-                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-20">
-                        <DrawDeclinedBanner />
-                    </div>
-                )}
-            </div>
+            {board}
 
             {/* Bottom controls - portrait */}
             <div className="flex items-center justify-between w-full">
