@@ -25,7 +25,9 @@ import { useRoomState } from "./hooks/useRoomState";
 import { useRoomHandlers } from "./hooks/useRoomHandlers";
 import { useRoomComputed } from "./hooks/useRoomComputed";
 import { useRoomGate } from "./hooks/useRoomGate";
-import { useRoomOverlaysModel } from "./hooks/useRoomOverlaysModel";
+import type { RoomOverlaysProps } from "./components/RoomOverlays.types";
+import type { GameType } from "@shared/categories";
+import type { RoomItem } from "@shared/guestTypes";
 import { useTouchPlacement } from "./hooks/useTouchPlacement";
 import { RoomItemsLayer } from "./components/RoomItemsLayer";
 import { RoomOverlays } from "./components/RoomOverlays";
@@ -232,18 +234,6 @@ function RoomPageOwner({
         roomState.setGuestOnboardingCompletedValue(true);
     }, [roomState]);
 
-    const updateGuestCoins = useCallback(
-        (next: number | ((prev: number) => number)) => roomState.setGuestCoinsValue(next),
-        [roomState],
-    );
-
-    const updateGuestInventory = useCallback(
-        (updater: (prev: Id<"catalogItems">[]) => Id<"catalogItems">[]) => {
-            roomState.setGuestInventoryValue(updater);
-        },
-        [roomState],
-    );
-
     const updateGuestShortcuts = useCallback((next: Shortcut[]) => roomState.setLocalShortcuts(next), [roomState]);
 
     const handleCursorColorChange = useCallback(
@@ -288,7 +278,6 @@ function RoomPageOwner({
         setGameMetadata,
         connectionState,
         connectionError,
-        wsRef,
     } = usePresenceAndChat({
         roomId: presenceRoomId,
         identity: { id: visitorId ?? "owner", name: ownerName, cursorColor, convexUserId: user?._id },
@@ -301,13 +290,6 @@ function RoomPageOwner({
     useEffect(() => {
         setInMenu(isInMenu);
     }, [isInMenu, setInMenu]);
-
-    const handleGameActiveChange = useCallback(
-        (gameItemId: string | null) => {
-            setInGame(gameItemId);
-        },
-        [setInGame],
-    );
 
     useOwnerPresenceCursorSync({ isGuest, updateCursor, screenCursor, hasVisitors, lastRoomPositionRef });
 
@@ -505,61 +487,156 @@ function RoomPageOwner({
         guestRoom,
     });
 
-    const baseOverlaysModel = useRoomOverlaysModel({
+    const ui: RoomOverlaysProps["ui"] = {
         isGuest,
-        roomState,
-        computed,
-        handlers,
-        localItems,
-        catalogItems,
-        layout: { toolbarOffset, drawerOrientation },
-        onboarding: { onboardingStep, onboardingActive, advanceOnboarding, handleOnboardingComplete },
-        presence: {
-            hasVisitors,
-            visitorCount,
-            updateChatMessage,
-            localChatMessage,
-            screenCursor,
-            connectionState,
-            connectionError,
-            wsRef,
-            visitors,
-            activeInvites,
+        mode: roomState.mode,
+        shareAllowed: computed.shareAllowed,
+        visitorCount: visitorCount,
+        drawer: {
+            offset: toolbarOffset,
+            orientation: drawerOrientation,
+            isOpen: roomState.isDrawerOpen,
+            onToggle: handlers.handleDrawerToggle,
         },
+        draggedItemId: roomState.draggedItemId,
+        highlightComputer: onboardingStep === "place-computer",
+        guestItems: computed.guestDrawerItems,
+        placementEligibility: roomState.editingSession.placementEligibility,
+        onToggleMode: handlers.handleModeToggle,
+        onShareClick: () => roomState.setIsShareModalOpen(true),
+        onDeleteItem: handlers.handleDeleteItem,
+        onTouchPlaceItem: handleTouchPlaceStart,
+        touchPlacementItemId: touchPlacementId,
+        onTouchPlacementCancel,
+    };
+
+    const computer: RoomOverlaysProps["computer"] = {
+        isOpen: roomState.isComputerOpen,
+        onClose: () => roomState.setIsComputerOpen(false),
+        shortcuts: roomState.localShortcuts,
+        onUpdateShortcuts: handlers.handleUpdateShortcuts,
         economy: {
             userCurrency: user?.currency ?? roomState.guestCoinsValue ?? 0,
-            effectiveNextRewardAt,
-            effectiveLoginStreak,
-            updateGuestCoins,
-            updateGuestInventory,
+            nextRewardAt: effectiveNextRewardAt,
+            loginStreak: effectiveLoginStreak,
+            guestCoins: roomState.guestCoinsValue,
+            onGuestCoinsChange: roomState.setGuestCoinsValue,
             startingCoins: GUEST_STARTING_COINS,
+            guestInventory: roomState.guestInventoryValue,
+            onGuestPurchase: (itemId: Id<"catalogItems">) => {
+                roomState.setGuestInventoryValue((prev) => [...prev, itemId]);
+            },
         },
-        profile: { cursorColor, handleCursorColorChange },
-        time: { timeOfDay: computed.timeOfDay, overrideTimeOfDay: computed.overrideTimeOfDay, setOverrideTimeOfDay },
-        toasts: {
-            dailyRewardToast,
-            showStripeSuccessToast,
-            setShowStripeSuccessToast,
-            friendRefToast,
-            setFriendRefToast,
+        profile: {
+            displayName: isGuest ? undefined : computed.computedDisplayName,
+            username: isGuest ? undefined : computed.computedUsername,
+            onDisplayNameUpdated: (next) => roomState.setDisplayNameValue(next),
+            cursorColor: cursorColor,
+            onCursorColorChange: handleCursorColorChange,
         },
-        game: {
-            activeGameItemId,
-            setActiveGameItemId,
-            handleGameActiveChange,
-            visitorId: visitorId ?? "owner",
-            setGameMetadata,
+        time: {
+            timeOfDay: computed.timeOfDay,
+            devTimeOfDay: computed.overrideTimeOfDay,
+            onSetDevTimeOfDay: setOverrideTimeOfDay,
         },
-    });
+        onboardingCallbacks: {
+            onShopOpened: () => {
+                if (onboardingStep === "open-shop") {
+                    advanceOnboarding();
+                }
+            },
+            onOnboardingPurchase: () => {
+                if (onboardingStep === "buy-item") {
+                    advanceOnboarding();
+                }
+            },
+            isOnboardingShopStep: onboardingStep === "open-shop",
+            onOnboardingShortcutAdded: () => {
+                if (onboardingStep === "add-shortcut") {
+                    advanceOnboarding();
+                }
+            },
+            highlightFirstMusicItem: computed.shouldHighlightMusicPurchase,
+        },
+        onPointerMove: handlers.handleCursorMove,
+        canSwitchRooms: roomState.canSwitchRooms,
+        saveStatus: roomState.saveStatus,
+        saveError: roomState.saveError,
+        onRetrySave: () => roomState.editingSession.retrySave(),
+    };
 
-    const overlaysModel = {
-        ...baseOverlaysModel,
-        ui: {
-            ...baseOverlaysModel.ui,
-            onTouchPlaceItem: handleTouchPlaceStart,
-            touchPlacementItemId: touchPlacementId,
-            onTouchPlacementCancel,
+    const music: RoomOverlaysProps["music"] = {
+        musicPlayerItemId: roomState.musicPlayerItemId,
+        localItems,
+        musicInteractionToken: roomState.musicInteractionToken,
+        onSave: async (updatedItem) => {
+            const changes: Partial<RoomItem> = { ...updatedItem };
+            delete changes.id;
+            delete changes.catalogItemId;
+            const id = updatedItem.id;
+            roomState.editingSession.changePersistedItem(id, changes, "visitor-observable");
+
+            if (updatedItem.musicUrl && updatedItem.musicPlaying) {
+                roomState.setMusicInteractionToken(Date.now());
+            }
         },
+        onClose: () => roomState.setMusicPlayerItemId(null),
+    };
+
+    const onboardingProps: RoomOverlaysProps["onboarding"] = {
+        active: onboardingActive,
+        step: onboardingStep,
+        onAdvance: advanceOnboarding,
+        onComplete: handleOnboardingComplete,
+        dailyRewardToast: dailyRewardToast,
+        stripeSuccessToast: showStripeSuccessToast,
+        onCloseStripeSuccessToast: () => setShowStripeSuccessToast(false),
+        friendRefToast: friendRefToast,
+        onCloseFriendRefToast: () => setFriendRefToast(null),
+    };
+
+    const presenceProps: RoomOverlaysProps["presence"] = {
+        hasVisitors: hasVisitors,
+        isComputerOpenState: roomState.isComputerOpen,
+        isShareModalOpen: roomState.isShareModalOpen,
+        onCloseShareModal: () => roomState.setIsShareModalOpen(false),
+        updateChatMessage: updateChatMessage,
+        localChatMessage: localChatMessage,
+        screenCursor: screenCursor,
+        connectionState: connectionState,
+        connectionError: connectionError,
+        activeInvites: activeInvites,
+        visitors: visitors,
+    };
+
+    let gameType: GameType | null = null;
+
+    if (activeGameItemId && catalogItems) {
+        const roomItem = localItems.find((i) => i.id === activeGameItemId);
+
+        if (roomItem) {
+            const catalogItem = catalogItems.find((c) => c._id === roomItem.catalogItemId);
+            gameType = catalogItem?.gameType ?? null;
+        }
+    }
+
+    const gameProps: RoomOverlaysProps["game"] = {
+        activeGameItemId: activeGameItemId,
+        gameType,
+        onClose: () => setActiveGameItemId(null),
+        onGameActiveChange: setInGame,
+        visitorId: visitorId ?? "owner",
+        visitors: visitors,
+        setGameMetadata: setGameMetadata,
+    };
+
+    const overlaysModel: RoomOverlaysProps = {
+        ui,
+        computer,
+        music,
+        onboarding: onboardingProps,
+        presence: presenceProps,
+        game: gameProps,
     };
 
     if (gate) return gate;

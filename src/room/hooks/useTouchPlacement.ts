@@ -1,14 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Id } from "@convex/_generated/dataModel";
 import type React from "react";
 import type { RoomEditingSession } from "../session";
 
 const MOVEMENT_THRESHOLD = 18;
-
-interface TouchPlacementState {
-    touchPlacementId: Id<"catalogItems"> | null;
-    touchPlacementOrigin: { x: number; y: number } | null;
-}
 
 interface Handlers {
     handlePlaceCatalogItem: (catalogItemId: Id<"catalogItems">, clientX: number, clientY: number) => void;
@@ -17,10 +12,11 @@ interface Handlers {
 interface RoomState {
     mode: "view" | "edit";
     touchPlacementId: Id<"catalogItems"> | null;
-    editingSession: RoomEditingSession;
+    editingSession: Pick<RoomEditingSession, "beginPlacement" | "cancelPlacement">;
 }
 
-interface UseTouchPlacementResult extends TouchPlacementState {
+interface UseTouchPlacementResult {
+    touchPlacementId: Id<"catalogItems"> | null;
     handleTouchPlaceStart: (catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => void;
     handleTouchPlaceRoom: (event: React.PointerEvent) => void;
     onTouchPlacementCancel: () => void;
@@ -28,8 +24,7 @@ interface UseTouchPlacementResult extends TouchPlacementState {
 
 export function useTouchPlacement(handlers: Handlers, roomState: RoomState): UseTouchPlacementResult {
     const touchPlacementId = roomState.touchPlacementId;
-    const [touchPlacementOrigin, setTouchPlacementOrigin] = useState<{ x: number; y: number } | null>(null);
-    const touchPlacementPointerIdRef = useRef<number | null>(null);
+    const [gesture, setGesture] = useState<{ x: number; y: number; pointerId: number } | null>(null);
 
     const handleTouchPlaceStart = useCallback(
         (catalogItemId: Id<"catalogItems">, event: React.PointerEvent) => {
@@ -38,8 +33,7 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
             event.stopPropagation();
 
             if (!roomState.editingSession.beginPlacement(catalogItemId).accepted) return;
-            setTouchPlacementOrigin({ x: event.clientX, y: event.clientY });
-            touchPlacementPointerIdRef.current = event.pointerId;
+            setGesture({ x: event.clientX, y: event.clientY, pointerId: event.pointerId });
         },
         [roomState.editingSession],
     );
@@ -50,22 +44,19 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
 
             if (!touchPlacementId) return;
 
-            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current)
-                return;
+            if (gesture !== null && event.pointerId !== gesture.pointerId) return;
             event.preventDefault();
             event.stopPropagation();
             handlers.handlePlaceCatalogItem(touchPlacementId, event.clientX, event.clientY);
             roomState.editingSession.cancelPlacement();
-            setTouchPlacementOrigin(null);
-            touchPlacementPointerIdRef.current = null;
+            setGesture(null);
         },
-        [handlers, roomState.editingSession, touchPlacementId],
+        [gesture, handlers, roomState.editingSession, touchPlacementId],
     );
 
     const onTouchPlacementCancel = useCallback(() => {
         roomState.editingSession.cancelPlacement();
-        setTouchPlacementOrigin(null);
-        touchPlacementPointerIdRef.current = null;
+        setGesture(null);
     }, [roomState.editingSession]);
 
     // Clear placement state when mode changes
@@ -73,8 +64,7 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
         if (roomState.mode !== "edit") {
             const timeoutId = setTimeout(() => {
                 roomState.editingSession.cancelPlacement();
-                setTouchPlacementOrigin(null);
-                touchPlacementPointerIdRef.current = null;
+                setGesture(null);
             }, 0);
 
             return () => clearTimeout(timeoutId);
@@ -83,71 +73,52 @@ export function useTouchPlacement(handlers: Handlers, roomState: RoomState): Use
 
     // Handle pointer movement threshold to cancel placement on significant movement
     useEffect(() => {
-        if (!touchPlacementId || !touchPlacementOrigin) return;
+        if (!touchPlacementId || !gesture) return;
 
         const handlePointerMove = (event: PointerEvent) => {
             if (event.pointerType !== "touch") return;
 
-            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
+            if (event.pointerId !== gesture.pointerId) {
                 return;
             }
 
-            const dx = event.clientX - touchPlacementOrigin.x;
-            const dy = event.clientY - touchPlacementOrigin.y;
+            const dx = event.clientX - gesture.x;
+            const dy = event.clientY - gesture.y;
 
             if (Math.hypot(dx, dy) > MOVEMENT_THRESHOLD) {
-                setTouchPlacementOrigin(null);
+                setGesture(null);
                 roomState.editingSession.cancelPlacement();
-                touchPlacementPointerIdRef.current = null;
             }
         };
 
-        const handlePointerCancel = (event: PointerEvent) => {
-            if (event.pointerType !== "touch") return;
+        const handlePointerEnd = (event: PointerEvent) => {
+            if (event.pointerType !== "touch" || event.pointerId !== gesture.pointerId) return;
+            setGesture(null);
 
-            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
-                return;
-            }
-
-            setTouchPlacementOrigin(null);
-            roomState.editingSession.cancelPlacement();
-            touchPlacementPointerIdRef.current = null;
-        };
-
-        const handlePointerUp = (event: PointerEvent) => {
-            if (event.pointerType !== "touch") return;
-
-            if (touchPlacementPointerIdRef.current !== null && event.pointerId !== touchPlacementPointerIdRef.current) {
-                return;
-            }
-
-            setTouchPlacementOrigin(null);
-            touchPlacementPointerIdRef.current = null;
+            if (event.type === "pointercancel") roomState.editingSession.cancelPlacement();
         };
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key !== "Escape") return;
-            setTouchPlacementOrigin(null);
+            setGesture(null);
             roomState.editingSession.cancelPlacement();
-            touchPlacementPointerIdRef.current = null;
         };
 
         window.addEventListener("pointermove", handlePointerMove);
-        window.addEventListener("pointercancel", handlePointerCancel);
-        window.addEventListener("pointerup", handlePointerUp);
+        window.addEventListener("pointercancel", handlePointerEnd);
+        window.addEventListener("pointerup", handlePointerEnd);
         window.addEventListener("keydown", handleKeyDown);
 
         return () => {
             window.removeEventListener("pointermove", handlePointerMove);
-            window.removeEventListener("pointercancel", handlePointerCancel);
-            window.removeEventListener("pointerup", handlePointerUp);
+            window.removeEventListener("pointercancel", handlePointerEnd);
+            window.removeEventListener("pointerup", handlePointerEnd);
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [roomState.editingSession, touchPlacementId, touchPlacementOrigin]);
+    }, [roomState.editingSession, touchPlacementId, gesture]);
 
     return {
         touchPlacementId,
-        touchPlacementOrigin,
         handleTouchPlaceStart,
         handleTouchPlaceRoom,
         onTouchPlacementCancel,
