@@ -14,29 +14,17 @@ export function useCursorColorSaver(
     authedShortcutsRef: React.MutableRefObject<Shortcut[]>,
     saveAuthedCursorColorRef: React.MutableRefObject<((next: string) => void) | null>,
 ) {
-    const debouncedSaveRef = useRef<((next: string) => void) | null>(null);
-
     useEffect(() => {
-        const debounced = debounce((next: string) => {
-            saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor: next });
+        const save = debounce((cursorColor: string) => {
+            saveComputer({ shortcuts: authedShortcutsRef.current, cursorColor });
         }, 200);
-
-        debouncedSaveRef.current = debounced;
-
-        return () => {
-            debouncedSaveRef.current = null;
-        };
-    }, [authedShortcutsRef, saveComputer]);
-
-    useEffect(() => {
-        saveAuthedCursorColorRef.current = (next) => {
-            debouncedSaveRef.current?.(next);
-        };
+        saveAuthedCursorColorRef.current = save;
 
         return () => {
+            save.cancel();
             saveAuthedCursorColorRef.current = null;
         };
-    }, [saveAuthedCursorColorRef]);
+    }, [authedShortcutsRef, saveAuthedCursorColorRef, saveComputer]);
 }
 
 export function useReconcileGuestOnboarding({
@@ -57,18 +45,24 @@ export function useReconcileGuestOnboarding({
     useEffect(() => {
         if (isGuest || reconciledGuestOnboardingRef.current || !user) return;
 
-        const guestCompleted = initialGuestSession?.onboardingCompleted ?? false;
+        let active = true;
+        let retry: ReturnType<typeof setTimeout>;
+        const reconcile = async () => {
+            try {
+                if (initialGuestSession?.onboardingCompleted) await completeOnboarding();
+                if (!active) return;
+                reconciledGuestOnboardingRef.current = true;
+                clearGuestSession();
+            } catch {
+                if (active) retry = setTimeout(reconcile, 5_000);
+            }
+        };
+        void reconcile();
 
-        if (guestCompleted) {
-            reconciledGuestOnboardingRef.current = true;
-            completeOnboarding()
-                .catch(() => {})
-                .finally(() => {
-                    clearGuestSession();
-                });
-        } else {
-            clearGuestSession();
-        }
+        return () => {
+            active = false;
+            clearTimeout(retry);
+        };
     }, [
         clearGuestSession,
         completeOnboarding,
@@ -155,8 +149,6 @@ export function useLeaseHeartbeat({
     const roomId = room?._id ?? null;
     const latestRoomIdRef = useRef<Id<"rooms"> | null>(roomId);
     const sharingActiveRef = useRef(isSharingActive);
-    const hiddenHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
     useEffect(() => {
         hasVisitorsRef.current = hasVisitors;
     }, [hasVisitors]);
@@ -166,105 +158,46 @@ export function useLeaseHeartbeat({
         sharingActiveRef.current = isSharingActive;
     }, [isSharingActive, roomId]);
 
+    const ownerId = room?.userId;
     useEffect(() => {
-        if (isGuest) return;
+        if (isGuest || !roomId || !currentUserId || ownerId !== currentUserId || !isSharingActive) return;
 
-        if (!roomId) return;
-
-        if (!currentUserId) return;
-
-        if (!room || room.userId !== currentUserId) return;
-
-        if (!isSharingActive) return;
-
-        let intervalId: ReturnType<typeof setInterval> | null = null;
-        let stopped = false;
-
-        const stopHiddenHeartbeats = () => {
-            if (hiddenHeartbeatRef.current) {
-                clearInterval(hiddenHeartbeatRef.current);
-                hiddenHeartbeatRef.current = null;
+        // Only idle leases may send; stopped leases cannot be revived by late responses or visibility events.
+        let state: "idle" | "pending" | "stopped" = "idle";
+        let timer: ReturnType<typeof setInterval>;
+        const stop = () => {
+            state = "stopped";
+            clearInterval(timer);
+        };
+        const send = async () => {
+            if (state !== "idle") return;
+            state = "pending";
+            try {
+                const result = await heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current });
+                if (result.closed || result.expiresAt === null) stop();
+            } catch (error) {
+                console.error("[Room] heartbeatInvite failed", error);
+            } finally {
+                if (state === "pending") state = "idle";
             }
         };
-
-        const stopHeartbeats = () => {
-            if (intervalId) {
-                clearInterval(intervalId);
-                intervalId = null;
-            }
-
-            stopHiddenHeartbeats();
+        const schedule = () => {
+            clearInterval(timer);
+            if (state === "stopped") return;
+            const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+            timer = setInterval(() => void send(), hidden ? 60_000 : 120_000);
+            if (hidden) void send();
         };
 
-        const sendHeartbeat = () => {
-            if (stopped) return;
-            heartbeatInvite({ roomId, hasGuests: hasVisitorsRef.current })
-                .then((result) => {
-                    const closed =
-                        typeof result === "object" && result !== null && "closed" in result ? result.closed : false;
-
-                    const reason =
-                        typeof result === "object" && result !== null && "reason" in result ? result.reason : undefined;
-
-                    if (closed || reason === "host-only-timeout") {
-                        stopHeartbeats();
-                    }
-                })
-                .catch((err) => {
-                    console.error("[Room] heartbeatInvite failed", err);
-                    const message = err instanceof Error ? err.message : String(err);
-
-                    if (
-                        message.includes("host-only-timeout") ||
-                        message.includes("invite-missing") ||
-                        message.includes("inactive") ||
-                        message.includes("Not authenticated") ||
-                        message.includes("Forbidden")
-                    ) {
-                        stopHeartbeats();
-                    }
-                });
-        };
-
-        sendHeartbeat();
-        intervalId = setInterval(() => {
-            sendHeartbeat();
-        }, 120_000);
-
-        const maybeAttachVisibilityListener = () => {
-            if (typeof document === "undefined") return null;
-
-            const handleVisibilityChange = () => {
-                const hidden = document.visibilityState === "hidden";
-
-                if (hidden) {
-                    sendHeartbeat();
-
-                    if (!hiddenHeartbeatRef.current) {
-                        hiddenHeartbeatRef.current = setInterval(sendHeartbeat, 60_000);
-                    }
-                } else {
-                    stopHiddenHeartbeats();
-                }
-            };
-
-            document.addEventListener("visibilitychange", handleVisibilityChange);
-            handleVisibilityChange();
-
-            return () => {
-                document.removeEventListener("visibilitychange", handleVisibilityChange);
-                stopHiddenHeartbeats();
-            };
-        };
-
-        const detachVisibility = maybeAttachVisibilityListener();
+        schedule();
+        void send();
+        if (typeof document !== "undefined") document.addEventListener("visibilitychange", schedule);
 
         return () => {
-            stopped = true;
-            stopHeartbeats();
-            detachVisibility?.();
+            stop();
+            if (typeof document !== "undefined") document.removeEventListener("visibilitychange", schedule);
         };
-    }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, room, roomId]);
+    }, [currentUserId, heartbeatInvite, isGuest, isSharingActive, ownerId, roomId]);
 
     // Close invite on unmount (e.g., tab close/navigation) if sharing was active for the latest room.
     useEffect(() => {
