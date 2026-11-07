@@ -1,16 +1,10 @@
-export function debounce<Args extends unknown[]>(func: (...args: Args) => void, wait: number): (...args: Args) => void {
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-
-    return function executedFunction(...args: Args) {
-        const later = () => {
-            timeout = null;
-            func(...args);
-        };
-
-        if (timeout !== null) {
-            clearTimeout(timeout);
-        }
-
-        timeout = setTimeout(later, wait);
+export function debounce<Args extends unknown[]>(func: (...args: Args) => void, wait: number) {
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const cancel = () => clearTimeout(timeout);
+    const debounced = (...args: Args) => {
+        cancel();
+        timeout = setTimeout(() => func(...args), wait);
     };
+
+    return Object.assign(debounced, { cancel });
 }
