@@ -1,3 +1,4 @@
+import type { DesktopInteraction } from "./desktopInteraction";
 import { useEffect, useRef, useState } from "react";
 import { Globe } from "lucide-react";
 import type { Shortcut } from "@shared/guestTypes";
@@ -5,9 +6,7 @@ import type { Shortcut } from "@shared/guestTypes";
 interface DesktopGridProps {
     orderedShortcuts: Shortcut[];
     selectedId: string | null;
-    draggingId: string | null;
-    renamingId: string | null;
-    renameValue: string;
+    interaction: DesktopInteraction;
     desktopScale: number;
     gridHeight: number;
     columns: number;
@@ -58,9 +57,7 @@ function SiteFavicon({ url, className }: { url: string; className?: string }) {
 export function DesktopGrid({
     orderedShortcuts,
     selectedId,
-    draggingId,
-    renamingId,
-    renameValue,
+    interaction,
     desktopScale,
     gridHeight,
     columns,
@@ -74,6 +71,7 @@ export function DesktopGrid({
     onCommitRename,
     onCancelRename,
 }: DesktopGridProps) {
+    const renamingId = interaction.kind === "rename" ? interaction.id : null;
     const renameInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
@@ -99,7 +97,7 @@ export function DesktopGrid({
             >
                 {orderedShortcuts.map((shortcut) => {
                     const isSelected = selectedId === shortcut.id;
-                    const isDragging = draggingId === shortcut.id;
+                    const isDragging = interaction.kind === "drag" && interaction.id === shortcut.id;
 
                     return (
                         <div
@@ -144,7 +142,7 @@ export function DesktopGrid({
                             {renamingId === shortcut.id ? (
                                 <input
                                     ref={renameInputRef}
-                                    value={renameValue}
+                                    value={interaction.kind === "rename" ? interaction.value : ""}
                                     onChange={(e) => onRenameChange(e.target.value)}
                                     onKeyDown={(e) => {
                                         if (e.key === "Enter") {
