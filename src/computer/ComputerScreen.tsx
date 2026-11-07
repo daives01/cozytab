@@ -7,7 +7,7 @@ import type { Id, Doc } from "@convex/_generated/dataModel";
 import { GUEST_STARTING_COINS } from "@shared/guestTypes";
 import { WindowFrame } from "./WindowFrame";
 import { ComputerWindowContent } from "./ComputerWindowContent";
-import type { ContextMenuState } from "./types";
+import { editInteraction, toggleInteraction, type DesktopInteraction } from "./desktopInteraction";
 import { DesktopGrid } from "./DesktopGrid";
 import { InlineAddPrompt } from "./InlineAddPrompt";
 import { DesktopContextMenu } from "./DesktopContextMenu";
@@ -99,31 +99,19 @@ export function ComputerScreen({
     saveError,
     onRetrySave,
 }: ComputerScreenProps) {
-    const [newShortcutUrl, setNewShortcutUrl] = useState("");
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [draggingId, setDraggingId] = useState<string | null>(null);
-    const [renamingId, setRenamingId] = useState<string | null>(null);
-    const [renameValue, setRenameValue] = useState("");
-    const [contextMenu, setContextMenu] = useState<ContextMenuState>(null);
+    const [interaction, setInteraction] = useState<DesktopInteraction>({ kind: "idle" });
+    const draggingId = interaction.kind === "drag" ? interaction.id : null;
+    const renamingId = interaction.kind === "rename" ? interaction.id : null;
+    const inlineAddPrompt = interaction.kind === "add" ? interaction : null;
+    const contextMenu = interaction.kind === "context" ? interaction.menu : null;
+    const isStartMenuOpen = interaction.kind === "start";
+    const isVolumePanelOpen = interaction.kind === "volume";
 
-    const [inlineAddPrompt, setInlineAddPrompt] = useState<{
-        x: number;
-        y: number;
-        row: number;
-        col: number;
-    } | null>(null);
-
-    const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
-    const [isVolumePanelOpen, setIsVolumePanelOpen] = useState(false);
     const [now, setNow] = useState(() => new Date());
     const [desktopScale, setDesktopScale] = useState(1);
     const desktopRef = useRef<HTMLDivElement>(null);
     const dragImageRef = useRef<HTMLDivElement | null>(null);
-
-    const [pendingShortcutPosition, setPendingShortcutPosition] = useState<{
-        row: number;
-        col: number;
-    } | null>(null);
 
     const {
         volume: keyboardVolume,
@@ -144,25 +132,21 @@ export function ComputerScreen({
     const setActiveRoom = useMutation(api.rooms.setActiveRoom);
     const [switchingRoom, setSwitchingRoom] = useState<Id<"rooms"> | null>(null);
 
-    const desktopShortcuts = useMemo(() => normalizeShortcuts(shortcuts ?? []), [shortcuts]);
+    const desktopShortcuts = useMemo(() => normalizeShortcuts(shortcuts), [shortcuts]);
 
     const orderedShortcuts = useMemo(
         () => [...desktopShortcuts].sort((a, b) => (a.row === b.row ? a.col - b.col : a.row - b.row)),
         [desktopShortcuts],
     );
 
-    const maxRowIndex = useMemo(
-        () => orderedShortcuts.reduce((max, s) => Math.max(max, s.row ?? 0), 0),
-        [orderedShortcuts],
-    );
-
-    const gridHeight = useMemo(() => (Math.max(0, maxRowIndex) + 1) * ROW_HEIGHT, [maxRowIndex]);
+    const maxRowIndex = orderedShortcuts.reduce((max, s) => Math.max(max, s.row), 0);
+    const gridHeight = (Math.max(0, maxRowIndex) + 1) * ROW_HEIGHT;
 
     const recomputeScale = useCallback(() => {
         if (!desktopRef.current) return;
         const availableHeight = desktopRef.current.clientHeight - DESKTOP_PADDING_Y;
 
-        if (availableHeight <= 0 || gridHeight <= 0) {
+        if (availableHeight <= 0) {
             setDesktopScale(1);
 
             return;
@@ -212,9 +196,8 @@ export function ComputerScreen({
         [onUpdateShortcuts],
     );
 
-    const cancelRename = useCallback(() => {
-        setRenamingId(null);
-        setRenameValue("");
+    const dismissInteraction = useCallback(() => {
+        setInteraction({ kind: "idle" });
     }, []);
 
     const cleanupDragImage = useCallback(() => {
@@ -232,7 +215,7 @@ export function ComputerScreen({
 
             const target = event.currentTarget;
             const rect = target.getBoundingClientRect();
-            const scale = desktopScale || 1;
+            const scale = desktopScale;
 
             const clone = target.cloneNode(true);
 
@@ -254,10 +237,10 @@ export function ComputerScreen({
     );
 
     const handleAddShortcutInline = () => {
-        if (!pendingShortcutPosition || !newShortcutUrl.trim()) return;
+        if (interaction.kind !== "add" || !interaction.value.trim()) return;
 
-        const url = withProtocol(newShortcutUrl.trim());
-        const { row, col } = pendingShortcutPosition;
+        const url = withProtocol(interaction.value.trim());
+        const { row, col } = interaction;
         const newId = createId();
         const initialName = deriveShortcutName(url);
 
@@ -270,22 +253,15 @@ export function ComputerScreen({
         };
 
         normalizeAndSave([...desktopShortcuts, newShortcut]);
-        setNewShortcutUrl("");
-        setPendingShortcutPosition(null);
-        setInlineAddPrompt(null);
         setSelectedId(newId);
-        setRenamingId(newId);
-        setRenameValue(initialName);
+        setInteraction({ kind: "rename", id: newId, value: initialName });
         onOnboardingShortcutAdded?.();
     };
 
     const handleDeleteShortcut = useCallback(
         (id: string) => {
-            const target = desktopShortcuts.find((s) => s.id === id);
-
-            if (!target) return;
             normalizeAndSave(desktopShortcuts.filter((s) => s.id !== id));
-            setContextMenu(null);
+            setInteraction({ kind: "idle" });
         },
         [desktopShortcuts, normalizeAndSave],
     );
@@ -297,44 +273,28 @@ export function ComputerScreen({
             const isTypingTarget = isComputerTypingTarget(target);
 
             if (e.key === "Escape") {
-                setIsStartMenuOpen(false);
-                setContextMenu(null);
-
-                if (renamingId) {
-                    cancelRename();
-                }
-
-                if (inlineAddPrompt) {
-                    setInlineAddPrompt(null);
-                    setPendingShortcutPosition(null);
-                    setNewShortcutUrl("");
-                }
+                setInteraction({ kind: "idle" });
 
                 onClose();
 
                 return;
             }
 
-            if (e.key === "Enter") {
-                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
-                const selected = desktopShortcuts.find((s) => s.id === selectedId);
+            if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
+            const selected = desktopShortcuts.find((s) => s.id === selectedId);
+            if (!selected) return;
 
-                if (selected) {
+            switch (e.key) {
+                case "Enter":
                     e.preventDefault();
-                    setContextMenu(null);
-                    setIsStartMenuOpen(false);
+                    setInteraction({ kind: "idle" });
                     handleOpenShortcut(selected);
-                }
-            }
-
-            if (e.key === "Backspace" || e.key === "Delete") {
-                if (isTypingTarget || renamingId || draggingId || inlineAddPrompt) return;
-                const selected = desktopShortcuts.find((s) => s.id === selectedId);
-
-                if (selected) {
+                    break;
+                case "Backspace":
+                case "Delete":
                     e.preventDefault();
                     handleDeleteShortcut(selected.id);
-                }
+                    break;
             }
         };
 
@@ -342,7 +302,7 @@ export function ComputerScreen({
 
         return () => window.removeEventListener("keydown", handleKey);
     }, [
-        cancelRename,
+        dismissInteraction,
         desktopShortcuts,
         draggingId,
         handleDeleteShortcut,
@@ -356,22 +316,23 @@ export function ComputerScreen({
         const target = desktopShortcuts.find((s) => s.id === id);
 
         if (!target) {
-            cancelRename();
+            dismissInteraction();
 
             return;
         }
 
-        const trimmedName = renameValue.trim();
+        if (interaction.kind !== "rename" || interaction.id !== id) return;
+        const trimmedName = interaction.value.trim();
 
         if (!trimmedName) {
-            cancelRename();
+            dismissInteraction();
 
             return;
         }
 
         normalizeAndSave(desktopShortcuts.map((s) => (s.id === id ? { ...s, name: trimmedName } : s)));
         setSelectedId(id);
-        cancelRename();
+        dismissInteraction();
     }
 
     const startRename = (id: string) => {
@@ -379,10 +340,7 @@ export function ComputerScreen({
 
         if (!target) return;
         setSelectedId(id);
-        setContextMenu(null);
-        setIsStartMenuOpen(false);
-        setRenamingId(id);
-        setRenameValue(target.name);
+        setInteraction({ kind: "rename", id, value: target.name });
     };
 
     const handleSwitchRoom = async (roomId: Id<"rooms">, windowId?: string) => {
@@ -423,13 +381,7 @@ export function ComputerScreen({
 
         normalizeAndSave(updated);
         cleanupDragImage();
-        setDraggingId(null);
-    };
-
-    const handleDragStart = (id: string) => {
-        setDraggingId(id);
-        setContextMenu(null);
-        setIsStartMenuOpen(false);
+        setInteraction({ kind: "idle" });
     };
 
     const startShortcutDrag = (event: React.DragEvent<HTMLDivElement>, shortcut: Shortcut) => {
@@ -437,49 +389,32 @@ export function ComputerScreen({
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.dropEffect = "move";
         createDragImage(event);
-        handleDragStart(shortcut.id);
+        setInteraction({ kind: "drag", id: shortcut.id });
         document.documentElement.classList.add("cozy-cursor-drag");
     };
 
     const endShortcutDrag = () => {
-        setDraggingId(null);
+        setInteraction({ kind: "idle" });
         cleanupDragImage();
         document.documentElement.classList.remove("cozy-cursor-drag");
     };
 
     const handleDesktopClick = () => {
         setSelectedId(null);
-        setContextMenu(null);
-        setIsStartMenuOpen(false);
-        setIsVolumePanelOpen(false);
-
-        if (renamingId) {
-            cancelRename();
-        }
-
-        if (inlineAddPrompt) {
-            setInlineAddPrompt(null);
-            setPendingShortcutPosition(null);
-            setNewShortcutUrl("");
-        }
+        setInteraction({ kind: "idle" });
     };
 
-    const toggleStartMenu = () => {
-        setIsStartMenuOpen((prev) => !prev);
-        setContextMenu(null);
-        setIsVolumePanelOpen(false);
-    };
-
-    const closeStartMenu = () => {
-        setIsStartMenuOpen(false);
-        setIsVolumePanelOpen(false);
-    };
+    const toggleStartMenu = () => setInteraction((state) => toggleInteraction(state, "start"));
+    const closeStartMenu = dismissInteraction;
 
     const handleContextMenuOpen = (event: React.MouseEvent, shortcut: Shortcut) => {
         event.preventDefault();
         event.stopPropagation();
         setSelectedId(shortcut.id);
-        setContextMenu({ target: "shortcut", id: shortcut.id, x: event.clientX, y: event.clientY });
+        setInteraction({
+            kind: "context",
+            menu: { target: "shortcut", id: shortcut.id, x: event.clientX, y: event.clientY },
+        });
     };
 
     const handleDesktopContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -491,32 +426,24 @@ export function ComputerScreen({
         if (!desktopRef.current) return;
         const { row, col } = findCellFromPoint(event.clientX, event.clientY, desktopRef.current, desktopScale);
         setSelectedId(null);
-        setContextMenu({
-            target: "desktop",
-            x: event.clientX,
-            y: event.clientY,
-            row,
-            col,
+        setInteraction({
+            kind: "context",
+            menu: {
+                target: "desktop",
+                x: event.clientX,
+                y: event.clientY,
+                row,
+                col,
+            },
         });
-        setIsStartMenuOpen(false);
-        setIsVolumePanelOpen(false);
     };
 
-    const toggleVolumePanel = () => {
-        setIsVolumePanelOpen((prev) => !prev);
-        setIsStartMenuOpen(false);
-        setContextMenu(null);
-    };
-
-    const closeVolumePanel = () => setIsVolumePanelOpen(false);
+    const toggleVolumePanel = () => setInteraction((state) => toggleInteraction(state, "volume"));
+    const closeVolumePanel = dismissInteraction;
 
     const startAddAtCell = (row: number, col: number, x: number, y: number) => {
-        setPendingShortcutPosition({ row, col });
-        setNewShortcutUrl("");
-        setInlineAddPrompt({ row, col, x, y });
-        setContextMenu(null);
+        setInteraction({ kind: "add", row, col, x, y, value: "" });
         setSelectedId(null);
-        setRenamingId(null);
     };
 
     const shopWindowProps = {
@@ -536,12 +463,7 @@ export function ComputerScreen({
     return (
         <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center font-['Patrick_Hand']"
-            onClick={() => {
-                setIsStartMenuOpen(false);
-                setContextMenu(null);
-                setIsVolumePanelOpen(false);
-                onClose();
-            }}
+            onClick={onClose}
         >
             <div
                 className="relative rounded-3xl p-4 shadow-2xl border-b-8 border-r-8"
@@ -605,25 +527,22 @@ export function ComputerScreen({
                             <DesktopGrid
                                 orderedShortcuts={orderedShortcuts}
                                 selectedId={selectedId}
-                                draggingId={draggingId}
-                                renamingId={renamingId}
-                                renameValue={renameValue}
+                                interaction={interaction}
                                 desktopScale={desktopScale}
                                 gridHeight={gridHeight}
                                 columns={GRID_COLUMNS}
                                 rowHeight={ROW_HEIGHT}
                                 onSelect={(id) => {
                                     setSelectedId(id);
-                                    setContextMenu(null);
-                                    setIsStartMenuOpen(false);
+                                    setInteraction({ kind: "idle" });
                                 }}
                                 onDoubleClick={handleOpenShortcut}
                                 onContextMenu={handleContextMenuOpen}
                                 onDragStart={startShortcutDrag}
                                 onDragEnd={endShortcutDrag}
-                                onRenameChange={setRenameValue}
+                                onRenameChange={(value) => setInteraction((state) => editInteraction(state, value))}
                                 onCommitRename={commitRename}
-                                onCancelRename={cancelRename}
+                                onCancelRename={dismissInteraction}
                             />
 
                             <div className="absolute inset-0 pointer-events-none">
@@ -736,14 +655,10 @@ export function ComputerScreen({
 
             <InlineAddPrompt
                 prompt={inlineAddPrompt}
-                url={newShortcutUrl}
-                onChange={setNewShortcutUrl}
+                url={inlineAddPrompt?.value ?? ""}
+                onChange={(value) => setInteraction((state) => editInteraction(state, value))}
                 onAdd={handleAddShortcutInline}
-                onCancel={() => {
-                    setInlineAddPrompt(null);
-                    setPendingShortcutPosition(null);
-                    setNewShortcutUrl("");
-                }}
+                onCancel={dismissInteraction}
             />
 
             <DesktopContextMenu
@@ -751,7 +666,7 @@ export function ComputerScreen({
                 shortcuts={desktopShortcuts}
                 onOpen={(shortcut) => {
                     handleOpenShortcut(shortcut);
-                    setContextMenu(null);
+                    setInteraction({ kind: "idle" });
                 }}
                 onRename={startRename}
                 onDelete={handleDeleteShortcut}

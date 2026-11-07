@@ -11,13 +11,14 @@ interface InlineAddPromptProps {
 export function InlineAddPrompt({ prompt, url, onChange, onAdd, onCancel }: InlineAddPromptProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
 
+    const isOpen = prompt !== null;
     useEffect(() => {
-        if (!prompt) return;
+        if (!isOpen) return;
         requestAnimationFrame(() => {
             inputRef.current?.focus();
             inputRef.current?.select();
         });
-    }, [prompt]);
+    }, [isOpen]);
 
     if (!prompt) return null;
 
