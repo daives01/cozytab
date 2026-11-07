@@ -1,5 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
-import type { PresenceMessage, PresenceVisitor as VisitorState } from "../../shared/presenceProtocol";
+import { parseClientPresenceMessage } from "../../shared/validatePresenceMessage";
+import type {
+    ClientPresenceMessage,
+    PresenceMessage,
+    PresenceVisitor as VisitorState,
+} from "../../shared/presenceProtocol";
 
 export interface Env {
     PRESENCE_ROOM: DurableObjectNamespace;
@@ -26,205 +31,26 @@ function readAttachment(socket: WebSocket): WebSocketAttachment | null {
     return socket.deserializeAttachment() as WebSocketAttachment | null;
 }
 
+function visitorFromAttachment(attachment: WebSocketAttachment): VisitorState {
+    return {
+        visitorId: attachment.visitorId,
+        displayName: attachment.displayName,
+        isOwner: attachment.isOwner,
+        x: attachment.x ?? DEFAULT_POSITION.x,
+        y: attachment.y ?? DEFAULT_POSITION.y,
+        chatMessage: null,
+        cursorColor: attachment.cursorColor,
+        inMenu: false,
+        tabbedOut: attachment.tabbedOut ?? false,
+        inGame: attachment.inGame ?? null,
+        gameMetadata: attachment.gameMetadata,
+        convexUserId: attachment.convexUserId,
+    };
+}
+
 const DEFAULT_POSITION = { x: 960, y: 540 };
 const MAX_MESSAGE_SIZE_BYTES = 8192;
-const MAX_NAME_LENGTH = 64;
-const MAX_CHAT_LENGTH = 500;
-const MAX_COORDINATE = 10000;
 const textEncoder = new TextEncoder();
-
-function isFiniteNumber(value: unknown): value is number {
-    return typeof value === "number" && Number.isFinite(value);
-}
-
-function isValidId(value: unknown): value is string {
-    return typeof value === "string" && value.length > 0 && value.length <= 128;
-}
-
-function isValidDisplayName(value: unknown): value is string {
-    return typeof value === "string" && value.length > 0 && value.length <= MAX_NAME_LENGTH;
-}
-
-function isValidCursorColor(value: unknown): value is string | undefined {
-    return value === undefined || (typeof value === "string" && value.length <= 32);
-}
-
-function isValidBoolean(value: unknown): value is boolean | undefined {
-    return value === undefined || typeof value === "boolean";
-}
-
-function isValidInGame(value: unknown): value is string | null | undefined {
-    return value === undefined || value === null || (typeof value === "string" && value.length <= 128);
-}
-
-const MAX_GAME_METADATA_KEYS = 16;
-const MAX_GAME_METADATA_SIZE = 1024;
-
-function isValidGameMetadata(value: unknown): value is Record<string, unknown> | null | undefined {
-    if (value === undefined || value === null) return true;
-
-    if (typeof value !== "object" || Array.isArray(value)) return false;
-
-    // SAFETY: null and arrays are excluded above; this view only reads own keys as unknown before validating each value.
-    const obj = value as Record<string, unknown>;
-    const keys = Object.keys(obj);
-
-    if (keys.length > MAX_GAME_METADATA_KEYS) return false;
-
-    // Shallow validation: primitives only, bounded size
-    for (const key of keys) {
-        if (key.length > 32) return false;
-        const v = obj[key];
-
-        if (v === null || v === undefined) continue;
-
-        if (typeof v === "string" && v.length > 128) return false;
-
-        if (typeof v === "number" && !Number.isFinite(v)) return false;
-
-        if (typeof v !== "string" && typeof v !== "number" && typeof v !== "boolean") return false;
-    }
-
-    // Final size check to catch many small keys
-    try {
-        if (JSON.stringify(obj).length > MAX_GAME_METADATA_SIZE) return false;
-    } catch {
-        return false;
-    }
-
-    return true;
-}
-
-function isValidCursorPayload(data: {
-    [key: string]: unknown;
-}): data is Record<string, unknown> & Omit<Extract<PresenceMessage, { type: "cursor" }>, "type"> {
-    if (
-        !isValidId(data.visitorId) ||
-        !isFiniteNumber(data.x) ||
-        !isFiniteNumber(data.y) ||
-        Math.abs(data.x) > MAX_COORDINATE ||
-        Math.abs(data.y) > MAX_COORDINATE
-    ) {
-        return false;
-    }
-
-    if (!isValidCursorColor(data.cursorColor)) return false;
-
-    if (!isValidBoolean(data.inMenu)) return false;
-
-    if (!isValidBoolean(data.tabbedOut)) return false;
-
-    if (!isValidInGame(data.inGame)) return false;
-
-    if (!isValidGameMetadata(data.gameMetadata)) return false;
-
-    return true;
-}
-
-function clampChatMessage(value: unknown): string | null {
-    if (value === null) return null;
-
-    if (typeof value !== "string") return null;
-
-    return value.slice(0, MAX_CHAT_LENGTH);
-}
-
-function validateMessage(raw: unknown): PresenceMessage | null {
-    // SAFETY: after the object/null checks, reading an optional unknown property asserts no message field type.
-    if (typeof raw !== "object" || raw === null || typeof (raw as { type?: unknown }).type !== "string") {
-        return null;
-    }
-
-    // SAFETY: the preceding check establishes a non-null object with a string type; all other fields remain unknown.
-    const data = raw as { [key: string]: unknown; type: string };
-
-    switch (data.type) {
-        case "join": {
-            if (
-                !isValidId(data.visitorId) ||
-                !isValidDisplayName(data.displayName) ||
-                typeof data.isOwner !== "boolean"
-            ) {
-                return null;
-            }
-
-            if (!isValidCursorColor(data.cursorColor)) return null;
-
-            if (!isValidBoolean(data.tabbedOut)) return null;
-
-            const convexUserId =
-                typeof data.convexUserId === "string" && data.convexUserId.length <= 128
-                    ? data.convexUserId
-                    : undefined;
-
-            return {
-                type: "join",
-                visitorId: data.visitorId,
-                displayName: data.displayName,
-                isOwner: data.isOwner,
-                cursorColor: data.cursorColor,
-                tabbedOut: typeof data.tabbedOut === "boolean" ? data.tabbedOut : undefined,
-                convexUserId,
-            };
-        }
-
-        case "leave": {
-            if (!isValidId(data.visitorId)) return null;
-
-            return { type: "leave", visitorId: data.visitorId };
-        }
-
-        case "rename": {
-            if (!isValidId(data.visitorId) || !isValidDisplayName(data.displayName)) return null;
-
-            if (!isValidCursorColor(data.cursorColor)) return null;
-
-            return {
-                type: "rename",
-                visitorId: data.visitorId,
-                displayName: data.displayName,
-                cursorColor: data.cursorColor,
-            };
-        }
-
-        case "cursor": {
-            if (!isValidCursorPayload(data)) return null;
-            const visitorId = data.visitorId;
-            const x = data.x;
-            const y = data.y;
-            const cursorColor = data.cursorColor;
-            const inMenu = data.inMenu;
-            const tabbedOut = data.tabbedOut;
-            const inGame = data.inGame;
-            const gameMetadata = data.gameMetadata;
-
-            return {
-                type: "cursor",
-                visitorId,
-                x,
-                y,
-                cursorColor,
-                inMenu,
-                tabbedOut: typeof tabbedOut === "boolean" ? tabbedOut : undefined,
-                inGame: inGame !== undefined ? inGame : undefined,
-                gameMetadata: gameMetadata !== undefined ? gameMetadata : undefined,
-            };
-        }
-
-        case "chat": {
-            if (!isValidId(data.visitorId)) return null;
-
-            return { type: "chat", visitorId: data.visitorId, text: clampChatMessage(data.text) };
-        }
-
-        case "state": {
-            return null;
-        }
-
-        default:
-            return null;
-    }
-}
 
 export class PresenceRoom extends DurableObject<Env> {
     private visitors: Map<string, VisitorState> = new Map();
@@ -241,20 +67,7 @@ export class PresenceRoom extends DurableObject<Env> {
             if (!att?.visitorId) continue;
 
             if (!this.visitors.has(att.visitorId)) {
-                this.visitors.set(att.visitorId, {
-                    visitorId: att.visitorId,
-                    displayName: att.displayName,
-                    isOwner: att.isOwner,
-                    x: att.x ?? DEFAULT_POSITION.x,
-                    y: att.y ?? DEFAULT_POSITION.y,
-                    chatMessage: null,
-                    cursorColor: att.cursorColor,
-                    inMenu: false,
-                    tabbedOut: att.tabbedOut ?? false,
-                    inGame: att.inGame ?? null,
-                    gameMetadata: att.gameMetadata,
-                    convexUserId: att.convexUserId,
-                });
+                this.visitors.set(att.visitorId, visitorFromAttachment(att));
             }
         }
     }
@@ -302,10 +115,10 @@ export class PresenceRoom extends DurableObject<Env> {
             return;
         }
 
-        let data: PresenceMessage | null;
+        let data: ClientPresenceMessage | null;
 
         try {
-            data = validateMessage(JSON.parse(message));
+            data = parseClientPresenceMessage(JSON.parse(message));
         } catch (e) {
             console.error("[DO] Error processing message:", e);
             ws.close(1003, "Invalid JSON");
@@ -319,24 +132,26 @@ export class PresenceRoom extends DurableObject<Env> {
             return;
         }
 
+        if (data.type === "join") {
+            this.handleJoin(ws, data);
+            return;
+        }
+        const visitor = this.getVisitorOrClose(ws, data.visitorId);
+        if (!visitor) return;
+
         switch (data.type) {
-            case "join":
-                this.handleJoin(ws, data);
-                break;
             case "cursor":
-                this.handleCursor(data, ws);
+                this.handleCursor(data, ws, visitor);
                 break;
             case "rename":
-                this.handleRename(data, ws);
+                this.handleRename(data, ws, visitor);
                 break;
             case "chat":
-                this.handleChat(data, ws);
+                visitor.chatMessage = data.text;
+                this.broadcast(ws, data);
                 break;
             case "leave":
-                this.handleLeave(data.visitorId, ws);
-                break;
-            default:
-                console.warn("[DO] Unknown message type", data.type);
+                this.handleLeave(visitor.visitorId, ws);
         }
     }
 
@@ -411,20 +226,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
         if (!attachment || attachment.visitorId !== visitorId) return null;
 
-        const visitor: VisitorState = {
-            visitorId: attachment.visitorId,
-            displayName: attachment.displayName,
-            isOwner: attachment.isOwner,
-            x: attachment.x ?? DEFAULT_POSITION.x,
-            y: attachment.y ?? DEFAULT_POSITION.y,
-            chatMessage: null,
-            cursorColor: attachment.cursorColor,
-            inMenu: false,
-            tabbedOut: attachment.tabbedOut ?? false,
-            inGame: attachment.inGame ?? null,
-            gameMetadata: attachment.gameMetadata,
-            convexUserId: attachment.convexUserId,
-        };
+        const visitor = visitorFromAttachment(attachment);
 
         this.visitors.set(visitorId, visitor);
 
@@ -438,11 +240,7 @@ export class PresenceRoom extends DurableObject<Env> {
         ws.serializeAttachment({ ...prev, ...patch });
     }
 
-    private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket) {
-        const visitor = this.getVisitorOrClose(ws, data.visitorId);
-
-        if (!visitor) return;
-
+    private handleCursor(data: Extract<PresenceMessage, { type: "cursor" }>, ws: WebSocket, visitor: VisitorState) {
         visitor.x = data.x;
         visitor.y = data.y;
 
@@ -488,21 +286,7 @@ export class PresenceRoom extends DurableObject<Env> {
         this.broadcast(ws, data);
     }
 
-    private handleChat(data: Extract<PresenceMessage, { type: "chat" }>, ws: WebSocket) {
-        const visitor = this.getVisitorOrClose(ws, data.visitorId);
-
-        if (!visitor) return;
-
-        visitor.chatMessage = data.text;
-
-        this.broadcast(ws, data);
-    }
-
-    private handleRename(data: Extract<PresenceMessage, { type: "rename" }>, ws: WebSocket) {
-        const visitor = this.getVisitorOrClose(ws, data.visitorId);
-
-        if (!visitor) return;
-
+    private handleRename(data: Extract<PresenceMessage, { type: "rename" }>, ws: WebSocket, visitor: VisitorState) {
         visitor.displayName = data.displayName;
 
         const attachmentPatch: Partial<Omit<WebSocketAttachment, "visitorId">> = {
@@ -532,7 +316,11 @@ export class PresenceRoom extends DurableObject<Env> {
     }
 
     private getVisitorOrClose(ws: WebSocket, visitorId: string): VisitorState | null {
-        const visitor = this.visitors.get(visitorId) ?? this.ensureVisitorFromAttachment(ws, visitorId);
+        const attachment = readAttachment(ws);
+        const visitor =
+            attachment?.visitorId === visitorId
+                ? (this.visitors.get(visitorId) ?? this.ensureVisitorFromAttachment(ws, visitorId))
+                : null;
 
         if (!visitor) {
             ws.close(1008, "Join required");
@@ -545,6 +333,7 @@ export class PresenceRoom extends DurableObject<Env> {
 
     private handleLeave(visitorId: string, excludeWs: WebSocket): void {
         this.ensureVisitorFromAttachment(excludeWs, visitorId);
+        excludeWs.serializeAttachment(null);
 
         if (!this.visitors.has(visitorId)) {
             return;
