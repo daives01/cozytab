@@ -700,17 +700,19 @@ function RoomPageOwner({
                 overlays={
                     <>
                         <RoomOverlays {...overlaysModel} />
-                        <div
-                            className="absolute top-24 right-4 z-50 max-w-80 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] p-3 text-[var(--color-foreground)] shadow-[var(--shadow-4)] pointer-events-auto"
-                            style={{ left: drawerOrientation === "left" ? 16 + toolbarOffset : 16 }}
-                            onPointerDown={(event) => event.stopPropagation()}
-                        >
-                            <RoomSaveFeedback
-                                saveStatus={roomState.saveStatus}
-                                saveError={roomState.saveError}
-                                onRetrySave={() => roomState.editingSession.retrySave()}
-                            />
-                        </div>
+                        {roomState.saveStatus !== "clean" && (
+                            <div
+                                className="absolute top-24 right-4 z-50 max-w-80 rounded-xl border-2 border-[var(--color-foreground)] bg-[var(--color-background)] p-3 text-[var(--color-foreground)] shadow-[var(--shadow-4)] pointer-events-auto"
+                                style={{ left: drawerOrientation === "left" ? 16 + toolbarOffset : 16 }}
+                                onPointerDown={(event) => event.stopPropagation()}
+                            >
+                                <RoomSaveFeedback
+                                    saveStatus={roomState.saveStatus}
+                                    saveError={roomState.saveError}
+                                    onRetrySave={() => roomState.editingSession.retrySave()}
+                                />
+                            </div>
+                        )}
                     </>
                 }
             />
